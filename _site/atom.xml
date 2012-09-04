@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+ 
+ <title>TDH Rich Data Capture</title>
+ <link href="http://jcu-eresearch.github.com/TDH-rich-data-capture/atom.xml" rel="self"/>
+ <link href="http://jcu-eresearch.github.com/TDH-rich-data-capture"/>
+ <updated>2012-09-04T17:42:57+10:00</updated>
+ <id>http://jcu-eresearch.github.com/TDH-rich-data-capture</id>
+ <author>
+   <name>JCU eResearch</name>
+   <email>eresearch@jcu.edu.au</email>
+ </author>
+
+ 
+ <entry>
+   <title>Project Description</title>
+   <link href="http://jcu-eresearch.github.com/TDH-rich-data-capture/2012/08/27/what-are-we-doing"/>
+   <updated>2012-08-27T00:00:00+10:00</updated>
+   <id>http://jcu-eresearch.github.com/TDH-rich-data-capture/2012/08/27/what-are-we-doing</id>
+   <content type="html">&lt;p&gt;This project will produce an easy to use provisioning tool for configuring, storing and publishing research data and its associated metadata.  The overall system will be based on the &lt;a href='http://www.coastalcoms.com/'&gt;CoastalCOMS&lt;/a&gt; Data Access Management (CC-DAM) system and &lt;a href='www.jcu.edu.au/'&gt;James Cool University's (JCU)&lt;/a&gt;  &lt;a href='http://www.redboxresearchdata.com.au/'&gt;ReDBox-Mint&lt;/a&gt; metadata repository.&lt;/p&gt;&lt;p&gt;Ingestors will be developed to receive data from a number of different types of data streams, process these streams and feed the data to the CC-DAM:&lt;/p&gt;&lt;ul&gt;
+    &lt;li&gt;Video&lt;/li&gt;
+    &lt;li&gt;Acoustic&lt;/li&gt;
+    &lt;li&gt;Sensor data – for a variety of sensor types&lt;/li&gt;
+    &lt;li&gt;Field observations&lt;/li&gt;
+&lt;/ul&gt;&lt;p&gt;
+The CC-DAM can be searched and downloaded via a web-based interface and The &lt;a href='https://eresearch.jcu.edu.au/tdh'&gt;Tropical Data Hub (TDH)&lt;/a&gt; is a proposed platform to serve data sets related to tropical research from a single virtual location and will include data-integration, visualisation and analytical tools to enable researchers, managers and decision-makers to collaborate around the data.
+&lt;/p&gt;&lt;p&gt;The finished project will be great for researchers because:
+&lt;ul&gt;
+	&lt;li&gt;Single, centralised storage service that can be configured for all of their research data needs.&lt;/li&gt;
+	&lt;li&gt;Easy to use interface for providing all of the related metadata for their project.  This effectively allows the researcher to describe who, what, when, where and why their research was done as well as providing accurate details.&lt;/li&gt;
+	&lt;li&gt;Their research will be published nationally through &lt;a href='http://www.ands.org.au/'&gt;ANDS&lt;/a&gt; &lt;a href='http://researchdata.ands.org.au/'&gt;Research Data Australia (RDA)&lt;/a&gt;.  This gives an increased chance for re-use and recognition of their work.&lt;/li&gt;
+	&lt;li&gt;New software allowing researchers to directly stream sensor data instead of manually retreiving and uploading data from sensors (sometimes numerous and widely dispersed)&lt;/li&gt;
+	&lt;li&gt;A national repository to search for well documented, easily reusable research data.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/p&gt;&lt;p&gt;
+All components developed will be available from this github along with developer and user documentation. 
+&lt;/p&gt;</content>
+ </entry>
+ 
+ <entry>
+   <title>The Team</title>
+   <link href="http://jcu-eresearch.github.com/TDH-rich-data-capture/2012/08/27/the-team"/>
+   <updated>2012-08-27T00:00:00+10:00</updated>
+   <id>http://jcu-eresearch.github.com/TDH-rich-data-capture/2012/08/27/the-team</id>
+   <content type="html">&lt;style&gt;
+    .person               { margin-top: 2em;                        }
+    .teamshot figcaption  { font-style: italic;                     }
+    .teamshot img         { width: 100%;        border: 0;          }
+    .avatarwrapper        { float: left;        padding: 0 1em 0 0; }
+    .person p             { clear: both;                            }
+&lt;/style&gt;&lt;div class='person'&gt;
+    &lt;a name='marianne'&gt; &lt;/a&gt;
+    
+    
+        &lt;div class='avatarwrapper'&gt;
+            &lt;img class='avatar' src='http://www.gravatar.com/avatar/024deb6605ebc9c11fd906a06c410c0b?s=64' /&gt;
+        &lt;/div&gt;
+    
+    &lt;h2&gt;Marianne Brown&lt;/h2&gt;
+    &lt;h3&gt;Project Manager&lt;/h3&gt;
+    &lt;p&gt;
+    Marianne has worked in the IT industry since 1994 in a variety of roles
+    from research programmer, university lecturer, software engineer and
+    systems analyst and designer. She has been employed at the eResearch Centre
+    at James Cook University since 2009, working on various web application
+    projects and has been involved in several ANDS/QCIF funded projects: &lt;/p&gt;
+    &lt;ul&gt;
+        &lt;li&gt;&lt;i&gt;EIF046 - Tropical Data Hub Portal&lt;/i&gt; - created a Plone product
+        to add a simple metadata repository to a Plone site. &lt;br /&gt;
+        The code and documentation is available from the &lt;a href='http://jcu-eresearch.github.com/tdh.metadata'&gt;github
+            site&lt;/a&gt;.&lt;/li&gt;
+        &lt;li&gt;&lt;i&gt;SC23 - Tropical Data Hub Collection Discovery and Description&lt;/i&gt;
+        - this project's aim was to use the system developed in EIF046 to enter
+        metadata records for JCU research data and have these harvested by ANDS
+        for publication on &lt;a href='http://services.ands.org.au/'&gt;Research 
+        Data Australia&lt;/a&gt;. By the end of the project, 68 collection records had
+        been collected and published.
+        &lt;/li&gt;
+    &lt;/ul&gt;
+    &lt;p&gt;
+    Currently, Marianne is managing a number of ANDS funded projects.&lt;/p&gt;
+&lt;/div&gt;&lt;div class='person'&gt;
+    &lt;a name='casey'&gt; &lt;/a&gt;
+    
+    
+    &lt;h2&gt;Casey Bajema&lt;/h2&gt;
+    &lt;h3&gt;Research Data Analyst and Technical Lead&lt;/h3&gt;
+    &lt;p&gt; Casey graduated JCU in 2008 with a bachelor of Computer Systems Engineering (with honours), and started Bajtech in 2009 (which merged with CREANDSEL Pty Ltd in 2012).  At Bajtech Casey has provided computer support services, web development, application development and worked with another engineer to develop the software (user interface and embedded) and electronics for a 3D printer and milling machine.
+    &lt;/p&gt;
+    &lt;p&gt;Technologies familiar with:&lt;/p&gt;
+    &lt;ul&gt;
+        &lt;li&gt;Web based -  HTML, CSS, PHP, Javascript, MySQL&lt;/li&gt;
+        &lt;li&gt;Application -  Java, some C++&lt;/li&gt;
+        &lt;li&gt;Java Frameworks – OSGi, Java3D, libUSBx, RXTX&lt;/li&gt;
+        &lt;li&gt;Embedded -  assembly, C, Microchip&lt;/li&gt;
+        &lt;li&gt;Software -  IntelliJ Idea, Adobe Photoshop, Altium, Subversion, Maven, OneJar, Ant, Nullsoft&lt;/li&gt;
+   &lt;/ul&gt;
+&lt;/div&gt;</content>
+ </entry>
+ 
+ <entry>
+   <title>Project Outputs &#38; Our Primary Product</title>
+   <link href="http://jcu-eresearch.github.com/TDH-rich-data-capture/2012/08/27/project-outputs--our-primary-product"/>
+   <updated>2012-08-27T00:00:00+10:00</updated>
+   <id>http://jcu-eresearch.github.com/TDH-rich-data-capture/2012/08/27/project-outputs--our-primary-product</id>
+   <content type="html">&lt;p&gt;To put it simply this project will provide an easy to use interface to wrap a number of cutting edge technologies together to provide nationally searchable and reusable datasets.&lt;/p&gt;
+
+&lt;p&gt;This software is important because data that is difficult to find or has uncertain reliability prohibits reuse. By providing a singular, easy to use system that captures, processes and publishes research data and all the relevant metadata (researchers involved, sensor accuracies, data coverage, etc.) on an easy to search, national website it allows researchers to more efficiently build on each others work.&lt;/p&gt;
+
+&lt;p&gt;The system is intended to accommodate a wide range of data types allowing new projects to be configured with the minimum of difficulty. User documentation will be provided outlining how to configure new projects and developer documentation will outline how to create new ingestors.&lt;/p&gt;
+
+&lt;p&gt;Documentation will also be provided on how to integrate the developed software into the underlying systems.&lt;/p&gt;</content>
+ </entry>
+ 
+ <entry>
+   <title>Key Technologies &#38; Key features</title>
+   <link href="http://jcu-eresearch.github.com/TDH-rich-data-capture/2012/08/27/key-technologies--key-features"/>
+   <updated>2012-08-27T00:00:00+10:00</updated>
+   <id>http://jcu-eresearch.github.com/TDH-rich-data-capture/2012/08/27/key-technologies--key-features</id>
+   <content type="html">&lt;h2 id='major_features'&gt;Major Features&lt;/h2&gt;
+
+&lt;p&gt;There are technologies available for storing data and metadata as well as providing processing, publishing and searching services. The core feature of this project is to tie those technologies together and provide the end users with a single, intuitive interface to interact with it.&lt;/p&gt;
+
+&lt;p&gt;It is critical to make configuring a datasets metadata, ingestors, processors and reports as intuitive as possible while requiring &lt;a href='http://www.ands.org.au/guides/content-providers-guide.html'&gt;RIF-CS&lt;/a&gt; compliant metadata.&lt;/p&gt;
+
+&lt;p&gt;Types of research data that the system will initially be configured for: &lt;ul&gt;
+	&lt;li&gt;Video&lt;/li&gt;
+	&lt;li&gt;Acoustic&lt;/li&gt;
+	&lt;li&gt;Sensor data - for a variety of sensor types&lt;/li&gt;
+	&lt;li&gt;Field observations&lt;/li&gt;
+&lt;/ul&gt;&lt;/p&gt;
+
+&lt;h2 id='architecture'&gt;Architecture&lt;/h2&gt;
+&lt;img class='diagram' src='/TDH-rich-data-capture/images/high-level-architecture.png' /&gt;
+&lt;h2 id='technology'&gt;Technology&lt;/h2&gt;
+
+&lt;p&gt;The provisioning interface will be delivered in browser using &lt;a href='http://www.python.org/'&gt;Python&lt;/a&gt; with the &lt;a href='http://docs.pylonsproject.org/en/latest/docs/pyramid.html'&gt;Pyramid&lt;/a&gt; and &lt;a href='http://docs.pylonsproject.org/projects/deform/en/latest/'&gt;Deform&lt;/a&gt; frameworks. It will provide a user friendly workflow for entering all configuration and metadata about the project at a single location. The entered data will be passed to the &lt;a href='http://www.coastalcoms.com/'&gt;CoastalCOMS&lt;/a&gt; Data Access Management (CC-DAM), &lt;a href='http://www.opengeospatial.org/standards/sos'&gt;Sensor Observation Service (SOS)&lt;/a&gt; and &lt;a href='http://www.redboxresearchdata.com.au/'&gt;ReDBox-Mint&lt;/a&gt; systems to tie them together as a single easy to use system.&lt;/p&gt;
+
+&lt;p&gt;The implementation of &lt;a href='http://www.opengeospatial.org/standards/sos'&gt;SOS&lt;/a&gt; provided by &lt;a href='http://52north.org/'&gt;52&amp;#176; North&lt;/a&gt; will be used to receive environmental sensor data and metadata from the devices themselves. A new data layer will need to be written based on the CC-DAM system. A &lt;a href='http://www.dataturbine.org/'&gt;Data Turbine&lt;/a&gt; sink implementation will written to allow buffering of data sent to the &lt;a href='http://www.opengeospatial.org/standards/sos'&gt;SOS&lt;/a&gt;, it will be optional to use the &lt;a href='http://www.dataturbine.org/'&gt;Data Turbine&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;CC-DAM will be used for data ingestion and storage. CC-DAM is proprietary software that will be setup and configured at &lt;a href='http://www.jcu.edu.au/'&gt;James Cook University&lt;/a&gt; with an open source ingestor platform developed in &lt;a href='http://www.java.com/en/'&gt;Java&lt;/a&gt; with a &lt;a href='http://www.json.org/'&gt;JSON&lt;/a&gt; API.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href='http://www.jcu.edu.au'&gt;JCU&amp;#8217;s&lt;/a&gt; &lt;a href='http://www.redboxresearchdata.com.au/'&gt;ReDBox-Mint&lt;/a&gt; installation will be used for storing, searching and publishing research metadata. ReDBox captures collection metadata (information about research data) whereas Mint is a name authority and vocabulary system (information about people, activities and services). Both ReDBox and Mint provide an &lt;a href='http://www.openarchives.org/pmh/'&gt;OAI-PMH&lt;/a&gt; interface for harvesting their information and will be configured for &lt;a href='http://researchdata.ands.org.au/'&gt;Research Data Australia (RDA)&lt;/a&gt; so that metadata is published nationally.&lt;/p&gt;
+
+&lt;h2 id='development_effort'&gt;Development Effort&lt;/h2&gt;
+
+&lt;p&gt;One major area of development effort is making the interface as easy to use as possible so that researchers readily use the system and provide as much information as possible. This includes well developed form elements, a good workflow and ease of configuring/adding new storage schemas or processes.&lt;/p&gt;
+
+&lt;p&gt;The second major area of development effort will be ensuring metadata is as complete as possible, this is essential for providing data that is easy to reuse, which is the core principle of this project. This will be implemented by requiring the minimum &lt;a href='http://www.ands.org.au/guides/content-providers-guide.html'&gt;RIF-CS&lt;/a&gt; metadata before the configuration is valid and developing the interface to encourage the user to add other relevant metadata.&lt;/p&gt;
+
+&lt;p&gt;The third major area of development effort will be creating ingestors and storage schema configurations that are as adaptable as possible so that most project can be setup without requiring custom coding.&lt;/p&gt;
+
+&lt;h2 id='the_source'&gt;The Source&lt;/h2&gt;
+
+&lt;p&gt;The project uses a local install of Redmine for project tracking, Jenkins for integration testing, and hosts the source at a github repository.&lt;/p&gt;
+
+&lt;p&gt;The source is available under the three-clause BSD licence.&lt;/p&gt;</content>
+ </entry>
+ 
+ <entry>
+   <title>Key factors customers will use to judge the value of our product</title>
+   <link href="http://jcu-eresearch.github.com/TDH-rich-data-capture/2012/08/27/key-factors-customers-will-use-to-judge-the-value-of-our-product"/>
+   <updated>2012-08-27T00:00:00+10:00</updated>
+   <id>http://jcu-eresearch.github.com/TDH-rich-data-capture/2012/08/27/key-factors-customers-will-use-to-judge-the-value-of-our-product</id>
+   <content type="html">&lt;p&gt;The core value of this project is wrapping other well developed technologies into a single system for the end user.  This will allow researchers to provision the storage of data and enter all relevant metadata in a single interface which publishes nationally to &lt;a href='http://researchdata.ands.org.au/'&gt;Research Data Australia (RDA)&lt;/a&gt;.&lt;/p&gt;&lt;p&gt;One of our key user groups is researchers that are looking for a way to store their data.  These users will be primarily concerned with:
+	&lt;ol&gt;
+		&lt;li&gt;Ease, speed and stability of using the system.&lt;/li&gt;
+		&lt;li&gt;Ability to ingest their particular type of data either via manual upload or directly streamed.&lt;/li&gt;
+		&lt;li&gt;Ability to process their data, how they want it processed, when it is ingested.&lt;/li&gt;
+		&lt;li&gt;Ability to enter all relevant metadata about their research in an appropriate manner.&lt;/li&gt;
+		&lt;li&gt;Appropriate workflow for publishing their data nationally on &lt;a href='http://researchdata.ands.org.au/'&gt;Research Data Australia (RDA)&lt;/a&gt;.&lt;/li&gt;
+	&lt;/ol&gt;
+&lt;/p&gt;&lt;p&gt;The first point requires a well-developed, intuitive user interface that allows researchers to easily setup a project with the associated metadata, processors and reporting as well as providing an easy way to add new data to a currently running project.&lt;/p&gt;&lt;p&gt;The second and third points hinge around the flexibility of ingestors and processors written for the &lt;a href='http://www.coastalcoms.com/'&gt;CoastalCOMS&lt;/a&gt; Data Access Management (CC-DAM) and the ease of implementing new ingestors.  We are gathering information from researchers who use the four data types to find current and foreseeable ingestor requirements.&lt;/p&gt;&lt;p&gt;To address the fourth and fifth points our systems interface will require valid &lt;a href='http://www.ands.org.au/guides/content-providers-guide.html'&gt;RIF-CS&lt;/a&gt; metadata and use &lt;a href='http://www.jcu.edu.au/'&gt;James Cook University's (JCU)&lt;/a&gt; &lt;a href='http://www.redboxresearchdata.com.au/'&gt;ReDBox-Mint&lt;/a&gt; software to store and publish the metadata.&lt;/p&gt;&lt;p&gt;The other key user group is researchers that are searching for data to use in their own research.  These users will be primarily concerned with:
+	&lt;ol&gt;
+		&lt;li&gt;Quality of metadata that the system captures&lt;/li&gt;
+		&lt;li&gt;Ease of searching and accessing data&lt;/li&gt;
+		&lt;li&gt;Quality of reporting and output methods.&lt;/li&gt;
+	&lt;/ol&gt;
+&lt;/p&gt;&lt;p&gt;The first two points will be addressed by using &lt;a href='http://www.jcu.edu.au/'&gt;JCU's&lt;/a&gt; &lt;a href='http://www.redboxresearchdata.com.au/'&gt;ReDBox-Mint&lt;/a&gt; system which requires valid &lt;a href='http://www.ands.org.au/guides/content-providers-guide.html'&gt;RIF-CS&lt;/a&gt; metadata and publishes records nationally on &lt;a href='http://researchdata.ands.org.au/'&gt;RDA&lt;/a&gt;.&lt;/p&gt;&lt;p&gt;The third point will be addressed by providing well documented methods of querying the CC-DAM system to suit the requirements that &lt;a href='http://www.jcu.edu.au/'&gt;JCU&lt;/a&gt; researchers can foresee needing.&lt;/p&gt;</content>
+ </entry>
+ 
+ <entry>
+   <title>How the product will meet our users needs</title>
+   <link href="http://jcu-eresearch.github.com/TDH-rich-data-capture/2012/08/27/how-the-product-will-meet-our-users-needs"/>
+   <updated>2012-08-27T00:00:00+10:00</updated>
+   <id>http://jcu-eresearch.github.com/TDH-rich-data-capture/2012/08/27/how-the-product-will-meet-our-users-needs</id>
+   <content type="html">&lt;p&gt;&lt;b&gt;Researchers looking to store data&lt;/b&gt; will benefit from the availability of a single interface for all their data storage, processing and publishing requirements, ability to easily publish their research nationally thereby providing the opportunity for increased recognition of their work and a structured way to record descriptions, coverage, calibration and other information linked to their research data. &lt;/p&gt;&lt;p&gt;&lt;b&gt;Researchers searching for data&lt;/b&gt; to reuse will benefit from a standardised system for a wide range of research data thereby making it easier to search.  They will also benefit from increased availability of research data as entry into the system will publish the metadata nationally on Research Data Australia (RDA) and enforcing valid RIF-CS metadata will improve research data descriptions, coverage and reliability information.&lt;/p&gt;&lt;p&gt;&lt;b&gt;&lt;a href='http://www.ands.org.au/'&gt;Research Data Australia&lt;/a&gt;&lt;/b&gt; will benefit by being populated with research data from numerous projects at JCU and other users of the system.&lt;/p&gt;&lt;p&gt;&lt;b&gt;&lt;a href='http://www.jcu.edu.au/ctbcc/'&gt;CTBCC&lt;/a&gt; and the Australian Wet Tropics research&lt;/b&gt; will participate as examples of manual data and sensor feeds and will benefit from customised ingestors and the trasfer of over 60 datasets into the new systems.&lt;/p&gt;&lt;p&gt;&lt;b&gt;&lt;a href='http://eresearch.jcu.edu.au/projects/semat-1'&gt;SEMAT&lt;/a&gt; and &lt;a href='http://www.sciencemob.org/'&gt;ScienceMob&lt;/a&gt;&lt;/b&gt; will participate as examples for streamed sensor feeds.&lt;/p&gt;</content>
+ </entry>
+ 
+ 
+</feed>
