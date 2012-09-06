@@ -10,7 +10,7 @@ tags: [andsProjectDescription, andsContext, andsAims, DIISRTE, fundedByAustralia
 
 <p>This project will produce an easy to use provisioning tool for configuring, storing and publishing research data and its associated metadata.  The overall system will be based on the <a href="http://www.coastalcoms.com/">CoastalCOMS</a> Data Access Management (CC-DAM) system and <a href="www.jcu.edu.au/">James Cool University's (JCU)</a>  <a href="http://www.redboxresearchdata.com.au/">ReDBox-Mint</a> metadata repository.</p>
 
-<p>Ingestors will be developed to receive data from a number of different types of data streams, process these streams and feed the data to the CC-DAM:</p>
+<p>ingesters will be developed to receive data from a number of different types of data streams, process these streams and feed the data to the CC-DAM:</p>
 <ul>
     <li>Video</li>
     <li>Acoustic</li>

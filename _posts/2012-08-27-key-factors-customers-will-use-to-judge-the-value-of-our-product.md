@@ -22,7 +22,7 @@ tags: [andsQuality, andsValue, andsAssessment, andsCustomers, DIISRTE, fundedByA
 
 <p>The first point requires a well-developed, intuitive user interface that allows researchers to easily setup a project with the associated metadata, processors and reporting as well as providing an easy way to add new data to a currently running project.</p>
 
-<p>The second and third points hinge around the flexibility of ingestors and processors written for the <a href="http://www.coastalcoms.com/">CoastalCOMS</a> Data Access Management (CC-DAM) and the ease of implementing new ingestors.  We are gathering information from researchers who use the four data types to find current and foreseeable ingestor requirements.</p>
+<p>The second and third points hinge around the flexibility of ingesters and processors written for the <a href="http://www.coastalcoms.com/">CoastalCOMS</a> Data Access Management (CC-DAM) and the ease of implementing new ingesters.  We are gathering information from researchers who use the four data types to find current and foreseeable ingester requirements.</p>
 
 <p>To address the fourth and fifth points our systems interface will require valid <a href="http://www.ands.org.au/guides/content-providers-guide.html">RIF-CS</a> metadata and use <a href="http://www.jcu.edu.au/">James Cook University's (JCU)</a> <a href="http://www.redboxresearchdata.com.au/">ReDBox-Mint</a> software to store and publish the metadata.</p>
 

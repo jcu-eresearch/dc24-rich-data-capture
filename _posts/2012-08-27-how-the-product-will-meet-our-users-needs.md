@@ -14,6 +14,6 @@ tags: [andsCustomers, andsOwners, DIISRTE, fundedByAustralianNationalDataService
 
 <p><b><a href="http://www.ands.org.au/">Research Data Australia</a></b> will benefit by being populated with research data from numerous projects at JCU and other users of the system.</p>
 
-<p><b><a href="http://www.jcu.edu.au/ctbcc/">CTBCC</a> and the Australian Wet Tropics research</b> will participate as examples of manual data and sensor feeds and will benefit from customised ingestors and the trasfer of over 60 datasets into the new systems.</p>
+<p><b><a href="http://www.jcu.edu.au/ctbcc/">CTBCC</a> and the Australian Wet Tropics research</b> will participate as examples of manual data and sensor feeds and will benefit from customised ingesters and the trasfer of over 60 datasets into the new systems.</p>
 
 <p><b><a href="http://eresearch.jcu.edu.au/projects/semat-1">SEMAT</a> and <a href="http://www.sciencemob.org/">ScienceMob</a></b> will participate as examples for streamed sensor feeds.</p>
