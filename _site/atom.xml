@@ -4,7 +4,7 @@
  <title>TDH Rich Data Capture</title>
  <link href="http://jcu-eresearch.github.com/TDH-rich-data-capture/atom.xml" rel="self"/>
  <link href="http://jcu-eresearch.github.com/TDH-rich-data-capture"/>
- <updated>2012-09-04T17:42:57+10:00</updated>
+ <updated>2012-09-06T10:10:34+10:00</updated>
  <id>http://jcu-eresearch.github.com/TDH-rich-data-capture</id>
  <author>
    <name>JCU eResearch</name>
@@ -95,6 +95,24 @@ All components developed will be available from this github along with developer
         &lt;li&gt;Embedded -  assembly, C, Microchip&lt;/li&gt;
         &lt;li&gt;Software -  IntelliJ Idea, Adobe Photoshop, Altium, Subversion, Maven, OneJar, Ant, Nullsoft&lt;/li&gt;
    &lt;/ul&gt;
+&lt;/div&gt;&lt;div class='person'&gt;
+    &lt;a name='nigelSims'&gt; &lt;/a&gt;
+    
+    
+    &lt;h2&gt;Nigel Sims&lt;/h2&gt;
+    &lt;h3&gt;CC-DAM Software Engineer&lt;/h3&gt;   
+&lt;/div&gt;&lt;div class='person'&gt;
+    &lt;a name='nigelBajema'&gt; &lt;/a&gt;
+    
+    
+    &lt;h2&gt;Nigel Bajema&lt;/h2&gt;
+    &lt;h3&gt;SEMAT &amp;#38; ScienceMob Software Engineer, PhD Candidate&lt;/h3&gt;    
+&lt;/div&gt;&lt;div class='person'&gt;
+    &lt;a name='jin'&gt; &lt;/a&gt;
+    
+    
+    &lt;h2&gt;Yong Jin Lee&lt;/h2&gt;
+    &lt;h3&gt;SEMAT &amp;#38; ScienceMob Software Engineer, PhD Candidate&lt;/h3&gt;
 &lt;/div&gt;</content>
  </entry>
  
@@ -134,11 +152,11 @@ All components developed will be available from this github along with developer
 &lt;img class='diagram' src='/TDH-rich-data-capture/images/high-level-architecture.png' /&gt;
 &lt;h2 id='technology'&gt;Technology&lt;/h2&gt;
 
-&lt;p&gt;The provisioning interface will be delivered in browser using &lt;a href='http://www.python.org/'&gt;Python&lt;/a&gt; with the &lt;a href='http://docs.pylonsproject.org/en/latest/docs/pyramid.html'&gt;Pyramid&lt;/a&gt; and &lt;a href='http://docs.pylonsproject.org/projects/deform/en/latest/'&gt;Deform&lt;/a&gt; frameworks. It will provide a user friendly workflow for entering all configuration and metadata about the project at a single location. The entered data will be passed to the &lt;a href='http://www.coastalcoms.com/'&gt;CoastalCOMS&lt;/a&gt; Data Access Management (CC-DAM), &lt;a href='http://www.opengeospatial.org/standards/sos'&gt;Sensor Observation Service (SOS)&lt;/a&gt; and &lt;a href='http://www.redboxresearchdata.com.au/'&gt;ReDBox-Mint&lt;/a&gt; systems to tie them together as a single easy to use system.&lt;/p&gt;
+&lt;p&gt;The provisioning interface will be delivered in browser closely linked to the &lt;a href='http://www.redboxresearchdata.com.au/'&gt;ReDBox&lt;/a&gt; system and will provide a user friendly workflow for entering all configuration and metadata about the project at a single location. The entered data will be passed to the &lt;a href='http://www.coastalcoms.com/'&gt;CoastalCOMS&lt;/a&gt; Data Access Management (CC-DAM), &lt;a href='http://www.opengeospatial.org/standards/sos'&gt;Sensor Observation Service (SOS)&lt;/a&gt; and &lt;a href='http://www.redboxresearchdata.com.au/'&gt;ReDBox-Mint&lt;/a&gt; systems to tie them together as a single easy to use system.&lt;/p&gt;
 
 &lt;p&gt;The implementation of &lt;a href='http://www.opengeospatial.org/standards/sos'&gt;SOS&lt;/a&gt; provided by &lt;a href='http://52north.org/'&gt;52&amp;#176; North&lt;/a&gt; will be used to receive environmental sensor data and metadata from the devices themselves. A new data layer will need to be written based on the CC-DAM system. A &lt;a href='http://www.dataturbine.org/'&gt;Data Turbine&lt;/a&gt; sink implementation will written to allow buffering of data sent to the &lt;a href='http://www.opengeospatial.org/standards/sos'&gt;SOS&lt;/a&gt;, it will be optional to use the &lt;a href='http://www.dataturbine.org/'&gt;Data Turbine&lt;/a&gt;.&lt;/p&gt;
 
-&lt;p&gt;CC-DAM will be used for data ingestion and storage. CC-DAM is proprietary software that will be setup and configured at &lt;a href='http://www.jcu.edu.au/'&gt;James Cook University&lt;/a&gt; with an open source ingestor platform developed in &lt;a href='http://www.java.com/en/'&gt;Java&lt;/a&gt; with a &lt;a href='http://www.json.org/'&gt;JSON&lt;/a&gt; API.&lt;/p&gt;
+&lt;p&gt;CC-DAM will be used for data ingestion and storage. CC-DAM is proprietary software that will be setup and configured at &lt;a href='http://www.jcu.edu.au/'&gt;James Cook University&lt;/a&gt; with an open source ingestor platform developed in &lt;a href='http://www.java.com/en/'&gt;Java&lt;/a&gt; with a &lt;a href='http://www.json.org/'&gt;JSON&lt;/a&gt; API and ingestors will be written in &lt;a href='http://www.python.org/'&gt;Python&lt;/a&gt;.&lt;/p&gt;
 
 &lt;p&gt;&lt;a href='http://www.jcu.edu.au'&gt;JCU&amp;#8217;s&lt;/a&gt; &lt;a href='http://www.redboxresearchdata.com.au/'&gt;ReDBox-Mint&lt;/a&gt; installation will be used for storing, searching and publishing research metadata. ReDBox captures collection metadata (information about research data) whereas Mint is a name authority and vocabulary system (information about people, activities and services). Both ReDBox and Mint provide an &lt;a href='http://www.openarchives.org/pmh/'&gt;OAI-PMH&lt;/a&gt; interface for harvesting their information and will be configured for &lt;a href='http://researchdata.ands.org.au/'&gt;Research Data Australia (RDA)&lt;/a&gt; so that metadata is published nationally.&lt;/p&gt;
 
