@@ -1,8 +1,0 @@
-<metal:company_menu define-macro="company_menu">
-    <ul id="company_menu">
-        <li>Projects: </li>
-        <li tal:repeat="project projects">
-            <a href="${project.name}">${project.title}</a>
-        </li>
-    </ul>
-</metal:company_menu>
