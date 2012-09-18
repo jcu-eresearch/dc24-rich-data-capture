@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:metal="http://xml.zope.org/namespaces/metal" xmlns:tal="http://xml.zope.org/namespaces/tal" metal:define-macro="layout" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://xml.zope.org/namespaces/metal ">
+<head>
+    <title>Research Data Provisioning</title>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
+    <meta name="keywords" content="python web application"/>
+    <meta name="description" content="pyramid web application"/>
+    <link rel="shortcut icon" href="${request.static_url('provisioninginterface:static/favicon.ico')}"/>
+    <!--<link rel="stylesheet" href="${request.static_url('provisioninginterface:static/pylons.css')}" type="text/css" media="screen" charset="utf-8" /> -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js"></script>
+    <link rel="stylesheet" href="/deform_static/css/form.css" type="text/css" />
+    <link rel="stylesheet" href="/static/template.css" type="text/css" />
+    <script type="text/javascript" src="/deform_static/scripts/jquery-1.4.2.min.js"></script>
+    <script type="text/javascript" src="/deform_static/scripts/deform.js"></script>
+</head>
+<body>
+    <div id="wrapper">
+        <div id="inner_wrapper">
+           <div id="header">
+               <div id="logo">
+                   ---------Header---------
+               </div>
+                <div id="nav">
+                    <a href="/">Home</a>
+                </div>
+            </div>
+
+            <div id="center">
+                <div id="sidebar">
+                    ---Sidebar---
+                </div>
+                <div id="content">
+                    <div id="main">
+                        <h1>${page_title}</h1>
+                        <div metal:define-slot="content">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="footer">
+                ---------Footer---------
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript">
+        deform.load()
+    </script>
+</body>
+</html>

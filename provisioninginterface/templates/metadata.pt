@@ -1,0 +1,6 @@
+<div metal:use-macro="view.workflow_template">
+    <div metal:fill-slot="workflow-content">
+        <p>Under Development</p>
+        <div tal:content="structure form">form</div>
+    </div>
+</div>

@@ -1,0 +1,92 @@
+html {
+    font-size: 16px;
+    background-color: #aaa;
+    background-color: #aaa;
+}
+
+#header {
+    background-color: #bbb;
+}
+
+#logo {
+    height: 120px;
+}
+
+#nav {
+    background-color: #888;
+}
+
+#wrapper {
+    text-align: center;
+    margin: auto;
+    width: 1200px;
+}
+
+#inner_wrapper {
+    text-align: left;
+    background-color: #fff;
+}
+
+#center {
+    clear: both;
+}
+
+#sidebar {
+    float: left;
+    width: 240px;
+    position: relative;
+    background-color: red
+}
+
+#content {
+    float: left;
+    width: 950px;
+}
+
+div#workflow ul {
+    display: block;
+    clear: both;
+}
+
+div#main {
+    float: left;
+    clear: both;
+}
+
+#workflow_nav {
+    background-color: #deb887;
+    padding: 10px;
+}
+
+div#workflow_nav ul {
+    padding: 0px;
+}
+
+#content {
+    padding-left: 5px;
+}
+
+div#workflow_nav ul li a:hover, div#workflow_nav ul li a:visited, div#workflow_nav ul li a:active, div#workflow_nav ul li a {
+    text-decoration: none;
+    color: blue;
+}
+
+div#workflow_nav ul li {
+    list-style: none;
+    display: inline;
+    font-family: verdana, serif;
+    font-weight: bold;
+    margin: 0px;
+    padding: 0px;
+    padding-right: 10px;
+}
+
+div#footer {
+    background-color: green;
+    clear: both;
+}
+
+.input {
+    width: 80%;
+}
+

@@ -1,0 +1,7 @@
+<div metal:use-macro="view.workflow_template">
+    <div metal:fill-slot="workflow-content">
+        <p>Under Development</p>
+        <button type="button">Activate</button>
+        <button type="button">Delete</button>
+    </div>
+</div>
