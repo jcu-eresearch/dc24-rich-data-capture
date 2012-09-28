@@ -1,6 +1,3 @@
-from datetime import datetime
-from ingester_schemas.quality_schema import QualitySchema
-
 __author__ = 'Casey Bajema'
 
 class FormDataSchema():

@@ -4,4 +4,4 @@ from sqlalchemy.engine.url import URL
 __author__ = 'Casey Bajema'
 
 class PullDataSource():
-    pull_server = URL()
+    pull_server = VARCHAR(250)

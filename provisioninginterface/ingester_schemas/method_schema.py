@@ -1,12 +1,6 @@
-from ingester_schemas.schema_data import SchemaData
-from ingester_schemas.dataset_schema import DatasetSchema
-import string
-from ingester_schemas.__dataset_schema import _DatasetSchema
-from sqlalchemy.dialects.mssql.base import VARCHAR, TEXT
-from ingester_schemas.type_schema import TypeSchema
-from sqlalchemy.dialects.mysql.base import INTEGER
-from ingester_schemas.data_entry_schemas.file_data_entry_schema import FileDataEntrySchema
+from sqlalchemy.dialects.mysql.base import INTEGER, VARCHAR, TEXT
 from ingester_schemas.data_entry_schemas.file_type import FileType
+from ingester_schemas.dataset_schemas.__dataset_schema import _DatasetSchema
 
 __author__ = 'Casey Bajema'
 
@@ -15,9 +9,9 @@ class MethodSchema():
         dataset_schema = _DatasetSchema()
         name = VARCHAR(250)
         description = TEXT()
-        further_information = VARCHAR(250)()
-        attachments = FileType()()
-        datasets = _DatasetSchema()()
+        further_information = VARCHAR(250) # TODO: work out how to explain an array of set type
+        attachments = FileType()  # TODO: work out how to explain an array of set type
+        datasets = _DatasetSchema()  # TODO: work out how to explain an array of set type
 
 
 

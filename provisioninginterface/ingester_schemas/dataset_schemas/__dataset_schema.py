@@ -14,7 +14,7 @@ class _DatasetSchema():
     location_description = VARCHAR(250)
     latitude = DOUBLE()
     longitude = DOUBLE()
-    processing_script = ProcessingScript()
+    processing_script = VARCHAR(250)
 
 
 
