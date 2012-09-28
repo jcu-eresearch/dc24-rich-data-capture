@@ -42,6 +42,6 @@ setup(name='ProvisioningInterface',
       main = provisioninginterface:main
       [console_scripts]
       initialize_ProvisioningInterface_db = provisioninginterface.scripts.initializedb:main
-      """,
+      """, requires=['deform'],
       )
 

@@ -1,7 +1,5 @@
-Project DC24: Rich Data Capture
-
-Introduction
-------------
+Project DC24: Rich Data Capture - Funded by ANDS
+------------------------------------------------
 The DC24 project will build software infrastructure to enable the automatic capture and storage of a variety of streaming data and the associated metadata. The data will be stored in a digital asset management system and the metadata will be stored in the JCU Research Data Catalogue.  Harvesters will be setup for Research Data Australia to automatically gather metadata records from JCU’s research data catalogue and publish it nationally.
 
 System Architecture

@@ -1,6 +1,9 @@
 <div metal:use-macro="view.global_template">
     <div metal:fill-slot="content">
-        <p>Under Development</p>
-            <a href="/setup">Setup new project</a>
+
+    </div>
+
+    <div metal:fill-slot="sidebar">
+        <li><a href="/setup">TODO</a></li>
     </div>
 </div>
