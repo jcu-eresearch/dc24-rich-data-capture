@@ -23,7 +23,7 @@ The technologies chosen for the provisioning interface itself are [Python (2.7)]
 
 </br>
 
-![Provisioning workflow](/images/workflow.png)
+![Provisioning workflow]({{ site.JB.BASE_PATH }}/images/workflow.png)
 
 _Orange is general setup and control steps, green is plain metadata collection and blue is used to prepare the CC-DAM to receive data._
 
