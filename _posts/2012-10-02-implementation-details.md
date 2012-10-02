@@ -2,7 +2,7 @@
 layout: post
 title: "Updated Implementation Details"
 description: "Provides an overview of the current architectures and implementation details of the TDH-DC24 Rich Data Capture project."
-author: "Casey Bajema"
+author: casey
 category: technology
 tags: [andsTechnology, andsArchitecture, DIISRTE, fundedByAustralianNationalDataService, andsApps, DC24, richDataCapture, RDC]
 ---
