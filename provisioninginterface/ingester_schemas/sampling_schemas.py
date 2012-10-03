@@ -1,4 +1,5 @@
 __author__ = 'Casey Bajema'
 
-class SamplingSchema():
+class _SamplingSchema():
+    # TODO
     pass
