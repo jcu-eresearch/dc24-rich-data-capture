@@ -1,13 +1,9 @@
-import deform
 from pyramid.response import Response
-from views import layouts
-from views.schemas.setup_schema import setup_schema
-import colander
+from richdatacapture.provisioninginterface.views.schemas.setup_schema import setup_schema
 from deform.exception import ValidationFailure
 from deform.form import Form
 from pyramid.view import view_config
-from layouts import Layouts
-from views.workflow.workflows import Workflows
+from richdatacapture.provisioninginterface.views.workflow.workflows import Workflows
 
 __author__ = 'Casey Bajema'
 

@@ -42,6 +42,6 @@ setup(name='RichDataCapture',
       main = richdatacapture:main
       [console_scripts]
       initialize_RichDataCapture_db = richdatacapture.scripts.initializedb:main
-      """, requires=['deform'],
+      """, requires=['deform', "pyramid"],
       )
 

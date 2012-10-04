@@ -1,5 +1,5 @@
 from pyramid.decorator import reify
-from views.layouts import Layouts
+from richdatacapture.provisioninginterface.views.layouts import Layouts
 from pyramid.renderers import get_renderer
 
 __author__ = 'Casey Bajema'

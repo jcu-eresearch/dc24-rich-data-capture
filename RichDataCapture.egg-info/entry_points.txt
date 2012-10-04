@@ -1,0 +1,5 @@
+      [paste.app_factory]
+      main = richdatacapture.provisioninginterface:main
+      [console_scripts]
+      initialize_RichDataCapture_db = richdatacapture.provisioninginterface.scripts.initializedb:main
+      

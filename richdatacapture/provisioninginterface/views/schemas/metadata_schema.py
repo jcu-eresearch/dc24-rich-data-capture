@@ -1,7 +1,7 @@
 import colander
 import deform
-from views.schemas.dataset_schema import CoverageSchema
-from views.workflow.workflows import MemoryTmpStore
+from richdatacapture.provisioninginterface.views.schemas.dataset_schema import CoverageSchema
+from richdatacapture.provisioninginterface.views.workflow.workflows import MemoryTmpStore
 
 __author__ = 'Casey Bajema'
 

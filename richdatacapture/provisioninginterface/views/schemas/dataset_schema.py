@@ -1,6 +1,6 @@
 import colander
 import deform
-from views.workflow.workflows import MemoryTmpStore
+from richdatacapture.provisioninginterface.views.workflow.workflows import MemoryTmpStore
 
 __author__ = 'Casey Bajema'
 

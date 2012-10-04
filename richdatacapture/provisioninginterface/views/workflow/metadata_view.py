@@ -1,17 +1,13 @@
 import deform
 from pyramid import request
 from pyramid.response import Response
-from views.workflow.data_inputs_view import CoverageSchema
-from views.schemas.metadata_schema import MetadataData
-from views.workflow.workflows import Workflows, MemoryTmpStore
-
-__author__ = 'Casey Bajema'
-
-import colander
+from richdatacapture.provisioninginterface.views.schemas.metadata_schema import MetadataData
+from richdatacapture.provisioninginterface.views.workflow.workflows import Workflows
 from deform.exception import ValidationFailure
 from deform.form import Form
 from pyramid.view import view_config
-from layouts import Layouts
+
+__author__ = 'Casey Bajema'
 
 class MetadataView(Workflows):
     title = "Metadata"

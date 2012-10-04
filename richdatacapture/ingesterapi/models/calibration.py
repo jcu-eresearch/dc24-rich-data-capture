@@ -1,4 +1,4 @@
-from ingester_platform_api.ingester_objects.ingester_exceptions import UnknownParameterError
+from ingesterapi.ingester_objects.ingester_exceptions import UnknownParameterError
 
 __author__ = 'Casey Bajema'
 

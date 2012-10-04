@@ -1,9 +1,8 @@
-from views.workflow.workflows import Workflows
+from richdatacapture.provisioninginterface.views.workflow.workflows import Workflows
 
 __author__ = 'Casey Bajema'
 
 from pyramid.view import view_config
-from layouts import Layouts
 
 class SubmitView(Workflows):
     title = "Submit"

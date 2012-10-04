@@ -5,9 +5,8 @@ from deform.exception import ValidationFailure
 from deform.form import Form
 from pyramid.response import Response
 from pyramid.view import view_config
-from layouts import Layouts
-from views.schemas.method_schema import DataSource
-from views.workflow.workflows import Workflows, MemoryTmpStore
+from richdatacapture.provisioninginterface.views.schemas.method_schema import DataSource
+from richdatacapture.provisioninginterface.views.workflow.workflows import Workflows
 
 __author__ = 'Casey Bajema'
 
