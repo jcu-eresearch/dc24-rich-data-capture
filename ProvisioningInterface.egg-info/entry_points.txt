@@ -1,5 +1,5 @@
       [paste.app_factory]
-      main = provisioninginterface:main
+      main = richdatacapture:main
       [console_scripts]
-      initialize_ProvisioningInterface_db = provisioninginterface.scripts.initializedb:main
+      initialize_RichDataCapture_db = richdatacapture.scripts.initializedb:main
       

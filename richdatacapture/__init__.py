@@ -13,7 +13,7 @@ def main(global_config, **settings):
 #    engine = engine_from_config(settings, 'sqlalchemy.')
 #    DBSession.configure(bind=engine)
     deform_templates = resource_filename('deform', 'templates')
-    search_path = (resource_filename('provisioninginterface', 'templates/widgets'), deform_templates)
+    search_path = (resource_filename('richdatacapture', 'templates/widgets'), deform_templates)
 #    print search_path
     Form.set_zpt_renderer(search_path)
 

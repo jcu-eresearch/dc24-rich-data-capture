@@ -1,4 +1,4 @@
-ProvisioningInterface README
+RichDataCapture README
 ==================
 
 Getting Started
@@ -8,7 +8,7 @@ Getting Started
 
 - $venv/bin/python setup.py develop
 
-- $venv/bin/populate_ProvisioningInterface development.ini
+- $venv/bin/populate_RichDataCapture development.ini
 
 - $venv/bin/pserve development.ini
 

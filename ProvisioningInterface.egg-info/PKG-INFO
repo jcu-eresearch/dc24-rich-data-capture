@@ -1,12 +1,12 @@
 Metadata-Version: 1.1
-Name: ProvisioningInterface
+Name: RichDataCapture
 Version: 0.0
-Summary: ProvisioningInterface
+Summary: RichDataCapture
 Home-page: UNKNOWN
 Author: UNKNOWN
 Author-email: UNKNOWN
 License: UNKNOWN
-Description: ProvisioningInterface README
+Description: RichDataCapture README
         ==================
         
         Getting Started
@@ -16,7 +16,7 @@ Description: ProvisioningInterface README
         
         - $venv/bin/python setup.py develop
         
-        - $venv/bin/populate_ProvisioningInterface development.ini
+        - $venv/bin/populate_RichDataCapture development.ini
         
         - $venv/bin/pserve development.ini
         

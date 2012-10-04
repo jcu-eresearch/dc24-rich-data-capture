@@ -9,8 +9,9 @@ __author__ = 'Casey Bajema'
 class Dataset(dict):
     object_type = "Dataset"
 
-    def __init__(self, latitude, longitude, data_type, data_source, processing_script = None, redbox_link = None, dataset_id = -1, calibration_schemas = ()):
+    def __init__(self, latitude, longitude, data_type, data_source, location_name = "", processing_script = None, redbox_link = None, dataset_id = -1, calibration_schemas = ()):
         self.dataset_id = dataset_id                    # Primary key, Integer
+        self.location_name = location_name              # String
         self.latitude = latitude                        # double
         self.longitude = longitude                      # double
         self.data_type = data_type                      # subclass of _DataType

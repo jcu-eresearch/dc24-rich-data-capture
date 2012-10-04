@@ -18,9 +18,9 @@ requires = [
     'colander',
     ]
 
-setup(name='ProvisioningInterface',
+setup(name='RichDataCapture',
       version='0.0',
-      description='ProvisioningInterface',
+      description='RichDataCapture',
       long_description=README + '\n\n' +  CHANGES,
       classifiers=[
         "Programming Language :: Python",
@@ -35,13 +35,13 @@ setup(name='ProvisioningInterface',
       packages=find_packages(),
       include_package_data=True,
       zip_safe=False,
-      test_suite='provisioninginterface',
+      test_suite='richdatacapture',
       install_requires=requires,
       entry_points="""\
       [paste.app_factory]
-      main = provisioninginterface:main
+      main = richdatacapture:main
       [console_scripts]
-      initialize_ProvisioningInterface_db = provisioninginterface.scripts.initializedb:main
+      initialize_RichDataCapture_db = richdatacapture.scripts.initializedb:main
       """, requires=['deform'],
       )
 

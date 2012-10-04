@@ -3,7 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/../../SOSSource/SOS/52n-sos/52n-sos.iml" filepath="$PROJECT_DIR$/../../SOSSource/SOS/52n-sos/52n-sos.iml" />
-      <module fileurl="file://$PROJECT_DIR$/ProvisioningSystem.iml" filepath="$PROJECT_DIR$/ProvisioningSystem.iml" />
+      <module fileurl="file://$PROJECT_DIR$/RichDataCapture.iml" filepath="$PROJECT_DIR$/RichDataCapture.iml" />
     </modules>
   </component>
 </project>

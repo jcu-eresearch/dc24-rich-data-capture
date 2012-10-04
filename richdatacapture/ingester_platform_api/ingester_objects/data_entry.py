@@ -1,3 +1,5 @@
+from ingester_platform_api.ingester_objects.ingester_exceptions import UnknownParameterError
+
 __author__ = 'Casey Bajema'
 
 """
@@ -11,10 +13,18 @@ __author__ = 'Casey Bajema'
 class DataEntry(dict):
     object_type = "DataEntry"
 
-    def __init__(self, dataset_id, schema, datetime, data_entry_id = -1, quality = None, **kwargs):
+    def __init__(self, dataset_id, data_type_schema, datetime, data_entry_id = -1, quality = None, **kwargs):
         self.data_entry_id = data_entry_id
         self.dataset_id = dataset_id
-        self.schema = schema
+        self.data_type_schema = data_type_schema
         self.datetime = datetime
-        # TODO: Work out code for handling **kwargs and placing them into fields based on the schema passed in
+
+        # Push the kwargs to fields
+        for key in data_type_schema.keys():
+            self[key] =  kwargs.pop(key, None)
+
+        for key, value in kwargs:
+            raise UnknownParameterError(key, value)
+
+
 

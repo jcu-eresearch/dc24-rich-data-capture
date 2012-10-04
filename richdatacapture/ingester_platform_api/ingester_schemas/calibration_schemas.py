@@ -10,9 +10,10 @@ __author__ = 'Casey Bajema'
 
     Each calibration schema has a 1:1 relationship with each data_entry.  This means that there can only
     be 1 QualitySchema calibration for a specific data_entry but there may be a different calibration
-    (sub-classed from _CalibrationSchema) added to the same data_entry.
+    (sub-classed from _CalibrationSchema) added to the same data_entry.  Sending a duplicate calibration
+    will overwrite previous values.
 """
-class _CalibrationSchema():
+class _CalibrationSchema(dict):
     calibration_id = INTEGER()          # Primary ID
     data_entry_id = ForeignKey("DataEntrySchema.data_entry_id")
 
@@ -31,5 +32,3 @@ class QualitySchema(_CalibrationSchema):
     unit = VARCHAR(50)              # (optional) Unit of measure
     description = VARCHAR(250)      # (Optional) Text based quality (eg. camera has a cracked lens) or further description of value
     value = DOUBLE()                # (Optional) A description
-
-    #data_entry_id + type should be unique

@@ -1,5 +1,9 @@
 from sqlalchemy.dialects.mysql.base import VARCHAR, INTEGER, TEXT
-from ingester_schemas.sampling_schemas import _SamplingSchema
+from ingester_platform_api.ingester_objects.sampling import _Sampling
+
+"""
+    Defines all possible data sources or in other words data input methods that can be provisioned.
+"""
 
 __author__ = 'Casey Bajema'
 
@@ -17,17 +21,18 @@ class _DataSource():
 """
 class PullDataSource(_DataSource):
     pull_server = VARCHAR(250)
-    sampling = _SamplingSchema()
+    sampling = _Sampling()
 
 """
     A data source that provides a web service for external applications to pass data into.
+
+    The dataset_id will need to be passed into the push data source API to differentiat between different data
+    sources and to support multiple ingesters for a single datasource.  This may be part of the authentication.
 
     Authentication will be required based on the users configuration.
 """
 class PushDataSource(_DataSource):
     # TODO: Authentication implementation.
-    # TODO: This will need some form of identifier to differential between different PushDataSource's
-    # or to support multiple ingesters using the same data source
     pass
 
 
@@ -37,7 +42,7 @@ class PushDataSource(_DataSource):
     SOS standards will be followed such as:
     * No authentication required
     * Invalid data is dropped
-"""
+""" # TODO: Work out the exact implementation details
 class SOSDataSource(_DataSource):
     sensor_id = INTEGER()   # Need to check the sensor_id type
     sensorml = TEXT()
@@ -60,3 +65,6 @@ class UploadDataSource(_DataSource):
 """
 class FormDataSource(_DataSource):
     pass
+
+
+
