@@ -9,6 +9,8 @@ __author__ = 'Casey Bajema'
     The kwargs parameters must conform to the data_type schema or an exception will be thrown on initialisation.
 """
 class DataEntry(dict):
+    object_type = "DataEntry"
+
     def __init__(self, dataset_id, schema, datetime, data_entry_id = -1, quality = None, **kwargs):
         self.data_entry_id = data_entry_id
         self.dataset_id = dataset_id

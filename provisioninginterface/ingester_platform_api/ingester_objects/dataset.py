@@ -6,7 +6,9 @@ __author__ = 'Casey Bajema'
     Represents a single dataset and contains the information required to ingest the data as well as location
     metadata.
 """
-class dataset(dict):
+class Dataset(dict):
+    object_type = "Dataset"
+
     def __init__(self, latitude, longitude, data_type, data_source, processing_script = None, redbox_link = None, dataset_id = -1, calibration_schemas = ()):
         self.dataset_id = dataset_id                    # Primary key, Integer
         self.latitude = latitude                        # double

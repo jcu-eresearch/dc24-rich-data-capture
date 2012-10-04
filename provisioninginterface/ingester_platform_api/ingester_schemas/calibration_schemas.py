@@ -13,7 +13,7 @@ __author__ = 'Casey Bajema'
     (sub-classed from _CalibrationSchema) added to the same data_entry.
 """
 class _CalibrationSchema():
-    calibration_id = INTEGER()
+    calibration_id = INTEGER()          # Primary ID
     data_entry_id = ForeignKey("DataEntrySchema.data_entry_id")
 
 """

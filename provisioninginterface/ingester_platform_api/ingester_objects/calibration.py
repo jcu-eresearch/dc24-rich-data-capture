@@ -10,6 +10,8 @@ __author__ = 'Casey Bajema'
     The kwargs parameters must conform to the calibration schema or an exception will be thrown on initialisation.
 """
 class Calibration():
+    object_type = "Calibration"
+
     def __init__(self, data_entry_id, calibration_id, calibration_schema = -1, **kwargs):
         self.calibration_id = calibration_id
         self.data_entry_id =  data_entry_id
