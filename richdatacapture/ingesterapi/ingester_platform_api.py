@@ -14,20 +14,29 @@ class IngesterPlatformAPI():
     """
         Create a new entry using the passed in object, the entry type will be based on the objects type.
 
-        @ingester_object - If the objects ID is set an exception will be thrown.
+        @ingester_object - Insert a new record if the ID isn't set, if the ID is set update the existing record.
         @return the object passed in with the ID field set.
     """
-    def insert(self, ingester_object):
+    def post(self, authentication, ingester_object):
         pass
 
-    """
-        Update an entry using the passed in object, the entry type will be based on the objects type.
-
-        @ingester_object - If the passed in object doesn't have it's ID set an exception will be thrown.
-        @return the updated object (eg. @return == ingester_object should always be true on success).
-    """
-    def update(self, ingester_object):
-        pass
+#    """
+#        Create a new entry using the passed in object, the entry type will be based on the objects type.
+#
+#        @ingester_object - If the objects ID is set an exception will be thrown.
+#        @return the object passed in with the ID field set.
+#    """
+#    def insert(self, authentication, ingester_object):
+#        pass
+#
+#    """
+#        Update an entry using the passed in object, the entry type will be based on the objects type.
+#
+#        @ingester_object - If the passed in object doesn't have it's ID set an exception will be thrown.
+#        @return the updated object (eg. @return == ingester_object should always be true on success).
+#    """
+#    def update(self, authentication, ingester_object):
+#        pass
 
     """
         Delete an entry using the passed in object, the entry type will be based on the objects type.
@@ -35,7 +44,7 @@ class IngesterPlatformAPI():
         @ingester_object - All fields except the objects ID will be ignored.
         @return the object that has been deleted, this should have all fields set.
     """
-    def delete(self, ingester_object):
+    def delete(self, authentication, ingester_object):
         pass
 
     """
@@ -53,7 +62,7 @@ class IngesterPlatformAPI():
                         the ID will be returned.
                     Or an array of all objects of the correct type that match the set fields.
     """
-    def get(self, ingester_object, ingester_object_range = None):
+    def get(self, authentication, ingester_object, ingester_object_range = None):
         pass
 
     """
@@ -62,5 +71,19 @@ class IngesterPlatformAPI():
         @dataset_id - ID of the dataset to get ingester logs for
         @return an array of file handles for all log files for that dataset.
     """
-    def get_ingester_logs(self, dataset_id):
+    def get_ingester_logs(self, authentication, dataset_id):
+        pass
+
+    """
+        For datasets that use a PushDataSource, data can be entered using this method.
+
+        If the data_entry_id is set the upd
+
+        @data_entry - The actual data to save, an InvalidObjectError will be raised if the data_entry_id is set.
+        @key -
+        @username
+        @password
+        @return the data_entry object with the data_entry_id set on success, otherwise raise an AuthenticationError
+    """
+    def push_data(self, authentication, data_entry, dataset_id):
         pass

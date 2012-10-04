@@ -24,15 +24,9 @@ class PullDataSource(_DataSource):
     sampling = _Sampling()
 
 """
-    A data source that provides a web service for external applications to pass data into.
-
-    The dataset_id will need to be passed into the push data source API to differentiat between different data
-    sources and to support multiple ingesters for a single datasource.  This may be part of the authentication.
-
-    Authentication will be required based on the users configuration.
+    A data source where the external application will use the ingester platform API to pass data into.
 """
 class PushDataSource(_DataSource):
-    # TODO: Authentication implementation.
     pass
 
 

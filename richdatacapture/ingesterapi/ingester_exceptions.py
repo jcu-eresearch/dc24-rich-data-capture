@@ -56,3 +56,13 @@ class UnknownDataSourceError(Exception):
 
     def __str__(self):
         return repr(self.data_source)
+
+"""
+    Exception that is thrown by the ingester_platform user fails to authenticate.
+"""
+class AuthenticationError(Exception):
+    def __init__(self, message):
+        self.message = message
+
+    def __str__(self):
+        return repr(self.message)
