@@ -4,13 +4,28 @@
     <list id="4b186a4f-c90f-45fa-b529-9c9a968eaafb" name="Default" comment="" />
     <list default="true" id="771e2f4b-fcaa-4e42-8c21-1f21a3fb41c0" name="dc24-365 Specify API's for ingester platform" comment="dc24-365 Specify API's for ingester platform&#10;&#10;+Fixed the namespaces and the pyramid issues that the namespaces caused.">
       <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/../DC24-ingester-platform/DC24-ingester-platform.iml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/richdatacapture/ingesterapi/authentication.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/modules.xml" afterPath="$PROJECT_DIR$/.idea/modules.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/vcs.xml" afterPath="$PROJECT_DIR$/.idea/vcs.xml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/richdatacapture/ingesterapi/ingester_scripts.py" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/richdatacapture/ingesterapi/models/locations.py" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/richdatacapture/ingesterapi/models/search_criteria.py" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/richdatacapture/ingesterapi/models/tests.py" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/richdatacapture/ingesterapi/schemas/tests.py" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/richdatacapture/ingesterapi/tests.py" />
+      <change type="MOVED" beforePath="C:\DropBox\PythonProjects\RichDataCapture\richdatacapture\ingesterapi\models\calibration.py" afterPath="$PROJECT_DIR$/richdatacapture/ingesterapi/models/metadata.py" />
+      <change type="MOVED" beforePath="C:\DropBox\PythonProjects\RichDataCapture\richdatacapture\ingesterapi\schemas\calibration_schemas.py" afterPath="$PROJECT_DIR$/richdatacapture/ingesterapi/schemas/metadata_schemas.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/richdatacapture/ingesterapi/authentication.py" afterPath="$PROJECT_DIR$/richdatacapture/ingesterapi/authentication.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/richdatacapture/ingesterapi/ingester_exceptions.py" afterPath="$PROJECT_DIR$/richdatacapture/ingesterapi/ingester_exceptions.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/richdatacapture/ingesterapi/ingester_platform_api.py" afterPath="$PROJECT_DIR$/richdatacapture/ingesterapi/ingester_platform_api.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/richdatacapture/ingesterapi/models/data_entry.py" afterPath="$PROJECT_DIR$/richdatacapture/ingesterapi/models/data_entry.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/richdatacapture/ingesterapi/models/data_sources.py" afterPath="$PROJECT_DIR$/richdatacapture/ingesterapi/models/data_sources.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/richdatacapture/ingesterapi/models/dataset.py" afterPath="$PROJECT_DIR$/richdatacapture/ingesterapi/models/dataset.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/richdatacapture/ingesterapi/models/sampling.py" afterPath="$PROJECT_DIR$/richdatacapture/ingesterapi/models/sampling.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/richdatacapture/ingesterapi/schemas/data_types.py" afterPath="$PROJECT_DIR$/richdatacapture/ingesterapi/schemas/data_types.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/richdatacapture/provisioninginterface/templates/workflow_template.pt" afterPath="$PROJECT_DIR$/richdatacapture/provisioninginterface/templates/workflow_template.pt" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/richdatacapture/provisioninginterface/tests.py" afterPath="$PROJECT_DIR$/richdatacapture/provisioninginterface/tests.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/richdatacapture/provisioninginterface/views/schemas/dataset_schema.py" afterPath="$PROJECT_DIR$/richdatacapture/provisioninginterface/views/schemas/dataset_schema.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/richdatacapture/provisioninginterface/views/workflow/datasets_view.py" afterPath="$PROJECT_DIR$/richdatacapture/provisioninginterface/views/workflow/datasets_view.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/setup.py" afterPath="$PROJECT_DIR$/setup.py" />
     </list>
     <ignored path="ProvisioningSystem.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -82,13 +97,29 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="calibration_schemas.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/schemas/calibration_schemas.py">
+      <file leaf-file-name="data_entry.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/models/data_entry.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0">
-              <folding>
-                <element signature="e#0#67#0" expanded="true" />
-              </folding>
+            <state line="16" column="30" selection-start="620" selection-end="620" vertical-scroll-proportion="0.0">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="search_criteria.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/models/search_criteria.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="15" column="32" selection-start="274" selection-end="274" vertical-scroll-proportion="0.0">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="ingester_platform_api.py" pinned="false" current="true" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/ingester_platform_api.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="69" column="48" selection-start="3203" selection-end="3203" vertical-scroll-proportion="1.2359694">
+              <folding />
             </state>
           </provider>
         </entry>
@@ -96,25 +127,14 @@
       <file leaf-file-name="data_types.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/schemas/data_types.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="8" column="54" selection-start="316" selection-end="316" vertical-scroll-proportion="0.0">
+            <state line="27" column="17" selection-start="1051" selection-end="1051" vertical-scroll-proportion="0.0">
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="data_sources.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/models/data_sources.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="40" column="52" selection-start="1258" selection-end="1258" vertical-scroll-proportion="0.0">
-              <folding>
-                <element signature="e#0#65#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="buildout.cfg" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../DC24-ingester-platform/buildout.cfg">
+      <file leaf-file-name="metadata_schemas.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/schemas/metadata_schemas.py">
           <provider selected="true" editor-type-id="text-editor">
             <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0">
               <folding />
@@ -122,19 +142,10 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="setup.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../DC24-ingester-platform/src/setup.py">
+      <file leaf-file-name="ingester.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/../DC24-ingester-platform/src/dc24_ingester_platform/ingester.py">
           <provider selected="true" editor-type-id="text-editor">
             <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="webservice.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../DC24-ingester-platform/src/dc24_ingester_platform/webservice.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="22" column="21" selection-start="466" selection-end="466" vertical-scroll-proportion="0.0">
               <folding />
             </state>
           </provider>
@@ -149,28 +160,28 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="ingester.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../DC24-ingester-platform/src/dc24_ingester_platform/ingester.py">
+      <file leaf-file-name="webservice.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/../DC24-ingester-platform/src/dc24_ingester_platform/webservice.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="13" column="23" selection-start="285" selection-end="285" vertical-scroll-proportion="0.0">
+            <state line="31" column="31" selection-start="618" selection-end="618" vertical-scroll-proportion="0.0">
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="client.py" pinned="false" current="true" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/../DC24-ingester-platform/src/dc24_ingester_platform/client.py">
+      <file leaf-file-name="dataset.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/models/dataset.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="110" column="38" selection-start="3362" selection-end="3362" vertical-scroll-proportion="3.5444016">
+            <state line="17" column="66" selection-start="875" selection-end="875" vertical-scroll-proportion="0.0">
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="sampling.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/models/sampling.py">
+      <file leaf-file-name="tests.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/tests.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="59" column="10" selection-start="1624" selection-end="1624" vertical-scroll-proportion="0.0">
+            <state line="79" column="76" selection-start="3415" selection-end="3415" vertical-scroll-proportion="0.0">
               <folding />
             </state>
           </provider>
@@ -184,7 +195,8 @@
     </FindUsagesManager>
   </component>
   <component name="Git.Settings">
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../DC24-ingester-platform" />
+    <option name="SYNC_SETTING" value="SYNC" />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="GitLogSettings">
     <option name="myStructureFilterPaths" />
@@ -199,22 +211,22 @@
   <component name="IdeDocumentHistory">
     <option name="changedFiles">
       <list>
-        <option value="$PROJECT_DIR$/richdatacapture/provisioninginterface/views/schemas/metadata_schema.py" />
-        <option value="$PROJECT_DIR$/richdatacapture/provisioninginterface/views/schemas/method_schema.py" />
-        <option value="$PROJECT_DIR$/richdatacapture/provisioninginterface/views/workflow/workflows.py" />
-        <option value="$PROJECT_DIR$/RichDataCapture.egg-info/entry_points.txt" />
-        <option value="$PROJECT_DIR$/RichDataCapture.egg-info/SOURCES.txt" />
+        <option value="$PROJECT_DIR$/richdatacapture/ingesterapi/schemas/data_types.py" />
         <option value="$PROJECT_DIR$/richdatacapture/provisioninginterface/views/workflow/datasets_view.py" />
-        <option value="$PROJECT_DIR$/richdatacapture/provisioninginterface/views/workflow/metadata_view.py" />
-        <option value="$PROJECT_DIR$/richdatacapture/provisioninginterface/views/workflow/methods_view.py" />
-        <option value="$PROJECT_DIR$/richdatacapture/provisioninginterface/views/workflow/setup_view.py" />
-        <option value="$PROJECT_DIR$/richdatacapture/provisioninginterface/views/workflow/submit_view.py" />
-        <option value="$PROJECT_DIR$/richdatacapture/provisioninginterface/templates/template.pt" />
-        <option value="$PROJECT_DIR$/richdatacapture/provisioninginterface/__init__.py" />
-        <option value="$PROJECT_DIR$/richdatacapture/ingesterapi/ingester_exceptions.py" />
-        <option value="$PROJECT_DIR$/richdatacapture/ingesterapi/authentication.py" />
-        <option value="$PROJECT_DIR$/richdatacapture/ingesterapi/models/data_sources.py" />
+        <option value="$PROJECT_DIR$/richdatacapture/provisioninginterface/templates/widgets/mapping_item.pt" />
+        <option value="$PROJECT_DIR$/richdatacapture/provisioninginterface/templates/workflow_template.pt" />
+        <option value="$PROJECT_DIR$/richdatacapture/ingesterapi/models/tests.py" />
         <option value="$PROJECT_DIR$/richdatacapture/ingesterapi/ingester_platform_api.py" />
+        <option value="$PROJECT_DIR$/richdatacapture/ingesterapi/models/sampling.py" />
+        <option value="$PROJECT_DIR$/richdatacapture/ingesterapi/ingester_exceptions.py" />
+        <option value="$PROJECT_DIR$/richdatacapture/ingesterapi/tests.py" />
+        <option value="$PROJECT_DIR$/richdatacapture/ingesterapi/models/metadata.py" />
+        <option value="$PROJECT_DIR$/richdatacapture/ingesterapi/models/data_sources.py" />
+        <option value="$PROJECT_DIR$/richdatacapture/ingesterapi/schemas/metadata_schemas.py" />
+        <option value="$PROJECT_DIR$/richdatacapture/ingesterapi/models/dataset.py" />
+        <option value="$PROJECT_DIR$/richdatacapture/ingesterapi/models/data_entry.py" />
+        <option value="$PROJECT_DIR$/richdatacapture/provisioninginterface/views/schemas/dataset_schema.py" />
+        <option value="$PROJECT_DIR$/richdatacapture/ingesterapi/models/search_criteria.py" />
       </list>
     </option>
   </component>
@@ -263,6 +275,16 @@
           </PATH>
         </subPane>
       </pane>
+      <pane id="Scope">
+        <subPane subId="Project Files">
+          <PATH>
+            <PATH_ELEMENT USER_OBJECT="Root">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+          </PATH>
+        </subPane>
+      </pane>
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -291,7 +313,11 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
-              <option name="myItemId" value="RichDataCapture.egg-info" />
+              <option name="myItemId" value="richdatacapture" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="provisioninginterface" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -310,6 +336,84 @@
             </PATH_ELEMENT>
             <PATH_ELEMENT>
               <option name="myItemId" value="provisioninginterface" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="views" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="ProvisioningSystem" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="RichDataCapture" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="richdatacapture" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="provisioninginterface" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="views" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="workflow" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="ProvisioningSystem" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="RichDataCapture" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="richdatacapture" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="provisioninginterface" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="views" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="schemas" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="ProvisioningSystem" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="RichDataCapture" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="richdatacapture" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="provisioninginterface" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="templates" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -417,14 +521,26 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
-        </subPane>
-      </pane>
-      <pane id="Scope">
-        <subPane subId="Project Files">
           <PATH>
-            <PATH_ELEMENT USER_OBJECT="Root">
-              <option name="myItemId" value="" />
-              <option name="myItemType" value="" />
+            <PATH_ELEMENT>
+              <option name="myItemId" value="ProvisioningSystem" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="DC24-ingester-platform" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="src" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="dc24_ingester_platform" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="service" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
         </subPane>
@@ -455,7 +571,7 @@
     <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder3" value="3" />
     <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder1" value="1" />
     <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder2" value="2" />
-    <property name="options.lastSelected" value="preferences.pluginManager" />
+    <property name="options.lastSelected" value="com.intellij.tasks.config.TaskRepositoriesConfigurable" />
     <property name="DefaultHtmlFileTemplate" value="Html" />
     <property name="project.structure.side.proportion" value="0.27156174" />
     <property name="restartRequiresConfirmation" value="true" />
@@ -476,18 +592,18 @@
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\DropBox\PythonProjects\RichDataCapture\richdatacapture\ingesterapi" />
+      <recent name="C:\DropBox\PythonProjects\RichDataCapture\richdatacapture\ingesterapi\schemas" />
       <recent name="C:\DropBox\PythonProjects\RichDataCapture\richdatacapture" />
       <recent name="C:\DropBox\PythonProjects\ProvisioningSystem\provisioninginterface\ingester_schemas\dataset_schemas" />
       <recent name="C:\DropBox\PythonProjects\ProvisioningSystem\provisioninginterface\templates\widgets" />
-      <recent name="C:\DropBox\PythonProjects\ProvisioningSystem\provisioninginterface\views\widgets" />
-      <recent name="C:\DropBox\PythonProjects\ProvisioningSystem\provisioninginterface\templates\widget" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\DropBox\PythonProjects\RichDataCapture\richdatacapture\ingesterapi\models" />
       <recent name="C:\DropBox\PythonProjects\RichDataCapture\richdatacapture\provisioninginterface" />
       <recent name="C:\DropBox\PythonProjects\RichDataCapture\richdatacapture" />
       <recent name="C:\DropBox\PythonProjects\ProvisioningSystem\provisioninginterface\ingester_platform_api" />
       <recent name="C:\DropBox\PythonProjects\ProvisioningSystem\provisioninginterface\ingester_platform_api\ingester_objects" />
-      <recent name="C:\DropBox\PythonProjects\ProvisioningSystem\provisioninginterface\ingester_objects" />
     </key>
   </component>
   <component name="RunManager" selected="Python.Provisioning">
@@ -627,7 +743,7 @@
       <option name="SDK_HOME" value="" />
       <option name="WORKING_DIRECTORY" value="" />
       <option name="IS_MODULE_SDK" value="false" />
-      <module name="ProvisioningSystem" />
+      <module name="RichDataCapture" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
       <option name="SCRIPT_NAME" value="" />
       <option name="PARAMETERS" value="" />
@@ -828,7 +944,11 @@
       <created>1349330421109</created>
       <updated>1349330421109</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="dc24-365 Specify API's for ingester platform&#10;&#10;">
+      <created>1349334434359</created>
+      <updated>1349334434359</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers>
       <Redmine shared="false" url="https://eresearch.jcu.edu.au/pm">
         <option name="APIKey" value="d3adf70ee1c3ffcbbceb4714e89d761e67716261" />
@@ -878,13 +998,12 @@
       <window_info id="TaskBrowser" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32978722" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="IDEtalk" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32981315" sideWeight="0.65130025" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32978722" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.32978722" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32978722" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24837662" sideWeight="0.21867882" order="1" side_tool="true" content_ui="tabs" />
       <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3298217" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.39967507" sideWeight="0.67375886" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.29813161" sideWeight="0.67021275" order="0" side_tool="false" content_ui="combo" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.30496454" sideWeight="0.49878147" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.29813161" sideWeight="0.71276593" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.28723404" sideWeight="0.49878147" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Documentation" active="true" anchor="right" auto_hide="false" internal_type="DOCKED" type="FLOATING" visible="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" x="96" y="96" width="1088" height="802" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.20340356" sideWeight="0.6002278" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Coverage" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.17857143" sideWeight="0.6708428" order="3" side_tool="true" content_ui="tabs" />
@@ -892,6 +1011,7 @@
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32978722" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
     </layout>
   </component>
@@ -932,7 +1052,7 @@
     <option name="SHOW_VCS_ERROR_NOTIFICATIONS" value="true" />
     <option name="FORCE_NON_EMPTY_COMMENT" value="true" />
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="false" />
-    <option name="LAST_COMMIT_MESSAGE" value="dc24-365 Specify API's for ingester platform&#10;&#10;+Fixed the namespaces and the pyramid issues that the namespaces caused." />
+    <option name="LAST_COMMIT_MESSAGE" value="dc24-365 Specify API's for ingester platform&#10;&#10;" />
     <option name="MAKE_NEW_CHANGELIST_ACTIVE" value="false" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="false" />
     <option name="CHECK_FILES_UP_TO_DATE_BEFORE_COMMIT" value="false" />
@@ -954,6 +1074,7 @@
     <MESSAGE value="dc24-365 Specify API's for ingester platform&#10;&#10;Added the ingester_platform_api" />
     <MESSAGE value="dc24-365 Specify API's for ingester platform&#10;&#10;Also changed the namespace to richdatacapture" />
     <MESSAGE value="dc24-365 Specify API's for ingester platform&#10;&#10;+Fixed the namespaces and the pyramid issues that the namespaces caused." />
+    <MESSAGE value="dc24-365 Specify API's for ingester platform&#10;&#10;" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -982,118 +1103,92 @@
     <option name="FILTER_TARGETS" value="false" />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/authentication.py">
+    <entry file="file://$PROJECT_DIR$/richdatacapture/provisioninginterface/views/workflow/datasets_view.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="16" column="22" selection-start="322" selection-end="322" vertical-scroll-proportion="0.0">
+        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/richdatacapture/provisioninginterface/views/schemas/metadata_schema.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="10" column="4" selection-start="293" selection-end="480" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/models/data_sources.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="23" column="38" selection-start="838" selection-end="838" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/richdatacapture/provisioninginterface/views/schemas/dataset_schema.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="63" column="6" selection-start="4602" selection-end="4602" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/richdatacapture/provisioninginterface/views/dashboard_view.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../DC24-ingester-platform/src/dc24_ingester_platform/client.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../DC24-ingester-platform/src/dc24_ingester_platform/ingester.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../DC24-ingester-platform/src/dc24_ingester_platform/utils.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../DC24-ingester-platform/src/dc24_ingester_platform/webservice.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="31" column="31" selection-start="618" selection-end="618" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/models/dataset.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="17" column="66" selection-start="875" selection-end="875" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/tests.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="79" column="76" selection-start="3415" selection-end="3415" vertical-scroll-proportion="0.0">
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/ingester_exceptions.py">
+    <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/schemas/metadata_schemas.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="32" column="24" selection-start="1042" selection-end="1060" vertical-scroll-proportion="0.0">
-          <folding />
-        </state>
+        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" />
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/ingester_platform_api.py">
+    <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/schemas/data_types.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="88" column="59" selection-start="3912" selection-end="3912" vertical-scroll-proportion="0.0">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/models/calibration.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0">
+        <state line="27" column="17" selection-start="1051" selection-end="1051" vertical-scroll-proportion="0.0">
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/models/data_entry.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0">
+        <state line="16" column="30" selection-start="620" selection-end="620" vertical-scroll-proportion="0.0">
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/models/dataset.py">
+    <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/models/search_criteria.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0">
+        <state line="15" column="32" selection-start="274" selection-end="274" vertical-scroll-proportion="0.0">
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/models/sampling.py">
+    <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/ingester_platform_api.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="59" column="10" selection-start="1624" selection-end="1624" vertical-scroll-proportion="0.0">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/schemas/calibration_schemas.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0">
-          <folding>
-            <element signature="e#0#67#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/schemas/data_types.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="8" column="54" selection-start="316" selection-end="316" vertical-scroll-proportion="0.0">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/richdatacapture/ingesterapi/models/data_sources.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="40" column="52" selection-start="1258" selection-end="1258" vertical-scroll-proportion="0.0">
-          <folding>
-            <element signature="e#0#65#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../DC24-ingester-platform/buildout.cfg">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../DC24-ingester-platform/src/setup.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../DC24-ingester-platform/src/dc24_ingester_platform/webservice.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="22" column="21" selection-start="466" selection-end="466" vertical-scroll-proportion="0.0">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../DC24-ingester-platform/src/dc24_ingester_platform/utils.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../DC24-ingester-platform/src/dc24_ingester_platform/ingester.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="13" column="23" selection-start="285" selection-end="285" vertical-scroll-proportion="0.0">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../DC24-ingester-platform/src/dc24_ingester_platform/client.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="110" column="38" selection-start="3362" selection-end="3362" vertical-scroll-proportion="3.5444016">
+        <state line="69" column="48" selection-start="3203" selection-end="3203" vertical-scroll-proportion="1.2359694">
           <folding />
         </state>
       </provider>

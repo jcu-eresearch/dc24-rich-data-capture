@@ -1,6 +1,6 @@
 import deform
 from pyramid.response import Response
-from richdatacapture.provisioninginterface.views.schemas.dataset_schema import MethodSelectSchema
+from richdatacapture.provisioninginterface.views.schemas.dataset_schema import MethodSelectSchema, DatasetSchema
 from richdatacapture.provisioninginterface.views.workflow.workflows import Workflows, MemoryTmpStore
 
 __author__ = 'Casey Bajema'
@@ -9,12 +9,6 @@ import colander
 from deform.exception import ValidationFailure
 from deform.form import Form
 from pyramid.view import view_config
-
-class Dataset(colander.SequenceSchema):
-    dataSource = MethodSelectSchema(title="Method", widget=deform.widget.MappingWidget(template="select_mapping"))
-
-class DatasetSchema(colander.MappingSchema):
-    dataInputs = Dataset(title="Datasets", widget=deform.widget.SequenceWidget(min_len=1))
 
 class DatasetsView(Workflows):
     title = "Datasets"

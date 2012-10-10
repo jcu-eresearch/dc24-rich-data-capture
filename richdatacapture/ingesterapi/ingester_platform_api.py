@@ -1,4 +1,7 @@
-"""
+__author__ = 'Casey Bajema'
+
+class IngesterPlatformAPI():
+    """
     The ingester platform API's are intended to provide a simple way of provisioning ingesters for sensors
     or other research data sources.
 
@@ -6,84 +9,84 @@
         * Missing parameters
         * Parameters of an unknown type
         * Parameter values that don't make sense (eg. inserting an object that has an ID set)
-"""
-
-__author__ = 'Casey Bajema'
-
-class IngesterPlatformAPI():
     """
+    def __init__(self, auth):
+        self.auth = auth
+
+    def post(self, ingester_object):
+        """
         Create a new entry using the passed in object, the entry type will be based on the objects type.
 
-        @ingester_object - Insert a new record if the ID isn't set, if the ID is set update the existing record.
-        @return the object passed in with the ID field set.
-    """
-    def post(self, authentication, ingester_object):
+        :param ingester_object: Insert a new record if the ID isn't set, if the ID is set update the existing record.
+        :return: The object passed in with the ID field set.
+        """
         pass
 
-#    """
-#        Create a new entry using the passed in object, the entry type will be based on the objects type.
-#
-#        @ingester_object - If the objects ID is set an exception will be thrown.
-#        @return the object passed in with the ID field set.
-#    """
-#    def insert(self, authentication, ingester_object):
-#        pass
-#
-#    """
-#        Update an entry using the passed in object, the entry type will be based on the objects type.
-#
-#        @ingester_object - If the passed in object doesn't have it's ID set an exception will be thrown.
-#        @return the updated object (eg. @return == ingester_object should always be true on success).
-#    """
-#    def update(self, authentication, ingester_object):
-#        pass
+    def insert(self, ingester_object):
+        """
+        Create a new entry using the passed in object, the entry type will be based on the objects type.
 
-    """
+        :param ingester_object: If the objects ID is set an exception will be thrown.
+        :return: The object passed in with the ID field set.
+        """
+        pass
+
+    def update(self, ingester_object):
+        """
+        Update an entry using the passed in object, the entry type will be based on the objects type.
+
+        :param ingester_object: If the passed in object doesn't have it's ID set an exception will be thrown.
+        :return: The updated object (eg. :return == ingester_object should always be true on success).
+        """
+        pass
+
+    def delete(self, ingester_object):
+        """
         Delete an entry using the passed in object, the entry type will be based on the objects type.
 
-        @ingester_object - All fields except the objects ID will be ignored.
-        @return the object that has been deleted, this should have all fields set.
-    """
-    def delete(self, authentication, ingester_object):
+        :param ingester_object:  All fields except the objects ID will be ignored.
+        :return: The object that has been deleted, this should have all fields set.
+        """
         pass
 
-    """
+    def get(self, ingester_object, ingester_object_range = None):
+        """
         Get object(s) using the passed parameters from ingester_object or the value ranges between ingester_object
             and ingester_object_range, the returned type will be based on the ingester_object type.
 
         Comparison of values to ranges will be provided using the default python >= and <= operators.
 
-        @ingester_object - An ingester object with either the ID or any combination of other fields set
-        @ingester_object_range - If the second object is set get all objects that have values between those
+        :param ingester_object: An ingester object with either the ID or any combination of other fields set
+        :param ingester_object_range: If the second object is set get all objects that have values between those
                                 set in both ingester_object and ingester_object_range
-        @return -   If ingester_object_range is set, return all objects of the same type that have values between
+        :return: :If ingester_object_range is set, return all objects of the same type that have values between
                         those set in ingester_object and ingester_object_range.
                     Otherwise, if the ingester_object ID field is set an object of the correct type that matches
                         the ID will be returned.
                     Or an array of all objects of the correct type that match the set fields.
-    """
-    def get(self, authentication, ingester_object, ingester_object_range = None):
+        """
         pass
 
-    """
+    def get_ingester_logs(self, dataset_id):
+        """
         Get all ingester logs for a single dataset.
 
-        @dataset_id - ID of the dataset to get ingester logs for
-        @return an array of file handles for all log files for that dataset.
-    """
-    def get_ingester_logs(self, authentication, dataset_id):
+        :param dataset_id: ID of the dataset to get ingester logs for
+        :return: an array of file handles for all log files for that dataset.
+        """
         pass
 
+
+def push_data(self, authentication, data_entry, dataset_id):
     """
         For datasets that use a PushDataSource, data can be entered using this method.
 
         If the data_entry_id is set the upd
 
-        @data_entry - The actual data to save, an InvalidObjectError will be raised if the data_entry_id is set.
-        @key -
-        @username
-        @password
-        @return the data_entry object with the data_entry_id set on success, otherwise raise an AuthenticationError
+        :param data_entry: The actual data to save, an InvalidObjectError will be raised if the data_entry_id is set.
+        :param key:
+        :param username:
+        :param password:
+        :return: The data_entry object with the data_entry_id set on success, otherwise raise an AuthenticationError
     """
-    def push_data(self, authentication, data_entry, dataset_id):
-        pass
+    pass
