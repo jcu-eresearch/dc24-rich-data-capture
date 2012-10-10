@@ -4,7 +4,6 @@ import unittest
 from sqlalchemy.types import BOOLEAN
 import sys
 
-from .models import DBSession
 from richdatacapture.ingesterapi.models.dataset import Dataset
 from richdatacapture.ingesterapi.models.locations import Location, Region
 from richdatacapture.ingesterapi.schemas.data_types import FileDataType
@@ -13,9 +12,9 @@ from richdatacapture.ingesterapi.models.data_entry import DataEntry
 from richdatacapture.ingesterapi.ingester_platform_api import IngesterPlatformAPI
 from richdatacapture.ingesterapi.authentication import CredentialsAuthentication
 from richdatacapture.ingesterapi.models.metadata import Metadata
-from richdatacapture.ingesterapi.schemas.metadata_schemas import QualitySchema, SampleRateMetadataSchema, TextMetadataSchema, QualityMetadataSchema
+from richdatacapture.ingesterapi.schemas.metadata_schemas import QualityMetadataSchema, SampleRateMetadataSchema, NoteMetadataSchema, QualityMetadataSchema
 from richdatacapture.ingesterapi.models.sampling import RepeatSampling, PeriodicSampling
-from richdatacapture.ingesterapi.ingester_exceptions import UnsupportedSchemaError, InvalidObjectError, UnknownObjectError, UnknownDataSourceError, AuthenticationError
+from richdatacapture.ingesterapi.ingester_exceptions import UnsupportedSchemaError, InvalidObjectError, UnknownObjectError, AuthenticationError
 
 class TestIngesterModels(unittest.TestCase):
     def test_authentication(self):
@@ -42,13 +41,13 @@ class TestIngesterModels(unittest.TestCase):
         assertTrue(len(datasets) > 0, "Ingester API failed to insert dataset")
         assertIn(self.dataset, datasets, "Ingester API didn't return the inserted dataset")
 
-        data_quality = Metadata(self.data_entry, QualitySchema(), {"description": "Sensor was moved", "value": 0})
+        data_quality = Metadata(self.data_entry, QualityMetadataSchema(), {"description": "Sensor was moved", "value": 0})
         stored_data_quality = self.ingester_platform.post(self.auth, data_quality)
         assertEquals(data_quality, stored_data_quality)
 
         sampling_rate = Metadata(self.dataset, SampleRateMetadataSchema(), {"sampling": PeriodicSampling()})
 
-        location_elevation_type = Metadata(self.location, TextMetadataSchema(),
+        location_elevation_type = Metadata(self.location, NoteMetadataSchema(),
                 {"name": "Elevation type", "text": "Height above ground"})
 
     pass
@@ -178,5 +177,5 @@ class TestProjectFunctionality(unittest.TestCase):
             except:
                 print "Exception: ", str(sys.exc_info())
 
-    if __name__ == '__main__':
-        unittest.main()
+if __name__ == '__main__':
+    unittest.main()

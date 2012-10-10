@@ -1,7 +1,5 @@
 import unittest
 
-from .models import DBSession
-
 class TestIngesterModels(unittest.TestCase):
     def test_calibration_shcemas(self):
         pass

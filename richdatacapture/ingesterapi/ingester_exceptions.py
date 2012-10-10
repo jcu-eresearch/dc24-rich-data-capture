@@ -65,5 +65,8 @@ class InvalidCall(Exception):
     Thrown when an API method call cannot be completed because it would corrupt the data state (eg. deleting a location
     that  quality data associated with it).
     """
-    def __init__(self):
+    def __init__(self, message):
+        self.message = message
 
+    def __str__(self):
+        return repr(self.message)

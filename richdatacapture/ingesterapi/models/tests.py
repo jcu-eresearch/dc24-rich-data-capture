@@ -3,7 +3,6 @@ import transaction
 
 from pyramid import testing
 
-from .models import DBSession
 from richdatacapture.ingesterapi.models.data_entry import DataEntry
 
 class TestIngesterModels(unittest.TestCase):

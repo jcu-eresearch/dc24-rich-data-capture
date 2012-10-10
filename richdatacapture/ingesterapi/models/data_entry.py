@@ -1,4 +1,4 @@
-from ingesterapi.ingester_objects.ingester_exceptions import UnknownParameterError
+from richdatacapture.ingesterapi.ingester_exceptions import UnknownParameterError
 
 __author__ = 'Casey Bajema'
 

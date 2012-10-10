@@ -1,5 +1,5 @@
 from sqlalchemy.dialects.mysql.base import VARCHAR, INTEGER, TEXT
-from ingesterapi.ingester_objects.sampling import _Sampling
+from richdatacapture.ingesterapi.models.sampling import _Sampling
 
 """
     Defines all possible data sources or in other words data input methods that can be provisioned.
