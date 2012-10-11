@@ -3,6 +3,7 @@ import os
 import unittest
 from sqlalchemy.types import BOOLEAN
 import sys
+import tempfile
 
 from richdatacapture.ingesterapi.models.dataset import Dataset
 from richdatacapture.ingesterapi.models.locations import Location, Region
@@ -26,24 +27,24 @@ class TestIngesterModels(unittest.TestCase):
     def test_ingester_platform(self):
         self.ingester_platform = IngesterPlatformAPI()
         dataset = self.ingester_platform.post(self.auth, self.dataset)
-        assertTrue(dataset is set, "Failed to add dataset to ingester API")
-        assertTrue(dataset.dataset_id is set and dataset.dataset_id >= 0,
+        self.assertTrue(dataset is set, "Failed to add dataset to ingester API")
+        self.assertTrue(dataset.dataset_id is set and dataset.dataset_id >= 0,
             "Ingester API returned dataset with invalid dataset_id")
         self.dataset = dataset
 
         data_entry = self.ingester_platform.post(self.auth, self.data_entry)
-        assertTrue(data_entry is set, "Failed to add data_entry to ingester API")
-        assertTrue(data_entry.data_entry_id is set and data_entry.data_entry_id >= 0,
+        self.assertTrue(data_entry is set, "Failed to add data_entry to ingester API")
+        self.assertTrue(data_entry.data_entry_id is set and data_entry.data_entry_id >= 0,
             "Ingester API returned data_entry with invalid data_entry_id")
         self.data_entry = data_entry
 
         datasets = self.ingester_platform.get(self.auth, Dataset())    # Get all datasets
-        assertTrue(len(datasets) > 0, "Ingester API failed to insert dataset")
-        assertIn(self.dataset, datasets, "Ingester API didn't return the inserted dataset")
+        self.assertTrue(len(datasets) > 0, "Ingester API failed to insert dataset")
+        self.assertIn(self.dataset, datasets, "Ingester API didn't return the inserted dataset")
 
         data_quality = Metadata(self.data_entry, QualityMetadataSchema(), {"description": "Sensor was moved", "value": 0})
         stored_data_quality = self.ingester_platform.post(self.auth, data_quality)
-        assertEquals(data_quality, stored_data_quality)
+        self.assertEquals(data_quality, stored_data_quality)
 
         sampling_rate = Metadata(self.dataset, SampleRateMetadataSchema(), {"sampling": PeriodicSampling()})
 
@@ -75,9 +76,18 @@ class TestIngesterFunctionality(unittest.TestCase):
 class TestProjectFunctionality(unittest.TestCase):
     #---------------Create example data---------------
     def setUp(self):
+        self.auth = CredentialsAuthentication("casey", "password")
+        self.ingester_platform = IngesterPlatformAPI("http://localhost:8080", self.auth)
+        self.cleanup_files = []
+
+    def test_connection(self):
+        result = self.ingester_platform.ping()
+        self.assertEquals(result, "PONG", "Could not ping service")
+
+    def test_ingest_functionality(self):
         self.region = Region(
             "Queensland",
-                {{2314, 1234}, {1234, 1234}, {1234, 1234}, {1234, 2134}}
+                [(2314, 1234), (1234, 1234), (1234, 1234), (1234, 2134)]
         )
 
         self.location = Location(1234, 1234, "Example Point", 1.5, self.region)
@@ -85,7 +95,9 @@ class TestProjectFunctionality(unittest.TestCase):
         self.data_type = FileDataType()
         self.data_type.extra_data_example = BOOLEAN()
 
-        self.script_handle = '/test_script_file.py'
+        self.script_handle = os.path.join(tempfile.gettempdir(), 'test_script_file.py')
+        self.cleanup_files.append(self.script_handle)
+        
         script = "class TestProcessingScript(_ProcessingScript):"\
                  "  def process_it(self, data_entry):"\
                  "      assertIsInstance(data_entry, FileDataType)"\
@@ -103,11 +115,6 @@ class TestProjectFunctionality(unittest.TestCase):
                 {"description": "The entered data was invalid."})
         self.dataset_sampling_changed = Metadata(self.dataset, SampleRateMetadataSchema(),
                 {"change_time": datetime.today(), "sampling": PeriodicSampling(1000)})
-
-        self.auth = CredentialsAuthentication("casey", "password")
-        self.ingester_platform = IngesterPlatformAPI(self.auth)
-
-    def test_functionality(self):
     # Datasets
         try:
             # Add a dataset
@@ -135,7 +142,7 @@ class TestProjectFunctionality(unittest.TestCase):
                 if data_entry == self.data_entry:
                     # Delete the data_entry
                     found = True
-            assertTrue(found, "id range search failed")
+            self.assertTrue(found, "id range search failed")
 
             a_data_entry = DataEntry(kwargs={"extra_data_example": False})
             data_entry = self.ingester_platform.get(DataEntry)
@@ -150,7 +157,7 @@ class TestProjectFunctionality(unittest.TestCase):
                     # Delete the dataset
                     self.ingester_platform.delete(self.auth, self.dataset)
                     found = True
-            assertTrue(found, "location search failed")
+            self.assertTrue(found, "location search failed")
 
         except UnsupportedSchemaError:
             assert True, "The data_type schema was an unknown type (this should never happen except under development"
@@ -168,14 +175,13 @@ class TestProjectFunctionality(unittest.TestCase):
         except:
             assert True, "Any other run time error that the ingester platform throws."
 
-        pass
-
     def tearDown(self):
-        if os.path.exists(self.script_handle):
-            try:
-                os.remove(self.script_handle)
-            except:
-                print "Exception: ", str(sys.exc_info())
+        for f_name in self.cleanup_files:
+            if os.path.exists(f_name):
+                try:
+                    os.remove(f_name)
+                except:
+                    print "Exception: ", str(sys.exc_info())
 
 if __name__ == '__main__':
     unittest.main()

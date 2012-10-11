@@ -1,4 +1,5 @@
 __author__ = 'Casey Bajema'
+import xmlrpclib
 
 class IngesterPlatformAPI():
     """
@@ -10,8 +11,30 @@ class IngesterPlatformAPI():
         * Parameters of an unknown type
         * Parameter values that don't make sense (eg. inserting an object that has an ID set)
     """
-    def __init__(self, auth):
+    
+    def __init__(self, service_url, auth=None):
+        """Initialise the client connection using the given URL
+        @param service_url: The server URL. HTTP and HTTPS only.
+        
+        >>> s = IngesterPlatformAPI("")
+        Traceback (most recent call last):
+        ...
+        ValueError: Invalid server URL specified
+        >>> s = IngesterPlatformAPI("ssh://")
+        Traceback (most recent call last):
+        ...
+        ValueError: Invalid server URL specified
+        >>> c = IngesterPlatformAPI("http://localhost:8080")
+        """
+        if not service_url.startswith("http://") and not service_url.startswith("https://"):
+            raise ValueError("Invalid server URL specified")
+        self.server = xmlrpclib.ServerProxy(service_url, allow_none=True)
         self.auth = auth
+
+    def ping(self):
+        """A simple diagnotic method which should return "PONG"
+        """
+        return self.server.ping()
 
     def post(self, ingester_object):
         """

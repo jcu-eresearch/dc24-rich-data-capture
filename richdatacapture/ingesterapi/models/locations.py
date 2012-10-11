@@ -18,7 +18,7 @@ class Region(dict):
         self.region_id = region_id
         self.region_name = region_name
         self.region_points = region_points
-        self.parent_region = parent_region
+        self.parent_region = parent_regions
 
 class Location(dict):
     """
