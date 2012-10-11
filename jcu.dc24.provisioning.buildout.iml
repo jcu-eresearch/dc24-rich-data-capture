@@ -3,7 +3,7 @@
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
     <content url="file://$MODULE_DIR$" />
-    <orderEntry type="jdk" jdkName="Python 2.7.3 virtualenv at C:\DropBox\jcu.dc24.provisioning.buildout\venv" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="DC24" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>
