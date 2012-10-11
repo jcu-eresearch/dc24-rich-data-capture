@@ -35,6 +35,7 @@ class Location(dict):
                         the regions area.
         :return: Initialised Location object.
         """
+        self.id = None
         self.location_name = location_name              # String
         self.latitude = latitude                        # double
         self.longitude = longitude                      # double
