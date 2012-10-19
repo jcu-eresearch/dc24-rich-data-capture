@@ -7,45 +7,45 @@
                  now_len len(subfields);
                  prototype field.widget.prototype(field)">
 
-  <!-- sequence -->
+    <!-- sequence -->
 
-  <input type="hidden" name="__start__" value="${field.name}:sequence"
-         class="deformProto" 
-         tal:attributes="prototype prototype"/>
+    <input type="hidden" name="__start__" value="${field.name}:sequence"
+           class="deformProto"
+           tal:attributes="prototype prototype"/>
 
-  <ul>
+    <ul id="seq_items-${field.oid}">
 
-    <div tal:repeat="tup subfields"
-         tal:replace="structure rndr(item_tmpl, field=tup[1], cstruct=tup[0],
+        <div tal:repeat="tup subfields"
+             tal:replace="structure rndr(item_tmpl, field=tup[1], cstruct=tup[0],
                       parent=field)"/>
 
-    <span class="deformInsertBefore" 
+    <span class="deformInsertBefore"
           tal:attributes="min_len min_len; 
                           max_len max_len; 
                           now_len now_len"></span>
 
-  </ul>
-  
-  <a href="#"
-     class="deformSeqAdd"
-     id="${field.oid}-seqAdd"
-     onclick="javascript: return deform.appendSequenceItem(this);">
-    <small id="${field.oid}-addtext">${add_subitem_text}</small>
-  </a>
+    </ul>
 
-  <script type="text/javascript">
-     deform.addCallback(
-       '${field.oid}',
-       function(oid) {
-         oid_node = $('#'+ oid);
-         deform.processSequenceButtons(oid_node, ${min_len}, 
-                                       ${max_len}, ${now_len});
-       }
-     )
-  </script>
+    <a href="#"
+       class="deformSeqAdd"
+       id="${field.oid}-seqAdd"
+       onclick="deform.appendSequenceItem(this); ">
+        <small id="${field.oid}-addtext">${add_subitem_text}</small>
+    </a>
 
-  <input type="hidden" name="__end__" value="${field.name}:sequence"/>
+    <script type="text/javascript">
+        deform.addCallback(
+                '${field.oid}',
+                function (oid) {
+                    oid_node = $('#' + oid);
+                    deform.processSequenceButtons(oid_node, ${min_len},
+                            ${max_len}, ${now_len});
+                }
+        )
+    </script>
 
-  <!-- /sequence -->
+    <input type="hidden" name="__end__" value="${field.name}:sequence"/>
+
+    <!-- /sequence -->
 
 </div>

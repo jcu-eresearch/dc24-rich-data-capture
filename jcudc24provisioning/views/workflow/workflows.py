@@ -25,12 +25,6 @@ redirect_options = """
         }
         """
 
-class MemoryTmpStore(dict):
-    """ Instances of this class implement the
-    :class:`deform.interfaces.FileUploadTempStore` interface"""
-    def preview_url(self, uid):
-        return None
-
 class Workflows(Layouts):
     def __init__(self, request):
         self.request = request

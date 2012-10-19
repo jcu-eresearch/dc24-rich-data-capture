@@ -5,9 +5,8 @@ __author__ = 'Casey Bajema'
 
 class setup_schema(colander.MappingSchema):
     projectTitle = colander.SchemaNode(colander.String(), widget=deform.widget.TextInputWidget(css_class="full_width"),
-        validator=colander.OneOf(["a", "b", "c"]),
         default="An easily identifiable, concise what and why - Include relevant keyword - Keep the description relevant to all generated records.", title="Project Title",
-        description="<p>A descriptive title that will make the generated records easy to search and describes the type of data collected and why.</p><p>It is recommended for datasets and collections, the title should be unique to the data, ie. do not use the publication title as the data title.</p><p>Make sure the title contains relevant keywords as it will be searched on.  Note: Keep the title relevant to all generated records.</p>")
+        description="<p>A descriptive title that will make the generated records easy to search and describes the type of data collected and why.</p><p>It is recommended for datasets and collections, the title should be unique to the data, ie. do not use the publication title as the data title.</p><p>Make sure the title contains relevant keywords as it will be searched on and keep the title relevant to all generated records.</p>")
 
     briefDescription = colander.SchemaNode(colander.String(), help="Descriptive help text test",
         default="An executive summary of the full description - Keep the description relevant to all generated records", widget=deform.widget.TextAreaWidget(rows=3),

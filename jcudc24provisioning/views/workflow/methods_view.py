@@ -20,7 +20,7 @@ class MethodsSchema(colander.Schema):
         ,
         description="Provide a description for all data input methods used in the project.  This will be used as the description for data collection in the project metadata record and will provide users of your data with an overview of what the project is researching.")
     dataSources = DataSchemas(title="Methods", widget=deform.widget.SequenceWidget(min_len=1),
-        description="Add 1 method for each type of data collection method (eg. streaming temperature sensors, field observations using a form and file uploads from iButton sensors...)")
+        description="Add 1 method for each type of data collection method (eg. SOS temperature sensors, manually entered field observations using a form or files retrieved by polling a server...)")
 
 class MethodsView(Workflows):
     title = "Methods"

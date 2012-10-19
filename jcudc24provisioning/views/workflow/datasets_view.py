@@ -1,6 +1,6 @@
 from pyramid.response import Response
 from jcudc24provisioning.views.schemas.dataset_schema import MethodSelectSchema, DatasetSchema
-from jcudc24provisioning.views.workflow.workflows import Workflows, MemoryTmpStore
+from jcudc24provisioning.views.workflow.workflows import Workflows
 
 __author__ = 'Casey Bajema'
 

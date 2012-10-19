@@ -1,16 +1,13 @@
-<textarea tal:attributes="rows field.widget.rows;
+<tal:block define="default_value cstruct or field.schema.default or nothing">
+    <textarea tal:attributes="rows field.widget.rows;
                           cols field.widget.cols;
-                          class field.widget.css_class"
-          id="${field.oid}" name="${field.name}">${cstruct}</textarea>
-<span id="default_text-${field.oid}" style="display: none;">${field.schema.default}</span>
+                          class (field.widget.css_class or '') + (default_value == field.schema.default and ' default_text' or '')"
+              id="${field.oid}" name="${field.name}"
+              onclick="if (value == '${field.schema.default}') {className = className.replace( /(?:^|\s)default_text(?!\S)/g , '' ); value='';}"
+              onblur="if (value == '') {value='${default_value}'; className += ' default_text';}">${default_value}</textarea>
+    <span id="default_text-${field.oid}" style="display: none;">${field.schema.default}</span>
 
-<script tal:condition="field.schema.default" type="text/javascript">
-    submitClearsDefaultValues("${field.oid}", "${field.schema.default}");
-
-    deform.addCallback(
-            '${field.oid}',
-            function (oid) {
-                var default_text = document.getElementById("default_text-${field.oid}").innerHTML;
-                prepareTextField("${field.oid}", default_text);
-            });
-</script>
+    <script tal:condition="field.schema.default" type="text/javascript">
+        submitClearsDefaultValues("${field.oid}", "${field.schema.default}");
+    </script>
+</tal:block>

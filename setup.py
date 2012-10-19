@@ -37,6 +37,9 @@ setup(name='jcu.dc24.provisioning',
       zip_safe=False,
       test_suite='jcudc24provisioning',
       install_requires=requires,
+      setup_requires=[
+        'setuptools-git',
+        ],
       entry_points="""\
       [paste.app_factory]
       main = jcudc24provisioning:main

@@ -1,7 +1,7 @@
 import colander
 import deform
+from jcudc24provisioning.views.schemas.common_schemas import Person, WebsiteSchema, People, Notes, Attachment
 from jcudc24provisioning.views.schemas.dataset_schema import CoverageSchema
-from jcudc24provisioning.views.workflow.workflows import MemoryTmpStore
 
 __author__ = 'Casey Bajema'
 
@@ -29,11 +29,6 @@ def research_theme_validator(form, value):
         exc['not_aligned'] = 'Select this if the none above are applicable'
         raise exc
 
-class Person(colander.MappingSchema):
-    title = colander.SchemaNode(colander.String(), title="Title")
-    givenName = colander.SchemaNode(colander.String(), title="Given name")
-    familyName = colander.SchemaNode(colander.String(), title="Family name")
-    email = colander.SchemaNode(colander.String(), title="Email", missing="")
 
 class Party(colander.MappingSchema):
     relationshipTypes = (
@@ -50,21 +45,6 @@ class Party(colander.MappingSchema):
 
 class PartySchema(colander.SequenceSchema):
     party = Party(title="Person")
-
-class People(colander.SequenceSchema):
-    person = Person()
-
-class WebResource(colander.MappingSchema):
-    url = colander.SchemaNode(colander.String(), title="URL")
-    title = colander.SchemaNode(colander.String(), title="Title")
-    notes = colander.SchemaNode(colander.String(), title="Notes")
-
-class PublicationSchema(colander.SequenceSchema):
-    publication = WebResource()
-
-class WebsiteSchema(colander.SequenceSchema):
-    website = WebResource()
-
 class KeywordsSchema(colander.SequenceSchema):
     keyword = colander.SchemaNode(colander.String())
 
@@ -72,29 +52,34 @@ class CollaboratorSchema(colander.SequenceSchema): collaborator = colander.Schem
     title="Collaborator")
 
 class Associations(colander.MappingSchema):
-    parties = PartySchema(title="People", widget=deform.widget.SequenceWidget(min_len=1))
-    collaborators = CollaboratorSchema()
-    relatedPublications = PublicationSchema(title="Related Publications")
-    relatedWebsites = WebsiteSchema(title="Related Websites")
-    activities = colander.SchemaNode(colander.String(), title="Grants")
-    services = colander.SchemaNode(colander.String(), default="Autocomplete - Mint/Mint DB")
+    parties = PartySchema(title="People", widget=deform.widget.SequenceWidget(min_len=1),
+        description="Enter the details of associated people as described by the dropdown box.")
+    collaborators = CollaboratorSchema(
+        description="Names of other collaborators in the research project, if applicable, eg. CSIRO, University of X, Prof. Jim Bloggs, etc.")
+    relatedPublications = WebsiteSchema(title="Related Publications",
+        description="Include URL/s to any publications underpinning the research dataset/collection, registry/repository, catalogue or index.")
+    relatedWebsites = WebsiteSchema(title="Related Websites", description="Include URL/s for the relevant website.")
+    activities = colander.SchemaNode(colander.String(), title="Grants",
+        description="Enter details of which activities are associated with this record.")
+    services = colander.SchemaNode(colander.String(), default="Autocomplete - Mint/Mint DB",
+        description="Indicate any related Services to this Collection. A lookup works against Mint, or you can enter known information about remote Services.")
 
 class CitationDate(colander.MappingSchema):
     dateType = colander.SchemaNode(colander.String(), title="Date type")
     archivalDate = colander.SchemaNode(colander.Date(), title="")
 
 class CitationDates(colander.SequenceSchema):
-    date = CitationDate()
+    date = CitationDate(widget=deform.widget.MappingWidget(template="inline_mapping"))
 
 class Citation(colander.MappingSchema):
-    title = colander.SchemaNode(colander.String())
+    title = colander.SchemaNode(colander.String(), default="Mr, Mrs, Dr etc.")
     creators = People()
-    edition = colander.SchemaNode(colander.String())
+    edition = colander.SchemaNode(colander.String(), missing="")
     publisher = colander.SchemaNode(colander.String())
     placeOfPublication = colander.SchemaNode(colander.String(), title="Place of publication")
     dates = CitationDates(title="Date(s)")
     url = colander.SchemaNode(colander.String(), title="URL")
-    context = colander.SchemaNode(colander.String())
+    context = colander.SchemaNode(colander.String(), default="citation context", missing="")
 
 researchTypes = (
     ('select', 'Please select one...'), ('applied', 'Applied research'), ('experimental', 'Experimental development'),
@@ -102,21 +87,28 @@ researchTypes = (
 
 
 class Subject(colander.MappingSchema):
-    keywords = KeywordsSchema()
+    keywords = KeywordsSchema(
+        description="Enter keywords that users are likely to search on when looking for this projects data.")
+
+    fieldOfResearch = colander.SchemaNode(colander.String(), title="Fields of Research",
+        default="To be redeveloped similar to ReDBox", description="Select relevant FOR code/s. ")
+
+    socioEconomicObjective = colander.SchemaNode(colander.String(), title="Socio-Economic Objectives",
+        default="To be redeveloped similar to ReDBox", description="Select relevant SEO code/s.")
+
+    researchThemes = ResearchTheme(title="Research Themes", validator=research_theme_validator,
+        description="Select one or more of the 4 themes, or \\'Not aligned to a University theme\\'.", required=True)
 
     typeOfResearch = colander.SchemaNode(colander.String(), widget=deform.widget.SelectWidget(values=researchTypes),
         validator=colander.OneOf(
             [researchTypes[0][0], researchTypes[1][0], researchTypes[2][0], researchTypes[3][0], researchTypes[4][0]]),
-        title="Type of Research Activity")
-
-    researchThemes = ResearchTheme(title="Research Themes", validator=research_theme_validator,
-        description="Select one or more of the 4 themes, or 'not aligned'.", required=True)
-
-    fieldOfResearch = colander.SchemaNode(colander.String(), title="Fields of Research",
-        default="To be redeveloped similar to ReDBox")
-
-    socioEconomicObjective = colander.SchemaNode(colander.String(), title="Socio-Economic Objectives",
-        default="To be redeveloped similar to ReDBox")
+        title="Type of Research Activity",
+        description="1297.0 Australian Standard Research Classification (ANZSRC) 2008. </br></br>"\
+                    "<b>Pure basic research</b> is experimental and theoretical work undertaken to acquire new knowledge without looking for long term benefits other than the advancement of knowledge.</br></br>"\
+                    "<b>Strategic basic research</b> is experimental and theoretical work undertaken to acquire new knowledge directed into specified broad areas in the expectation of useful discoveries. It provides the broad base of knowledge necessary for the solution of recognised practical problems.</br></br>"\
+                    "<b>Applied research</b> is original work undertaken primarily to acquire new knowledge with a specific application in view. It is undertaken either to determine possible uses for the findings of basic research or to determine new ways of achieving some specific and predetermined objectives.</br></br>"\
+                    "<b>Experimental development</b> is systematic work, using existing knowledge gained from research or practical experience, that is directed to producing new materials, products or devices, to installing new processes, systems and services, or to improving substantially those already produced or installed."
+    )
 
 
 class Legality(colander.MappingSchema):
@@ -146,34 +138,23 @@ class Legality(colander.MappingSchema):
         )
 
     accessRights = AccessRights(title="Access Rights",
-        description="Information about access to the collection or service, including access restrictions or embargoes based on privacy, security or other policies. A URI is optional.  "\
-                    "eg. Contact Chief Investigator to negotiate access to the data. "\
+        description="Information about access to the collection or service, including access restrictions or embargoes based on privacy, security or other policies. A URI is optional.</br></br>"\
+                    "eg. Contact Chief Investigator to negotiate access to the data.</br></br>"\
                     "eg. Embargoed until 1 year after publication of the research.")
     rights = UsageRights(title="Usage Rights",
-        description="Information about rights held in and over the collection such as copyright, licences and other intellectual property rights, eg. This dataset is made available under the Public Domain Dedication and License v1.0 whose full text can be found at: http://www.opendatacommons.org/licences/pddl/1.0/"\
+        description="Information about rights held in and over the collection such as copyright, licences and other intellectual property rights, eg. This dataset is made available under the Public Domain Dedication and License v1.0 whose full text can be found at: <b>http://www.opendatacommons.org/licences/pddl/1.0/</b></br>"\
                     "A URI is optional. ")
 
     license = colander.SchemaNode(colander.String(), title="License", default="creative_commons_by",
-        widget=deform.widget.SelectWidget(values=choices))
-    other = OtherLicense(title="Other")
-    otherLegalRights = colander.SchemaNode(colander.String(), widget=deform.widget.TextAreaWidget(),
-        title="Other Legal Rights")
+        widget=deform.widget.SelectWidget(values=choices),
+        description="This list contains data licences that this server has been configured with. For more information about Creative Commons licences please <a href=\\'http://creativecommons.org.au/learn-more/licences\\' alt=\\'licenses\\'>see here</a>. ")
+    other = OtherLicense(title="Other",
+        description="If you want to use a license not included in the above list you can provide details below.</br></br>"\
+                    "<ul><li>If you are using this field frequently for the same license it would make sense to get your system administrator to add the license to the field above.</li>"\
+                    "<li>If you provide two licenses (one from above, plus this one) only the first will be sent to RDA in the RIF-CS.</li>"\
+                    "<li>Example of another license: http://www.opendefinition.org/licenses</li></ul>")
 
-class Notes(colander.SequenceSchema):
-    note = colander.SchemaNode(colander.String(), widget=deform.widget.TextAreaWidget())
 
-class Attachment(colander.MappingSchema):
-    attachmentTypes = (("data", "Data file"), ("supporting", "Supporting material"), ("readme", "Readme"))
-    type = colander.SchemaNode(colander.String(), widget=deform.widget.SelectWidget(values=attachmentTypes),
-        validator=colander.OneOf(
-            [attachmentTypes[0][0], attachmentTypes[1][0], attachmentTypes[2][0]]),
-        title="Attachment type", css_class="inline")
-    attachment = MemoryTmpStore()
-    attachFile = colander.SchemaNode(deform.FileData(), widget=deform.widget.FileUploadWidget(attachment),
-        title="Attach File", missing=attachment, css_class="inline")
-
-class Attachments(colander.SequenceSchema):
-    attachment = Attachment(widget=deform.widget.MappingWidget(template="inline_mapping"))
 
 #class DataDetails(colander.MappingSchema):
 #    dataOwner = colander.SchemaNode(colander.String(), title="Data Owner (IP)")
@@ -191,13 +172,25 @@ class Attachments(colander.SequenceSchema):
 #    dataAffiliation = colander.SchemaNode(colander.String(), title="Data Affiliation")
 
 
+class MetadataAttachment(colander.MappingSchema):
+    attachmentTypes = (("data", "Data file"), ("supporting", "Supporting material"), ("readme", "Readme"))
+    type = colander.SchemaNode(colander.String(), widget=deform.widget.SelectWidget(values=attachmentTypes),
+        validator=colander.OneOf(
+            [attachmentTypes[0][0], attachmentTypes[1][0], attachmentTypes[2][0]]),
+        title="Attachment type", css_class="inline")
+    attachment = Attachment()
+
+class MetadataAttachments(colander.SequenceSchema):
+    attachment = MetadataAttachment(widget=deform.widget.MappingWidget(template="inline_mapping"))
+
 class MetadataData(colander.MappingSchema):
     subject = Subject()
     coverage = CoverageSchema()
     associations = Associations()
     legal = Legality(title="Legality")
-    citation = Citation()
-    attachments = Attachments()
+    citation = Citation(
+        description="Provide metadata that should be used for the purposes of citing this record. Sending a citation to RDA is optional, but if you choose to enable this there are quite specific mandatory fields that will be required by RIF-CS.")
+    attachments = MetadataAttachments()
     retentionPeriods = (
         ("indefinite", "Indefinite"), ("1", "1 Year"), ("5", "5 Years"), ("7", "7 Years"), ("10", "10 Years"),
         ("15", "15 Years"))
@@ -205,7 +198,7 @@ class MetadataData(colander.MappingSchema):
         widget=deform.widget.SelectWidget(values=retentionPeriods),
         validator=colander.OneOf(
             [retentionPeriods[0][0], retentionPeriods[1][0], retentionPeriods[2][0], retentionPeriods[3][0],
-             retentionPeriods[4][0], retentionPeriods[5][0]]))
+             retentionPeriods[4][0], retentionPeriods[5][0]]), description="Record the period of time that the data must be kept in line with institutional/funding body retention policies.")
     nationalSignificance = colander.SchemaNode(colander.Boolean(), title="Is the data nationally significant?",
-        widget=deform.widget.RadioChoiceWidget(values=(("yes", "Yes"), ("no", "No"))))
-    notes = Notes()
+        widget=deform.widget.RadioChoiceWidget(values=(("yes", "Yes"), ("no", "No"))), description="Do you know or believe that this projects data may be Nationally Significant?")
+    notes = Notes(description="Enter administrative notes as required.")

@@ -1,7 +1,9 @@
 <li class="field${field.error and ' ' + (field.widget.error_class or '')}"
     id="item-${field.oid}"
     tal:omit-tag="field.widget.hidden"
-    i18n:domain="deform">
+    i18n:domain="deform"
+    tal:attributes="title python:field.schema.default or None">
+
     <!-- mapping_item -->
     <label tal:condition="not (field.widget.hidden or
                              field.widget.category == 'structural')"
@@ -12,8 +14,8 @@
     </label>
 
     <div id="desc-${field.oid}" tal:condition="field.description and not (field.widget.hidden or
-                           field.widget.category == 'structural')" class="description">
-        <script type="text/javascript">document.getElementById('desc-${field.oid}').innerHTML = fixHTMLTags('${field.description}')</script>
+                           field.widget.category == 'structural')" class="description"
+         tal:content="structure field.description">
     </div>
 
     <span tal:replace="structure field.serialize(cstruct)"/>
@@ -30,6 +32,4 @@
     <!-- /mapping_item -->
 </li>
 
-<script tal:condition="field.schema.default" type="text/javascript">
-    document.getElementById("item-${field.oid}").title="${field.schema.default}";
-</script>
+

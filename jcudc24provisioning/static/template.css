@@ -255,6 +255,7 @@ input[type=text] {
     width: 50%;
 }
 
+
 .description.first {
     background: #fff;
     padding: 7px 10px;
@@ -297,3 +298,6 @@ div.description p {
     margin: 0px;
 }
 
+.default_text {
+    color: #999;
+}

@@ -28,12 +28,7 @@ function escapeQuotes(text) {
 
 function submitClearsDefaultValues(oid, default_text) {
     var form = document.getElementById('deform');
-    var field = document.getElementById(oid);
-
     default_text = escapeQuotes(default_text);
-
-    field.setAttribute("onblur", "if (value == '') {value='" + default_text + "'; style.color='#999'}");
-    field.setAttribute("onclick", "if (value == '" + default_text + "') {style.color='#000'; value='';}");
 
     var submit_text = "if (document.getElementById('" + oid + "').value == '" + default_text + "') {document.getElementById('" + oid + "').value = '';}";
 
@@ -43,16 +38,8 @@ function submitClearsDefaultValues(oid, default_text) {
     form.setAttribute('onsubmit', submit_text);
 }
 
-function prepareTextField(oid, default_text) {
-    var field = document.getElementById(oid);
 
-    if (field.value == '' || field.value == default_text) {
-        field.value = default_text;
-        field.style.color = '#999'
-    }
-}
-
-function fixHTMLTags(descText) {
+/*function fixHTMLTags(descText) {
     while (descText.match("\&lt;")) {
         descText = descText.replace("\&lt;", "<");
     }
@@ -63,3 +50,8 @@ function fixHTMLTags(descText) {
 
     return descText;
 }
+
+$(document).ready(function () {
+
+});
+*/
