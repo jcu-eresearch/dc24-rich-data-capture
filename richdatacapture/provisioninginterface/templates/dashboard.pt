@@ -1,9 +1,0 @@
-<div metal:use-macro="view.global_template">
-    <div metal:fill-slot="content">
-
-    </div>
-
-    <div metal:fill-slot="sidebar">
-        <li><a href="/setup">TODO</a></li>
-    </div>
-</div>
