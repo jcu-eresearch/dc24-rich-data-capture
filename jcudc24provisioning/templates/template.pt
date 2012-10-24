@@ -20,6 +20,7 @@
     <script type="text/javascript" src="/deform_static/scripts/deform.js"></script>
     <script type="text/javascript" src="/deform_static/scripts/jquery.form.js"></script>
     <script type="text/javascript" src="/static/scripts/widgets.js"></script>
+    <script type="text/javascript" src="/static/openlayers/OpenLayers.js"></script>
 </head>
 <body>
     <div id="wrapper">

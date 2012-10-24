@@ -309,3 +309,7 @@ div.description p {
 .for_width {
     width: 50%;
 }
+
+#map .dataLayersDiv {
+    background-color: #fff;
+}
