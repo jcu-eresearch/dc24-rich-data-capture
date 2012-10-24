@@ -36,70 +36,15 @@ def research_theme_validator(form, value):
         exc['not_aligned'] = 'Select this if the none above are applicable'
         raise exc
 
-class FieldOfResearch(colander.SchemaNode):
-#    The Mint api is incomplete, limits the amount of queries and takes time to load.  Additionally the Mint
-#    codes aren't compatible with those given by ands... its just easier to hard-code it.
-
-    def __init__(self, typ=colander.String(), *children, **kw):
-        if not "title" in kw: kw["title"] = "Field Of Research"
-#        if not "widget" in kw: kw["widget"] = deform.widget.AutocompleteInputWidget(template='field_of_research_input', values = self.for_data.third, min_length=1)
-        colander.SchemaNode.__init__(self, typ, *children, **kw)
-
-#            if int(num.replace("\"","")[2:]) == 0:
-#                print num.replace("\"","")[:2], name.replace("\"","")
-#            elif int(num.replace("\"","")[4:]) == 0:
-#                print "\t" + num.replace("\"","")[:4], name.replace("\"","")
-#            else:
-#                print "\t\t" + num.replace("\"",""), name.replace("\"","")
-
-#    def get_fields_of_research(self):
-#        # Read the Fields of research from Mint and store it into a variable for the template to read
-#        config = ConfigParser.ConfigParser()
-#        if 'defaults.cfg' in config.read('defaults.cfg'):
-#            try:
-#                mint_url = config.get('mint', 'location')
-#            except ConfigParser.NoSectionError or ConfigParser.NoOptionError:
-#                logger.error("Invalid mint configuration in defaults.cfg")
-#
-##            Read FOR data from ands - Not compatible with Mint...
-##            data = urllib2.urlopen("http://services.ands.org.au/vocab/getConcepts/anzsrc-for/")
-##            print data.read()
-#
-#            url_template = mint_url + "ANZSRC_FOR/opensearch/lookup?count=999&level=%(level)s"
-#
-#            for key, value in self.fields_of_research.iteritems():
-#                data = urllib2.urlopen(url_template % dict(level="http://purl.org/asc/1297.0/2008/for/" + key))
-#                result_object = json.loads(data.read())
-#
-#                first_level_fields = [[results['rdf:about'],results['skos:broader'], results['skos:narrower'], results['skos:prefLabel']] for results in
-#                              result_object['results']]
-#
-#                print key, value
-#
-#                for about, broader, narrower, name in first_level_fields:
-#                    print "\t" + name
-#
-#                    data = urllib2.urlopen(url_template % dict(level=about))
-#                    result_object = json.loads(data.read())
-#                    second_level_fields = [results['skos:prefLabel'] for results in result_object['results']]
-#
-#                    for third_level_name in second_level_fields:
-#                        print "\t\t" + third_level_name
-#        else:
-#            logger.error("defaults.cfg file not found")
-
-
-
-
 class FieldOfResearchSchema(colander.SequenceSchema):
     FOR_CODES_FILE = "for_codes.csv"
-    SEO_CODES_FILE = "seo_codes.csv"
 
-    fieldOfResearch = FieldOfResearch(title="Field Of Research")
+    fieldOfResearch = colander.SchemaNode(colander.String(), title="Field Of Research")
+
 
     for_codes_file = open(FOR_CODES_FILE).read()
-    for_data = OrderedDict()
-    for_data['---Select One---'] = dict()
+    data = OrderedDict()
+    data['---Select One---'] = dict()
 
     item1 = ""
     item2 = ""
@@ -115,17 +60,60 @@ class FieldOfResearchSchema(colander.SequenceSchema):
         index3 = num[4:6]
 
         if int(index3):
-            for_data[item1][item2].append(num + ' ' + name)
+            if not item2 or not item2 in data[item1]:
+                item2 = item1
+                data[item1][item2] = list()
+                data[item1][item2].append('---Select One---')
+            data[item1][item2].append(num + ' ' + name)
         elif int(index2):
             item2 = num + " " + name
-            for_data[item1][item2] = list()
-            for_data[item1][item2].append('---Select One---')
+            data[item1][item2] = list()
+            data[item1][item2].append('---Select One---')
         else:
             item1 = num + " " + name
-            for_data[item1] = OrderedDict()
-            for_data[item1]['---Select One---'] = dict()
+            data[item1] = OrderedDict()
+            data[item1]['---Select One---'] = dict()
 
-    fieldOfResearch.for_data = for_data
+    fieldOfResearch.data = data
+
+class SocioEconomicObjectives(colander.SequenceSchema):
+    SEO_CODES_FILE = "seo_codes.csv"
+
+    socioEconomicObjective = colander.SchemaNode(colander.String(), title="Socio-Economic Objective")
+
+    seo_codes_file = open(SEO_CODES_FILE).read()
+    data = OrderedDict()
+    data['---Select One---'] = dict()
+
+    item1 = ""
+    item2 = ""
+    for code in seo_codes_file.split("\n"):
+        if code.count(",") <= 0: continue
+
+        num, name = code.split(",",1)
+        num = num.replace("\"","")
+        name = name.replace("\"","")
+
+        index1 = num[:2]
+        index2 = num[2:4]
+        index3 = num[4:6]
+
+        if int(index3):
+            if not item2 or not item2 in data[item1]:
+                item2 = item1
+                data[item1][item2] = list()
+                data[item1][item2].append('---Select One---')
+            data[item1][item2].append(num + ' ' + name)
+        elif int(index2):
+            item2 = num + " " + name
+            data[item1][item2] = list()
+            data[item1][item2].append('---Select One---')
+        else:
+            item1 = num + " " + name
+            data[item1] = OrderedDict()
+            data[item1]['---Select One---'] = dict()
+
+    socioEconomicObjective.data = data
 
 class Party(colander.MappingSchema):
     relationshipTypes = (
@@ -188,12 +176,11 @@ class Subject(colander.MappingSchema):
     keywords = KeywordsSchema(
         description="Enter keywords that users are likely to search on when looking for this projects data.")
 
-    fieldOfResearch = FieldOfResearchSchema(title="Fields of Research", widget=deform.widget.SequenceWidget(template='field_of_research_input'))
+    fieldOfResearch = FieldOfResearchSchema(title="Fields of Research", widget=deform.widget.SequenceWidget(template='multi_select_sequence'))
     #    colander.SchemaNode(colander.String(), title="Fields of Research",
     #        default="To be redeveloped similar to ReDBox", description="Select relevant FOR code/s. ")
 
-    socioEconomicObjective = colander.SchemaNode(colander.String(), title="Socio-Economic Objectives",
-        default="To be redeveloped similar to ReDBox", description="Select relevant SEO code/s.")
+    socioEconomicObjective = SocioEconomicObjectives(title="Socio-Economic Objectives", widget=deform.widget.SequenceWidget(template='multi_select_sequence'), description="Select relevant SEO code/s.")
 
     researchThemes = ResearchTheme(title="Research Themes", validator=research_theme_validator,
         description="Select one or more of the 4 themes, or \\'Not aligned to a University theme\\'.", required=True)
