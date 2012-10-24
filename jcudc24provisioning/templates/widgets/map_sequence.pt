@@ -1,0 +1,119 @@
+<div class="deformSeq"
+     id="${field.oid}"
+     tal:define="rndr field.renderer;
+                 item_tmpl field.widget.item_template;
+                 min_len field.widget.min_len or 0;
+                 max_len field.widget.max_len or 100000;
+                 now_len len(subfields);
+                 prototype field.widget.prototype(field)">
+
+    <div class="map" id="map" style="width: 900px; height:900px; clear:both;"></div>
+
+    <!-- sequence -->
+
+    <input type="hidden" name="__start__" value="${field.name}:sequence"
+           class="deformProto"
+           tal:attributes="prototype prototype"/>
+
+    <ul id="seq_items-${field.oid}">
+
+        <div tal:repeat="tup subfields"
+             tal:replace="structure rndr(item_tmpl, field=tup[1], cstruct=tup[0],
+                      parent=field)"/>
+
+    <span class="deformInsertBefore"
+          tal:attributes="min_len min_len; 
+                          max_len max_len; 
+                          now_len now_len"></span>
+
+    </ul>
+
+    <a href="#"
+       class="deformSeqAdd"
+       id="${field.oid}-seqAdd"
+       onclick="deform.appendSequenceItem(this); ">
+        <small id="${field.oid}-addtext">${add_subitem_text}</small>
+    </a>
+
+    <script type="text/javascript">
+        deform.addCallback(
+                '${field.oid}',
+                function (oid) {
+                    var options = {
+                        singleTile: true,
+                        ratio: 1,
+                        isBaseLayer: true,
+                        wrapDateLine: true,
+                        getURL: function() {
+                            var center = this.map.getCenter().transform(134.077148,-26.155438),
+                                    size = this.map.getSize();
+                            return [
+                                this.url, "&center=", center.lat, ",", center.lon,
+                                "&zoom=", this.map.getZoom(), "&size=", size.w, "x", size.h
+                            ].join("");
+                        }
+                    };
+
+                    var map = new OpenLayers.Map({
+                        div: "map",
+                        projection: "EPSG:3857",
+                        numZoomLevels: 22,
+                        layers: [
+                            new OpenLayers.Layer.Grid(
+                                    "Google Physical",
+                                    "http://maps.googleapis.com/maps/api/staticmap?sensor=true&maptype=terrain",
+                                    null, options
+                            ),
+                            new OpenLayers.Layer.Grid(
+                                    "Google Streets",
+                                    "http://maps.googleapis.com/maps/api/staticmap?sensor=false&maptype=roadmap",
+                                    null, options
+                            ),
+                            new OpenLayers.Layer.Grid(
+                                    "Google Hybrid",
+                                    "http://maps.googleapis.com/maps/api/staticmap?sensor=false&maptype=hybrid",
+                                    null, options
+                            ),
+                            new OpenLayers.Layer.Grid(
+                                    "Google Satellite",
+                                    "http://maps.googleapis.com/maps/api/staticmap?sensor=false&maptype=satellite",
+                                    null, options
+                            ),
+                            // the same layer again, but scaled to allow map sizes up to 1280x1280 pixels
+                            new OpenLayers.Layer.Grid(
+                                    "Google Satellite (scale=2)",
+                                    "http://maps.googleapis.com/maps/api/staticmap?sensor=false&maptype=satellite&scale=2",
+                                    null, OpenLayers.Util.applyDefaults({
+                                        getURL: function() {
+                                            var center = this.map.getCenter().transform("EPSG:3857", "EPSG:4326"),
+                                                    size = this.map.getSize();
+                                            return [
+                                                this.url, "&center=", center.lat, ",", center.lon,
+                                                "&zoom=", (this.map.getZoom() - 1),
+                                                "&size=", Math.floor(size.w / 2), "x", Math.floor(size.h / 2)
+                                            ].join("");
+                                        }
+                                    }, options)
+                            )
+                        ]
+                    });
+                    map.addControl(new OpenLayers.Control.LayerSwitcher());
+                    map.setCenter(new OpenLayers.LonLat(134.077148,-26.155438), 0);
+                }
+        )
+
+        deform.addCallback(
+                '${field.oid}',
+                function (oid) {
+                    oid_node = $('#' + oid);
+                    deform.processSequenceButtons(oid_node, ${min_len},
+                            ${max_len}, ${now_len});
+                }
+        )
+    </script>
+
+    <input type="hidden" name="__end__" value="${field.name}:sequence"/>
+
+    <!-- /sequence -->
+
+</div>

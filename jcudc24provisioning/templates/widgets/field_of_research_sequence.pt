@@ -1,0 +1,189 @@
+<div class="deformSeq"
+     id="${field.oid}"
+     tal:define="rndr field.renderer;
+                 item_tmpl field.widget.item_template;
+                 min_len field.widget.min_len or 0;
+                 max_len field.widget.max_len or 100000;
+                 now_len len(subfields);
+                 prototype field.widget.prototype(field)">
+
+    <!-- sequence -->
+
+    <input type="hidden" name="__start__" value="${field.name}:sequence"
+           class="deformProto"
+           tal:attributes="prototype prototype"/>
+
+    <ul id="seq_items-${field.oid}">
+
+        <div tal:repeat="tup subfields"
+             tal:replace="structure rndr(item_tmpl, field=tup[1], cstruct=tup[0],
+                      parent=field)"/>
+
+    <span class="deformInsertBefore"
+          tal:attributes="min_len min_len; 
+                          max_len max_len; 
+                          now_len now_len"></span>
+
+    </ul>
+
+    <hr/>
+
+    <select class="first_for_field for_width">
+        <option tal:repeat="(key) field.schema.fieldOfResearch.for_data"
+                tal:attributes="selected key == cstruct and 'selected';
+                         class field.widget.css_class"
+                value="${key}">${key}
+        </option>
+    </select>
+    <br/>
+    <select class="second_for_field for_width"></select>
+    <br/>
+    <select class="third_for_field for_width"></select>
+
+    <div id="second_level_for_data" class="hidden">
+            <span tal:repeat="(key, values) field.schema.fieldOfResearch.for_data.items()"
+                  tal:attributes="class 'second_level_for_data-'+key">
+                <option tal:repeat="(second_key) values"
+                        tal:attributes="selected second_key == cstruct and 'selected';
+                         class field.widget.css_class"
+                        value="${second_key}">${second_key}
+                </option>
+            </span>
+    </div>
+    <div id="third_level_for_data" class="hidden">
+            <span tal:repeat="(key, values) field.schema.fieldOfResearch.for_data.items()">
+                <span tal:repeat="(second_key, second_values) values.items()"
+                      tal:attributes="class 'third_level_for_data-'+second_key">
+                    <option tal:repeat="(third_key) second_values"
+                            tal:attributes="selected third_key == cstruct and 'selected';
+                             class field.widget.css_class"
+                            value="${third_key}">${third_key}
+                    </option>
+                </span>
+            </span>
+    </div>
+
+
+    <button type="button"
+            class="deformSeqAdd"
+            id="${field.oid}-seqAdd"
+            onclick="deform.appendSequenceItem(this); buttonPressed(this);">
+        <small id="${field.oid}-addtext">${add_subitem_text}</small>
+    </button>
+    <script type="text/javascript">
+        deform.addCallback(
+                '${field.oid}',
+                function (oid) {
+                    oid_node = $('#' + oid);
+                    deform.processSequenceButtons(oid_node, ${min_len},
+                            ${max_len}, ${now_len});
+                }
+        )
+
+        /* Add the onclick functions, this is needed incase this is used in a sequence (sequences randomly change id values!) */
+        deform.addCallback(
+                '${field.oid}',
+                function (oid) {
+                    oid_node = $('#' + oid);
+
+                    showAdd(oid, false);
+
+                    var first_select = oid_node.children(".first_for_field")[0];
+                    var second_select = oid_node.children(".second_for_field")[0];
+                    var third_select = oid_node.children(".third_for_field")[0];
+
+                    first_select.onchange = function () {
+                        updateSecondForFields(oid)
+                    };
+                    second_select.onchange = function () {
+                        updateThirdForFields(oid)
+                    };
+                    third_select.onchange = function () {
+                        showAdd(oid, true);
+                    };
+                }
+        )
+
+        function buttonPressed(node) {
+            var oid_node = $(node).parent();
+
+            var first_select = oid_node.children(".first_for_field")[0];
+            var second_select = oid_node.children(".second_for_field")[0];
+            var third_select = oid_node.children(".third_for_field")[0];
+
+            var for_fields = oid_node.children('ul').first().find("input");
+            var text = third_select.options[third_select.selectedIndex].value;
+
+            for_fields[for_fields.length-1].value = text;
+            for_fields[for_fields.length-1].readOnly = true;
+
+            /* Delete duplicates */
+            var i=0
+            for (i; i< for_fields.length; i++) {
+                if (for_fields[i].value == text && for_fields.length-1 != i) {
+                    deform.removeSequenceItem(for_fields[i]);
+                }
+            }
+
+
+            /* Reset the add field controls */
+            first_select.selectedIndex = 0;
+            second_select.innerHTML = "";
+            third_select.innerHTML = "";
+            showAdd(oid_node.id, false);
+        }
+
+        /* Hid or show the add field button */
+        function showAdd(oid, show) {
+            oid_node = $('#' + oid);
+
+            if (show) {
+                oid_node.children("button")[0].style.display = "inline";
+            } else {
+                oid_node.children("button")[0].style.display = "none";
+            }
+        }
+
+        /* Populate the second level of FOR fields select options */
+        function updateSecondForFields(oid) {
+            oid_node = $('#' + oid);
+
+            var first_select = oid_node.children(".first_for_field")[0];
+            var second_select = oid_node.children(".second_for_field")[0];
+            var third_select = oid_node.children(".third_for_field")[0];
+
+            if (first_select.selectedIndex != 0) {
+                var options_class = "second_level_for_data-" + first_select.options[first_select.selectedIndex].value;
+                var second_level_options = document.getElementsByClassName(options_class)[0];
+                second_select.innerHTML = second_level_options.innerHTML;
+            } else {
+                second_select.innerHTML = "";
+                first_select.selectedIndex = 0;
+            }
+        }
+
+        /* Populate the third level of FOR fields select options */
+        function updateThirdForFields(oid) {
+            oid_node = $('#' + oid);
+
+            var first_select = oid_node.children(".first_for_field")[0];
+            var second_select = oid_node.children(".second_for_field")[0];
+            var third_select = oid_node.children(".third_for_field")[0];
+
+            if (second_select.selectedIndex != 0) {
+                var options_class = "third_level_for_data-" + second_select.options[second_select.selectedIndex].value;
+                var third_level_options = document.getElementsByClassName(options_class)[0];
+                third_select.innerHTML = third_level_options.innerHTML;
+            } else {
+                third_select.innerHTML = "";
+            }
+        }
+    </script>
+    <script type="text/javascript">
+    </script>
+
+    <input type="hidden" name="__end__" value="${field.name}:sequence"/>
+
+    <!-- /sequence -->
+
+</div>
