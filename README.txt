@@ -1,4 +1,4 @@
-jcu.dc24.provisioning README
+RichDataCapture README
 ==================
 
 Getting Started
@@ -8,7 +8,7 @@ Getting Started
 
 - $venv/bin/python setup.py develop
 
-- $venv/bin/initialize_jcu.dc24.provisioning_db development.ini
+- $venv/bin/populate_RichDataCapture development.ini
 
 - $venv/bin/pserve development.ini
 

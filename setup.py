@@ -18,33 +18,30 @@ requires = [
     'colander',
     ]
 
-setup(name='jcu.dc24.provisioning',
+setup(name='RichDataCapture',
       version='0.0',
-      description='jcu.dc24.provisioning',
+      description='RichDataCapture',
       long_description=README + '\n\n' +  CHANGES,
       classifiers=[
         "Programming Language :: Python",
-        "Framework :: Pyramid",
+        "Framework :: Pylons",
         "Topic :: Internet :: WWW/HTTP",
         "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
         ],
-      author='Casey Bajema',
-      author_email='casey@bajtech.com.au',
-      url='http://www.bajtech.com.au',
-      keywords='research data rda tdh ands web wsgi bfg pylons pyramid',
+      author='',
+      author_email='',
+      url='',
+      keywords='web wsgi bfg pylons pyramid',
       packages=find_packages(),
       include_package_data=True,
       zip_safe=False,
-      test_suite='jcudc24provisioning',
+      test_suite='richdatacapture',
       install_requires=requires,
-      setup_requires=[
-        'setuptools-git',
-        ],
       entry_points="""\
       [paste.app_factory]
-      main = jcudc24provisioning:main
+      main = richdatacapture:main
       [console_scripts]
-      initialize_jcu.dc24.provisioning_db = jcudc24provisioning.scripts.initializedb:main
-      """, requires=['colander', "deform"],
+      initialize_RichDataCapture_db = richdatacapture.scripts.initializedb:main
+      """, requires=['deform', "pyramid", "sqlalchemy"],
       )
 
