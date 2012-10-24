@@ -4,14 +4,11 @@
            value="${cstruct}"
            tal:attributes="size field.widget.size;
                            class field.widget.css_class"
+
            id="${field.oid}"/>
 
     <script tal:condition="field.schema.default" type="text/javascript">
         submitClearsDefaultValues("${field.oid}", "${field.schema.default}");
-
-        $(document).ready(function () {
-            prepareTextField("${field.oid}", "${field.schema.default}");
-        });
     </script>
     <script tal:condition="field.widget.values" type="text/javascript">
         deform.addCallback(

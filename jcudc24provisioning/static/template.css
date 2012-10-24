@@ -301,3 +301,11 @@ div.description p {
 .default_text {
     color: #999;
 }
+
+.hidden {
+    display: none;
+}
+
+.for_width {
+    width: 50%;
+}
