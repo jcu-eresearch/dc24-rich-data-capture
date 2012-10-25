@@ -13,7 +13,7 @@ class DatasetsView(Workflows):
 
     def __init__(self, request):
         self.request = request
-        self.schema = DatasetSchema(description="Add individual datasets that your project will be collecting.  This is the when and where using the selected data collection method (what, why and how).  Such that an iButton sensor that is used to collect temperature at numerous sites would have been setup once within the Methods step and should be set-up in this step for each site it is used at.")
+        self.schema = DatasetSchema(description="Add individual datasets that your project will be collecting.  This is the when and where using the selected data collection method (what, why and how).  Such that an iButton sensor that is used to collect temperature at numerous sites would have been setup once within the Methods step and should be set-up in this step for each site it is used at.").bind(request=request)
         self.myform = Form(self.schema, action="datasets_submit", buttons=('Save', 'Delete'), use_ajax=True)
 
     @view_config(renderer="../../templates/datasets.pt", name="datasets_submit")

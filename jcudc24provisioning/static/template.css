@@ -302,7 +302,7 @@ div.description p {
     color: #999;
 }
 
-.hidden {
+.hidden, .description.first.hidden {
     display: none;
 }
 

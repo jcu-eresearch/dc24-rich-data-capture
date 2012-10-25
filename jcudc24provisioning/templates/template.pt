@@ -57,6 +57,7 @@
                     <h3>Global Actions</h3>
                     <ul id="sidebar_global_options">
                         <li><a href="/setup">Setup new project</a></li>
+                        <li><a  style="cursor: pointer" title="Toggle all descriptions on or off (remove clutter when you know what you are doing)" onclick="hideDescriptions(!document.hide_descriptions);">Toggle Descriptions</a></li>
                     </ul>
                 </div>
                 <div id="content">

@@ -12,7 +12,7 @@ class SetupViews(Workflows):
 
     def __init__(self, request):
         self.request = request
-        self.schema = setup_schema()
+        self.schema = setup_schema().bind(request=request)
         self.myform = Form(self.schema, action="setup_submit", buttons=('Save', 'Delete'), use_ajax=True)
 
     @view_config(renderer="../../templates/submit.pt", name="setup_submit")

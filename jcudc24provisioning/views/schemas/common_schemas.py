@@ -1,22 +1,54 @@
+from beaker.cache import cache_region
 import colander
 import deform
+from pyramid_deform import SessionFileUploadTempStore
 
 __author__ = 'Casey Bajema'
 
-class MemoryTmpStore(dict):
-    """ Instances of this class implement the
-    :class:`deform.interfaces.FileUploadTempStore` interface"""
-    def preview_url(self, uid):
-        return None
+#class TmpStore(dict):
+#    """ Instances of this class implement the
+#    :class:`deform.interfaces.FileUploadTempStore` interface"""
+#    def preview_url(self, uid):
+#        return None
+
+#
+#@cache_region('daily')
+#def getJCUUsers():
+#    pass
+
+@colander.deferred
+def upload_widget(node, kw):
+    request = kw['request']
+    tmpstore = SessionFileUploadTempStore(request)
+    return deform.widget.FileUploadWidget(tmpstore)
 
 class Attachment(colander.SchemaNode):
-    attachment = MemoryTmpStore()
-
     def __init__(self, typ=deform.FileData(), *children, **kw):
-        if not "widget" in kw: kw["widget"] = deform.widget.FileUploadWidget(self.attachment)
-        if not "missing" in kw: kw["missing"] = self.attachment
+        if not "widget" in kw: kw["widget"] = widget=upload_widget
         if not "title" in kw: kw["title"] = "Attach File"
         colander.SchemaNode.__init__(self, typ, *children, **kw)
+
+#def deferred_upload_widget(field, bindargs):
+#    request = bindargs['request']
+#    session = request.session
+#    tmpstore = TmpStore(session)
+#    return deform.widget.FileUploadWidget(tmpstore)
+#
+#class MyUploadSchema(colander.Schema):
+#    upload = colander.SchemaNode(deform.FileData(),
+#        widget=deferred_upload_widget)
+#
+#schema = MyUploadSchema().bind(request=request)
+
+
+#class Attachment(colander.SchemaNode):
+#    attachment = MemoryTmpStore()
+#
+#    def __init__(self, typ=deform.FileData(), *children, **kw):
+#        if not "widget" in kw: kw["widget"] = deform.widget.FileUploadWidget(self.attachment)
+#        if not "missing" in kw: kw["missing"] = self.attachment
+#        if not "title" in kw: kw["title"] = "Attach File"
+#        colander.SchemaNode.__init__(self, typ, *children, **kw)
 
 class Notes(colander.SequenceSchema):
     note = colander.SchemaNode(colander.String(), widget=deform.widget.TextAreaWidget())
@@ -289,12 +321,13 @@ countries = (
     ('YE', 'Yemen'),
     ('ZM', 'Zambia'),
     ('ZW', 'Zimbabwe'),
-)
+    )
 
 class Address(colander.MappingSchema):
     street1 = colander.SchemaNode(colander.String(), title="Street")
     street2 = colander.SchemaNode(colander.String(), title="Street")
     city = colander.SchemaNode(colander.String(), title="City")
-    country = colander.SchemaNode(colander.String(), title="Country", widget=deform.widget.SelectWidget(values=countries), validator=colander.OneOf(countries))
+    country = colander.SchemaNode(colander.String(), title="Country",
+        widget=deform.widget.SelectWidget(values=countries), validator=colander.OneOf(countries))
     state = colander.SchemaNode(colander.String(), title="State")
     post_code = colander.SchemaNode(colander.String(), title="Post Code")

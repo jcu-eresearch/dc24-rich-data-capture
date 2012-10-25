@@ -20,5 +20,9 @@
             submitClearsDefaultValues("${field.oid}", "${field.schema.default}");
         </script>
 
+        <div tal:condition="field.schema.__dict__.get('help')">
+            ${field.schema.__dict__.get('test')}
+        </div>
+
     </tal:block>
 </span>

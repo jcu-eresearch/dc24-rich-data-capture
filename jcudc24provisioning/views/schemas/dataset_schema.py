@@ -1,7 +1,7 @@
 import inspect
 import colander
 import deform
-from jcudc24provisioning.views.schemas.common_schemas import MemoryTmpStore, Attachment
+from jcudc24provisioning.views.schemas.common_schemas import Attachment
 
 __author__ = 'Casey Bajema'
 

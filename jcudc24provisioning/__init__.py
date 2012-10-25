@@ -1,19 +1,25 @@
 from deform.form import Form
 from pyramid.config import Configurator
 from pkg_resources import resource_filename
+from pyramid_beaker import session_factory_from_settings, set_cache_regions_from_settings
 
 def main(global_config, **settings):
 #def main():
     """ This function returns a Pyramid WSGI application.
     """
+
 #    engine = engine_from_config(settings, 'sqlalchemy.')
 #    DBSession.configure(bind=engine)
+
     deform_templates = resource_filename('deform', 'templates')
     search_path = (resource_filename('jcudc24provisioning', 'templates\widgets'), deform_templates)
 #    print search_path
     Form.set_zpt_renderer(search_path)
 
-    config = Configurator(settings=settings)
+    set_cache_regions_from_settings(settings)
+    my_session_factory = session_factory_from_settings(settings)
+    config = Configurator(settings=settings, session_factory = my_session_factory)
+
 #    config = Configurator()
 #    config.add_view(views.ProvisioningViews)
     config.add_static_view('deform_static', 'deform:static', cache_max_age=0)
