@@ -16,6 +16,8 @@ requires = [
     'waitress',
     'deform',
     'colander',
+    'pyramid_deform',
+    "pyramid_beaker",
     ]
 
 setup(name='jcu.dc24.provisioning',
@@ -45,6 +47,6 @@ setup(name='jcu.dc24.provisioning',
       main = jcudc24provisioning:main
       [console_scripts]
       initialize_jcu.dc24.provisioning_db = jcudc24provisioning.scripts.initializedb:main
-      """, requires=['colander', "deform"],
+      """, requires=['colander', "deform", "pyramid_deform", "pyramid_beaker"],
       )
 

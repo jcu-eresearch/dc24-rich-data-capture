@@ -14,7 +14,8 @@
     </label>
 
     <div id="desc-${field.oid}" tal:condition="field.description and not (field.widget.hidden or
-                           field.widget.category == 'structural')" class="description"
+                           field.widget.category == 'structural')"
+         class="description"
          tal:content="structure field.description">
     </div>
 

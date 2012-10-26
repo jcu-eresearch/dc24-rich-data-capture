@@ -12,7 +12,7 @@ class MetadataView(Workflows):
 
     def __init__(self, request):
         self.request = request
-        self.schema = MetadataData()
+        self.schema = MetadataData().bind(request=request)
         self.myform = Form(self.schema, action="metadata_submit", buttons=('Save', 'Delete'), use_ajax=True)
 
     @view_config(renderer="../../templates/submit.pt", name="metadata_submit")

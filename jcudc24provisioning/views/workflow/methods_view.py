@@ -28,7 +28,7 @@ class MethodsView(Workflows):
     def __init__(self, request):
         self.request = request
         self.schema = MethodsSchema(
-            description="Setup methods (or ways of) the project uses for collecting data, not individual datasets themselves (that will be done in the next step).  Such that an iButton sensor that is used to collect temperature at numerous sites would be setup once within this step as a data method and for each site it is used at in the next step (This means you don't have to enter duplicate data!).")
+            description="Setup methods (or ways of) the project uses for collecting data, not individual datasets themselves (that will be done in the next step).  Such that an iButton sensor that is used to collect temperature at numerous sites would be setup once within this step as a data method and for each site it is used at in the next step (This means you don't have to enter duplicate data!).").bind(request=request)
         self.myform = Form(self.schema, action="methods_submit", buttons=('Save', 'Delete'), use_ajax=True)
 
     @view_config(renderer="../../templates/submit.pt", name="methods_submit")

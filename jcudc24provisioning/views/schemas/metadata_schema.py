@@ -3,6 +3,7 @@ from collections import OrderedDict
 import json
 import logging
 import urllib2
+from beaker.cache import cache_region
 import os
 import colander
 import deform
@@ -36,10 +37,9 @@ def research_theme_validator(form, value):
         exc['not_aligned'] = 'Select this if the none above are applicable'
         raise exc
 
-class FieldOfResearchSchema(colander.SequenceSchema):
+@cache_region('long_term')
+def getFORCodes():
     FOR_CODES_FILE = "for_codes.csv"
-
-    fieldOfResearch = colander.SchemaNode(colander.String(), title="Field Of Research")
 
     for_codes_file = open(FOR_CODES_FILE).read()
     data = OrderedDict()
@@ -50,9 +50,9 @@ class FieldOfResearchSchema(colander.SequenceSchema):
     for code in for_codes_file.split("\n"):
         if code.count(",") <= 0: continue
 
-        num, name = code.split(",",1)
-        num = num.replace("\"","")
-        name = name.replace("\"","")
+        num, name = code.split(",", 1)
+        num = num.replace("\"", "")
+        name = name.replace("\"", "")
 
         index1 = num[:2]
         index2 = num[2:4]
@@ -73,12 +73,11 @@ class FieldOfResearchSchema(colander.SequenceSchema):
             data[item1] = OrderedDict()
             data[item1]['---Select One---'] = dict()
 
-    fieldOfResearch.data = data
+    return data
 
-class SocioEconomicObjectives(colander.SequenceSchema):
+@cache_region('long_term')
+def getSEOCodes():
     SEO_CODES_FILE = "seo_codes.csv"
-
-    socioEconomicObjective = colander.SchemaNode(colander.String(), title="Socio-Economic Objective")
 
     seo_codes_file = open(SEO_CODES_FILE).read()
     data = OrderedDict()
@@ -89,9 +88,9 @@ class SocioEconomicObjectives(colander.SequenceSchema):
     for code in seo_codes_file.split("\n"):
         if code.count(",") <= 0: continue
 
-        num, name = code.split(",",1)
-        num = num.replace("\"","")
-        name = name.replace("\"","")
+        num, name = code.split(",", 1)
+        num = num.replace("\"", "")
+        name = name.replace("\"", "")
 
         index1 = num[:2]
         index2 = num[2:4]
@@ -112,7 +111,18 @@ class SocioEconomicObjectives(colander.SequenceSchema):
             data[item1] = OrderedDict()
             data[item1]['---Select One---'] = dict()
 
-    socioEconomicObjective.data = data
+    return data
+
+
+class FieldOfResearchSchema(colander.SequenceSchema):
+    fieldOfResearch = colander.SchemaNode(colander.String(), title="Field Of Research")
+    fieldOfResearch.data = getFORCodes()
+
+
+class SocioEconomicObjectives(colander.SequenceSchema):
+    socioEconomicObjective = colander.SchemaNode(colander.String(), title="Socio-Economic Objective")
+    socioEconomicObjective.data = getSEOCodes()
+
 
 class Party(colander.MappingSchema):
     relationshipTypes = (
@@ -175,11 +185,14 @@ class Subject(colander.MappingSchema):
     keywords = KeywordsSchema(
         description="Enter keywords that users are likely to search on when looking for this projects data.")
 
-    fieldOfResearch = FieldOfResearchSchema(title="Fields of Research", widget=deform.widget.SequenceWidget(template='multi_select_sequence'))
+    fieldOfResearch = FieldOfResearchSchema(title="Fields of Research",
+        widget=deform.widget.SequenceWidget(template='multi_select_sequence'))
     #    colander.SchemaNode(colander.String(), title="Fields of Research",
     #        default="To be redeveloped similar to ReDBox", description="Select relevant FOR code/s. ")
 
-    socioEconomicObjective = SocioEconomicObjectives(title="Socio-Economic Objectives", widget=deform.widget.SequenceWidget(template='multi_select_sequence'), description="Select relevant SEO code/s.")
+    socioEconomicObjective = SocioEconomicObjectives(title="Socio-Economic Objectives",
+        widget=deform.widget.SequenceWidget(template='multi_select_sequence'),
+        description="Select relevant SEO code/s.")
 
     researchThemes = ResearchTheme(title="Research Themes", validator=research_theme_validator,
         description="Select one or more of the 4 themes, or \\'Not aligned to a University theme\\'.", required=True)
@@ -272,6 +285,10 @@ class MapRegionSchema(colander.SequenceSchema):
 
 class MetadataData(colander.MappingSchema):
     coverageMap = MapRegionSchema(title="Fields of Research", widget=deform.widget.SequenceWidget(template='map_sequence'))
+
+    choices = ['bar', 'baz', 'two', 'three']
+    test = colander.SchemaNode(colander.String(),
+        widget=deform.widget.AutocompleteInputWidget(size=60, min_length=1, values=choices, template="mint_users_autocomplete"))
 
     subject = Subject()
     coverage = CoverageSchema()

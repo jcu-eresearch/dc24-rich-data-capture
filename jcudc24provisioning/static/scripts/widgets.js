@@ -38,6 +38,16 @@ function submitClearsDefaultValues(oid, default_text) {
     form.setAttribute('onsubmit', submit_text);
 }
 
+function hideDescriptions(hide) {
+    document.hide_descriptions = hide;
+
+    if (hide) {
+       $(".description").addClass("hidden");
+    } else {
+        $(".description").removeClass("hidden");
+    }
+}
+
 
 /*function fixHTMLTags(descText) {
     while (descText.match("\&lt;")) {

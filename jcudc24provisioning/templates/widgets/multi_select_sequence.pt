@@ -93,8 +93,6 @@
 
                     first_select.onchange = function () {
                         updateSecondFields(oid);
-                        third_select.innerHTML = ""; /* Make sure that the user can't have an invalid 3rd field selected when the first select is changed */
-                        showAdd(oid, false);
                     };
                     second_select.onchange = function () {
                         updateThirdFields(oid);
@@ -102,7 +100,6 @@
                     };
                     third_select.onchange = function () {
                         showAdd(oid, true);
-
                     };
                 }
         )
@@ -157,6 +154,9 @@
                 second_select.innerHTML = "";
                 first_select.selectedIndex = 0;
             }
+
+            third_select.innerHTML = ""; /* Make sure that the user can't have an invalid 3rd field selected when the first select is changed */
+            showAdd(oid, false);
         }
 
         function updateThirdFields(oid) {
