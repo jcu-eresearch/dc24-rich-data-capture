@@ -41,7 +41,6 @@ class FieldOfResearchSchema(colander.SequenceSchema):
 
     fieldOfResearch = colander.SchemaNode(colander.String(), title="Field Of Research")
 
-
     for_codes_file = open(FOR_CODES_FILE).read()
     data = OrderedDict()
     data['---Select One---'] = dict()
@@ -268,7 +267,12 @@ class MetadataAttachment(colander.MappingSchema):
 class MetadataAttachments(colander.SequenceSchema):
     attachment = MetadataAttachment(widget=deform.widget.MappingWidget(template="inline_mapping"))
 
+class MapRegionSchema(colander.SequenceSchema):
+    location = colander.SchemaNode(colander.String())
+
 class MetadataData(colander.MappingSchema):
+    coverageMap = MapRegionSchema(title="Fields of Research", widget=deform.widget.SequenceWidget(template='map_sequence'))
+
     subject = Subject()
     coverage = CoverageSchema()
     associations = Associations()

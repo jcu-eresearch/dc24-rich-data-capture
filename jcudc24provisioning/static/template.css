@@ -309,3 +309,17 @@ div.description p {
 .half_width {
     width: 50%;
 }
+
+.olControlEditingToolbar .olControlModifyFeatureItemInactive {
+    background-position: 0px 0px;
+}
+.olControlEditingToolbar .olControlModifyFeatureItemActive  {
+    background-position: 0px -24px;
+}
+
+.olControlEditingToolbar .olControlDeleteFeatureItemInactive {
+    background-image: url("openlayers/theme/default/img/remove_point_off.png");
+}
+.olControlEditingToolbar .olControlDeleteFeatureItemActive  {
+    background-image: url("openlayers/theme/default/img/remove_point_on.png");
+}
