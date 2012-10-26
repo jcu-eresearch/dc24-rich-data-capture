@@ -284,7 +284,9 @@ class MapRegionSchema(colander.SequenceSchema):
     location = colander.SchemaNode(colander.String())
 
 class MetadataData(colander.MappingSchema):
-    coverageMap = MapRegionSchema(title="Fields of Research", widget=deform.widget.SequenceWidget(template='map_sequence'))
+    coverageMap = MapRegionSchema(title="Location Map", widget=deform.widget.SequenceWidget(template='map_sequence'), description="Use the draw toolbar or manually enter WGS84 lat/long points to show the location this project is researching." \
+                                                                                                                                  "<br /><i>If you are unsure of the format for manually entering points please use the draw tools and modify the text below.</i>" \
+                                                                                                                                  "<br /><b style='color:red;'>Note: Still need to define how entered regions map to RIF-CS and ReDBox.</b>")
 
     choices = ['bar', 'baz', 'two', 'three']
     test = colander.SchemaNode(colander.String(),

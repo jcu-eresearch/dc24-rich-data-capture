@@ -251,6 +251,10 @@ input[type=text].full_width {
     width: 100%;
 }
 
+.location_map ul li input {
+    width: 95%;
+}
+
 input[type=text] {
     width: 50%;
 }
