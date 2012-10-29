@@ -16,15 +16,28 @@ __author__ = 'Casey Bajema'
 #def getJCUUsers():
 #    pass
 
+class MapRegion(colander.SequenceSchema):
+    location = colander.SchemaNode(colander.String())
+
+
+class MapRegionSchema(colander.SequenceSchema):
+    location = MapRegion(widget=deform.widget.SequenceWidget(template='map_sequence'))
+
+    def __init__(self, typ=deform.FileData(), *children, **kw):
+        if not "widget" in kw: kw["widget"] = deform.widget.SequenceWidget(template='map_sequence')
+        colander.SchemaNode.__init__(self, typ, *children, **kw)
+
+
 @colander.deferred
 def upload_widget(node, kw):
     request = kw['request']
     tmpstore = SessionFileUploadTempStore(request)
     return deform.widget.FileUploadWidget(tmpstore)
 
+
 class Attachment(colander.SchemaNode):
     def __init__(self, typ=deform.FileData(), *children, **kw):
-        if not "widget" in kw: kw["widget"] = widget=upload_widget
+        if not "widget" in kw: kw["widget"] = widget = upload_widget
         if not "title" in kw: kw["title"] = "Attach File"
         colander.SchemaNode.__init__(self, typ, *children, **kw)
 
@@ -53,11 +66,13 @@ class Attachment(colander.SchemaNode):
 class Notes(colander.SequenceSchema):
     note = colander.SchemaNode(colander.String(), widget=deform.widget.TextAreaWidget())
 
+
 class Email(colander.SchemaNode):
     def __init__(self, typ=colander.String(), *children, **kw):
         if not "title" in kw: kw["title"] = "Email"
         if not "validator" in kw: kw["validator"] = colander.Email()
         colander.SchemaNode.__init__(self, typ, *children, **kw)
+
 
 class Person(colander.MappingSchema):
     title = colander.SchemaNode(colander.String(), title="Title")
@@ -65,13 +80,16 @@ class Person(colander.MappingSchema):
     familyName = colander.SchemaNode(colander.String(), title="Family name")
     email = Email(missing="")
 
+
 class People(colander.SequenceSchema):
     person = Person()
+
 
 class Website(colander.MappingSchema):
     title = colander.SchemaNode(colander.String(), title="Title")
     url = colander.SchemaNode(colander.String(), title="URL")
     notes = colander.SchemaNode(colander.String(), title="Notes")
+
 
 class WebsiteSchema(colander.SequenceSchema):
     resource = Website(title="Website", widget=deform.widget.MappingWidget(template="inline_mapping"))

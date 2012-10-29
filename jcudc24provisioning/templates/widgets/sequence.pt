@@ -1,3 +1,8 @@
+<!--
+    This template has been modified by removing the href from the add link, this stops the page from jumping to the
+    top whenever an item is added.
+-->
+
 <div class="deformSeq"
      id="${field.oid}"
      tal:define="rndr field.renderer;
@@ -26,7 +31,7 @@
 
     </ul>
 
-    <a href="#"
+    <a
        class="deformSeqAdd"
        id="${field.oid}-seqAdd"
        onclick="deform.appendSequenceItem(this); ">

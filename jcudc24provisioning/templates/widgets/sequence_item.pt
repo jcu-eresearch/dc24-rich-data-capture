@@ -1,4 +1,4 @@
-<li tal:attributes="class field.error and field.widget.error_class and field.css_class"
+<li tal:attributes="class field.error and field.widget.error_class"
     tal:omit-tag="field.widget.hidden"
     title="${field.description}" i18n:domain="deform">
   <!-- sequence_item -->

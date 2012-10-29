@@ -1,3 +1,10 @@
+<!--
+    multi_select_sequence is a template for a mapping_schema that conditionally outputs fields based on the selected option
+    in a standard select box.  The items to be selected from are the mapping_schema's children.
+
+    This template is based directly off the sequence.pt (after modifications - see the modified sequence.pt for details)
+-->
+
 <div class="deformSeq"
      id="${field.oid}"
      tal:define="rndr field.renderer;

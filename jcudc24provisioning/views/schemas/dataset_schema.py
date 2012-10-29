@@ -16,6 +16,9 @@ class SamplingSchema(colander.MappingSchema):
     startConditions = SamplingConditionSchema(title="Start conditions", default="todo")
     stopConditions = SamplingConditionSchema(title="Stop conditions")
 
+class MapRegionSchema(colander.SequenceSchema):
+    location = colander.SchemaNode(colander.String())
+
 class CoverageSchema(colander.MappingSchema):
     timePeriodDescription = colander.SchemaNode(colander.String(), title="Time Period (description)", default="A textual description of the time period (eg. Summers of 1996 to 2006)", missing="", description="Provide a textual representation of the time period such as world war 2 or more information on the time within the dates provided.")
     dateFrom = colander.SchemaNode(colander.Date(), default="", title="Date From",
@@ -23,8 +26,9 @@ class CoverageSchema(colander.MappingSchema):
     dateTo = colander.SchemaNode(colander.Date(), default="", title="Date To",
         description='Date data will stop being collected.', missing="undefined")
     locationDescription = colander.SchemaNode(colander.String(), title="Location (description)", description="Textual description of the location such as Australian Wet Tropics or further information such as elevation.")
-    researchLocation = colander.SchemaNode(colander.String(), title="Research location",
-        default="To be redeveloped similar to ReDBox", description="Enter or select the location or region that the project covers.")
+    coverageMap = MapRegionSchema(title="Location Map", widget=deform.widget.SequenceWidget(template='map_sequence'), description="Use the draw toolbar or manually enter WGS84 lat/long points to show the location this project is researching." \
+                                                                                                                                     "<br /><i>If you are unsure of the format for manually entering points please use the draw tools and modify the text below.</i>" \
+                                                                                                                                     "<br /><b style='color:red;'>Note: Still need to define how entered regions map to RIF-CS and ReDBox.</b>")
 
 class CustomProcessingSchema(colander.MappingSchema):
     customProcessorDesc = colander.SchemaNode(colander.String(), widget=deform.widget.TextAreaWidget(),

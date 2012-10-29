@@ -1,3 +1,8 @@
+<!--
+    inline_mapping is a template for a mapping_schema lays children out inline rather than in lists.
+
+    This template is based directly off the sequence.pt (after modifications - see the modified sequence.pt for details)
+-->
 <fieldset class="deformMappingFieldset" i18n:domain="deform">
   <!-- mapping -->
   <legend tal:condition="field.title">${field.title}</legend>

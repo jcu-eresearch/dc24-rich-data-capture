@@ -327,3 +327,9 @@ div.description p {
 .olControlEditingToolbar .olControlDeleteFeatureItemActive  {
     background-image: url("openlayers/theme/default/img/remove_point_on.png");
 }
+
+.deformSeqAdd {
+    cursor: pointer;
+    color: blue;
+    text-decoration: underline;
+}
