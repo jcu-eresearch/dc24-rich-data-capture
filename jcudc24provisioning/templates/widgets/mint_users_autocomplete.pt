@@ -14,14 +14,52 @@
         deform.addCallback(
                 '${field.oid}',
                 function (oid) {
-                    $('#' + oid).autocomplete({source: getMintUsers});
+                    $('#' + oid).autocomplete({source:getMintUsers});
                     $('#' + oid).autocomplete("option", ${options});
                 }
         );
 
-        function getMintUsers() {
-            alert('here');
-//            http://tdh-ms-dev.hpc.jcu.edu.au:9001/solr/fascinator/select?q=dr%20stephen*
+        function getMintUsers(object) {
+            var query = "http://tdh-ms-dev.hpc.jcu.edu.au:9001/solr/fascinator/select?q=aaaa";
+            xmlhttpPost(query, "q="+ object.term);
+        }
+
+        function xmlhttpPost(strURL, queryData) {
+            var xmlhttp;
+            if (window.XMLHttpRequest) { // Mozilla/Safari
+                xmlhttp = new XMLHttpRequest();
+            } else if (window.ActiveXObject) { // IE
+                xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+            }
+//            self.xmlHttpReq.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+//            xmlhttp.onreadystatechange = function () {
+//                if (xmlhttp.readyState == 4) {
+//                    alert(xmlhttp.responseText + " : " + xmlhttp.status);
+//
+//                }
+//            }
+            xmlhttp.open('GET', strURL + "?" + queryData, true);
+            xmlhttp.send();
+            alert(xmlhttp.responseText + " : " + xmlhttp.status);
+
+            // TODO: XMLHttpRequest is having problems going accross domain - create a python page that gets the external data and provides it to javascript through XMLHttpRequest
+        }
+
+        // this function does all the work of parsing the solr response and updating the page.
+        function updatepage(str) {
+            document.getElementById("raw").innerHTML = str;
+            var rsp = eval("(" + str + ")"); // use eval to parse Solr's JSON response
+            var html = "<br>numFound=" + rsp.response.numFound;
+            var first = rsp.response.docs[0];
+            html += "<br>product name=" + first.name;
+            var hl = rsp.highlighting[first.id];
+            if (hl.name != null) {
+                html += "<br>name highlighted: " + hl.name[0];
+            }
+            if (hl.features != null) {
+                html += "<br>features highligted: " + hl.features[0];
+            }
+            document.getElementById("result").innerHTML = html;
         }
     </script>
 
