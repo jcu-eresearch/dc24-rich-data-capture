@@ -65,11 +65,11 @@ def getFORCodes():
                 data[item1][item2].append('---Select One---')
             data[item1][item2].append(num + ' ' + name)
         elif int(index2):
-            item2 = num + " " + name
+            item2 = num[0:4] + " " + name
             data[item1][item2] = list()
             data[item1][item2].append('---Select One---')
         else:
-            item1 = num + " " + name
+            item1 = num[0:2] + " " + name
             data[item1] = OrderedDict()
             data[item1]['---Select One---'] = dict()
 
@@ -103,11 +103,11 @@ def getSEOCodes():
                 data[item1][item2].append('---Select One---')
             data[item1][item2].append(num + ' ' + name)
         elif int(index2):
-            item2 = num + " " + name
+            item2 = num[0:4] + " " + name
             data[item1][item2] = list()
             data[item1][item2].append('---Select One---')
         else:
-            item1 = num + " " + name
+            item1 = num[0:2] + " " + name
             data[item1] = OrderedDict()
             data[item1]['---Select One---'] = dict()
 
@@ -186,20 +186,22 @@ class Subject(colander.MappingSchema):
         description="Enter keywords that users are likely to search on when looking for this projects data.")
 
     fieldOfResearch = FieldOfResearchSchema(title="Fields of Research",
-        widget=deform.widget.SequenceWidget(template='multi_select_sequence'))
+        widget=deform.widget.SequenceWidget(template='multi_select_sequence'),
+        description="Select or enter Fields of Research (FoR) from the drop-down menus, and click the 'Add Field Of Research' button - which is hidden until a code is selected).",
+        missing="")
     #    colander.SchemaNode(colander.String(), title="Fields of Research",
     #        default="To be redeveloped similar to ReDBox", description="Select relevant FOR code/s. ")
 
     socioEconomicObjective = SocioEconomicObjectives(title="Socio-Economic Objectives",
         widget=deform.widget.SequenceWidget(template='multi_select_sequence'),
-        description="Select relevant SEO code/s.")
+        description="Select relevant SEO code/s.", missing="")
 
     researchThemes = ResearchTheme(title="Research Themes", validator=research_theme_validator,
-        description="Select one or more of the 4 themes, or \\'Not aligned to a University theme\\'.", required=True)
+        description="Select one or more of the 4 themes, or \'Not aligned to a University theme\'.", required=True)
 
     typeOfResearch = colander.SchemaNode(colander.String(), widget=deform.widget.SelectWidget(values=researchTypes),
         validator=colander.OneOf(
-            [researchTypes[0][0], researchTypes[1][0], researchTypes[2][0], researchTypes[3][0], researchTypes[4][0]]),
+            [researchTypes[1][0], researchTypes[2][0], researchTypes[3][0], researchTypes[4][0]]),
         title="Type of Research Activity",
         description="1297.0 Australian Standard Research Classification (ANZSRC) 2008. </br></br>"\
                     "<b>Pure basic research</b> is experimental and theoretical work undertaken to acquire new knowledge without looking for long term benefits other than the advancement of knowledge.</br></br>"\

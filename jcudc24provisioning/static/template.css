@@ -197,10 +197,15 @@ div#main {
 
     }
 
-.inline_mapping li {
+.deformInlineMappingFieldset .inline_mapping li {
     display: block;
     float: left;
     clear: none;
+}
+
+.inline_mapping li {
+    padding: 0px;
+    margin: 0px 5px;
 }
 
 div#workflow_nav ul {
@@ -251,8 +256,8 @@ input[type=text].full_width {
     width: 100%;
 }
 
-.location_map ul li input {
-    width: 95%;
+.deformMapSeq.location_map input {
+    width: 550px;
 }
 
 input[type=text] {
@@ -328,7 +333,7 @@ div.description p {
     background-image: url("openlayers/theme/default/img/remove_point_on.png");
 }
 
-.deformSeqAdd {
+a.deformSeqAdd {
     cursor: pointer;
     color: blue;
     text-decoration: underline;

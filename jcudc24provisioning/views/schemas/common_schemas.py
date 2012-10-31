@@ -73,7 +73,6 @@ class Email(colander.SchemaNode):
         if not "validator" in kw: kw["validator"] = colander.Email()
         colander.SchemaNode.__init__(self, typ, *children, **kw)
 
-
 class Person(colander.MappingSchema):
     title = colander.SchemaNode(colander.String(), title="Title")
     givenName = colander.SchemaNode(colander.String(), title="Given name")
@@ -343,7 +342,7 @@ countries = (
 
 class Address(colander.MappingSchema):
     street1 = colander.SchemaNode(colander.String(), title="Street")
-    street2 = colander.SchemaNode(colander.String(), title="Street")
+    street2 = colander.SchemaNode(colander.String(), title="Street", missing="")
     city = colander.SchemaNode(colander.String(), title="City")
     country = colander.SchemaNode(colander.String(), title="Country",
         widget=deform.widget.SelectWidget(values=countries), validator=colander.OneOf(countries))

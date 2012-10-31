@@ -1,7 +1,7 @@
 <tal:block define="default_value cstruct or field.schema.default or nothing">
     <textarea tal:attributes="rows field.widget.rows;
                           cols field.widget.cols;
-                          class field.widget.css_class or ''"
+                          class (field.widget.css_class or '') + (default_value == field.schema.default and ' default_text' or '')"
               id="${field.oid}" name="${field.name}"
               onclick="if (value == '${field.schema.default}') {className = className.replace( /(?:^|\s)default_text(?!\S)/g , '' ); value='';}"
               onblur="if (value == '') {value='${default_value}'; className += ' default_text';}">${default_value}</textarea>

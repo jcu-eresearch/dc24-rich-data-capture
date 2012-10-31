@@ -50,23 +50,6 @@
     <!-- /mapping -->
 </fieldset>
 
-<script type="text/javascript">
-    function setSelectedItem(select_element) {
-        var protos = document.getElementById("select_mapping_prototypes-" + select_element.id).children;
-
-        var i = 0;
-        var selectedProto;
-        for (i; i < protos.length; i++) {
-            if (protos[i].className == "select_mapping_prototype" && protos[i].id.indexOf(select_element.value) >= 0) {
-                selectedProto = protos[i];
-                break;
-            }
-        }
-
-        var newHTML = (typeof selectedProto == 'undefined' ? "" : selectedProto.value);
-        document.getElementById("select_mapping_content-" + select_element.id).innerHTML = newHTML;
-    }
-</script>
 
 
 

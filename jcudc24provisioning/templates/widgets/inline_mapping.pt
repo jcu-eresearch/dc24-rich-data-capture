@@ -1,12 +1,11 @@
 <!--
     inline_mapping is a template for a mapping_schema lays children out inline rather than in lists.
 
-    This template is based directly off the sequence.pt (after modifications - see the modified sequence.pt for details)
+    This template is based directly off the mapping.pt
 -->
-<fieldset class="deformMappingFieldset" i18n:domain="deform">
+<span class="deformInlineMappingFieldset" i18n:domain="deform">
   <!-- mapping -->
-  <legend tal:condition="field.title">${field.title}</legend>
-  <ul class="inline_mapping">
+  <ul class="inline_mapping" style="display: inline;">
     <li class="errorLi" tal:condition="field.errormsg">
       <h3 class="errorMsgLbl" i18n:translate="">There was a problem with this section</h3>
       <p class="errorMsg">${field.errormsg}</p>
@@ -23,4 +22,5 @@
     <input type="hidden" name="__end__" value="${field.name}:mapping"/>
   </ul>
   <!-- /mapping -->
-</fieldset>
+</span>
+<div style="clear: both;"></div>
