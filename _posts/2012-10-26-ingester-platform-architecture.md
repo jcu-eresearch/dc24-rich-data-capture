@@ -12,7 +12,7 @@ The ingester platform is a discrete component of the DC24 system that is resposi
 
 ------------	
 
-({{ site.JB.BASE_PATH }}/images/ingester-platform-arch.png)
+![High level overview of the ingester platform]({{ site.JB.BASE_PATH }}/images/ingester-platform-arch.png)
 
 Basted on the iteration 1 and 2 requirements the ingester platform has been architected as follows:
 1. A scheduler engine to periodically execute the data sampler
