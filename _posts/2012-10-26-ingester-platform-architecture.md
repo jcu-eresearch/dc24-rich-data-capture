@@ -2,7 +2,7 @@
 layout: post
 title: "Ingester Platform Architecture"
 description: "What does each part of the ingester platform (currently) do?"
-author: "Nigel Sim"
+author: nigel_s
 category: 
 tags: [overview, andsDataCapture, andsDC24, fundedByAustralianNationalDataService, DIISRTE, andsApps, DC24, richDataCapture]
 ---
