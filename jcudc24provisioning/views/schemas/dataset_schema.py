@@ -79,7 +79,7 @@ class CustomProcessingSchema(colander.MappingSchema):
         ,
         default="eg. Extract some value from the comma separated file where the value is the first field.")
 
-customProcessorScript = Attachment(title="Upload custom script", description="Upload a custom Python script to "\
+    customProcessorScript = Attachment(title="Upload custom script", description="Upload a custom Python script to "\
                                                                              "process the data in some way.  The processing script API can be found "\
                                                                              "<a title=\"Python processing script API\"href=\"\">here</a>.")
 
@@ -89,8 +89,8 @@ class InternalMethodSchema(colander.MappingSchema):
         default="Provide a textual description of the dataset being collected.",
         description="Provide a dataset specific description that will be appended to the project description in metadata records.")
 
-sampling = SamplingSchema()
-customProcessing = CustomProcessingSchema(title="Custom processing")
+    sampling = SamplingSchema()
+    customProcessing = CustomProcessingSchema(title="Custom processing")
 
 
 class MethodSchema(colander.MappingSchema):
@@ -98,17 +98,17 @@ class MethodSchema(colander.MappingSchema):
         title='Don\'t create metadata record',
         description="Disable ReDBox metadata record generation.  Only check this if the dataset is an intermediate processing step or the data shouldn\\'t be published for some other reason.")
 
-description = colander.SchemaNode(colander.String(), widget=deform.widget.TextAreaWidget(),
-    default="Provide a textual description of the dataset being collected.",
-    description="Provide a dataset specific description that will be appended to the project description in metadata records.")
-coverage = CoverageSchema()
-sampling = SamplingSchema(
-    description="Provide filtering conditions for the data received, the most common and simplest"\
-                "cases are a sampling rate (eg. once per hour) or a repeating time periods (such as "\
-                "start at 6am, stop at 7am daily) but any filtering can be acheived by adding a custom "\
-                "sampling script.</br></br>  The sampling script API can be found <a href="">here</a>.")
-# TODO: Finish the sampling schema
-customProcessing = CustomProcessingSchema(title="Custom processing")
+    description = colander.SchemaNode(colander.String(), widget=deform.widget.TextAreaWidget(),
+        default="Provide a textual description of the dataset being collected.",
+        description="Provide a dataset specific description that will be appended to the project description in metadata records.")
+    coverage = CoverageSchema()
+    sampling = SamplingSchema(
+        description="Provide filtering conditions for the data received, the most common and simplest"\
+                    "cases are a sampling rate (eg. once per hour) or a repeating time periods (such as "\
+                    "start at 6am, stop at 7am daily) but any filtering can be acheived by adding a custom "\
+                    "sampling script.</br></br>  The sampling script API can be found <a href="">here</a>.")
+    # TODO: Finish the sampling schema
+    customProcessing = CustomProcessingSchema(title="Custom processing")
 
 
 class PushDataSourceSchema(colander.MappingSchema):
@@ -122,14 +122,12 @@ class PullDataSourceSchema(colander.MappingSchema):
 
 class SOSDataSourceSchema(colander.MappingSchema):
     serverURL = colander.SchemaNode(colander.String(), "Location of the SOS server.")
-
-sensorID = colander.SchemaNode(colander.String(), "ID of the SOS sensor.")
+    sensorID = colander.SchemaNode(colander.String(), "ID of the SOS sensor.")
 
 
 class MethodSelectSchema(colander.MappingSchema):
     method = MethodSchema()
-
-internal = InternalMethodSchema()
+    internal = InternalMethodSchema()
 
 def __init__(self):
     pass

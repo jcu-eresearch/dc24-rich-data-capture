@@ -20,7 +20,7 @@
         );
 
         function getMintUsers(object) {
-            var query = "http://tdh-ms-dev.hpc.jcu.edu.au:9001/solr/fascinator/select?q=aaaa";
+            var query = "http://localhost:8080/mint_users.xml";
             xmlhttpPost(query, "q="+ object.term);
         }
 
@@ -31,18 +31,15 @@
             } else if (window.ActiveXObject) { // IE
                 xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
             }
-//            self.xmlHttpReq.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-//            xmlhttp.onreadystatechange = function () {
-//                if (xmlhttp.readyState == 4) {
-//                    alert(xmlhttp.responseText + " : " + xmlhttp.status);
-//
-//                }
-//            }
-            xmlhttp.open('GET', strURL + "?" + queryData, true);
-            xmlhttp.send();
-            alert(xmlhttp.responseText + " : " + xmlhttp.status);
+            xmlhttp.onreadystatechange = function () {
+                if (xmlhttp.readyState == 4) {
+                    alert(xmlhttp.responseXML)
 
-            // TODO: XMLHttpRequest is having problems going accross domain - create a python page that gets the external data and provides it to javascript through XMLHttpRequest
+                }
+            }
+            xmlhttp.open('POST', strURL, true);
+            xmlhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xmlhttp.send('q=baj*');
         }
 
         // this function does all the work of parsing the solr response and updating the page.
