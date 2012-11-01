@@ -2,7 +2,7 @@
 layout: post
 title: "Why this project is cool"
 description: "What is cool about this project, why would the wider community care about it and what is the overall ecosystem that this project is part of."
-author: "Casey Bajema"
+author: casey
 category: 
 tags: [overview, andsDataCapture, andsDC24, fundedByAustralianNationalDataService, DIISRTE, andsApps, DC24, richDataCapture]
 ---

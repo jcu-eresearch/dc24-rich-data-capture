@@ -2,7 +2,7 @@
 layout: post
 title: "Key Technologies &#38; Key features"
 description: "This project will develop a provisioning tool for CoastalCOMS Data Access Management (CC-DAM) and ReDBox-Mint providing a single interface for researchers to enter their data and metadata."
-author: "Casey Bajema"
+author: "casey"
 category: 
 tags: [andsFeatures, andsFunctions, andsTechnology, andsArchitecture, andsTools, DIISRTE, fundedByAustralianNationalDataService, andsApps, DC24, richDataCapture]
 ---
@@ -49,5 +49,5 @@ The Source
 ----------
 The project uses a local install of Redmine for project tracking, Jenkins for integration testing, and hosts the source at a github repository.
 
-The source is available under the three-clause BSD licence.
+The source is available under the [three-clause BSD licence](http://localhost:8080/metadata).
 

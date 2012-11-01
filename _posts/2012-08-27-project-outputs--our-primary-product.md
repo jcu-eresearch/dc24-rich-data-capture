@@ -2,7 +2,7 @@
 layout: post
 title: "Project Outputs &#38; Our Primary Product"
 description: ""
-author: "Casey Bajema"
+author: casey
 category: 
 tags: [andsOutputs, andsProduct, DIISRTE, fundedByAustralianNationalDataService, andsApps, DC24, richDataCapture]
 ---

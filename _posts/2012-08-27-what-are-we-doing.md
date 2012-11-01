@@ -2,7 +2,7 @@
 layout: post
 title: "Project Description"
 description: ""
-author: "casey"
+author: casey
 category: 
 tags: [andsProjectDescription, andsContext, andsAims, DIISRTE, fundedByAustralianNationalDataService, andsApps, DC24, richDataCapture]
 ---
