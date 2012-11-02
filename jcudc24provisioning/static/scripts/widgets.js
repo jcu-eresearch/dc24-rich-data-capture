@@ -139,26 +139,24 @@ function locationTextModified(input) {
 
     var newGeometry;
 
-    var lat_long_match = "[+-]?\d*\.?\d* [+-]?\d*\.?\d*";
     var point_match = /point\([+-]?\d*\.?\d* [+-]?\d*\.?\d*\)/i;
     var poly_match = /polygon\(\(([+-]?\d*\.?\d*\s[+-]?\d*\.?\d*,?\s?)*\)\)/i;
     var line_match = /linestring\(([+-]?\d*\.?\d*\s[+-]?\d*\.?\d*,?\s?)*\)/i;
 
+    var points, text_points, i = 0;
     if (input.value.match(point_match)) {
-        var points = input.value.trim().substring(geometry_type.length + 1, input.value.trim().length - 1).split(" ");
+        points = input.value.trim().substring(geometry_type.length + 1, input.value.trim().length - 1).split(" ");
         newGeometry = new OpenLayers.Geometry.Point(new Number(points[0]), new Number(points[1]));
     } else if (input.value.match(poly_match)) {
-        var text_points = input.value.trim().substring(geometry_type.length + 2, input.value.trim().length - 2).split(",");
-        var points = [];
-        var i = 0;
+        text_points = input.value.trim().substring(geometry_type.length + 2, input.value.trim().length - 2).split(",");
+        points = [];
         for (i; i < text_points.length; i++) {
             points.push(new OpenLayers.Geometry.Point(new Number(text_points[i].split(" ")[0]), new Number(text_points[i].split(" ")[1])));
         }
         newGeometry = new OpenLayers.Geometry.Polygon(new OpenLayers.Geometry.LinearRing(points));
     } else if (input.value.match(line_match)) {
-        var text_points = input.value.trim().substring(geometry_type.length + 1, input.value.trim().length - 1).split(",");
-        var points = [];
-        var i = 0;
+        text_points = input.value.trim().substring(geometry_type.length + 1, input.value.trim().length - 1).split(",");
+        points = [];
         for (i; i < text_points.length; i++) {
             points.push(new OpenLayers.Geometry.Point(new Number(text_points[i].split(" ")[0]), new Number(text_points[i].split(" ")[1])));
         }
@@ -178,25 +176,25 @@ function locationTextModified(input) {
             for (j; j < document.location_maps[i].layers.length; j++) {
                 if ((OpenLayers.Layer.Vector.prototype.isPrototypeOf(document.location_maps[i].layers[j]))) {
                     layer = document.location_maps[i].layers[j];
+                    break;
                 }
             }
         }
     }
-    if (input.feature) {
-        input.feature.move(newGeometry.x - input.feature.geometry.x, newGeometry.y - input.feature.geometry.y);
-        input.feature.layer.drawFeature(input.feature);
-//        layer.destroyFeatures(input.feature);
-//        input.feature = new OpenLayers.Feature.Vector(newGeometry);
-//        layer.addFeatures(input.feature, layer.style);
 
+    var new_feature = new OpenLayers.Feature.Vector(newGeometry);
+
+    if (input.hasOwnProperty('feature')) {
+        layer.destroyFeatures([input.feature]);
+        input.feature = new_feature;
+        layer.addFeatures([new_feature]);
     } else {
-        input.feature = new OpenLayers.Feature.Vector(newGeometry);
-        layer.addFeatures(input.feature);
+        input.feature = new_feature;
+        layer.addFeatures([new_feature]);
     }
 }
 
 function modifyFeature(object) {
-    alert('here');
     var feature = object.feature;
     var map = object.object.map;
     var layer = findMapLayerFromFeature(feature, map);
@@ -233,24 +231,24 @@ function deleteFeature(feature) {
         }
     }
 
-    layer.destroyFeatures(feature);
+    feature.destroy();
 }
 
 function featureInserted(object) {
     var feature = object.feature;
-    var vertices = "";
     var displayProj = new OpenLayers.Projection("EPSG:4326");
     var proj = new OpenLayers.Projection("EPSG:900913");
     var map = object.object.map;
-    var layer = findMapLayerFromFeature(feature, map);
+    var layer = feature.layer; //findMapLayerFromFeature(feature, map);
 
     var oid_node = $(map.div.parentNode);
     var fields = oid_node.children('ul').first().find("input[type=text]");
 
+    // Check if this feature already has an associated input
     var i = 0;
     for (i; i < fields.length; i++) {
-        var tmp = feature.geometry.clone();
-        tmp.transform(map.getProjectionObject(), displayProj);
+//        var tmp = feature.geometry.clone();
+//        tmp.transform(map.getProjectionObject(), displayProj);
         if (fields[i].feature == feature) {
             return;
         }
@@ -279,7 +277,6 @@ function featureInserted(object) {
 
     fields[fields.length - 1].value = geometry;
     fields[fields.length - 1].feature = feature;
-
 }
 
 

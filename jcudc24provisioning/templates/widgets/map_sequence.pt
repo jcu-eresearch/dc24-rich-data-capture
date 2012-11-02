@@ -98,6 +98,7 @@ deform.addCallback(
                 new OpenLayers.Control.SelectFeature(vector, {title:"Delete", onSelect:deleteFeature, 'displayClass':'olControlDeleteFeature'}),
                 new OpenLayers.Control.ModifyFeature(vector, {title:"Move points", mode:OpenLayers.Control.ModifyFeature.RESHAPE}),
                 new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.Point, {title:"Draw points", 'displayClass':'olControlDrawFeaturePoint'}),
+                new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.RegularPolygon, {handlerOptions: {sides: 4, irregular: true}, title:"Draw box", 'displayClass':'olControlDrawFeatureBox'}),
                 new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.Path, {title:"Draw lines", 'displayClass':'olControlDrawFeaturePath'}),
                 new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.Polygon, {title:"Draw shapes", 'displayClass':'olControlDrawFeaturePolygon'}),
                 new OpenLayers.Control.Navigation({title:"Navigate only"})
@@ -113,10 +114,14 @@ deform.addCallback(
             var point = new OpenLayers.LonLat(135, -25);
             map.setCenter(point.transform(proj, map.getProjectionObject()), 3);
 
-
             addMapFeatures(oid);
+
         }
 );
+
+function test() {
+    alert('test');
+}
 
 
 deform.addCallback(

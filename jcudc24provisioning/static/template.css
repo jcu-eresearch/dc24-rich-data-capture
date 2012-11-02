@@ -327,10 +327,17 @@ div.description p {
 }
 
 .olControlEditingToolbar .olControlDeleteFeatureItemInactive {
-    background-image: url("openlayers/theme/default/img/remove_point_off.png");
+    background-position: -153px -1px;
 }
 .olControlEditingToolbar .olControlDeleteFeatureItemActive  {
-    background-image: url("openlayers/theme/default/img/remove_point_on.png");
+    background-position: -153px -24px;
+}
+
+.olControlEditingToolbar .olControlDrawFeatureBoxItemInactive {
+    background-position: -177px -1px;
+}
+.olControlEditingToolbar .olControlDrawFeatureBoxItemActive  {
+    background-position: -177px -24px;
 }
 
 a.deformSeqAdd {
