@@ -4,14 +4,14 @@ from deform.exception import ValidationFailure
 from deform.form import Form
 from pyramid.response import Response
 from pyramid.view import view_config
-from jcudc24provisioning.views.schemas.method_schema import DataSource
+from jcudc24provisioning.views.schemas.method_schema import Method
 from jcudc24provisioning.views.workflow.workflows import Workflows
 
 __author__ = 'Casey Bajema'
 
 
 class DataSchemas(colander.SequenceSchema):
-    dataSource = DataSource(title="Data collection method")
+    dataSource = Method(title="Data collection method")
 
 class MethodsSchema(colander.Schema):
     description = colander.SchemaNode(colander.String(), title="Overall methods description",

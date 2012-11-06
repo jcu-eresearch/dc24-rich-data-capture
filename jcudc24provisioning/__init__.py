@@ -1,3 +1,5 @@
+__author__ = 'Casey Bajema'
+
 from deform.form import Form
 from pyramid.config import Configurator
 from pkg_resources import resource_filename

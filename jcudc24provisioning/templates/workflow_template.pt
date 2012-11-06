@@ -21,6 +21,7 @@
 
         <div metal:fill-slot="sidebar">
             <li><a href="/upload">Add data</a></li>
+            <li><a href="/upload">Metadata</a></li>
             <li><a href="/data">Access data</a></li>
             <li><a href="/data">Sharing</a></li>
             <li><a href="/data">Duplicate project</a></li>

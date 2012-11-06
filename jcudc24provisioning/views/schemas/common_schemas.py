@@ -31,8 +31,8 @@ class MapRegionSchema(colander.SequenceSchema):
 @colander.deferred
 def upload_widget(node, kw):
     request = kw['request']
-    tmpstore = SessionFileUploadTempStore(request)
-    return deform.widget.FileUploadWidget(tmpstore)
+    tmp_store = SessionFileUploadTempStore(request)
+    return deform.widget.FileUploadWidget(tmp_store)
 
 
 class Attachment(colander.SchemaNode):
@@ -75,8 +75,8 @@ class Email(colander.SchemaNode):
 
 class Person(colander.MappingSchema):
     title = colander.SchemaNode(colander.String(), title="Title")
-    givenName = colander.SchemaNode(colander.String(), title="Given name")
-    familyName = colander.SchemaNode(colander.String(), title="Family name")
+    given_name = colander.SchemaNode(colander.String(), title="Given name")
+    family_name = colander.SchemaNode(colander.String(), title="Family name")
     email = Email(missing="")
 
 

@@ -10,7 +10,7 @@
     <script tal:condition="field.schema.default" type="text/javascript">
         submitClearsDefaultValues("${field.oid}", "${field.schema.default}");
     </script>
-    <script tal:condition="field.widget.values" type="text/javascript">
+    <script type="text/javascript">
         deform.addCallback(
                 '${field.oid}',
                 function (oid) {
@@ -20,7 +20,7 @@
         );
 
         function getMintUsers(object) {
-            var query = "http://localhost:8080/mint_users.xml";
+            var query = "/mint_users";
             xmlhttpPost(query, "q="+ object.term);
         }
 
@@ -33,13 +33,13 @@
             }
             xmlhttp.onreadystatechange = function () {
                 if (xmlhttp.readyState == 4) {
-                    alert(xmlhttp.responseXML)
+                    alert(xmlhttp.responseText)
 
                 }
             }
             xmlhttp.open('POST', strURL, true);
             xmlhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-            xmlhttp.send('q=baj*');
+            xmlhttp.send('q='+queryData);
         }
 
         // this function does all the work of parsing the solr response and updating the page.
