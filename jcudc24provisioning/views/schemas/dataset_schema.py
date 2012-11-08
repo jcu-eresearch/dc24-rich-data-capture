@@ -13,9 +13,8 @@ class SamplingCondition(colander.MappingSchema):
 class SamplingConditionSchema(colander.SequenceSchema):
     todo = colander.SchemaNode(colander.String())
 
-
 class SamplingSchema(colander.MappingSchema):
-    start_conditions = SamplingConditionSchema(title="Start conditions", default="todo")
+    start_conditions = SamplingConditionSchema(title="Start conditions")
     stop_conditions = SamplingConditionSchema(title="Stop conditions")
 
 map_location_types = (
@@ -81,8 +80,8 @@ class CustomProcessingSchema(colander.MappingSchema):
 
     custom_processor_script = Attachment(title="Upload custom script", description="Upload a custom Python script to "\
                                                                              "process the data in some way.  The processing script API can be found "\
-                                                                             "<a title=\"Python processing script API\"href=\"\">here</a>.")
-
+                                                                             "<a title=\"Python processing script API\"href=\"\">here</a>."
+        , missing = colander.null)
 
 class InternalMethodSchema(colander.MappingSchema):
     description = colander.SchemaNode(colander.String(), widget=deform.widget.TextAreaWidget(),
@@ -91,7 +90,6 @@ class InternalMethodSchema(colander.MappingSchema):
 
     sampling = SamplingSchema()
     custom_processing = CustomProcessingSchema(title="Custom processing")
-
 
 class MethodSchema(colander.MappingSchema):
     disable_metadata = colander.SchemaNode(colander.Boolean(), widget=deform.widget.CheckboxWidget(),
@@ -141,9 +139,16 @@ def __init__(self):
 #        self.add(InternalMethodSchema())
 
 class Dataset(colander.SequenceSchema):
-    data_source = MethodSelectSchema(title="Method", widget=deform.widget.MappingWidget(template="select_mapping"),
+    data_source = MethodSelectSchema(title="Method", widget=deform.widget.MappingWidget(),
         description="Select the data collection method for this dataset, the methods need to have been setup in the previous workflow step.")
 
 
+class MemoryTmpStore(dict):
+    """ Instances of this class implement the
+    :class:`deform.interfaces.FileUploadTempStore` interface"""
+    def preview_url(self, uid):
+        return None
+
 class DatasetSchema(colander.MappingSchema):
     data_inputs = Dataset(title="Datasets", widget=deform.widget.SequenceWidget(min_len=1))
+

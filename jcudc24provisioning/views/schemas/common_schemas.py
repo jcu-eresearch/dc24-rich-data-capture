@@ -37,7 +37,7 @@ def upload_widget(node, kw):
 
 class Attachment(colander.SchemaNode):
     def __init__(self, typ=deform.FileData(), *children, **kw):
-        if not "widget" in kw: kw["widget"] = widget = upload_widget
+        if not "widget" in kw: kw["widget"] = upload_widget
         if not "title" in kw: kw["title"] = "Attach File"
         colander.SchemaNode.__init__(self, typ, *children, **kw)
 
