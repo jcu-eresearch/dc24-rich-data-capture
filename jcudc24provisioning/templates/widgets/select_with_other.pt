@@ -1,0 +1,29 @@
+<!-- This template allows select widgets to have an other value that displays a schema when selected:
+     * The schema used for other must be directly after the select schema (next sibling)
+ -->
+
+<select name="${field.name}"
+        id="${field.oid}"
+        tal:attributes="size field.widget.size"
+        tal:attributes="class field.widget.css_class"
+        onchange="if ( value.match(/other/ig)) {$(parentNode).next()[0].className = $(parentNode).next()[0].className.replace(' hidden','');} else {$(parentNode).next()[0].className = $(parentNode).next()[0].className.replace(' hidden','') + ' hidden'}">
+    <option tal:repeat="(value, description) values"
+            tal:attributes="selected value == cstruct and 'selected';
+                         class field.widget.css_class"
+            value="${value}">${description}
+    </option>
+</select>
+
+<script type="text/javascript">
+deform.addCallback(
+        '${field.oid}',
+        function (oid) {
+            var select = $("#" + oid)[0];
+            if (!select.value.match(/other/ig)) {
+                $(select.parentNode).next()[0].className += ' hidden';
+            }
+        });
+</script>
+
+
+

@@ -87,7 +87,7 @@ class People(colander.SequenceSchema):
 class Website(colander.MappingSchema):
     title = colander.SchemaNode(colander.String(), title="Title")
     url = colander.SchemaNode(colander.String(), title="URL")
-    notes = colander.SchemaNode(colander.String(), title="Notes")
+    notes = colander.SchemaNode(colander.String(), title="Notes", missing="")
 
 
 class WebsiteSchema(colander.SequenceSchema):

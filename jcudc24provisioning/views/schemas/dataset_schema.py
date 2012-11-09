@@ -34,7 +34,7 @@ mapLocationTypes = (
 
 class MapLocationSchema(colander.MappingSchema):
     typeOfResearch = colander.SchemaNode(colander.String(), widget=deform.widget.SelectWidget(values=mapLocationTypes),
-        title="Location Type")
+        title="Location Type", missing="")
     location = colander.SchemaNode(colander.String())
 
 
@@ -52,7 +52,7 @@ class CoverageSchema(colander.MappingSchema):
     locationDescription = colander.SchemaNode(colander.String(), title="Location (description)",
         description="Textual description of the location such as Australian Wet Tropics or further information such as elevation."
         , missing="")
-    coverageMap = MapRegionSchema(title="Location Map", widget=deform.widget.SequenceWidget(template='map_sequence'),
+    coverageMap = MapRegionSchema(title="Location Map", missing="", widget=deform.widget.SequenceWidget(template='map_sequence'),
         description=
         "<p>Geospatial location relevant to the research dataset/collection, registry/repository, catalogue or index. This may describe a geographical area where data was collected, a place which is the subject of a collection, or a location which is the focus of an activity, eg. coordinates or placename.</p>"\
         "<p>You may use the map to select an area, or manually enter a correctly formatted set of coordinates or a value supported by a standard such as a country code, a URL pointing to an XML based description of spatial coverage or free text describing a location."\

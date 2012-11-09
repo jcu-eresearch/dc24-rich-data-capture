@@ -311,7 +311,7 @@ div.description p {
     color: #999;
 }
 
-.hidden, .description.first.hidden {
+.hidden, .description.first.hidden, li.hidden {
     display: none;
 }
 

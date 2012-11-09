@@ -119,11 +119,6 @@ deform.addCallback(
         }
 );
 
-function test() {
-    alert('test');
-}
-
-
 deform.addCallback(
         '${field.oid}',
         function (oid) {
