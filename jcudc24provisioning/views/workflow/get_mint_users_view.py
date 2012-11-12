@@ -1,3 +1,4 @@
+import ConfigParser
 import json
 from pyramid.response import Response
 from jcudc24provisioning.views.schemas.metadata_schema import MetadataData
@@ -15,7 +16,7 @@ class MetadataView(Workflows):
     def __init__(self, request):
         self.request = request
 
-    @view_config(renderer="../../templates/get_mint_users.pt", name="mint_users.xml")
+    @view_config(renderer="../../templates/get_mint_users.pt", name="mint_users")
     def metadata_view(self):
         request_data = self.request.POST.items()
         print request_data
@@ -23,8 +24,10 @@ class MetadataView(Workflows):
 
         for key, value in request_data:
             queryString += key + "=" + value
-
-        url_template = 'http://tdh-ms-dev.hpc.jcu.edu.au:9001/solr/fascinator/select?%(query)s'
+        config = ConfigParser.ConfigParser()
+        config.read("defaults.cfg")
+        location = config.get("mint", "solr_api").strip().strip("?/\\")
+        url_template = location + '?%(query)s'
         url = url_template % dict(query=queryString)
         result = ""
         print url

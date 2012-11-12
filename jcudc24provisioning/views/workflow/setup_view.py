@@ -13,9 +13,9 @@ class SetupViews(Workflows):
     def __init__(self, request):
         self.request = request
         self.schema = setup_schema().bind(request=request)
-        self.myform = Form(self.schema, action="setup_submit", buttons=('Save', 'Delete'), use_ajax=True)
+        self.myform = Form(self.schema, action="submit_setup", buttons=('Save', 'Delete'), use_ajax=False)
 
-    @view_config(renderer="../../templates/submit.pt", name="setup_submit")
+    @view_config(renderer="../../templates/setup.pt", name="submit_setup")     # Use ../../templates/submit.pt for AJAX - File upload doesn't work due to jquery/deform limitations
     def submit(self):
         if self.request.POST.get('Delete') == 'confirmed':
             location = self.request.application_url + '/'

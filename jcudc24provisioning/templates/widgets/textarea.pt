@@ -1,17 +1,18 @@
-<tal:block define="default_value cstruct or field.schema.default or nothing">
+<tal:block define="placeholder field.schema.__dict__.get('placeholder') or nothing;
+                   default_text cstruct or field.schema.default or placeholder">
     <textarea tal:attributes="rows field.widget.rows;
                           cols field.widget.cols;
-                          class (field.widget.css_class or '') + (default_value == field.schema.default and ' default_text' or '')"
+                          class (field.widget.css_class or '') + (default_text == field.schema.__dict__.get('placeholder') and ' placeholder_text' or '')"
               id="${field.oid}" name="${field.name}"
-              onclick="if (value == '${field.schema.default}') {className = className.replace( /(?:^|\s)default_text(?!\S)/g , '' ); value='';}"
-              onblur="if (value == '') {value='${default_value}'; className += ' default_text';}">${default_value}</textarea>
+              onclick="if (value == '${field.schema.__dict__.get('placeholder')}') {className = className.replace( /(?:^|\s)placeholder_text(?!\S)/g , '' ); value='';}"
+              onblur="if (value == '') {value='${placeholder}'; className += ' placeholder_text';}">${default_text}</textarea>
 
-    <script tal:condition="field.schema.default" type="text/javascript">
+    <script tal:condition="field.schema.__dict__.get('placeholder')" type="text/javascript">
         type = "text/javascript" >
                 deform.addCallback(
                         '${field.oid}',
                         function (oid) {
-                            submitClearsDefaultValues(oid, "${field.schema.default}");
+                            submitClearsDefaultValues(oid, "${field.schema.__dict__.get('placeholder')}");
                         });
     </script>
 </tal:block>

@@ -15,25 +15,25 @@
         </label>
         <span id="select_mapping_options-${field.oid}" style="display: none;"><span tal:repeat="f field.children"
                                                                                     tal:replace="f.oid"/></span>
-        <select name="${field.name}" title="${field.description}"
-                onchange="setSelectedItem(this)"
-                id="${field.oid}"
-                tal:attributes="size field.widget.size"
-                tal:attributes="class field.widget.css_class">
-            <option tal:attributes="class field.widget.css_class" value=" ">---Select One---</option>
-            <option tal:repeat="f field.children"
-                    tal:attributes="selected f.oid == cstruct and 'selected';
-                         class field.widget.css_class"
-                    value="${f.oid}">${f.title}
-            </option>
-        </select>
 
         <input type="hidden" name="__start__" value="${field.name}:mapping"/>
-
+            <select name="schema_select" title="${field.description}"
+                    onchange="setSelectedItem(this)"
+                    id="${field.oid}"
+                    tal:attributes="size field.widget.size"
+                    tal:attributes="class field.widget.css_class">
+                <option tal:attributes="class field.widget.css_class" value="none">---Select One---</option>
+                <option tal:repeat="f field.children[1:]"
+                        tal:attributes="selected f.oid == cstruct.get('schema_select') and 'selected';
+                             class field.widget.css_class"
+                        value="${f.oid}">${f.title}
+                </option>
+            </select>
         <div id="select_mapping_content-${field.oid}">
             <div tal:define="rndr field.renderer; tmpl field.widget.item_template"
-                 tal:repeat="f field.children"
-                 tal:replace="structure ((f.oid == cstruct) and rndr(tmpl,field=f,cstruct=cstruct.get(f.name,null)) or nothing)">
+                 tal:repeat="f field.children">
+                <div
+                     tal:replace="structure ((f.oid ==  cstruct.get('schema_select')) and rndr(tmpl,field=f,cstruct=cstruct.get(f.name,null))) or nothing" />
             </div>
         </div>
         <input type="hidden" name="__end__" value="${field.name}:mapping"/>

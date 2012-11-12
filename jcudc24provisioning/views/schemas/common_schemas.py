@@ -2,6 +2,7 @@ from beaker.cache import cache_region
 import colander
 import deform
 from pyramid_deform import SessionFileUploadTempStore
+from jcudc24provisioning.views.schemas.widgets import SelectMappingWidget
 
 __author__ = 'Casey Bajema'
 
@@ -16,6 +17,49 @@ __author__ = 'Casey Bajema'
 #def getJCUUsers():
 #    pass
 
+class OneOfDict(object):
+    """ Validator which succeeds if the value passed to it is one of
+    a fixed set of values """
+    def __init__(self, choices):
+        self.choices = choices
+
+    def __call__(self, node, value):
+        if not value in [x[0] for x in self.choices]:
+            choices = ', '.join(['%s' % x[1] for x in self.choices])
+            err = colander._('Please select one of ${choices}',
+                    mapping={'choices':choices})
+            raise colander.Invalid(node, err)
+
+def _SelectMappingSchema__new__(cls, *args, **kw):
+    if not "widget" in kw: kw["widget"] = SelectMappingWidget()
+
+    node = object.__new__(cls.node_type)
+    node.name = None
+    node._order = next(colander.SchemaNode._counter)
+    typ = cls.schema_type()
+    node.__init__(typ, *args, **kw)
+
+    node.add(colander.SchemaNode(colander.String(), name="schema_select", widget = deform.widget.HiddenWidget(), missing="none"))
+
+    for n in cls.nodes:
+        node.add(n)
+
+    return node
+
+SelectMappingSchema = colander._SchemaMeta('SelectMappingSchema', (object,),
+    dict(schema_type=colander.Mapping,
+        node_type=colander.SchemaNode,
+        __new__=_SelectMappingSchema__new__))
+
+#    schema_select = colander.SchemaNode(colander.String(), widget=deform.widget.HiddenWidget())
+#
+#    def __init__(self, **kw):
+#        super(SelectMappingSchema, self).__init__('Schema', (object,),
+#            dict(schema_type=colander.Mapping, node_type=colander.SchemaNode, _new__=colander._Schema__new__))
+#        if not "widget" in kw: kw["widget"] = SelectMappingWidget(template="select_mapping")
+#        print clsattrs
+
+
 class MapRegion(colander.SequenceSchema):
     location = colander.SchemaNode(colander.String())
 
@@ -23,21 +67,21 @@ class MapRegion(colander.SequenceSchema):
 class MapRegionSchema(colander.SequenceSchema):
     location = MapRegion(widget=deform.widget.SequenceWidget(template='map_sequence'))
 
-    def __init__(self, typ=deform.FileData(), *children, **kw):
-        if not "widget" in kw: kw["widget"] = deform.widget.SequenceWidget(template='map_sequence')
-        colander.SchemaNode.__init__(self, typ, *children, **kw)
+#    def __init__(self, typ=deform.FileData(), *children, **kw):
+#        if not "widget" in kw: kw["widget"] = deform.widget.SequenceWidget(template='map_sequence')
+#        colander.SchemaNode.__init__(self, typ, *children, **kw)
 
 
 @colander.deferred
 def upload_widget(node, kw):
     request = kw['request']
-    tmpstore = SessionFileUploadTempStore(request)
-    return deform.widget.FileUploadWidget(tmpstore)
+    tmp_store = SessionFileUploadTempStore(request)
+    return deform.widget.FileUploadWidget(tmp_store)
 
 
 class Attachment(colander.SchemaNode):
     def __init__(self, typ=deform.FileData(), *children, **kw):
-        if not "widget" in kw: kw["widget"] = widget = upload_widget
+        if not "widget" in kw: kw["widget"] = upload_widget
         if not "title" in kw: kw["title"] = "Attach File"
         colander.SchemaNode.__init__(self, typ, *children, **kw)
 
@@ -73,10 +117,11 @@ class Email(colander.SchemaNode):
         if not "validator" in kw: kw["validator"] = colander.Email()
         colander.SchemaNode.__init__(self, typ, *children, **kw)
 
+
 class Person(colander.MappingSchema):
-    title = colander.SchemaNode(colander.String(), title="Title")
-    givenName = colander.SchemaNode(colander.String(), title="Given name")
-    familyName = colander.SchemaNode(colander.String(), title="Family name")
+    title = colander.SchemaNode(colander.String(), title="Title",placeholder="eg. Mr, Mrs, Dr",)
+    given_name = colander.SchemaNode(colander.String(), title="Given name")
+    family_name = colander.SchemaNode(colander.String(), title="Family name")
     email = Email(missing="")
 
 
@@ -85,9 +130,9 @@ class People(colander.SequenceSchema):
 
 
 class Website(colander.MappingSchema):
-    title = colander.SchemaNode(colander.String(), title="Title")
-    url = colander.SchemaNode(colander.String(), title="URL")
-    notes = colander.SchemaNode(colander.String(), title="Notes", missing="")
+    title = colander.SchemaNode(colander.String(), title="Title", placeholder="eg. Great Project Website")
+    url = colander.SchemaNode(colander.String(), title="URL", placeholder="eg. http://www.somewhere.com.au")
+    notes = colander.SchemaNode(colander.String(), title="Notes", missing="", placeholder="eg. This article provides additional information on xyz")
 
 
 class WebsiteSchema(colander.SequenceSchema):

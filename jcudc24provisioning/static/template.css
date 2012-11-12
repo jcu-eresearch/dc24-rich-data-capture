@@ -249,7 +249,7 @@ div#footer {
 }
 
 textarea {
-    width: 100%;
+    width: 98%;
 }
 
 input[type=text].full_width {
@@ -263,7 +263,6 @@ input[type=text].full_width {
 input[type=text] {
     width: 50%;
 }
-
 
 .description.first {
     background: #fff;
@@ -307,7 +306,7 @@ div.description p {
     margin: 0px;
 }
 
-.default_text {
+.placeholder_text {
     color: #999;
 }
 

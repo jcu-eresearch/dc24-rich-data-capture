@@ -1,7 +1,8 @@
 import inspect
 import colander
 import deform
-from jcudc24provisioning.views.schemas.common_schemas import Attachment
+from jcudc24provisioning.views.schemas.common_schemas import Attachment, SelectMappingSchema
+from jcudc24provisioning.views.schemas.widgets import SelectMappingWidget
 
 __author__ = 'Casey Bajema'
 
@@ -13,12 +14,11 @@ class SamplingCondition(colander.MappingSchema):
 class SamplingConditionSchema(colander.SequenceSchema):
     todo = colander.SchemaNode(colander.String())
 
-
 class SamplingSchema(colander.MappingSchema):
-    startConditions = SamplingConditionSchema(title="Start conditions", default="todo")
-    stopConditions = SamplingConditionSchema(title="Stop conditions")
+    start_conditions = SamplingConditionSchema(title="Start conditions")
+    stop_conditions = SamplingConditionSchema(title="Stop conditions")
 
-mapLocationTypes = (
+map_location_types = (
     ("none", "---Select One---"),
     ("gml", "OpenGIS Geography Markup Language"),
     ("kml", "Keyhole Markup Language"),
@@ -33,7 +33,7 @@ mapLocationTypes = (
     )
 
 class MapLocationSchema(colander.MappingSchema):
-    typeOfResearch = colander.SchemaNode(colander.String(), widget=deform.widget.SelectWidget(values=mapLocationTypes),
+    type_of_research = colander.SchemaNode(colander.String(), widget=deform.widget.SelectWidget(values=map_location_types),
         title="Location Type", missing="")
     location = colander.SchemaNode(colander.String())
 
@@ -42,17 +42,17 @@ class MapRegionSchema(colander.SequenceSchema):
     location = MapLocationSchema(widget=deform.widget.MappingWidget(template='inline_mapping'))
 
 class CoverageSchema(colander.MappingSchema):
-    timePeriodDescription = colander.SchemaNode(colander.String(), title="Time Period (description)",
-        default="A textual description of the time period (eg. Summers of 1996 to 2006)", missing="",
+    time_period_description = colander.SchemaNode(colander.String(), title="Time Period (description)",
+        placeholder="A textual description of the time period (eg. Summers of 1996 to 2006)", missing="",
         description="Provide a textual representation of the time period such as world war 2 or more information on the time within the dates provided.")
-    dateFrom = colander.SchemaNode(colander.Date(), default="", title="Date From",
+    date_from = colander.SchemaNode(colander.Date(), placeholder="", title="Date From",
         description='Date data will start being collected.')
-    dateTo = colander.SchemaNode(colander.Date(), default="", title="Date To",
-        description='Date data will stop being collected.', missing="undefined")
-    locationDescription = colander.SchemaNode(colander.String(), title="Location (description)",
+    date_to = colander.SchemaNode(colander.Date(), title="Date To",
+        description='Date data will stop being collected.', missing=colander.null)
+    location_description = colander.SchemaNode(colander.String(), title="Location (description)",
         description="Textual description of the location such as Australian Wet Tropics or further information such as elevation."
-        , missing="")
-    coverageMap = MapRegionSchema(title="Location Map", missing="", widget=deform.widget.SequenceWidget(template='map_sequence'),
+        , missing="", placeholder="eg. Australian Wet Tropics, Great Barrier Reef, 1m above ground level")
+    coverage_map = MapRegionSchema(title="Location Map", widget=deform.widget.SequenceWidget(template='map_sequence'),missing=colander.null,
         description=
         "<p>Geospatial location relevant to the research dataset/collection, registry/repository, catalogue or index. This may describe a geographical area where data was collected, a place which is the subject of a collection, or a location which is the focus of an activity, eg. coordinates or placename.</p>"\
         "<p>You may use the map to select an area, or manually enter a correctly formatted set of coordinates or a value supported by a standard such as a country code, a URL pointing to an XML based description of spatial coverage or free text describing a location."\
@@ -73,33 +73,32 @@ class CoverageSchema(colander.MappingSchema):
 
 
 class CustomProcessingSchema(colander.MappingSchema):
-    customProcessorDesc = colander.SchemaNode(colander.String(), widget=deform.widget.TextAreaWidget(),
+    custom_processor_desc = colander.SchemaNode(colander.String(), widget=deform.widget.TextAreaWidget(),
         title="Describe custom processing needs", missing="", description="Describe your processing "\
                                                                           "requirements and what your uploaded script does, or what you will need help with."
         ,
-        default="eg. Extract some value from the comma separated file where the value is the first field.")
+        placeholder="eg. Extract some value from the comma separated file where the value is the first field.")
 
-    customProcessorScript = Attachment(title="Upload custom script", description="Upload a custom Python script to "\
+    custom_processor_script = Attachment(title="Upload custom script", description="Upload a custom Python script to "\
                                                                              "process the data in some way.  The processing script API can be found "\
-                                                                             "<a title=\"Python processing script API\"href=\"\">here</a>.")
-
+                                                                             "<a title=\"Python processing script API\"href=\"\">here</a>."
+        , missing = colander.null)
 
 class InternalMethodSchema(colander.MappingSchema):
     description = colander.SchemaNode(colander.String(), widget=deform.widget.TextAreaWidget(),
-        default="Provide a textual description of the dataset being collected.",
+        placeholder="Provide a textual description of the dataset being collected.",
         description="Provide a dataset specific description that will be appended to the project description in metadata records.")
 
     sampling = SamplingSchema()
-    customProcessing = CustomProcessingSchema(title="Custom processing")
-
+    custom_processing = CustomProcessingSchema(title="Custom processing")
 
 class MethodSchema(colander.MappingSchema):
-    disableMetadata = colander.SchemaNode(colander.Boolean(), widget=deform.widget.CheckboxWidget(),
+    disable_metadata = colander.SchemaNode(colander.Boolean(), widget=deform.widget.CheckboxWidget(),
         title='Don\'t create metadata record',
-        description="Disable ReDBox metadata record generation.  Only check this if the dataset is an intermediate processing step or the data shouldn\\'t be published for some other reason.")
+        description="Disable ReDBox metadata record generation.  Only check this if the dataset is an intermediate processing step or the data shouldn\'t be published for some other reason.")
 
     description = colander.SchemaNode(colander.String(), widget=deform.widget.TextAreaWidget(),
-        default="Provide a textual description of the dataset being collected.",
+        placeholder="Provide a textual description of the dataset being collected.",
         description="Provide a dataset specific description that will be appended to the project description in metadata records.")
     coverage = CoverageSchema()
     sampling = SamplingSchema(
@@ -108,7 +107,7 @@ class MethodSchema(colander.MappingSchema):
                     "start at 6am, stop at 7am daily) but any filtering can be acheived by adding a custom "\
                     "sampling script.</br></br>  The sampling script API can be found <a href="">here</a>.")
     # TODO: Finish the sampling schema
-    customProcessing = CustomProcessingSchema(title="Custom processing")
+    custom_processing = CustomProcessingSchema(title="Custom processing")
 
 
 class PushDataSourceSchema(colander.MappingSchema):
@@ -121,13 +120,13 @@ class PullDataSourceSchema(colander.MappingSchema):
 
 
 class SOSDataSourceSchema(colander.MappingSchema):
-    serverURL = colander.SchemaNode(colander.String(), "Location of the SOS server.")
-    sensorID = colander.SchemaNode(colander.String(), "ID of the SOS sensor.")
+    server_url = colander.SchemaNode(colander.String(), description="Location of the SOS server.")
+    sensor_id = colander.SchemaNode(colander.String(), description="ID of the SOS sensor.")
 
 
-class MethodSelectSchema(colander.MappingSchema):
-    method = MethodSchema()
-    internal = InternalMethodSchema()
+class MethodSelectSchema(SelectMappingSchema):
+    method = MethodSchema(missing=colander.null)
+    internal = InternalMethodSchema(missing=colander.null)
 
 def __init__(self):
     pass
@@ -141,9 +140,15 @@ def __init__(self):
 #        self.add(InternalMethodSchema())
 
 class Dataset(colander.SequenceSchema):
-    dataSource = MethodSelectSchema(title="Method", widget=deform.widget.MappingWidget(template="select_mapping"),
+    data_source = MethodSelectSchema(title="Method",
         description="Select the data collection method for this dataset, the methods need to have been setup in the previous workflow step.")
 
 
+class MemoryTmpStore(dict):
+    """ Instances of this class implement the
+    :class:`deform.interfaces.FileUploadTempStore` interface"""
+    def preview_url(self, uid):
+        return None
+
 class DatasetSchema(colander.MappingSchema):
-    dataInputs = Dataset(title="Datasets", widget=deform.widget.SequenceWidget(min_len=1))
+    data_inputs = Dataset(title="Datasets", widget=deform.widget.SequenceWidget(min_len=1))
