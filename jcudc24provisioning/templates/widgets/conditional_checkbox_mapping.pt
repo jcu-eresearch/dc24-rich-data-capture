@@ -1,0 +1,46 @@
+<span class="conditionalCheckboxMappingFieldset" i18n:domain="deform">
+    <!-- select mapping -->
+    <ul>
+        <li class="errorLi" tal:condition="field.errormsg">
+            <h3 class="errorMsgLbl" i18n:translate="">There was a problem with this section</h3>
+
+            <p class="errorMsg">${field.errormsg}</p>
+        </li>
+
+        <li class="section description" tal:condition="field.description">
+            <div tal:content="structure field.description"></div>
+        </li>
+        <label class="desc" for="${field.oid}">${field.title}<span tal:condition="field.required" class="req"
+                                                                   id="req-${field.oid}">*</span>
+        </label>
+        <input type="hidden" name="__start__" value="${field.name}:mapping"/>
+        <input type="checkbox" name="conditional_checkbox" title="${field.description}"
+               onclick="displayConditionalCheckboxItems(this, '${field.widget.inverted_condition}');"
+               id="${field.oid}"
+               tal:attributes="class field.widget.css_class;
+                                checked ((cstruct.get('conditional_checkbox') and not field.widget.inverted_condition) or (not cstruct.get('conditional_checkbox') and field.widget.inverted_condition)) and 'checked'" />
+
+        <div class="checkbox_mapping_content">
+            <div tal:define="rndr field.renderer; tmpl field.widget.item_template"
+                 tal:repeat="f field.children">
+                <div
+                        tal:replace="structure (cstruct.get('conditional_checkbox') and rndr(tmpl,field=f,cstruct=cstruct.get(f.name,null))) or nothing"/>
+            </div>
+        </div>
+        <input type="hidden" name="__end__" value="${field.name}:mapping"/>
+
+        <div class="checkbox_mapping_prototypes">
+            <input type="hidden"
+                   tal:define="rndr field.renderer; tmpl field.widget.item_template"
+                   tal:repeat="f field.children"
+                   tal:attributes="class 'checkbox_mapping_prototype'"
+                   value="${rndr(tmpl,field=f,cstruct=cstruct.get(f.name,null))}"/>
+        </div>
+    </ul>
+    <!-- /mapping -->
+</span>
+
+
+
+
+

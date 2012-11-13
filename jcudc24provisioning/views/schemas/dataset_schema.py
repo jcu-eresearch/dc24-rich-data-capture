@@ -1,8 +1,8 @@
 import inspect
 import colander
 import deform
-from jcudc24provisioning.views.schemas.common_schemas import Attachment, SelectMappingSchema
-from jcudc24provisioning.views.schemas.widgets import SelectMappingWidget
+from jcudc24provisioning.views.schemas.common_schemas import Attachment, SelectMappingSchema, ConditionalCheckboxSchema
+from jcudc24provisioning.views.schemas.widgets import SelectMappingWidget, ConditionalCheckboxMapping
 
 __author__ = 'Casey Bajema'
 
@@ -84,6 +84,9 @@ class CustomProcessingSchema(colander.MappingSchema):
                                                                              "<a title=\"Python processing script API\"href=\"\">here</a>."
         , missing = colander.null)
 
+class DataSourceSchema(colander.MappingSchema):
+    pass
+
 class InternalMethodSchema(colander.MappingSchema):
     description = colander.SchemaNode(colander.String(), widget=deform.widget.TextAreaWidget(),
         placeholder="Provide a textual description of the dataset being collected.",
@@ -92,15 +95,18 @@ class InternalMethodSchema(colander.MappingSchema):
     sampling = SamplingSchema()
     custom_processing = CustomProcessingSchema(title="Custom processing")
 
-class MethodSchema(colander.MappingSchema):
-    disable_metadata = colander.SchemaNode(colander.Boolean(), widget=deform.widget.CheckboxWidget(),
-        title='Don\'t create metadata record',
-        description="Disable ReDBox metadata record generation.  Only check this if the dataset is an intermediate processing step or the data shouldn\'t be published for some other reason.")
+class DatasetConfigurationSchema(ConditionalCheckboxSchema):
+    data_source_configuration = DataSourceSchema(description="TODO: Dataset specific configuration of the data source for the selected method.")
+    coverage = CoverageSchema()
 
+class MethodSchema(colander.MappingSchema):
     description = colander.SchemaNode(colander.String(), widget=deform.widget.TextAreaWidget(),
         placeholder="Provide a textual description of the dataset being collected.",
         description="Provide a dataset specific description that will be appended to the project description in metadata records.")
-    coverage = CoverageSchema()
+
+    dataset_configuration = DatasetConfigurationSchema(widget=ConditionalCheckboxMapping(inverted_condition=True), title='(Advanced) Internal dataset', missing=colander.null,
+        description="Disable ReDBox metadata record generation and data ingestion.  Only check this if the dataset is an intermediate processing step for other dataset(s) as no metadata records will be created and nothing will be saved to disk.")
+
     sampling = SamplingSchema(
         description="Provide filtering conditions for the data received, the most common and simplest"\
                     "cases are a sampling rate (eg. once per hour) or a repeating time periods (such as "\
@@ -126,7 +132,7 @@ class SOSDataSourceSchema(colander.MappingSchema):
 
 class MethodSelectSchema(SelectMappingSchema):
     method = MethodSchema(missing=colander.null)
-    internal = InternalMethodSchema(missing=colander.null)
+#    internal = InternalMethodSchema(missing=colander.null)
 
 def __init__(self):
     pass
@@ -140,8 +146,9 @@ def __init__(self):
 #        self.add(InternalMethodSchema())
 
 class Dataset(colander.SequenceSchema):
-    data_source = MethodSelectSchema(title="Method",
-        description="Select the data collection method for this dataset, the methods need to have been setup in the previous workflow step.")
+    data_source = MethodSelectSchema(title="Method",collapsed=False,
+        description="Select the data collection method for this dataset, the methods need to have been setup in the previous workflow step.</br></br>" \
+                    "<b>Will be developed so that methods created in the 'Methods' workflow step will populate the below dropbox.</b>")
 
 
 class MemoryTmpStore(dict):

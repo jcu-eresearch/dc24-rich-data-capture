@@ -306,17 +306,7 @@ class MintPerson(colander.MappingSchema):
 
     non_mint = Person()
 
-
-class MetadataData(colander.MappingSchema):
-#    test = MintPerson()
-
-    subject = Subject()
-    coverage = CoverageSchema()
-    associations = Associations()
-    legal = Legality(title="Legality")
-    citation = Citation(
-        description="Provide metadata that should be used for the purposes of citing this record. Sending a citation to RDA is optional, but if you choose to enable this there are quite specific mandatory fields that will be required by RIF-CS.")
-    attachments = MetadataAttachments(missing=None)
+class AdditionalInformation(colander.MappingSchema):
     retention_periods = (
         ("indefinite", "Indefinite"), ("1", "1 Year"), ("5", "5 Years"), ("7", "7 Years"), ("10", "10 Years"),
         ("15", "15 Years"))
@@ -326,4 +316,16 @@ class MetadataData(colander.MappingSchema):
     national_significance = colander.SchemaNode(colander.Boolean(), title="Is the data nationally significant?",
         widget=deform.widget.RadioChoiceWidget(values=(("true", "Yes"), ("false", "No"))),
         description="Do you know or believe that this projects data may be Nationally Significant?")
+    attachments = MetadataAttachments(missing=None)
     notes = Notes(description="Enter administrative notes as required.", missing=None)
+
+
+class MetadataData(colander.MappingSchema):
+#    test = MintPerson()
+
+    subject = Subject(collapsed=False)
+    coverage = CoverageSchema(collapsed=True)
+    associations = Associations(collapsed=True)
+    legal = Legality(title="Legality", collapsed=True)
+    citation = Citation(description="Provide metadata that should be used for the purposes of citing this record. Sending a citation to RDA is optional, but if you choose to enable this there are quite specific mandatory fields that will be required by RIF-CS.", collapsed=True)
+    additional_information = AdditionalInformation(collapsed=True)

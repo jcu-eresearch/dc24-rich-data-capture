@@ -77,6 +77,76 @@ class SelectMappingWidget(Widget):
 
         return result
 
+class ConditionalCheckboxMapping(Widget):
+    """
+    Renders a mapping into a set of fields.
+
+    **Attributes/Arguments**
+
+    template
+        The template name used to render the widget.  Default:
+        ``mapping``.
+
+    readonly_template
+        The template name used to render the widget in read-only mode.
+        Default: ``readonly/mapping``.
+
+    item_template
+        The template name used to render each item in the mapping.
+        Default: ``mapping_item``.
+
+    readonly_item_template
+        The template name used to render each item in the form.
+        Default: ``readonly/mapping_item``.
+
+    """
+    template = 'conditional_checkbox_mapping'
+    readonly_template = 'readonly/conditional_checkbox_mapping'
+    item_template = 'mapping_item'
+    readonly_item_template = 'readonly/mapping_item'
+    error_class = None
+    category = 'structural'
+    requirements = ( ('deform', None), )
+    checkbox_element = "conditional_checkbox"
+    inverted_condition = False
+
+    def serialize(self, field, cstruct, readonly=False):
+        if cstruct in (null, None):
+            cstruct = {}
+        template = readonly and self.readonly_template or self.template
+        return field.renderer(template, field=field, cstruct=cstruct,
+            null=null)
+
+    def deserialize(self, field, pstruct):
+        error = None
+
+        result = {}
+
+        if pstruct is null:
+            pstruct = {}
+
+        checkbox_schema = pstruct.get(self.checkbox_element, null)
+        if (checkbox_schema is null and not self.inverted_condition) or (checkbox_schema is not null and self.inverted_condition):
+            return null
+
+        result[self.checkbox_element] = "on"
+
+        for num, subfield in enumerate(field.children):
+            name = subfield.name
+            subval = pstruct.get(name, null)
+
+            try:
+                result[name] = subfield.deserialize(subval)
+            except Invalid as e:
+                result[name] = e.value
+                if error is None:
+                    error = Invalid(field.schema, value=result)
+                error.add(e, num)
+
+        if error is not None:
+            raise error
+
+        return result
 
 class SelectWithOtherWidget(Widget):
     """

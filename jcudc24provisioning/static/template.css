@@ -252,7 +252,7 @@ textarea {
     width: 98%;
 }
 
-input[type=text].full_width {
+input[type=text].full_width, .full_width input[type=text] {
     width: 100%;
 }
 
@@ -260,7 +260,7 @@ input[type=text].full_width {
     width: 550px;
 }
 
-input[type=text] {
+input[type=text], input[type=text].half_width {
     width: 50%;
 }
 

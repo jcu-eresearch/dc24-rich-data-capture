@@ -6,6 +6,22 @@
  * To change this template use File | Settings | File Templates.
  */
 
+// Used as an onclick function for toggling a mapping schema
+function toggleCollapse(fieldset) {
+    var speed = 200;
+    var collapsible_item = $(fieldset.parentNode).children('ul').first();
+
+    if (collapsible_item.is(':hidden')) {
+        $(".collapsible_items").slideUp(speed);
+        $(fieldset).children('.collapse_icon').first().innerHTML = ('+ ');
+        collapsible_item.slideDown(speed);
+//        $(fieldset.parentNode).css("background-color", "transparent");
+    } else {
+        $(fieldset).children('.collapse_icon').first().innerHTML = ('- ');
+        collapsible_item.slideUp(speed);
+//        $(fieldset.parentNode).css("background-color", "#99FFFF");
+    }
+}
 
 function escapeQuotes(text) {
     var i = 0;
@@ -279,6 +295,33 @@ function featureInserted(object) {
     fields[fields.length - 1].feature = feature;
 }
 
+//--------------------conditional_heckbox_mapping.pt----------------
+function displayConditionalCheckboxItems(checkboxElement, inverted) {
+    var contentDiv = $(checkboxElement.parentNode).children(".checkbox_mapping_content")[0];
+    if (checkboxElement.checked && !inverted || !checkboxElement.checked && inverted) {
+
+//        if (contentDiv.hasOwnProperty('previousContent')) {
+//            contentDiv.innerHTML = contentDiv.previousContent;
+//            processJavascript(contentDiv);
+//            deform.processCallbacks();
+//        } else {
+            var prototypes = $(checkboxElement.parentNode).children(".checkbox_mapping_prototypes").children(".checkbox_mapping_prototype");
+
+            var content = "";
+            var i = 0;
+            for (i; i < prototypes.length; i++) {
+                content += prototypes[i].value;
+            }
+            contentDiv.innerHTML = content;
+            processJavascript(contentDiv);
+            deform.processCallbacks();
+//        }
+
+    } else {
+        contentDiv.previousContent = contentDiv.innerHTML;
+        contentDiv.innerHTML = "";
+    }
+}
 
 //------------------select_mapping.pt---------------------------
 function setSelectedItem(select_element) {
@@ -296,7 +339,21 @@ function setSelectedItem(select_element) {
     var newHTML = (typeof selectedProto == 'undefined' ? "" : selectedProto.value);
     document.getElementById("select_mapping_content-" + select_element.id).innerHTML = newHTML;
 
-    var scripts = $("#select_mapping_content-" + select_element.id).find("script");
+//    var scripts = $("#select_mapping_content-" + select_element.id).find("script");
+//
+//    for (i = 0; i < scripts.length; i++) {
+//        if (scripts[i].innerHTML.trim().length > 0) {
+//            eval(scripts[i].innerHTML);
+//        } else if (scripts[i].src.length > 0) {
+//            $.getScript(scripts[i].src);
+//        }
+//    }
+    processJavascript($("#select_mapping_content-" + select_element.id)[0]);
+    deform.processCallbacks();
+}
+
+function processJavascript(parentElement) {
+    var scripts = $(parentElement).find("script");
 
     for (i = 0; i < scripts.length; i++) {
         if (scripts[i].innerHTML.trim().length > 0) {
@@ -305,7 +362,6 @@ function setSelectedItem(select_element) {
             $.getScript(scripts[i].src);
         }
     }
-    deform.processCallbacks();
 }
 
 //--------------multi_select_sequence.pt----------------------------------------------

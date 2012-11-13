@@ -2,7 +2,7 @@ from beaker.cache import cache_region
 import colander
 import deform
 from pyramid_deform import SessionFileUploadTempStore
-from jcudc24provisioning.views.schemas.widgets import SelectMappingWidget
+from jcudc24provisioning.views.schemas.widgets import SelectMappingWidget, ConditionalCheckboxMapping
 
 __author__ = 'Casey Bajema'
 
@@ -47,6 +47,27 @@ def _SelectMappingSchema__new__(cls, *args, **kw):
     return node
 
 SelectMappingSchema = colander._SchemaMeta('SelectMappingSchema', (object,),
+    dict(schema_type=colander.Mapping,
+        node_type=colander.SchemaNode,
+        __new__=_SelectMappingSchema__new__))
+
+def _ConditionalCheckboxSchema__new__(cls, *args, **kw):
+    if not "widget" in kw: kw["widget"] = ConditionalCheckboxMapping()
+
+    node = object.__new__(cls.node_type)
+    node.name = None
+    node._order = next(colander.SchemaNode._counter)
+    typ = cls.schema_type()
+    node.__init__(typ, *args, **kw)
+
+    node.add(colander.SchemaNode(colander.Boolean(), name="conditional_checkbox", widget = deform.widget.HiddenWidget(), missing="none"))
+
+    for n in cls.nodes:
+        node.add(n)
+
+    return node
+
+ConditionalCheckboxSchema = colander._SchemaMeta('ConditionalCheckboxSchema', (object,),
     dict(schema_type=colander.Mapping,
         node_type=colander.SchemaNode,
         __new__=_SelectMappingSchema__new__))
@@ -130,9 +151,9 @@ class People(colander.SequenceSchema):
 
 
 class Website(colander.MappingSchema):
-    title = colander.SchemaNode(colander.String(), title="Title", placeholder="eg. Great Project Website")
-    url = colander.SchemaNode(colander.String(), title="URL", placeholder="eg. http://www.somewhere.com.au")
-    notes = colander.SchemaNode(colander.String(), title="Notes", missing="", placeholder="eg. This article provides additional information on xyz")
+    title = colander.SchemaNode(colander.String(), title="Title", placeholder="eg. Great Project Website", widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
+    url = colander.SchemaNode(colander.String(), title="URL", placeholder="eg. http://www.somewhere.com.au", widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
+    notes = colander.SchemaNode(colander.String(), title="Notes", missing="", placeholder="eg. This article provides additional information on xyz", widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
 
 
 class WebsiteSchema(colander.SequenceSchema):

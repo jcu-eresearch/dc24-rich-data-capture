@@ -2,7 +2,7 @@
     id="item-${field.oid}"
     tal:omit-tag="field.widget.hidden"
     i18n:domain="deform"
-    tal:attributes="title python:field.schema.default or None">
+    tal:attributes="title field.schema.default or None">
 
     <!-- mapping_item -->
     <label tal:condition="not (field.widget.hidden or

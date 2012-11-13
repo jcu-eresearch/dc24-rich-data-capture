@@ -1,6 +1,8 @@
 <fieldset class="selectMappingFieldset" i18n:domain="deform">
     <!-- select mapping -->
-    <ul>
+    <legend class="collapsible" tal:condition="(field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and field.title" onclick="toggleCollapse(this);"><span class="collapse_icon">+ </span>${field.title}</legend>
+    <ul tal:attributes="style ('display: ' + str(field.schema.__dict__.get('collapsed') == True and 'none'));
+                      class 'collapsible_items'">
         <li class="errorLi" tal:condition="field.errormsg">
             <h3 class="errorMsgLbl" i18n:translate="">There was a problem with this section</h3>
 
@@ -8,7 +10,7 @@
         </li>
 
         <li class="section description" tal:condition="field.description">
-            <div>${field.description}</div>
+            <div tal:content="structure field.description"></div>
         </li>
         <label class="desc" for="${field.oid}">${field.title}<span tal:condition="field.required" class="req"
                                                                    id="req-${field.oid}">*</span>
@@ -17,18 +19,20 @@
                                                                                     tal:replace="f.oid"/></span>
 
         <input type="hidden" name="__start__" value="${field.name}:mapping"/>
-            <select name="schema_select" title="${field.description}"
-                    onchange="setSelectedItem(this)"
-                    id="${field.oid}"
-                    tal:attributes="size field.widget.size"
-                    tal:attributes="class field.widget.css_class">
-                <option tal:attributes="class field.widget.css_class" value="none">---Select One---</option>
-                <option tal:repeat="f field.children[1:]"
-                        tal:attributes="selected f.oid == cstruct.get('schema_select') and 'selected';
-                             class field.widget.css_class"
-                        value="${f.oid}">${f.title}
-                </option>
-            </select>
+
+        <select name="schema_select" title="${field.description}"
+                onchange="setSelectedItem(this)"
+                id="${field.oid}"
+                tal:attributes="size field.widget.size"
+                tal:attributes="class field.widget.css_class">
+            <option tal:attributes="class field.widget.css_class" value="none">---Select One---</option>
+            <option tal:repeat="f field.children[1:]"
+                    tal:attributes="selected f.oid == cstruct.get('schema_select') and 'selected';
+                         class field.widget.css_class"
+                    value="${f.oid}">${f.title}
+            </option>
+        </select>
+
         <div id="select_mapping_content-${field.oid}">
             <div tal:define="rndr field.renderer; tmpl field.widget.item_template"
                  tal:repeat="f field.children">
@@ -36,6 +40,7 @@
                      tal:replace="structure ((f.oid ==  cstruct.get('schema_select')) and rndr(tmpl,field=f,cstruct=cstruct.get(f.name,null))) or nothing" />
             </div>
         </div>
+
         <input type="hidden" name="__end__" value="${field.name}:mapping"/>
 
         <div id="select_mapping_prototypes-${field.oid}">
