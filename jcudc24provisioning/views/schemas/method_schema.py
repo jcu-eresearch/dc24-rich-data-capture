@@ -100,12 +100,12 @@ class Method(colander.Schema):
                                                                          "further notes to the administrators.")
 
 class DataSchemas(colander.SequenceSchema):
-    dataSource = Method(title="Data collection method", collapsed=False)
+    dataSource = Method(title="Data collection method", collapsed=False, collapse_group="method")
 
 class MethodsSchema(colander.Schema):
     description = colander.SchemaNode(colander.String(), title="Overall methods description",
         widget=deform.widget.TextAreaWidget(rows=5),
-        placeholder="Provide an overview of all the data collection methods used in the project why those methods were chosen.",
+        placeholder="Provide an overview of all the data collection methods used in the project and why those methods were chosen.",
         description="Provide a description for all data input methods used in the project.  This will be used as the description for data collection in the project metadata record and will provide users of your data with an overview of what the project is researching.")
     dataSources = DataSchemas(title="Methods", widget=deform.widget.SequenceWidget(min_len=1),
         description="Add 1 method for each type of data collection method (eg. SOS temperature sensors, manually entered field observations using a form or files retrieved by polling a server...)")

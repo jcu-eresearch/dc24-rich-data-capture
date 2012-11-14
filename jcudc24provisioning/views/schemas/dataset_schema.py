@@ -104,8 +104,8 @@ class MethodSchema(colander.MappingSchema):
         placeholder="Provide a textual description of the dataset being collected.",
         description="Provide a dataset specific description that will be appended to the project description in metadata records.")
 
-    dataset_configuration = DatasetConfigurationSchema(widget=ConditionalCheckboxMapping(inverted_condition=True), title='(Advanced) Internal dataset', missing=colander.null,
-        description="Disable ReDBox metadata record generation and data ingestion.  Only check this if the dataset is an intermediate processing step for other dataset(s) as no metadata records will be created and nothing will be saved to disk.")
+    dataset_configuration = DatasetConfigurationSchema(widget=ConditionalCheckboxMapping(inverted_condition=True), title='(Advanced) This is a normal dataset', missing=colander.null, default=True,
+        description="Un-checking this option disables metadata record generation and data ingestion.  Only un-check this if the dataset is an intermediate processing step for other dataset(s).")
 
     sampling = SamplingSchema(
         description="Provide filtering conditions for the data received, the most common and simplest"\
@@ -146,7 +146,7 @@ def __init__(self):
 #        self.add(InternalMethodSchema())
 
 class Dataset(colander.SequenceSchema):
-    data_source = MethodSelectSchema(title="Method",collapsed=False,
+    data_source = MethodSelectSchema(title="Method",collapsed=False, collapse_group="dataset",
         description="Select the data collection method for this dataset, the methods need to have been setup in the previous workflow step.</br></br>" \
                     "<b>Will be developed so that methods created in the 'Methods' workflow step will populate the below dropbox.</b>")
 

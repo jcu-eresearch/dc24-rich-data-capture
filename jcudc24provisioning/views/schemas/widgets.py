@@ -1,4 +1,5 @@
 from colander import null, Invalid
+import colander
 from deform.widget import Widget, _normalize_choices
 
 __author__ = 'Casey'
@@ -108,7 +109,6 @@ class ConditionalCheckboxMapping(Widget):
     category = 'structural'
     requirements = ( ('deform', None), )
     checkbox_element = "conditional_checkbox"
-    inverted_condition = False
 
     def serialize(self, field, cstruct, readonly=False):
         if cstruct in (null, None):
@@ -126,10 +126,10 @@ class ConditionalCheckboxMapping(Widget):
             pstruct = {}
 
         checkbox_schema = pstruct.get(self.checkbox_element, null)
-        if (checkbox_schema is null and not self.inverted_condition) or (checkbox_schema is not null and self.inverted_condition):
+        if checkbox_schema is null:
             return null
 
-        result[self.checkbox_element] = "on"
+        result[self.checkbox_element] = True
 
         for num, subfield in enumerate(field.children):
             name = subfield.name
@@ -146,6 +146,7 @@ class ConditionalCheckboxMapping(Widget):
         if error is not None:
             raise error
 
+        result[self.checkbox_element] = True
         return result
 
 class SelectWithOtherWidget(Widget):

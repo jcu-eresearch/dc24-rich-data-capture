@@ -12,25 +12,27 @@ class SetupViews(Workflows):
 
     def __init__(self, request):
         self.request = request
-        self.schema = setup_schema().bind(request=request)
-        self.myform = Form(self.schema, action="submit_setup", buttons=('Save', 'Delete'), use_ajax=False)
+        self.schema = setup_schema(description="Fully describe this project and the key people responsible for the project:" \
+                                               "<ul><li>The entered title and description will be used for metadata record generation, provide detailed information that is relevant to the project as a whole and all datasets.</li>" \
+                                               "<li>Focus on what is being researched, why it is being researched and who is doing the research. The research locations and how the research is being conducted will be covered in the <i>Methods</i> and <i>Datasets</i> steps</li></ul>").bind(request=request)
+        self.form = Form(self.schema, action="submit_setup", buttons=('Save', 'Delete'), use_ajax=False)
 
-    @view_config(renderer="../../templates/setup.pt", name="submit_setup")     # Use ../../templates/submit.pt for AJAX - File upload doesn't work due to jquery/deform limitations
+    @view_config(renderer="../../templates/form.pt", name="submit_setup")     # Use ../../templates/submit.pt for AJAX - File upload doesn't work due to jquery/deform limitations
     def submit(self):
         if self.request.POST.get('Delete') == 'confirmed':
             location = self.request.application_url + '/'
             message = 'Project successfully deleted'
-            return Response(self.myform.render(),
+            return Response(self.form.render(),
                 headers=[('X-Relocate', location), ('Content-Type', 'text/html'), ('msg', message)])
 
         controls = self.request.POST.items()
         try:
-            appstruct = self.myform.validate(controls)
+            appstruct = self.form.validate(controls)
         except ValidationFailure, e:
             return  {"page_title": 'Project Setup', 'form': e.render(), 'values': False}
             # Process the valid form data, do some work
-        return {"page_title": 'Project Setup', "form": self.myform.render(appstruct)}
+        return {"page_title": 'Project Setup', "form": self.form.render(appstruct)}
 
-    @view_config(renderer="../../templates/setup.pt", name="setup")
+    @view_config(renderer="../../templates/form.pt", name="setup")
     def setup_view(self):
-        return {"page_title": 'Project Setup', "form": self.myform.render()}
+        return {"page_title": 'Project Setup', "form": self.form.render()}

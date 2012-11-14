@@ -7,21 +7,25 @@
  */
 
 // Used as an onclick function for toggling a mapping schema
-function toggleCollapse(fieldset) {
+function toggleCollapse(fieldset, group) {
     var speed = 200;
     var collapsible_item = $(fieldset.parentNode).children('ul').first();
 
     if (collapsible_item.is(':hidden')) {
-        $(".collapsible_items").slideUp(speed);
-        $(fieldset).children('.collapse_icon').first().innerHTML = ('+ ');
+        if (group != "None") {
+            $(".collapsible-" + group).find(".collapsible_items").slideUp(speed);
+            $(".collapsible-" + group).find(".collapse_icon").html('+');
+        }
+        $(fieldset).children('.collapse_icon')[0].innerHTML = ('-');
         collapsible_item.slideDown(speed);
 //        $(fieldset.parentNode).css("background-color", "transparent");
     } else {
-        $(fieldset).children('.collapse_icon').first().innerHTML = ('- ');
+        $(fieldset).children('.collapse_icon')[0].innerHTML = ('+');
         collapsible_item.slideUp(speed);
 //        $(fieldset.parentNode).css("background-color", "#99FFFF");
     }
 }
+
 
 function escapeQuotes(text) {
     var i = 0;
@@ -296,25 +300,25 @@ function featureInserted(object) {
 }
 
 //--------------------conditional_heckbox_mapping.pt----------------
-function displayConditionalCheckboxItems(checkboxElement, inverted) {
+function displayConditionalCheckboxItems(checkboxElement) {
     var contentDiv = $(checkboxElement.parentNode).children(".checkbox_mapping_content")[0];
-    if (checkboxElement.checked && !inverted || !checkboxElement.checked && inverted) {
+    if (checkboxElement.checked) {
 
 //        if (contentDiv.hasOwnProperty('previousContent')) {
 //            contentDiv.innerHTML = contentDiv.previousContent;
 //            processJavascript(contentDiv);
 //            deform.processCallbacks();
 //        } else {
-            var prototypes = $(checkboxElement.parentNode).children(".checkbox_mapping_prototypes").children(".checkbox_mapping_prototype");
+        var prototypes = $(checkboxElement.parentNode).children(".checkbox_mapping_prototypes").children(".checkbox_mapping_prototype");
 
-            var content = "";
-            var i = 0;
-            for (i; i < prototypes.length; i++) {
-                content += prototypes[i].value;
-            }
-            contentDiv.innerHTML = content;
-            processJavascript(contentDiv);
-            deform.processCallbacks();
+        var content = "";
+        var i = 0;
+        for (i; i < prototypes.length; i++) {
+            content += prototypes[i].value;
+        }
+        contentDiv.innerHTML = content;
+        processJavascript(contentDiv);
+        deform.processCallbacks();
 //        }
 
     } else {

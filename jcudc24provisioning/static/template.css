@@ -257,7 +257,7 @@ input[type=text].full_width, .full_width input[type=text] {
 }
 
 .deformMapSeq.location_map input {
-    width: 550px;
+    width: 450px;
 }
 
 input[type=text], input[type=text].half_width {
@@ -294,11 +294,15 @@ input[type=text], input[type=text].half_width {
     }
 }
 
-div.description ul li {
+.description ul {
     display: block;
     list-style-type: disc;
     padding: 2px 1px;
     margin-left: 20px;
+}
+
+.description li {
+    list-style-type: decimal;
 }
 
 div.description p {
@@ -343,4 +347,9 @@ a.deformSeqAdd {
     cursor: pointer;
     color: blue;
     text-decoration: underline;
+}
+
+
+span.collapse_icon {
+    color: blue;
 }

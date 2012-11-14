@@ -15,16 +15,18 @@
         </label>
         <input type="hidden" name="__start__" value="${field.name}:mapping"/>
         <input type="checkbox" name="conditional_checkbox" title="${field.description}"
-               onclick="displayConditionalCheckboxItems(this, '${field.widget.inverted_condition}');"
+               onclick="displayConditionalCheckboxItems(this);"
                id="${field.oid}"
+               value="True"
                tal:attributes="class field.widget.css_class;
-                                checked ((cstruct.get('conditional_checkbox') and not field.widget.inverted_condition) or (not cstruct.get('conditional_checkbox') and field.widget.inverted_condition)) and 'checked'" />
+                                checked ((not cstruct and field.schema.default) or cstruct.get('conditional_checkbox')) and 'checked' or nothing" />
+
 
         <div class="checkbox_mapping_content">
             <div tal:define="rndr field.renderer; tmpl field.widget.item_template"
                  tal:repeat="f field.children">
                 <div
-                        tal:replace="structure (cstruct.get('conditional_checkbox') and rndr(tmpl,field=f,cstruct=cstruct.get(f.name,null))) or nothing"/>
+                        tal:replace="structure (((not cstruct and field.schema.default) or cstruct.get('conditional_checkbox')) and rndr(tmpl,field=f,cstruct=cstruct.get(f.name,null))) or nothing"/>
             </div>
         </div>
         <input type="hidden" name="__end__" value="${field.name}:mapping"/>

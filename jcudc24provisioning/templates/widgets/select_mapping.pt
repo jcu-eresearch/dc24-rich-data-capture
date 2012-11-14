@@ -1,8 +1,13 @@
-<fieldset class="selectMappingFieldset" i18n:domain="deform">
+<fieldset id="mapping-${field.oid}" i18n:domain="deform"
+        tal:attributes="class 'selectMappingFieldset ' + str((field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and ('collapsible-'+str(field.schema.__dict__.get('collapse_group'))))">
     <!-- select mapping -->
-    <legend class="collapsible" tal:condition="(field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and field.title" onclick="toggleCollapse(this);"><span class="collapse_icon">+ </span>${field.title}</legend>
+    <legend class="collapsible"
+                tal:condition="(field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and field.title"
+                tal:define="symbol (field.schema.__dict__.get('collapsed') == True and '+') or '-'"
+                onclick="toggleCollapse(this, '${field.schema.__dict__.get('collapse_group')}');"><span class="collapse_icon">${symbol}</span> ${field.title}
+    </legend>
     <ul tal:attributes="style ('display: ' + str(field.schema.__dict__.get('collapsed') == True and 'none'));
-                      class 'collapsible_items'">
+                      class str((field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and 'collapsible_items' or nothing)">
         <li class="errorLi" tal:condition="field.errormsg">
             <h3 class="errorMsgLbl" i18n:translate="">There was a problem with this section</h3>
 
@@ -53,6 +58,25 @@
         </div>
     </ul>
     <!-- /mapping -->
+
+    <script type="text/javascript">
+        deform.addCallback(
+                '${field.oid}',
+                function (oid) {
+                    var collapse_span = $("#mapping-" + oid).find(".collapse_icon");
+                    if (collapse_span.length <= 0) {
+                        return;
+                    }
+
+                    var collapsed = collapse_span.html().match(/\-/) == null;
+                    var group = $("#mapping-" + oid)[0].className.split(" ")[1].split("-")[1];
+                    if (collapsed == false && group != "None") {
+                        var group_items = $(".collapsible-"+group+ "[id!=mapping-" + oid+"]");
+                        group_items.find(".collapsible_items").slideUp(200);
+                        group_items.find(".collapse_icon").html('+');
+                    }
+                });
+    </script>
 </fieldset>
 
 

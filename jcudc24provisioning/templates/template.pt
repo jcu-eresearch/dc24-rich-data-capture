@@ -50,10 +50,7 @@
 
             <div id="center">
                 <div id="sidebar">
-                    <h3>Project Actions</h3>
-                    <ul id="sidebar_contextual_options">
-                        <div metal:define-slot="sidebar"></div>
-                    </ul>
+                    <div metal:define-slot="sidebar"></div>
 
                     <h3>Global Actions</h3>
                     <ul id="sidebar_global_options">

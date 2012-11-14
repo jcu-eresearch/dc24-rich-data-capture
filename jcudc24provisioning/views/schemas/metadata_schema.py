@@ -323,9 +323,9 @@ class AdditionalInformation(colander.MappingSchema):
 class MetadataData(colander.MappingSchema):
 #    test = MintPerson()
 
-    subject = Subject(collapsed=False)
-    coverage = CoverageSchema(collapsed=True)
-    associations = Associations(collapsed=True)
-    legal = Legality(title="Legality", collapsed=True)
-    citation = Citation(description="Provide metadata that should be used for the purposes of citing this record. Sending a citation to RDA is optional, but if you choose to enable this there are quite specific mandatory fields that will be required by RIF-CS.", collapsed=True)
-    additional_information = AdditionalInformation(collapsed=True)
+    subject = Subject(collapsed=True, collapse_group='metadata')
+    coverage = CoverageSchema(collapsed=False, collapse_group='metadata')
+    associations = Associations(collapsed=True, collapse_group='metadata')
+    legal = Legality(title="Legality", collapsed=True, collapse_group='metadata')
+    citation = Citation(description="Provide metadata that should be used for the purposes of citing this record. Sending a citation to RDA is optional, but if you choose to enable this there are quite specific mandatory fields that will be required by RIF-CS.", collapsed=True, collapse_group='metadata')
+    additional_information = AdditionalInformation(collapsed=True, collapse_group='metadata')

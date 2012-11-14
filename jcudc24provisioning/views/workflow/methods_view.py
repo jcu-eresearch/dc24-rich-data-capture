@@ -16,26 +16,26 @@ class MethodsView(Workflows):
     def __init__(self, request):
         self.request = request
         self.schema = MethodsSchema(
-            description="Setup methods (or ways of) the project uses for collecting data, not individual datasets themselves (that will be done in the next step).  Such that a type of iButton sensor that is used to collect temperature at numerous sites would be setup once within this step as a data method and for each site it is used at in the next step (This means you don't have to enter duplicate data!).").bind(request=request)
-        self.myform = Form(self.schema, action="submit_methods", buttons=('Save', 'Delete'), use_ajax=False)
+            description="Setup methods the project uses for collecting data (not individual datasets themselves as they will be setup in the next step).  Such that a type of sensor that is used to collect temperature at numerous sites would be setup <ol><li>Once within this step as a data method</li><li>As well as for each site it is used at in the next step</li></ol>This means you don't have to enter duplicate data!").bind(request=request)
+        self.form = Form(self.schema, action="submit_methods", buttons=('Save', 'Delete'), use_ajax=False)
 
-    @view_config(renderer="../../templates/methods.pt", name="submit_methods")     # Use ../../templates/submit.pt for AJAX - File upload doesn't work due to jquery/deform limitations
+    @view_config(renderer="../../templates/form.pt", name="submit_methods")     # Use ../../templates/submit.pt for AJAX - File upload doesn't work due to jquery/deform limitations
     def submit(self):
         if self.request.POST.get('Delete') == 'confirmed':
             location = self.request.application_url + '/'
             message = 'Project successfully deleted'
-            return Response(self.myform.render(),
+            return Response(self.form.render(),
                 headers=[('X-Relocate', location), ('Content-Type', 'text/html'), ('msg', message)])
 
         controls = self.request.POST.items()
         try:
-            appstruct = self.myform.validate(controls)
+            appstruct = self.form.validate(controls)
         except ValidationFailure, e:
             return  {"page_title": 'Methods', 'form': e.render(), 'values': False}
             # Process the valid form data, do some work
-        return {"page_title": 'Methods', "form": self.myform.render(appstruct)}
+        return {"page_title": 'Methods', "form": self.form.render(appstruct)}
 
-    @view_config(renderer="../../templates/methods.pt", name="methods")
+    @view_config(renderer="../../templates/form.pt", name="methods")
     def methods_view(self):
-        return {"page_title": 'Methods', "form": self.myform.render(), "values": None}
+        return {"page_title": 'Methods', "form": self.form.render(), "values": None}
 

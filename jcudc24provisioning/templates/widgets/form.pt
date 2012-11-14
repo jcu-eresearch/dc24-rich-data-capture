@@ -23,8 +23,8 @@
         <p class="errorMsg">${field.errormsg}</p>
       </li>
 
-      <li class="section first description" tal:condition="field.description">
-        ${field.description}
+      <li tal:condition="field.description">
+        <div class="section first description" tal:content="structure field.description"></div>
       </li>
 
       <div

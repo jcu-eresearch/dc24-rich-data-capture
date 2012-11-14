@@ -60,7 +60,7 @@ def _ConditionalCheckboxSchema__new__(cls, *args, **kw):
     typ = cls.schema_type()
     node.__init__(typ, *args, **kw)
 
-    node.add(colander.SchemaNode(colander.Boolean(), name="conditional_checkbox", widget = deform.widget.HiddenWidget(), missing="none"))
+    node.add(colander.SchemaNode(colander.Boolean(), name="conditional_checkbox", widget = deform.widget.HiddenWidget(), missing=colander.null))
 
     for n in cls.nodes:
         node.add(n)
@@ -70,7 +70,7 @@ def _ConditionalCheckboxSchema__new__(cls, *args, **kw):
 ConditionalCheckboxSchema = colander._SchemaMeta('ConditionalCheckboxSchema', (object,),
     dict(schema_type=colander.Mapping,
         node_type=colander.SchemaNode,
-        __new__=_SelectMappingSchema__new__))
+        __new__=_ConditionalCheckboxSchema__new__))
 
 #    schema_select = colander.SchemaNode(colander.String(), widget=deform.widget.HiddenWidget())
 #

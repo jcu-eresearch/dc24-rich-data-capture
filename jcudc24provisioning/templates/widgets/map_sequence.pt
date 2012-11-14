@@ -1,5 +1,5 @@
 <!--
-    mpa_sequence is a template for a sequenceSchema that provides an openlayers map with the ability to add,
+    map_sequence is a template for a sequenceSchema that provides an openlayers map with the ability to add,
     delete, edit and modify an expandable list of features (lines, points or polygons) either on using the map or by
     editing the text.
 
