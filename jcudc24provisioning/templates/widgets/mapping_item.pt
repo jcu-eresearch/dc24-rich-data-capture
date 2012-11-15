@@ -2,7 +2,11 @@
     id="item-${field.oid}"
     tal:omit-tag="field.widget.hidden"
     i18n:domain="deform"
-    tal:attributes="title field.schema.default or None">
+    tal:attributes="title field.schema.default or ''">
+
+    <span class="structural_title_content" style="display:none;"
+          tal:condition="field.schema.__dict__.get('placeholder')"
+          tal:content="structure field.schema.__dict__.get('placeholder')">asdf</span>
 
     <!-- mapping_item -->
     <label tal:condition="not (field.widget.hidden or
@@ -19,7 +23,7 @@
          tal:content="structure field.description">
     </div>
 
-    <span tal:replace="structure field.serialize(cstruct)"/>
+    <span tal:content="structure field.serialize(cstruct)"/>
 
 
     <p tal:condition="field.error and not field.widget.hidden and not field.typ.__class__.__name__=='Mapping'"
@@ -29,6 +33,19 @@
    ('%s-%s' % (errstr, repeat.msg.index))"
        class="${field.widget.error_class}"
        i18n:translate="">${msg}</p>
+
+    <script type="text/javascript">
+        deform.addCallback(
+                '${field.oid}',
+                function (oid) {
+                    var list_item = $("#item-" + oid);
+                    if (list_item.children(".structural_title_content").length > 0) {
+                        var structural_element = list_item.children(".structural_title_content")[0];
+                        var title_text = structural_element.innerHTML;
+                        list_item[0].title = title_text;
+                    }
+                });
+    </script>
 
     <!-- /mapping_item -->
 </li>

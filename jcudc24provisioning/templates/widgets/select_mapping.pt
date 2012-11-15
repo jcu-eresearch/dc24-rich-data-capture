@@ -2,9 +2,10 @@
         tal:attributes="class 'selectMappingFieldset ' + str((field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and ('collapsible-'+str(field.schema.__dict__.get('collapse_group'))))">
     <!-- select mapping -->
     <legend class="collapsible"
-                tal:condition="(field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and field.title"
-                tal:define="symbol (field.schema.__dict__.get('collapsed') == True and '+') or '-'"
-                onclick="toggleCollapse(this, '${field.schema.__dict__.get('collapse_group')}');"><span class="collapse_icon">${symbol}</span> ${field.title}
+            tal:condition="(field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and field.title"
+            tal:define="symbol (field.schema.__dict__.get('collapsed') == True and '+') or '-'"><span
+            onclick="toggleCollapse(this, '${field.schema.__dict__.get('collapse_group')}');"
+            class="collapse_icon">${symbol}</span> ${field.title} [<a class="expand_all" onclick="expandAll('${field.schema.__dict__.get('collapse_group')}');">Expand All</a>/<a onclick="collapseAll('${field.schema.__dict__.get('collapse_group')}');" class="collapse_all">Collapse All</a>]
     </legend>
     <ul tal:attributes="style ('display: ' + str(field.schema.__dict__.get('collapsed') == True and 'none'));
                       class str((field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and 'collapsible_items' or nothing)">

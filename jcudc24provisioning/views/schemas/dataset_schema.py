@@ -131,7 +131,8 @@ class SOSDataSourceSchema(colander.MappingSchema):
 
 
 class MethodSelectSchema(SelectMappingSchema):
-    method = MethodSchema(missing=colander.null)
+    method_a = MethodSchema(missing=colander.null)
+    method_b = MethodSchema(missing=colander.null)
 #    internal = InternalMethodSchema(missing=colander.null)
 
 def __init__(self):
@@ -146,7 +147,7 @@ def __init__(self):
 #        self.add(InternalMethodSchema())
 
 class Dataset(colander.SequenceSchema):
-    data_source = MethodSelectSchema(title="Method",collapsed=False, collapse_group="dataset",
+    data_source = MethodSelectSchema(title="Method",collapsed=False, collapse_group="dataset", collapse_legend="Dataset",
         description="Select the data collection method for this dataset, the methods need to have been setup in the previous workflow step.</br></br>" \
                     "<b>Will be developed so that methods created in the 'Methods' workflow step will populate the below dropbox.</b>")
 

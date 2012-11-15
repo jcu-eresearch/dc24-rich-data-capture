@@ -22,11 +22,10 @@
         <div metal:fill-slot="sidebar">
             <h3>Project Actions</h3>
             <ul id="sidebar_contextual_options">
-                <li><a href="/upload">Add data</a></li>
-                <li><a href="/upload">Metadata</a></li>
-                <li><a href="/data">Access data</a></li>
-                <li><a href="/data">Sharing</a></li>
-                <li><a href="/data">Duplicate project</a></li>
+                <li><a href="/add_data">Add data</a></li>
+                <li><a href="/manage_data">Manage data</a></li>
+                <li><a href="/sharing">Sharing</a></li>
+                <li><a href="/duplicate">Duplicate project</a></li>
                 <li><a  style="cursor: pointer" title="Toggle all descriptions on or off (remove clutter when you know what you are doing)" onclick="hideDescriptions(!document.hide_descriptions);">Toggle Descriptions</a></li>
             </ul>
         </div>

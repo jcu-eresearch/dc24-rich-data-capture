@@ -203,10 +203,17 @@ div#main {
     clear: none;
 }
 
+.deformInlineMappingFieldset .inline_mapping li.section.description {
+    float: none;
+    clear: both;
+}
+
 .inline_mapping li {
     padding: 0px;
     margin: 0px 5px;
 }
+
+
 
 div#workflow_nav ul {
     padding: 0px;
@@ -271,7 +278,7 @@ input[type=text], input[type=text].half_width {
     box-shadow: #00AEEF 0px 0px 1px;
 }
 
-.description:hover {
+.description:hover, .inline_mapping li.description:hover {
     box-shadow: #ccc 0px 0px 4px;
 }
 
@@ -279,7 +286,7 @@ input[type=text], input[type=text].half_width {
     box-shadow: #00AEEF 0px 0px 3px;
 }
 
-.description {
+.description, .inline_mapping li.description {
     box-shadow: #ccc 0px 0px 1px;
     margin-bottom: 8px;
     margin-top: 5px;
@@ -352,4 +359,10 @@ a.deformSeqAdd {
 
 span.collapse_icon {
     color: blue;
+}
+
+.collapse_all, .expand_all {
+    cursor: pointer;
+    color: blue;
+    text-decoration: underline;
 }

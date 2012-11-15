@@ -1,7 +1,13 @@
 <li tal:attributes="class field.error and field.widget.error_class"
     tal:omit-tag="field.widget.hidden"
-    title="${field.description}" i18n:domain="deform">
+    id="sequence-{oid}"
+    title="${field.schema.__dict__.get('placeholder')}" i18n:domain="deform">
   <!-- sequence_item -->
+
+  <span class="structural_title_content" style="display:none;"
+        tal:condition="field.schema.__dict__.get('placeholder')"
+        tal:content="structure field.schema.__dict__.get('placeholder')"></span>
+
 
   <span class="deformClosebutton"
         id="${field.oid}-close"
@@ -19,5 +25,18 @@
        id="${errstr if repeat.msg.index==0 else '%s-%s' % (errstr, repeat.msg.index)}"
        class="${field.widget.error_class}" i18n:translate="">${msg}</p></tal:errors>
 
+
+    <script type="text/javascript">
+        deform.addCallback(
+                '${field.oid}',
+                function (oid) {
+                    var list_item = $("#sequence-" + oid);
+                    if (list_item.children(".structural_title_content").length > 0) {
+                        var structural_element = list_item.children(".structural_title_content")[0];
+                        var title_text = structural_element.innerHTML;
+                        list_item[0].title = title_text;
+                    }
+                });
+    </script>
   <!-- /sequence_item -->
 </li>

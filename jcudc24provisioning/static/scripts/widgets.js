@@ -26,6 +26,14 @@ function toggleCollapse(fieldset, group) {
     }
 }
 
+function collapseAll(group) {
+    $('.collapsible-'+group).find('.collapsible_items').slideUp(200);
+}
+
+function expandAll(group) {
+    $('.collapsible-'+group).find('.collapsible_items').slideDown(200);
+}
+
 
 function escapeQuotes(text) {
     var i = 0;

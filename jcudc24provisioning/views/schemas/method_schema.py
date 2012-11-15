@@ -41,6 +41,7 @@ field_types = (
     ('phone', 'Phone'),
     ('address', 'Address'),
     ('person', 'Person'),
+    ('hidden', 'Hidden (Used by custom processing only)'),
 )
 
 class InformationAttachment(colander.MappingSchema):
@@ -51,7 +52,7 @@ class Attachments(colander.SequenceSchema):
      attachment = InformationAttachment(widget=deform.widget.MappingWidget(template="inline_mapping"))
 
 class CustomField(colander.MappingSchema):
-    data_type = colander.SchemaNode(colander.String(), title="Field Type",
+    field_type = colander.SchemaNode(colander.String(), title="Field Type",
         widget=deform.widget.SelectWidget(values=field_types),
         description="",
         placeholder="Type of field that should be shown.")
@@ -60,14 +61,25 @@ class CustomField(colander.MappingSchema):
     placeholder = colander.SchemaNode(colander.String(), title="Example", placeholder="eg. 26.3", widget=deform.widget.TextInputWidget(css_class="full_width"))
     default = colander.SchemaNode(colander.String(), title="Default Value.", placeholder="Use appropriately where the user will usually enter the same value.", widget=deform.widget.TextInputWidget(css_class="full_width"))
     validators = colander.SchemaNode(colander.String(), title="Validator", placeholder="eg. Numerical value with decimal places or what values are expected such as for a dropdown box", widget=deform.widget.TextInputWidget(css_class="full_width"))
-    notes = colander.SchemaNode(colander.String(), title="Admin Notes", placeholder="eg. Please read this field from the uploaded files, it will follow a pattern like temp:xxx.xx", widget=deform.widget.TextInputWidget(css_class="full_width"))
+    notes = colander.SchemaNode(colander.String(), title="Admin Notes", placeholder="eg. Please read this field from the uploaded files, it will follow a pattern like temp:xxx.xx", widget=deform.widget.TextAreaWidget(css_class="full_width"))
 
 
 class CustomFieldsSchema(colander.SequenceSchema):
     field = CustomField(title="Custom Fields",# widget=deform.widget.MappingWidget(css_class="full_width"),
         description="")
 
+class MethodTemplateSchema(colander.MappingSchema):
+    copy_previous_method = colander.SchemaNode(colander.String(), widget=deform.widget.AutocompleteInputWidget(size=250, min_length=1, values=('Method A','Method B'), template="template_autocomplete_input"),
+        placeholder="TODO: Autocomplete from previous projects methods (based on method name)")
+
 class Method(colander.Schema):
+    copy_previous_method = MethodTemplateSchema(title="Use a previously created method as a template",
+            widget=deform.widget.MappingWidget(template="inline_mapping"),
+            description="Use a previously created method as a template, <b>this will overwrite all fields on this page</b> " \
+                        "with the content in the selected method.<br />" \
+                        "Usage: If the same sensor is used for 2 projects you don't need to recreate the same method twice!")
+
+
     data_type = colander.SchemaNode(colander.String(), title="Data Type",
         widget=deform.widget.SelectWidget(values=data_types),
         description="The type of data that is being collected, additional information/fields can be added by extending the base data types using the custom fields below.</br></br>" \
@@ -79,7 +91,7 @@ class Method(colander.Schema):
                     "<ul>"\
                     "<li><b>Web Form/Manual: </b>Only use an online form accessible through this interface to manually upload data (Other data sources also include this option).</li>"\
                     "<li><b>Poll external file system: </b>Setup automatic polling of an external file system from a URL location, when new files of the correct type and naming convention are found they are ingested.<li>"\
-                    "<li><b><i>(Advanced)</i> Push to this website through the API: </b>.</li>"\
+                    "<li><b><i>(Advanced)</i> Push to this website through the API:</b>  Use the XMLRPC API to directly push data into persistent storage, on project acceptance you will be emailed your API key and instructions.</li>"\
                     "<li><b>Sensor Observation Service: </b>Set-up a sensor that implements the Sensor Observation Service (SOS) to push data into this systems SOS server.</li>"\
                     "<li><b><i>(Advanced)</i> Output from other dataset: </b>This allows for advanced/chained processing of data, where the results of another dataset can be further processed and stored as required.</li>"\
                     "</ul>",
