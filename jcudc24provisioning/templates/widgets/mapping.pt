@@ -31,7 +31,7 @@
     </ul>
     <!-- /mapping -->
 
-    <script type="text/javascript">
+    <script type="text/javascript" tal:condition="(field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False)">
         deform.addCallback(
                 '${field.oid}',
                 function (oid) {

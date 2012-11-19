@@ -1,7 +1,6 @@
 import colander
 import deform
 from jcudc24provisioning.views.schemas.common_schemas import SelectMappingSchema
-from jcudc24provisioning.views.widgets import SelectMappingWidget
 from jcudc24provisioning.views.workflow.workflows import Workflows
 
 __author__ = 'Casey Bajema'

@@ -20,23 +20,23 @@ class MetadataView(Workflows):
                                                "</ul>").bind(request=request)
         self.form = Form(self.schema, action="submit_metadata", buttons=('Save', 'Delete'), use_ajax=False)
 
-    @view_config(renderer="../../templates/form.pt", name="submit_metadata")   # Use ../../templates/submit.pt for AJAX - File upload doesn't work due to jquery/deform limitations
+    @view_config(renderer="../../templates/form.pt", name="metadata")
     def submit(self):
         if self.request.POST.get('Delete') == 'confirmed':
-            location = self.request.application_url + '/'
-            message = 'Project successfully deleted'
-            return Response(self.form.render(),
-                headers=[('X-Relocate', location), ('Content-Type', 'text/html'), ('msg', message)])
+                        location = self.request.application_url + '/'
+                        message = 'Project successfully deleted'
+                        return Response(self.form.render(),
+                            headers=[('X-Relocate', location), ('Content-Type', 'text/html'), ('msg', message)])
 
-        controls = self.request.POST.items()
-        try:
-            appstruct = self.form.validate(controls)
-        except ValidationFailure, e:
-            return  {"page_title": 'Metadata', 'form': e.render(), 'values': False}
-            # Process the valid form data, do some work
-        return {"page_title": 'Metadata', "form": self.form.render(appstruct)}
+        if 'Save' in self.request.POST:
+            controls = self.request.POST.items()
+            try:
+                appstruct = self.form.validate(controls)
+            except ValidationFailure, e:
+                return  {"page_title": 'Metadata', 'form': e.render(), "form_only": self.form.use_ajax}
+                # Process the valid form data, do some work
+            return {"page_title": 'Metadata', "form": self.form.render(appstruct), "form_only": self.form.use_ajax}
 
-    @view_config(renderer="../../templates/form.pt", name="metadata")
-    def metadata_view(self):
-        return {"page_title": 'Metadata', "form": self.form.render(), "values": None}
+        return {"page_title": 'Metadata', "form": self.form.render(), "form_only": False}
+
 

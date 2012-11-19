@@ -11,6 +11,7 @@ from sqlalchemy.orm import (
     scoped_session,
     sessionmaker,
     )
+from sqlalchemy.types import BLOB
 
 from zope.sqlalchemy import ZopeTransactionExtension
 
@@ -20,8 +21,8 @@ Base = declarative_base()
 class MyModel(Base):
     __tablename__ = 'models'
     id = Column(Integer, primary_key=True)
-    name = Column(Text, unique=True)
-    value = Column(Integer)
+    name = Column(Text)
+    value = Column(Text)
 
     def __init__(self, name, value):
         self.name = name

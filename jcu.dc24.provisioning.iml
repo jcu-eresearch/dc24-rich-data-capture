@@ -6,6 +6,7 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="jcu.dc24.ingesterapi" />
+    <orderEntry type="module" module-name="ColanderAlchemy" />
   </component>
 </module>
 

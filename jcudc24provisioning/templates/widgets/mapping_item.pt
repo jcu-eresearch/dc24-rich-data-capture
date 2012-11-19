@@ -6,7 +6,7 @@
 
     <span class="structural_title_content" style="display:none;"
           tal:condition="field.schema.__dict__.get('placeholder')"
-          tal:content="structure field.schema.__dict__.get('placeholder')">asdf</span>
+          tal:content="structure field.schema.__dict__.get('placeholder')"></span>
 
     <!-- mapping_item -->
     <label tal:condition="not (field.widget.hidden or

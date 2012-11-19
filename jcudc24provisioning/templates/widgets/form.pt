@@ -1,3 +1,4 @@
+
 <form
   id="${field.formid}"
   action="${field.action}"
@@ -6,6 +7,7 @@
   accept-charset="utf-8"
   i18n:domain="deform"
   tal:attributes="class field.css_class">
+
 
   <fieldset class="deformFormFieldset">
 
@@ -51,7 +53,6 @@
     </ul>
 
   </fieldset>
-
 <script type="text/javascript" tal:condition="field.use_ajax">
   deform.addCallback(
      '${field.formid}',

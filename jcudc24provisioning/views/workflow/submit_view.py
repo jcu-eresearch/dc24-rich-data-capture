@@ -1,6 +1,7 @@
 from jcudc24provisioning.views.workflow.workflows import Workflows
 from deform.form import Form
 from jcudc24provisioning.views.schemas.submit_schema import submit_schema
+from pyramid.response import Response
 
 __author__ = 'Casey Bajema'
 
@@ -22,4 +23,13 @@ class SubmitView(Workflows):
 
     @view_config(renderer="../../templates/form.pt", name="submit")
     def setup_view(self):
-        return {"page_title": self.title, "form": self.form.render()}
+        if self.request.POST.get('Delete') == 'confirmed':
+                        location = self.request.application_url + '/'
+                        message = 'Project successfully deleted'
+                        return Response(self.form.render(),
+                            headers=[('X-Relocate', location), ('Content-Type', 'text/html'), ('msg', message)])
+
+        if 'Save' in self.request.POST:
+            pass
+
+        return {"page_title": self.title, "form": self.form.render(), "form_only": False}

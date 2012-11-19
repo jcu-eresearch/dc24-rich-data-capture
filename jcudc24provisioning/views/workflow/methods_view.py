@@ -19,23 +19,24 @@ class MethodsView(Workflows):
             description="Setup methods the project uses for collecting data (not individual datasets themselves as they will be setup in the next step).  Such that a type of sensor that is used to collect temperature at numerous sites would be setup <ol><li>Once within this step as a data method</li><li>As well as for each site it is used at in the next step</li></ol>This means you don't have to enter duplicate data!").bind(request=request)
         self.form = Form(self.schema, action="submit_methods", buttons=('Save', 'Delete'), use_ajax=False)
 
-    @view_config(renderer="../../templates/form.pt", name="submit_methods")     # Use ../../templates/submit.pt for AJAX - File upload doesn't work due to jquery/deform limitations
-    def submit(self):
-        if self.request.POST.get('Delete') == 'confirmed':
-            location = self.request.application_url + '/'
-            message = 'Project successfully deleted'
-            return Response(self.form.render(),
-                headers=[('X-Relocate', location), ('Content-Type', 'text/html'), ('msg', message)])
-
-        controls = self.request.POST.items()
-        try:
-            appstruct = self.form.validate(controls)
-        except ValidationFailure, e:
-            return  {"page_title": 'Methods', 'form': e.render(), 'values': False}
-            # Process the valid form data, do some work
-        return {"page_title": 'Methods', "form": self.form.render(appstruct)}
 
     @view_config(renderer="../../templates/form.pt", name="methods")
-    def methods_view(self):
-        return {"page_title": 'Methods', "form": self.form.render(), "values": None}
+    def submit(self):
+        if self.request.POST.get('Delete') == 'confirmed':
+                        location = self.request.application_url + '/'
+                        message = 'Project successfully deleted'
+                        return Response(self.form.render(),
+                            headers=[('X-Relocate', location), ('Content-Type', 'text/html'), ('msg', message)])
+
+        if 'Save' in self.request.POST:
+            controls = self.request.POST.items()
+            try:
+                appstruct = self.form.validate(controls)
+            except ValidationFailure, e:
+                return  {"page_title": 'Methods', 'form': e.render(), "form_only": self.form.use_ajax}
+                # Process the valid form data, do some work
+            return {"page_title": 'Methods', "form": self.form.render(appstruct), "form_only": self.form.use_ajax}
+
+        return {"page_title": 'Methods', "form": self.form.render(), "form_only": False}
+
 

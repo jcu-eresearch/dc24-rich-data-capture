@@ -1,4 +1,5 @@
-<div metal:use-macro="view.workflow_template">
+<div tal:condition="form_only" tal:content="structure form">form</div>
+<div metal:use-macro="view.workflow_template" tal:condition="not form_only">
     <div metal:fill-slot="workflow-content">
         <div tal:content="structure form">form</div>
     </div>

@@ -7,14 +7,14 @@
         <input type="hidden" name="uid" value="${cstruct['uid']}"
                id="${field.oid}-uid"/>
     <span tal:content="cstruct.get('filename')"
-          id="${field.oid}-filename" />
+          id="${field.oid}-filename"/>
 
     </div>
-    <input type="file" name="upload"
+    <input type="file"
            tal:attributes="size field.widget.size;
                          class field.widget.css_class"
-           id="${field.oid}" />
+           id="${field.oid}"
+           name="upload" />
 
     <input type="hidden" name="__end__" value="${field.name}:mapping"/>
-
 </div>

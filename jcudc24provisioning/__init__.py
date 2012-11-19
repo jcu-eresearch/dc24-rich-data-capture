@@ -1,3 +1,6 @@
+from jcudc24provisioning.models import DBSession
+from sqlalchemy.engine import engine_from_config
+
 __author__ = 'Casey Bajema'
 
 from deform.form import Form
@@ -10,23 +13,19 @@ def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
 
-#    engine = engine_from_config(settings, 'sqlalchemy.')
-#    DBSession.configure(bind=engine)
+    engine = engine_from_config(settings, 'sqlalchemy.')
+    DBSession.configure(bind=engine)
 
     deform_templates = resource_filename('deform', 'templates')
     search_path = (resource_filename('jcudc24provisioning', 'templates\widgets'), deform_templates)
-#    print search_path
     Form.set_zpt_renderer(search_path)
 
     set_cache_regions_from_settings(settings)
     my_session_factory = session_factory_from_settings(settings)
     config = Configurator(settings=settings, session_factory = my_session_factory)
 
-#    config = Configurator()
-#    config.add_view(views.ProvisioningViews)
     config.add_static_view('deform_static', 'deform:static', cache_max_age=0)
     config.add_static_view('static', 'static')
-#    config.scan("views")
     config.scan()
     return config.make_wsgi_app()
 

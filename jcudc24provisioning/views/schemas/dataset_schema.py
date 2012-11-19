@@ -1,6 +1,10 @@
 import inspect
 import colander
+from colanderalchemy.declarative import Column
 import deform
+from sqlalchemy.schema import ForeignKey
+from sqlalchemy.types import Enum, Unicode, Integer
+from jcudc24provisioning.models import Base
 from jcudc24provisioning.views.schemas.common_schemas import Attachment, SelectMappingSchema, ConditionalCheckboxSchema
 from jcudc24provisioning.views.schemas.widgets import SelectMappingWidget, ConditionalCheckboxMapping
 
@@ -158,5 +162,19 @@ class MemoryTmpStore(dict):
     def preview_url(self, uid):
         return None
 
-class DatasetSchema(colander.MappingSchema):
-    data_inputs = Dataset(title="Datasets", widget=deform.widget.SequenceWidget(min_len=1))
+
+class ColanderAlchemyTest(Base):
+    __tablename__ = 'phones'
+
+    person_id = Column(Integer, ForeignKey('persons.id'), primary_key=True)
+    number = Column(Unicode(128), primary_key=True, ca_description="test", ca_widget=deform.widget.TextInputWidget(), ca_placeholder="asdf")
+    location = Column(Enum(u'home', u'work'))
+
+class DatasetSchema(Base):
+    __tablename__ = 'Dataset'
+#    data_inputs = Dataset(title="Datasets", widget=deform.widget.SequenceWidget(min_len=1))
+    description = Column(Unicode(128), ca_widget=deform.widget.TextAreaWidget(),
+            ca_placeholder="Provide a textual description of the dataset being collected.",
+            ca_description="Provide a dataset specific description that will be appended to the project description in metadata records.")
+
+#    test = Column(Attachment())
