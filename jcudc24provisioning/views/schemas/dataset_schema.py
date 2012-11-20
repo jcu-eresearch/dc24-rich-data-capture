@@ -1,12 +1,12 @@
 import inspect
 import colander
-from colanderalchemy.declarative import Column
+from colanderalchemy.declarative import Column, relationship
 import deform
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.types import Enum, Unicode, Integer
 from jcudc24provisioning.models import Base
 from jcudc24provisioning.views.schemas.common_schemas import Attachment, SelectMappingSchema, ConditionalCheckboxSchema
-from jcudc24provisioning.views.schemas.widgets import SelectMappingWidget, ConditionalCheckboxMapping
+from jcudc24provisioning.views.widgets import SelectMappingWidget, ConditionalCheckboxMapping
 
 __author__ = 'Casey Bajema'
 
@@ -150,9 +150,11 @@ def __init__(self):
 #            self.add(method)
 #        self.add(InternalMethodSchema())
 
-class Dataset(colander.SequenceSchema):
-    data_source = MethodSelectSchema(title="Method",collapsed=False, collapse_group="dataset", collapse_legend="Dataset",
-        description="Select the data collection method for this dataset, the methods need to have been setup in the previous workflow step.</br></br>" \
+class Dataset(Base):
+    __tablename__ = 'dataset'
+    id = Column(Integer, primary_key=True, ca_widget=deform.widget.HiddenWidget())
+    data_source = Column(MethodSelectSchema, ca_title="Method",ca_collapsed=False, ca_collapse_group="dataset", ca_collapse_legend="Dataset",
+        ca_description="Select the data collection method for this dataset, the methods need to have been setup in the previous workflow step.</br></br>" \
                     "<b>Will be developed so that methods created in the 'Methods' workflow step will populate the below dropbox.</b>")
 
 
@@ -162,19 +164,19 @@ class MemoryTmpStore(dict):
     def preview_url(self, uid):
         return None
 
-
-class ColanderAlchemyTest(Base):
-    __tablename__ = 'phones'
-
-    person_id = Column(Integer, ForeignKey('persons.id'), primary_key=True)
-    number = Column(Unicode(128), primary_key=True, ca_description="test", ca_widget=deform.widget.TextInputWidget(), ca_placeholder="asdf")
-    location = Column(Enum(u'home', u'work'))
-
 class DatasetSchema(Base):
-    __tablename__ = 'Dataset'
-#    data_inputs = Dataset(title="Datasets", widget=deform.widget.SequenceWidget(min_len=1))
-    description = Column(Unicode(128), ca_widget=deform.widget.TextAreaWidget(),
+    __tablename__ = 'project_datasets'
+
+    items = {
+        'dataset_id' : Column(Integer, ForeignKey('dataset.id'), primary_key=True,  ca_widget=deform.widget.HiddenWidget()),
+        'project_id' : Column(Integer,ForeignKey('project.id'), primary_key=True,  ca_widget=deform.widget.HiddenWidget()),
+        'description' : Column(Unicode(128), ca_widget=deform.widget.TextAreaWidget(),
             ca_placeholder="Provide a textual description of the dataset being collected.",
             ca_description="Provide a dataset specific description that will be appended to the project description in metadata records.")
+            }
+
+
+#    datasets = relationship(Dataset, ca_widget=deform.widget.SequenceWidget(min_len=1))
+
 
 #    test = Column(Attachment())

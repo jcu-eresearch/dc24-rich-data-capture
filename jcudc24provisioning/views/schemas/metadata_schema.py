@@ -9,7 +9,7 @@ import colander
 import deform
 from jcudc24provisioning.views.schemas.common_schemas import Person, WebsiteSchema, People, Notes, Attachment, OneOfDict
 from jcudc24provisioning.views.schemas.dataset_schema import CoverageSchema
-from jcudc24provisioning.views.schemas.widgets import SelectWithOtherWidget
+from jcudc24provisioning.views.widgets import SelectWithOtherWidget
 
 __author__ = 'Casey Bajema'
 logger = logging.getLogger("jcu.dc24.provisioning.views.schemas")
@@ -286,9 +286,8 @@ class Legality(colander.MappingSchema):
 #    grantNumber = colander.SchemaNode(colander.String(), placeholder="linked", title="Grant Number")
 #    dataAffiliation = colander.SchemaNode(colander.String(), title="Data Affiliation")
 
-
+attachment_types = (("data", "Data file"), ("supporting", "Supporting material"), ("readme", "Readme"))
 class MetadataAttachment(colander.MappingSchema):
-    attachment_types = (("data", "Data file"), ("supporting", "Supporting material"), ("readme", "Readme"))
     type = colander.SchemaNode(colander.String(), widget=deform.widget.SelectWidget(values=attachment_types),
         validator=colander.OneOf(
             [attachment_types[0][0], attachment_types[1][0], attachment_types[2][0]]),
@@ -306,10 +305,12 @@ class MintPerson(colander.MappingSchema):
 
     non_mint = Person()
 
+
+retention_periods = (
+    ("indefinite", "Indefinite"), ("1", "1 Year"), ("5", "5 Years"), ("7", "7 Years"), ("10", "10 Years"),
+    ("15", "15 Years"))
+
 class AdditionalInformation(colander.MappingSchema):
-    retention_periods = (
-        ("indefinite", "Indefinite"), ("1", "1 Year"), ("5", "5 Years"), ("7", "7 Years"), ("10", "10 Years"),
-        ("15", "15 Years"))
     retention_period = colander.SchemaNode(colander.String(), title="Retention period",
         widget=deform.widget.SelectWidget(values=retention_periods),
         description="Record the period of time that the data must be kept in line with institutional/funding body retention policies.")
@@ -329,3 +330,4 @@ class MetadataData(colander.MappingSchema):
     legal = Legality(title="Legality", collapsed=True, collapse_group='metadata')
     citation = Citation(description="Provide metadata that should be used for the purposes of citing this record. Sending a citation to RDA is optional, but if you choose to enable this there are quite specific mandatory fields that will be required by RIF-CS.", collapsed=True, collapse_group='metadata')
     additional_information = AdditionalInformation(collapsed=True, collapse_group='metadata')
+

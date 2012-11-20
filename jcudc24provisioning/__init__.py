@@ -1,7 +1,9 @@
+from pkg_resources import declare_namespace
 from jcudc24provisioning.models import DBSession
 from sqlalchemy.engine import engine_from_config
 
 __author__ = 'Casey Bajema'
+declare_namespace('jcudc24provisioning')
 
 from deform.form import Form
 from pyramid.config import Configurator

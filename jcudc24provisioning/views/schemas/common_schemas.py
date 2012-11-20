@@ -1,8 +1,8 @@
+from jcudc24provisioning.views.widgets import SelectMappingWidget, ConditionalCheckboxMapping
 from beaker.cache import cache_region
 import colander
 import deform
 from pyramid_deform import SessionFileUploadTempStore
-from jcudc24provisioning.views.schemas.widgets import SelectMappingWidget, ConditionalCheckboxMapping
 
 __author__ = 'Casey Bajema'
 
