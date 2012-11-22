@@ -50,12 +50,12 @@ class DatasetsView(Workflows):
             appstruct = self.form.validate(controls)
     #            print "appstruct: " + str(appstruct)
         except ValidationFailure, e:
-            return  {"page_title": self.title, 'form': e.render()}
+            return  {"page_title": self.title, 'form': e.render(), "form_only": self.form.use_ajax}
 
         # Process the valid form data, do some work
-        return {"page_title": self.title, "form": self.form.render(appstruct)}
+        return {"page_title": self.title, "form": self.form.render(appstruct), "form_only": self.form.use_ajax}
 
     @view_config(renderer="../../templates/form.pt", name="add_data")
     def add_data_view(self):
-        return {"page_title": self.title, "form": self.form.render()}
+        return {"page_title": self.title, "form": self.form.render(), "form_only": False}
 
