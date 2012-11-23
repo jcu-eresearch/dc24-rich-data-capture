@@ -359,6 +359,7 @@ a.deformSeqAdd {
 
 span.collapse_icon {
     color: blue;
+    cursor: pointer;
 }
 
 .collapse_all, .expand_all {

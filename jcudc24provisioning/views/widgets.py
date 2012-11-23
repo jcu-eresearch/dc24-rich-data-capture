@@ -1,5 +1,7 @@
 from colander import null, Invalid
 import colander
+import deform
+from deform.field import Field
 from deform.widget import Widget, _normalize_choices
 
 __author__ = 'Casey'
@@ -37,6 +39,18 @@ class SelectMappingWidget(Widget):
     select_element = "schema_select"
 
     def serialize(self, field, cstruct, readonly=False):
+#        #  Dynamically add the select box for selecting the desired schema
+#        found = False
+#        for node in field.children:
+#            if node.name == "schema_select":
+#                found = True
+#                break
+#
+#        if not found:
+#            new_child = colander.SchemaNode(colander.String(), name="schema_select", widget = deform.widget.HiddenWidget(), missing="none")
+#            field.schema.children.insert(0, new_child)
+#            field.children.insert(0,Field(new_child, renderer=field.renderer, counter=field.counter, resource_registry=field.resource_registry))
+
         if cstruct in (null, None):
             cstruct = {}
         template = readonly and self.readonly_template or self.template

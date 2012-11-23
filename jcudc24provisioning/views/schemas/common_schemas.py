@@ -157,7 +157,7 @@ class Website(colander.MappingSchema):
 
 
 class WebsiteSchema(colander.SequenceSchema):
-    resource = Website(title="Website", widget=deform.widget.MappingWidget(template="inline_mapping"))
+    resource = Website(widget=deform.widget.MappingWidget(template="inline_mapping"))
 
 countries = (
     ('AF', 'Afghanistan'),

@@ -3,7 +3,7 @@ import colander
 from colanderalchemy.declarative import Column, relationship
 import deform
 from sqlalchemy.schema import ForeignKey
-from sqlalchemy.types import Enum, Unicode, Integer
+from sqlalchemy.types import Enum, Unicode, Integer, String
 from jcudc24provisioning.models import Base
 from jcudc24provisioning.views.schemas.common_schemas import Attachment, SelectMappingSchema, ConditionalCheckboxSchema
 from jcudc24provisioning.views.widgets import SelectMappingWidget, ConditionalCheckboxMapping
@@ -153,9 +153,14 @@ def __init__(self):
 class Dataset(Base):
     __tablename__ = 'dataset'
     id = Column(Integer, primary_key=True, ca_widget=deform.widget.HiddenWidget())
-    data_source = Column(MethodSelectSchema, ca_title="Method",ca_collapsed=False, ca_collapse_group="dataset", ca_collapse_legend="Dataset",
-        ca_description="Select the data collection method for this dataset, the methods need to have been setup in the previous workflow step.</br></br>" \
-                    "<b>Will be developed so that methods created in the 'Methods' workflow step will populate the below dropbox.</b>")
+#    data_source = MethodSelectSchema(title="Method",collapsed=False, collapse_group="dataset", collapse_legend="Dataset",
+#        description="Select the data collection method for this dataset, the methods need to have been setup in the previous workflow step.</br></br>" \
+#                    "<b>Will be developed so that methods created in the 'Methods' workflow step will populate the below dropbox.</b>")
+
+
+    description = Column(String(), ca_widget=deform.widget.TextAreaWidget(),
+            ca_placeholder="Provide a textual description of the dataset being collected.",
+            ca_description="Provide a dataset specific description that will be appended to the project description in metadata records.")
 
 
 class MemoryTmpStore(dict):
@@ -167,16 +172,14 @@ class MemoryTmpStore(dict):
 class DatasetSchema(Base):
     __tablename__ = 'project_datasets'
 
-    items = {
-        'dataset_id' : Column(Integer, ForeignKey('dataset.id'), primary_key=True,  ca_widget=deform.widget.HiddenWidget()),
-        'project_id' : Column(Integer,ForeignKey('project.id'), primary_key=True,  ca_widget=deform.widget.HiddenWidget()),
-        'description' : Column(Unicode(128), ca_widget=deform.widget.TextAreaWidget(),
-            ca_placeholder="Provide a textual description of the dataset being collected.",
-            ca_description="Provide a dataset specific description that will be appended to the project description in metadata records.")
-            }
+    dataset_id = Column(Integer, ForeignKey('dataset.id'), primary_key=True,  ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer,ForeignKey('project.id'), primary_key=True,  ca_widget=deform.widget.HiddenWidget())
+#    description = Dataset(widget=deform.widget.TextAreaWidget(),
+#            placeholder="Provide a textual description of the dataset being collected.",
+#            description="Provide a dataset specific description that will be appended to the project description in metadata records.")
 
 
-#    datasets = relationship(Dataset, ca_widget=deform.widget.SequenceWidget(min_len=1))
+    datasets = relationship('Dataset')
 
 
 #    test = Column(Attachment())
