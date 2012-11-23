@@ -108,7 +108,7 @@ class MethodSchema(colander.MappingSchema):
         placeholder="Provide a textual description of the dataset being collected.",
         description="Provide a dataset specific description that will be appended to the project description in metadata records.")
 
-    dataset_configuration = DatasetConfigurationSchema(widget=ConditionalCheckboxMapping(inverted_condition=True), title='(Advanced) This is a normal dataset', missing=colander.null, default=True,
+    dataset_configuration = DatasetConfigurationSchema(widget=ConditionalCheckboxMapping(inverted_condition=True), title='(Advanced) This is a normal dataset', missing=colander.null, default=colander.null,
         description="Un-checking this option disables metadata record generation and data ingestion.  Only un-check this if the dataset is an intermediate processing step for other dataset(s).")
 
     sampling = SamplingSchema(
@@ -150,12 +150,12 @@ def __init__(self):
 #            self.add(method)
 #        self.add(InternalMethodSchema())
 
-class Dataset(Base):
-    __tablename__ = 'dataset'
-    id = Column(Integer, primary_key=True, ca_widget=deform.widget.HiddenWidget())
-#    data_source = MethodSelectSchema(title="Method",collapsed=False, collapse_group="dataset", collapse_legend="Dataset",
-#        description="Select the data collection method for this dataset, the methods need to have been setup in the previous workflow step.</br></br>" \
-#                    "<b>Will be developed so that methods created in the 'Methods' workflow step will populate the below dropbox.</b>")
+class Dataset(colander.SequenceSchema):
+#    __tablename__ = 'dataset'
+#    id = Column(Integer, primary_key=True, ca_widget=deform.widget.HiddenWidget())
+    data_source = MethodSelectSchema(title="Method",collapsed=False, collapse_group="dataset", collapse_legend="Dataset",
+        description="Select the data collection method for this dataset, the methods need to have been setup in the previous workflow step.</br></br>" \
+                    "<b>Will be developed so that methods created in the 'Methods' workflow step will populate the below dropbox.</b>")
 
 
     description = Column(String(), ca_widget=deform.widget.TextAreaWidget(),
@@ -169,17 +169,18 @@ class MemoryTmpStore(dict):
     def preview_url(self, uid):
         return None
 
-class DatasetSchema(Base):
-    __tablename__ = 'project_datasets'
+class DatasetSchema(colander.MappingSchema):
+#    __tablename__ = 'project_datasets'
 
-    dataset_id = Column(Integer, ForeignKey('dataset.id'), primary_key=True,  ca_widget=deform.widget.HiddenWidget())
-    project_id = Column(Integer,ForeignKey('project.id'), primary_key=True,  ca_widget=deform.widget.HiddenWidget())
-#    description = Dataset(widget=deform.widget.TextAreaWidget(),
-#            placeholder="Provide a textual description of the dataset being collected.",
-#            description="Provide a dataset specific description that will be appended to the project description in metadata records.")
-
-
-    datasets = relationship('Dataset')
+#    dataset_id = Column(Integer, ForeignKey('dataset.id'), primary_key=True,  ca_widget=deform.widget.HiddenWidget())
+#    project_id = Column(Integer,ForeignKey('project.id'), primary_key=True,  ca_widget=deform.widget.HiddenWidget())
+#    description = Column(Unicode(128), ca_widget=deform.widget.TextAreaWidget(),
+#            ca_placeholder="Provide a textual description of the dataset being collected.",
+#            ca_description="Provide a dataset specific description that will be appended to the project description in metadata records.")
 
 
-#    test = Column(Attachment())
+    #    datasets = relationship(Dataset, ca_widget=deform.widget.SequenceWidget(min_len=1))
+    datasets = Dataset(widget=deform.widget.SequenceWidget(min_len=1))
+
+
+    #    test = Column(Attachment())

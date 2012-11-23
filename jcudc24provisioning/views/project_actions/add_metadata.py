@@ -62,13 +62,13 @@ class AddMetadataView(Workflows):
             appstruct = self.form.validate(controls)
     #            print "appstruct: " + str(appstruct)
         except ValidationFailure, e:
-            return  {"page_title": self.title, 'form': e.render()}
+            return  {"page_title": self.title, 'form': e.render(), "form_only": self.form.use_ajax}
 
         # Process the valid form data, do some work
 #        self.form.buttons = ('Delete/Disable', 'Add metadata', 'View related', 'Add metadata type')
-        return {"page_title": self.title, "form": self.form.render(appstruct)}
+        return {"page_title": self.title, "form": self.form.render(appstruct), "form_only": self.form.use_ajax}
 
     @view_config(renderer="../../templates/form.pt", name="add_metadata")
     def add_metadata_view(self):
-        return {"page_title": self.title, "form": self.form.render()}
+        return {"page_title": self.title, "form": self.form.render(), "form_only": False}
 
