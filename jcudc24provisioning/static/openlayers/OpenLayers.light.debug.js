@@ -34119,7 +34119,7 @@ OpenLayers.Renderer.VML = OpenLayers.Class(OpenLayers.Renderer.Elements, {
      * Property: xmlns
      * {String} XML Namespace URN
      */
-    xmlns: "urn:schemas-microsoft-com:vml",
+    xmlns: "urn:models-microsoft-com:vml",
     
     /**
      * Property: symbolCache

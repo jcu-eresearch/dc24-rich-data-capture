@@ -27868,7 +27868,7 @@ OpenLayers.Format.GML.v2 = OpenLayers.Class(OpenLayers.Format.GML.Base, {
      * Property: schemaLocation
      * {String} Schema location for a particular minor version.
      */
-    schemaLocation: "http://www.opengis.net/gml http://schemas.opengis.net/gml/2.1.2/feature.xsd",
+    schemaLocation: "http://www.opengis.net/gml http://models.opengis.net/gml/2.1.2/feature.xsd",
 
     /**
      * Constructor: OpenLayers.Format.GML.v2
@@ -28822,7 +28822,7 @@ OpenLayers.Format.WFST.v1_0_0 = OpenLayers.Class(
      * {Object} Properties are namespace aliases, values are schema locations.
      */
     schemaLocations: {
-        "wfs": "http://schemas.opengis.net/wfs/1.0.0/WFS-transaction.xsd"
+        "wfs": "http://models.opengis.net/wfs/1.0.0/WFS-transaction.xsd"
     },
 
     /**
@@ -33326,7 +33326,7 @@ OpenLayers.Format.KML = OpenLayers.Class(OpenLayers.Format.XML, {
 
     /**
      * Method: parseExtendedData
-     * Parse ExtendedData from KML. Limited support for schemas/datatypes.
+     * Parse ExtendedData from KML. Limited support for models/datatypes.
      *     See http://code.google.com/apis/kml/documentation/kmlreference.html#extendeddata
      *     for more information on extendeddata.
      */
@@ -33822,7 +33822,7 @@ OpenLayers.Protocol.WFS.v1 = OpenLayers.Class(OpenLayers.Protocol, {
      *     schemaLocation attribute value.  Note that the feature type schema
      *     is required for a strict XML validator (on transactions with an
      *     insert for example), but is *not* required by the WFS specification
-     *     (since the server is supposed to know about feature type schemas).
+     *     (since the server is supposed to know about feature type models).
      */
     schema: null,
 

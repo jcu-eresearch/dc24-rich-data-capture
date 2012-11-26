@@ -1,6 +1,6 @@
 var doc = new OpenLayers.Format.XML().read(
 '<?xml version="1.0" encoding="UTF-8"?>' +
-'<sos:Capabilities version="1.0.0" updateSequence="2005-12-14T10:12:39+01" xsi:schemaLocation="http://www.opengis.net/sos/1.0 http://schemas.opengis.net/sos/1.0.0/sosAll.xsd" xmlns:sos="http://www.opengis.net/sos/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:gml="http://www.opengis.net/gml" xmlns:xlink="http://www.w3.org/1999/xlink">' +
+'<sos:Capabilities version="1.0.0" updateSequence="2005-12-14T10:12:39+01" xsi:schemaLocation="http://www.opengis.net/sos/1.0 http://models.opengis.net/sos/1.0.0/sosAll.xsd" xmlns:sos="http://www.opengis.net/sos/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:gml="http://www.opengis.net/gml" xmlns:xlink="http://www.w3.org/1999/xlink">' +
   '<ows:ServiceIdentification xmlns:ogc="http://www.opengis.net/ogc" xmlns:ows="http://www.opengis.net/ows/1.1" xmlns:om="http://www.opengis.net/om/1.0" xmlns:swe="http://www.opengis.net/swe/1.0">' +
     '<ows:Title>IFGI WeatherSOS (stable)</ows:Title>' +
     '<ows:Abstract>WeatherSOS (stable) at IfGI, Muenster, Germany. For more info: http://ifgipedia.uni-muenster.de/kms/documentation/swsl/sos/</ows:Abstract>' +

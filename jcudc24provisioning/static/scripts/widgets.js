@@ -12,10 +12,10 @@ function toggleCollapse(fieldset, group) {
     var collapsible_item = $(fieldset.parentNode).children('ul').first();
 
     if (collapsible_item.is(':hidden')) {
-        if (group != "None") {
-            $(".collapsible-" + group).find(".collapsible_items").slideUp(speed);
-            $(".collapsible-" + group).find(".collapse_icon").html('+');
-        }
+//        if (group != "None") {
+//            $(".collapsible-" + group).find(".collapsible_items").slideUp(speed);
+//            $(".collapsible-" + group).find(".collapse_icon").html('+');
+//        }
         $(fieldset).children('.collapse_icon')[0].innerHTML = ('-');
         collapsible_item.slideDown(speed);
 //        $(fieldset.parentNode).css("background-color", "transparent");
@@ -27,11 +27,11 @@ function toggleCollapse(fieldset, group) {
 }
 
 function collapseAll(group) {
-    $('.collapsible-'+group).find('.collapsible_items').slideUp(200);
+    $('.collapsible-' + group).find('.collapsible_items').slideUp(200);
 }
 
 function expandAll(group) {
-    $('.collapsible-'+group).find('.collapsible_items').slideDown(200);
+    $('.collapsible-' + group).find('.collapsible_items').slideDown(200);
 }
 
 
@@ -384,14 +384,19 @@ function buttonPressed(node) {
     var second_select = oid_node.children(".second_field")[0];
     var third_select = oid_node.children(".third_field")[0];
 
-    var fields = oid_node.children('ul').first().find("input");
+    var fields = oid_node.children('ul').first().find("p");
     var text = third_select.options[third_select.selectedIndex].value;
-    fields[fields.length - 1].value = text;
+    fields[fields.length - 1].innerHTML = text;
+    fields[fields.length - 1].style.display = "inline";
+    var removeButton = $(fields[fields.length - 1].parentNode).find(".deformClosebutton")[0];
+    var id = oid_node.attr('id');
+    removeButton.setAttribute("onclick","deform.removeSequenceItem(this);" + "showAdd('" + id + "', false);");
+//    removeButton.onclick = removeButton.onclick + "; showAdd(" + oid_node[0].id + ", false); ";
 
     /* Delete duplicates */
     var i = 0;
     for (i; i < fields.length - 1; i++) {
-        if (fields[i].value == text) {
+        if (fields[i].innerHTML == text) {
             deform.removeSequenceItem(fields[i]);
             alert("Not Added: The selected FOR code is a duplicate");
         }
@@ -400,17 +405,22 @@ function buttonPressed(node) {
     /* Reset the FOR field select boxes */
     first_select.selectedIndex = 0;
     second_select.innerHTML = "";
+    second_select.style.display = "none";
     third_select.innerHTML = "";
+    third_select.style.display = "none";
 
     showAdd(oid_node[0].id, false);
 }
 
 function showAdd(oid, show) {
-    oid_node = $('#' + oid);
+    var oid_node = $('#' + oid);
+//    alert(oid_node);
 
     if (show) {
         oid_node.children("button")[0].style.display = "inline";
+//        alert('show');
     } else {
+//        alert('hide');
         oid_node.children("button")[0].style.display = "none";
     }
 }
@@ -426,12 +436,15 @@ function updateSecondFields(oid) {
         var options_class = "second_level_data-" + first_select.options[first_select.selectedIndex].value;
         var second_level_options = document.getElementsByClassName(options_class)[0];
         second_select.innerHTML = second_level_options.innerHTML;
+        second_select.style.display = "inline";
     } else {
         second_select.innerHTML = "";
         first_select.selectedIndex = 0;
+        second_select.style.display = "none";
     }
 
     third_select.innerHTML = "";
+    third_select.style.display = "none";
     /* Make sure that the user can't have an invalid 3rd field selected when the first select is changed */
     showAdd(oid, false);
 }
@@ -447,7 +460,9 @@ function updateThirdFields(oid) {
         var options_class = "third_level_data-" + second_select.options[second_select.selectedIndex].value;
         var third_level_options = document.getElementsByClassName(options_class)[0];
         third_select.innerHTML = third_level_options.innerHTML;
+        third_select.style.display = "inline";
     } else {
         third_select.innerHTML = "";
+        third_select.style.display = "none";
     }
 }

@@ -7,12 +7,12 @@ from beaker.cache import cache_region
 import os
 import colander
 import deform
-from jcudc24provisioning.views.schemas.common_schemas import Person, WebsiteSchema, People, Notes, Attachment, OneOfDict
-from jcudc24provisioning.views.schemas.dataset_schema import CoverageSchema
+from jcudc24provisioning.models.common_schemas import Person, WebsiteSchema, People, Notes, Attachment, OneOfDict
+from jcudc24provisioning.models.dataset_schema import CoverageSchema
 from jcudc24provisioning.views.widgets import SelectWithOtherWidget
 
 __author__ = 'Casey Bajema'
-logger = logging.getLogger("jcu.dc24.provisioning.views.schemas")
+logger = logging.getLogger("jcu.dc24.provisioning.views.models")
 
 class ResearchTheme(colander.MappingSchema):
     ecosystems_conservation_climate = colander.SchemaNode(colander.Boolean(), widget=deform.widget.CheckboxWidget(),
@@ -39,6 +39,8 @@ def research_theme_validator(form, value):
         exc['health_medicine_biosecurity'] = 'At least 1 research theme needs to be selected'
         exc['not_aligned'] = 'Select this if the none above are applicable'
         raise exc
+
+
 
 
 @cache_region('long_term')
@@ -120,12 +122,12 @@ def getSEOCodes():
 
 
 class FieldOfResearchSchema(colander.SequenceSchema):
-    field_of_research = colander.SchemaNode(colander.String(), title="Field Of Research")
+    field_of_research = colander.SchemaNode(colander.String(), title="Field Of Research", widget=deform.widget.TextInputWidget(template="readonly/textinput"))
     field_of_research.data = getFORCodes()
 
 
 class SocioEconomicObjectives(colander.SequenceSchema):
-    socio_economic_objective = colander.SchemaNode(colander.String(), title="Socio-Economic Objective")
+    socio_economic_objective = colander.SchemaNode(colander.String(), title="Socio-Economic Objective", widget=deform.widget.TextInputWidget(template="readonly/textinput"))
     socio_economic_objective.data = getSEOCodes()
 
 
@@ -324,10 +326,10 @@ class AdditionalInformation(colander.MappingSchema):
 class MetadataData(colander.MappingSchema):
 #    test = MintPerson()
 
-    subject = Subject(collapsed=True, collapse_group='metadata')
+    subject = Subject(collapsed=False, collapse_group='metadata')
     coverage = CoverageSchema(collapsed=False, collapse_group='metadata')
-    associations = Associations(collapsed=True, collapse_group='metadata')
-    legal = Legality(title="Legality", collapsed=True, collapse_group='metadata')
-    citation = Citation(description="Provide metadata that should be used for the purposes of citing this record. Sending a citation to RDA is optional, but if you choose to enable this there are quite specific mandatory fields that will be required by RIF-CS.", collapsed=True, collapse_group='metadata')
-    additional_information = AdditionalInformation(collapsed=True, collapse_group='metadata')
+    associations = Associations(collapsed=False, collapse_group='metadata')
+    legal = Legality(title="Legality", collapsed=False, collapse_group='metadata')
+    citation = Citation(description="Provide metadata that should be used for the purposes of citing this record. Sending a citation to RDA is optional, but if you choose to enable this there are quite specific mandatory fields that will be required by RIF-CS.", collapsed=False, collapse_group='metadata')
+    additional_information = AdditionalInformation(collapsed=False, collapse_group='metadata')
 

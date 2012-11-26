@@ -1,7 +1,7 @@
 var doc = new OpenLayers.Format.XML().read(
 '<?xml version="1.0" encoding="UTF-8"?>' +
 '<wps:Capabilities xml:lang="en" service="WPS" version="1.0.0"' +
-'    xsi:schemaLocation="http://www.opengis.net/wps/1.0.0 http://schemas.opengis.net/wps/1.0.0/wpsAll.xsd"' +
+'    xsi:schemaLocation="http://www.opengis.net/wps/1.0.0 http://models.opengis.net/wps/1.0.0/wpsAll.xsd"' +
 '    xmlns:wps="http://www.opengis.net/wps/1.0.0" xmlns:ows="http://www.opengis.net/ows/1.1"' +
 '    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xlink="http://www.w3.org/1999/xlink">' +
 '    <ows:ServiceIdentification>' +

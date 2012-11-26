@@ -5,7 +5,8 @@ from pyramid.renderers import get_renderer
 __author__ = 'Casey Bajema'
 
 WORKFLOW_STEPS = [
-        {'href': 'setup', 'title': 'General'},
+        {'href': 'setup', 'title': 'Project Setup'},
+        {'href': 'description', 'title': 'Description'},
         {'href': 'metadata', 'title': 'Metadata'},
         {'href': 'methods', 'title': 'Methods'},
         {'href': 'datasets', 'title': 'Datasets'},

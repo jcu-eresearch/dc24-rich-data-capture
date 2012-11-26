@@ -5,9 +5,9 @@ from pyramid.response import Response
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.types import Unicode, Integer, Enum
-from jcudc24provisioning.views.schemas.dataset_schema import MethodSelectSchema, DatasetSchema
+from jcudc24provisioning.models.dataset_schema import MethodSelectSchema, DatasetSchema
 from jcudc24provisioning.views.workflow.workflows import Workflows
-from jcudc24provisioning.models import DBSession, MyModel, Base
+from jcudc24provisioning.models.project import DBSession, ProjectSchema, Base
 
 __author__ = 'Casey Bajema'
 
@@ -32,7 +32,7 @@ class DatasetsView(Workflows):
     def __init__(self, request):
         self.request = request
         self.schema = DatasetSchema(description="Add individual datasets that your project will be collecting.  This is the when and where using the selected data collection method (what, why and how).  Such that an iButton sensor that is used to collect temperature at numerous sites would have been setup once within the Methods step and should be set-up in this step for each site it is used at.").bind(request=request)
-        self.form = Form(self.schema, action="datasets", buttons=('Save', 'Delete'), use_ajax=True, ajax_options=self.options)
+        self.form = Form(self.schema, action="datasets", buttons=('Save',), use_ajax=True, ajax_options=self.options)
 
     @view_config(renderer="../../templates/form.pt", name="datasets")
     def datasets_view(self):

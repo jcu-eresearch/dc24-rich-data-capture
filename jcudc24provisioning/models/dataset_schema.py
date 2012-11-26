@@ -4,8 +4,7 @@ from colanderalchemy.declarative import Column, relationship
 import deform
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.types import Enum, Unicode, Integer, String
-from jcudc24provisioning.models import Base
-from jcudc24provisioning.views.schemas.common_schemas import Attachment, SelectMappingSchema, ConditionalCheckboxSchema
+from jcudc24provisioning.models.common_schemas import Attachment, SelectMappingSchema, ConditionalCheckboxSchema
 from jcudc24provisioning.views.widgets import SelectMappingWidget, ConditionalCheckboxMapping
 
 __author__ = 'Casey Bajema'

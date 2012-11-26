@@ -34,18 +34,18 @@
         deform.addCallback(
                 '${field.oid}',
                 function (oid) {
-                    var collapse_span = $("#mapping-" + oid).find(".collapse_icon");
-                    if (collapse_span.length <= 0) {
-                        return;
-                    }
-
-                    var collapsed = collapse_span.html().match(/\-/) == null;
-                    var group = $("#mapping-" + oid)[0].className.split(" ")[1].split("-")[1];
-                    if (collapsed == false && group != "None") {
-                        var group_items = $(".collapsible-" + group + "[id!=mapping-" + oid + "]");
-                        group_items.find(".collapsible_items").slideUp(200);
-                        group_items.find(".collapse_icon").html('+');
-                    }
+//                    var collapse_span = $("#mapping-" + oid).find(".collapse_icon");
+//                    if (collapse_span.length <= 0) {
+//                        return;
+//                    }
+//
+//                    var collapsed = collapse_span.html().match(/\-/) == null;
+//                    var group = $("#mapping-" + oid)[0].className.split(" ")[1].split("-")[1];
+//                    if (collapsed == false && group != "None") {
+//                        var group_items = $(".collapsible-" + group + "[id!=mapping-" + oid + "]");
+//                        group_items.find(".collapsible_items").slideUp(200);
+//                        group_items.find(".collapse_icon").html('+');
+//                    }
                 });
     </script>
 </fieldset>

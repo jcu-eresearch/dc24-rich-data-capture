@@ -1,6 +1,6 @@
 from pkg_resources import declare_namespace
-from jcudc24provisioning.models import DBSession
 from sqlalchemy.engine import engine_from_config
+from models.project import DBSession
 
 __author__ = 'Casey Bajema'
 declare_namespace('jcudc24provisioning')
@@ -19,7 +19,7 @@ def main(global_config, **settings):
     DBSession.configure(bind=engine)
 
     deform_templates = resource_filename('deform', 'templates')
-    search_path = (resource_filename('jcudc24provisioning', 'templates\widgets'), deform_templates)
+    search_path = (resource_filename('jcudc24provisioning', 'templates\widgets'),resource_filename('jcudc24provisioning', 'templates\widgets\readonly'), deform_templates)
     Form.set_zpt_renderer(search_path)
 
     set_cache_regions_from_settings(settings)

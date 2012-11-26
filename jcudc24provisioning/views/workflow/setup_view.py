@@ -2,19 +2,37 @@ from collections import OrderedDict
 import colander
 from colanderalchemy.types import SQLAlchemyMapping
 from pyramid.response import Response
-from jcudc24provisioning.views.schemas.setup_schema import SetupSchema
+from jcudc24provisioning.models.setup_schema import SetupSchema
 from deform.exception import ValidationFailure
 from deform.form import Form
 from pyramid.view import view_config
 from jcudc24provisioning.views.workflow.workflows import Workflows
+from models.project import ProjectSchema
 
 __author__ = 'Casey Bajema'
 
-def convert_schema(schema):
+def convert_schema(schema, **kw):
+    schema.title = ''
+
+    if kw.has_key('page'):
+        schema = remove_nodes_not_on_page(schema, kw.pop('page'))
+
     schema = group_nodes(schema)
-    schema = ungroup_nodes(schema)
 
     return schema
+
+def remove_nodes_not_on_page(schema, page):
+    children_to_remove = []
+
+    for child in schema.children:
+        if hasattr(child, 'page') and child.page != page:
+            children_to_remove.append(child)
+
+    for child in children_to_remove:
+        schema.children.remove(child)
+
+    return schema
+
 
 def group_nodes(node):
     mappings = OrderedDict()
@@ -24,17 +42,24 @@ def group_nodes(node):
         print "child: " + str(child.name)
 
         if hasattr(child, "group_start"):
-            print "Start group: " + str(child.group_start)
-            groups.append(child.group_start)
-            mappings[child.group_start] = colander.MappingSchema(name=child.group_start,
-                description=getattr(child, 'group_description', colander.null),
-                collapsed=getattr(child, 'group_collapsed', False), collapse_group=child.group_start)
+            group = child.__dict__.pop("group_start")
+            group_params = {}
+
+            for param in child.__dict__.copy():
+                if param[:6] == 'group_':
+                    group_params[param[6:]] = child.__dict__.pop(param)
+
+            group = child.__dict__["group_start"] = group # Need to re-add the group_start attribute for the logic below.
+
+            groups.append(group)
+            mappings[group] = colander.MappingSchema(name=group, collapse_group=group,
+                **group_params)
 
             if len(groups) > 1:
                 parent_group = groups[groups.index(child.group_start) - 1]
                 mappings[parent_group].children.append(mappings[child.group_start])
             else:
-                node.children.insert(node.children.index(child), mappings[child.group_start])
+                node.children.insert(node.children.index(child), mappings[group])
 
         if isinstance(child, colander.MappingSchema):
             child = group_nodes(child)
@@ -43,7 +68,7 @@ def group_nodes(node):
             print "Move child to group: " + str(child.name) + " group: " + str(groups[len(groups) - 1])
 
             # If the child is replaced by a mapping schema, delete it now - otherwise delete it later
-            # This is to prevent the schemas children from changing while they are being iterated over.
+            # This is to prevent the models children from changing while they are being iterated over.
             if hasattr(child, 'group_start'):
                 node.children.remove(child)
             else:
@@ -79,7 +104,7 @@ def ungroup_nodes(node):
             node.children.insert(index, child.children[0])
             print "insert child: " + str(child.children[0].name)
 
-            children_to_add[index] = child.children
+            children_to_add[index] = child.children[1:]
             print children_to_add
 
     print children_to_add.items()
@@ -98,13 +123,9 @@ class SetupViews(Workflows):
 
     def __init__(self, request):
         self.request = request
-        self.schema = convert_schema(SQLAlchemyMapping(SetupSchema, unknown='raise',
-            ca_description="Fully describe this project and the key people responsible for the project:"\
-                           "<ul><li>The entered title and description will be used for metadata record generation, provide detailed information that is relevant to the project as a whole and all datasets.</li>"\
-                           "<li>Focus on what is being researched, why it is being researched and who is doing the research. The research locations and how the research is being conducted will be covered in the <i>Methods</i> and <i>Datasets</i> steps</li></ul>")).bind(
-            request=request)
+        self.schema = convert_schema(SQLAlchemyMapping(ProjectSchema, unknown='raise', ca_description=""), page='setup').bind(request=request)
 
-        self.form = Form(self.schema, action="submit_setup", buttons=('Save', 'Delete'), use_ajax=False)
+        self.form = Form(self.schema, action="setup", buttons=('Save',), use_ajax=False)
 
     @view_config(renderer="../../templates/form.pt", name="setup")
     def submit(self):

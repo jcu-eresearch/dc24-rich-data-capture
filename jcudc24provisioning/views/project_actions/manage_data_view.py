@@ -1,7 +1,7 @@
 import colander
 import deform
 from jcudc24provisioning.views.project_actions.add_metadata import AddMetadataView
-from jcudc24provisioning.views.schemas.common_schemas import Attachment
+from jcudc24provisioning.models.common_schemas import Attachment
 from jcudc24provisioning.views.workflow.workflows import Workflows
 from pyramid.response import Response
 
@@ -58,7 +58,7 @@ class DatasetsView(Workflows):
 
     def __init__(self, request):
         self.request = request
-        self.schema = ManageDataSchema(description="Attach metadata to data already added, such as quality information or notes.  The intent of adding metadata to persistent storage is post markup information about the data, not as actual data itself.<br/><br/><b>TODO: Generate form on the fly based off the schemas</b>").bind(request=request)
+        self.schema = ManageDataSchema(description="Attach metadata to data already added, such as quality information or notes.  The intent of adding metadata to persistent storage is post markup information about the data, not as actual data itself.<br/><br/><b>TODO: Generate form on the fly based off the models</b>").bind(request=request)
         self.form = Form(self.schema, action="submit_manage_data", buttons=('Search',), use_ajax=False)
 
     @view_config(renderer="../../templates/form.pt", name="submit_manage_data")   # Use ../../templates/submit.pt for AJAX - File upload doesn't work due to jquery/deform limitations
@@ -77,7 +77,7 @@ class DatasetsView(Workflows):
 
         # Process the valid form data, do some work
 #        self.form.buttons = ('Delete/Disable', 'Add metadata', 'View related', 'Add metadata type')
-        self.schema = ManageDataResultsSchema(description="Attach metadata to data already added, such as quality information or notes.  The intent of adding metadata to persistent storage is post markup information about the data, not as actual data itself.<br/><br/><b>TODO: Generate form on the fly based off the schemas</b>").bind(request=self.request)
+        self.schema = ManageDataResultsSchema(description="Attach metadata to data already added, such as quality information or notes.  The intent of adding metadata to persistent storage is post markup information about the data, not as actual data itself.<br/><br/><b>TODO: Generate form on the fly based off the models</b>").bind(request=self.request)
         self.form = Form(self.schema, action="submit_manage_data", buttons=('Delete/Disable', 'Add metadata', 'View everything related'), use_ajax=False)
         return {"page_title": self.title, "form": self.form.render(appstruct), "form_only": self.form.use_ajax}
 

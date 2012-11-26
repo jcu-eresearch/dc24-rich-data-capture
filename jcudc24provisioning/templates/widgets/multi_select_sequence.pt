@@ -5,7 +5,7 @@
     This template is based directly off the sequence.pt (after modifications - see the modified sequence.pt for details)
 -->
 
-<div class="deformSeq"
+<div class="deformSeq multi_select_sequence"
      id="${field.oid}"
      tal:define="rndr field.renderer;
                  item_tmpl field.widget.item_template;
@@ -15,6 +15,24 @@
                  prototype field.widget.prototype(field)">
 
     <!-- sequence -->
+    <select class="first_field half_width">
+        <option tal:repeat="(key) field.schema.__dict__['children'][0].data"
+                tal:attributes="selected key == cstruct and 'selected';
+                                 class field.widget.css_class"
+                value="${key}">${key}
+        </option>
+    </select>
+    <br/>
+    <select class="second_field half_width"></select>
+    <br/>
+    <select class="third_field half_width"></select>
+
+    <button type="button"
+            class="deformSeqAdd"
+            id="${field.oid}-seqAdd"
+            onclick="deform.appendSequenceItem(this); buttonPressed(this);">
+        <small id="${field.oid}-addtext">${add_subitem_text}</small>
+    </button>
 
     <input type="hidden" name="__start__" value="${field.name}:sequence"
            class="deformProto"
@@ -33,19 +51,6 @@
 
     </ul>
 
-    <hr/>
-
-    <select class="first_field half_width">
-        <option tal:repeat="(key) field.schema.__dict__['children'][0].data"
-                tal:attributes="selected key == cstruct and 'selected';
-                         class field.widget.css_class"
-                value="${key}">${key}
-        </option>
-    </select>
-    <br/>
-    <select class="second_field half_width"></select>
-    <br/>
-    <select class="third_field half_width"></select>
 
     <div id="second_level_data" class="hidden">
             <span tal:repeat="(key, values) field.schema.__dict__['children'][0].data.items()"
@@ -71,32 +76,26 @@
     </div>
 
 
-    <button type="button"
-            class="deformSeqAdd"
-            id="${field.oid}-seqAdd"
-            onclick="deform.appendSequenceItem(this); buttonPressed(this);">
-        <small id="${field.oid}-addtext">${add_subitem_text}</small>
-    </button>
     <script type="text/javascript">
-        deform.addCallback(
-                        '${field.oid}',
-                        function (oid) {
-                            oid_node = $('#' + oid);
-                            deform.processSequenceButtons(oid_node, ${min_len},
-                                    ${max_len}, ${now_len});
-                        }
-                )
-
         deform.addCallback(
                 '${field.oid}',
                 function (oid) {
                     oid_node = $('#' + oid);
+                    deform.processSequenceButtons(oid_node, ${min_len},
+                            ${max_len}, ${now_len});
+                }
+        )
+
+        deform.addCallback(
+                '${field.oid}',
+                function (oid) {
+                    var oid_node = $('#' + oid);
 
                     showAdd(oid, false);
 
-                    var first_select = oid_node.children(".first_field")[0];
-                    var second_select = oid_node.children(".second_field")[0];
-                    var third_select = oid_node.children(".third_field")[0];
+                    var first_select = oid_node.find(".first_field")[0];
+                    var second_select = oid_node.find(".second_field")[0];
+                    var third_select = oid_node.find(".third_field")[0];
 
                     first_select.onchange = function () {
                         updateSecondFields(oid);

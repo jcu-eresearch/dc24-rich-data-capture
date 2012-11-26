@@ -5,7 +5,7 @@ from deform.form import Form
 from pyramid.response import Response
 from pyramid.view import view_config
 from jcudc24provisioning.views.workflow.workflows import Workflows
-from jcudc24provisioning.views.schemas.method_schema import MethodsSchema
+from jcudc24provisioning.models.method_schema import MethodsSchema
 
 __author__ = 'Casey Bajema'
 
@@ -17,7 +17,7 @@ class MethodsView(Workflows):
         self.request = request
         self.schema = MethodsSchema(
             description="Setup methods the project uses for collecting data (not individual datasets themselves as they will be setup in the next step).  Such that a type of sensor that is used to collect temperature at numerous sites would be setup <ol><li>Once within this step as a data method</li><li>As well as for each site it is used at in the next step</li></ol>This means you don't have to enter duplicate data!").bind(request=request)
-        self.form = Form(self.schema, action="submit_methods", buttons=('Save', 'Delete'), use_ajax=False)
+        self.form = Form(self.schema, action="submit_methods", buttons=('Save',), use_ajax=False)
 
 
     @view_config(renderer="../../templates/form.pt", name="methods")

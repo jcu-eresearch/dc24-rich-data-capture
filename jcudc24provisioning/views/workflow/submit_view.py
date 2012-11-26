@@ -1,6 +1,6 @@
 from jcudc24provisioning.views.workflow.workflows import Workflows
 from deform.form import Form
-from jcudc24provisioning.views.schemas.submit_schema import submit_schema
+from jcudc24provisioning.models.submit_schema import submit_schema
 from pyramid.response import Response
 
 __author__ = 'Casey Bajema'

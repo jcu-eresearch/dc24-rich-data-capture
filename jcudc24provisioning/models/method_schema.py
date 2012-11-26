@@ -1,6 +1,6 @@
 import colander
 import deform
-from jcudc24provisioning.views.schemas.common_schemas import WebsiteSchema, Attachment, OneOfDict
+from jcudc24provisioning.models.common_schemas import WebsiteSchema, Attachment, OneOfDict
 
 __author__ = 'Casey Bajema'
 

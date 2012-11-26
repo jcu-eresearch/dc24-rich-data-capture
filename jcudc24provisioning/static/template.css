@@ -28,7 +28,7 @@ p, h1, h2, h3, h4, div, li, a {
 
 #inner_wrapper {
     text-align: left;
-    background-color: #fff;
+    background-color: #f8f8f8;
 }
 
 #header {
@@ -81,13 +81,12 @@ p, h1, h2, h3, h4, div, li, a {
     float: left;
     width: 165px;
     position: relative;
-    background-color: #ffffff;
+    /*background-color: #ffffff;*/
     padding: 20px;
     margin: 5px;
     margin-top: 25px;
     margin-right: 0px;
     padding-top: 10px;
-    border-right: 1px solid #e8e8e8;
 
     /*-webkit-border-radius: 5px;*/
     /*-moz-border-radius: 5px;*/
@@ -114,9 +113,9 @@ p, h1, h2, h3, h4, div, li, a {
 }
 
 #sidebar ul li a:hover {
-    padding: 0px;
-    padding-left: 5px;
-    font-size: 1.2em;
+    /*padding: 0px;*/
+    /*padding-left: 5px;*/
+    /*font-size: 1.2em;*/
 }
 
 #sidebar ul {
@@ -208,6 +207,21 @@ div#main {
     clear: both;
 }
 
+.deform fieldset, .deform fieldset:hover {
+    border: 0px solid red;
+    padding: 0px;
+    margin: 0px;
+}
+
+.deform legend {
+    font-size: 1.1em;
+    padding-left: 0px;
+}
+
+.deform label {
+    font-size: 0.8em;
+}
+
 .inline_mapping li {
     padding: 0px;
     margin: 0px 5px;
@@ -255,6 +269,10 @@ div#footer {
     float: right;
 }
 
+input[type=text], textarea {
+    padding: 0.5em;
+}
+
 textarea {
     width: 98%;
 }
@@ -272,33 +290,34 @@ input[type=text], input[type=text].half_width {
 }
 
 .description.first {
-    background: #fff;
+    /*background: #fff;*/
     padding: 7px 10px;
-    border: 1px solid #00AEEF;
-    box-shadow: #00AEEF 0px 0px 1px;
+    /*border: 1px solid #00AEEF;*/
+    /*box-shadow: #00AEEF 0px 0px 1px;*/
 }
 
 .description:hover, .inline_mapping li.description:hover {
-    box-shadow: #ccc 0px 0px 4px;
+    /*box-shadow: #ccc 0px 0px 4px;*/
 }
 
 .description.first:hover {
-    box-shadow: #00AEEF 0px 0px 3px;
+    /*box-shadow: #00AEEF 0px 0px 3px;*/
 }
 
 .description, .inline_mapping li.description {
-    box-shadow: #ccc 0px 0px 1px;
+    /*box-shadow: #ccc 0px 0px 1px;*/
+    margin-bottom: 8px;
     margin-bottom: 8px;
     margin-top: 5px;
     padding: 7px 10px;
-    border: 1px solid #bfbfbf;
+    /*border: 1px solid #bfbfbf;*/
 
-    -webkit-border-radius: 3px;
-    -moz-border-radius: 3px;
-    border-radius: 3px;
-    . rounded-corners {
-        behavior : url( /css/border-radius.htc );
-    }
+    /*-webkit-border-radius: 3px;*/
+    /*-moz-border-radius: 3px;*/
+    /*border-radius: 3px;*/
+    /*. rounded-corners {*/
+        /*behavior : url( /css/border-radius.htc );*/
+    /*}*/
 }
 
 .description ul {
@@ -366,4 +385,20 @@ span.collapse_icon {
     cursor: pointer;
     color: blue;
     text-decoration: underline;
+}
+
+
+.multi_select_sequence .select_fields {
+    height: 70px;
+    display: block;
+}
+
+.multi_select_sequence .second_field {
+    margin-left: 20px;
+    display: none;
+}
+
+.multi_select_sequence .third_field {
+    margin-left: 40px;
+    display: none;
 }
