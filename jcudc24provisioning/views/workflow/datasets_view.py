@@ -7,7 +7,6 @@ from sqlalchemy.schema import ForeignKey
 from sqlalchemy.types import Unicode, Integer, Enum
 from jcudc24provisioning.models.dataset_schema import MethodSelectSchema, DatasetSchema
 from jcudc24provisioning.views.workflow.workflows import Workflows
-from jcudc24provisioning.models.project import DBSession, ProjectSchema, Base
 
 __author__ = 'Casey Bajema'
 

@@ -1,24 +1,12 @@
+from jcudc24provisioning.models import Base
 from colanderalchemy.declarative import Column
 import deform
 from sqlalchemy import (
     Integer,
     Text,
     )
-
-from sqlalchemy.ext.declarative import declarative_base
-
-from sqlalchemy.orm import (
-    scoped_session,
-    sessionmaker,
-    )
 from sqlalchemy.types import BLOB, String
 
-from zope.sqlalchemy import ZopeTransactionExtension
-from models.description_schema import DescriptionSchema
-from models.setup_schema import SetupSchema
-
-DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
-Base = declarative_base()
 
 choices = ['JCU Name 1', 'JCU Name 2', 'JCU Name 3', 'JCU Name 4']
 
@@ -52,3 +40,6 @@ class ProjectSchema(Base):
         ca_description="<p>Full length description of the research project which will also be used for the metadata records.  This should include:</p>"\
                     "<ul><li>Information about the research dataset/collection, registry/repository, catalogue or index, including its characteristics and features, eg. This dataset contains observational data, calibration files and catalogue information collected from the Mount Stromlo Observatory Facility.</li>"\
                     "<li>If applicable: the scope; details of entities being studied or recorded; methodologies used.</li></ul>")
+
+
+    #---------------------metadata---------------------

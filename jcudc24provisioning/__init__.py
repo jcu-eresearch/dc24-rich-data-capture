@@ -1,6 +1,6 @@
 from pkg_resources import declare_namespace
 from sqlalchemy.engine import engine_from_config
-from models.project import DBSession
+from models import DBSession
 
 __author__ = 'Casey Bajema'
 declare_namespace('jcudc24provisioning')

@@ -12,11 +12,12 @@
                  min_len field.widget.min_len or 0;
                  max_len field.widget.max_len or 100000;
                  now_len len(subfields);
-                 prototype field.widget.prototype(field)">
+                 prototype field.widget.prototype(field);
+                 data field.schema.__dict__['children'][0].children[2].data">
 
     <!-- sequence -->
     <select class="first_field half_width">
-        <option tal:repeat="(key) field.schema.__dict__['children'][0].data"
+        <option tal:repeat="(key) data"
                 tal:attributes="selected key == cstruct and 'selected';
                                  class field.widget.css_class"
                 value="${key}">${key}
@@ -53,7 +54,7 @@
 
 
     <div id="second_level_data" class="hidden">
-            <span tal:repeat="(key, values) field.schema.__dict__['children'][0].data.items()"
+            <span tal:repeat="(key, values) data.items()"
                   tal:attributes="class 'second_level_data-'+key">
                 <option tal:repeat="(second_key) values"
                         tal:attributes="selected second_key == cstruct and 'selected';
@@ -63,7 +64,7 @@
             </span>
     </div>
     <div id="third_level_data" class="hidden">
-            <span tal:repeat="(key, values) field.schema.__dict__['children'][0].data.items()">
+            <span tal:repeat="(key, values) data.items()">
                 <span tal:repeat="(second_key, second_values) values.items()"
                       tal:attributes="class 'third_level_data-'+second_key">
                     <option tal:repeat="(third_key) second_values"

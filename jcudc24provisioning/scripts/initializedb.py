@@ -9,9 +9,8 @@ from pyramid.paster import (
     setup_logging,
     )
 
-from ..models.project import (
+from models import (
     DBSession,
-    ProjectSchema,
     Base,
     )
 

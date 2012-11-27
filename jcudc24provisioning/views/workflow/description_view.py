@@ -5,7 +5,7 @@ from deform.form import Form
 from pyramid.view import view_config
 from jcudc24provisioning.views.workflow.workflows import Workflows
 from jcudc24provisioning.views.workflow.setup_view import convert_schema
-from models.project import ProjectSchema
+from jcudc24provisioning.models.project import ProjectSchema
 
 __author__ = 'Casey Bajema'
 

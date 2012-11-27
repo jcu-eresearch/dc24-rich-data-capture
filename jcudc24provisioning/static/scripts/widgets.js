@@ -379,17 +379,18 @@ function processJavascript(parentElement) {
 //--------------multi_select_sequence.pt----------------------------------------------
 function buttonPressed(node) {
     var oid_node = $(node).parent();
+    var id = oid_node.attr('id');
 
     var first_select = oid_node.children(".first_field")[0];
     var second_select = oid_node.children(".second_field")[0];
     var third_select = oid_node.children(".third_field")[0];
 
     var fields = oid_node.children('ul').first().find("p");
+
     var text = third_select.options[third_select.selectedIndex].value;
     fields[fields.length - 1].innerHTML = text;
     fields[fields.length - 1].style.display = "inline";
-    var removeButton = $(fields[fields.length - 1].parentNode).find(".deformClosebutton")[0];
-    var id = oid_node.attr('id');
+    var removeButton = $(fields[fields.length - 1]).parents('[id^="sequence"]').find(".deformClosebutton")[0];
     removeButton.setAttribute("onclick","deform.removeSequenceItem(this);" + "showAdd('" + id + "', false);");
 //    removeButton.onclick = removeButton.onclick + "; showAdd(" + oid_node[0].id + ", false); ";
 
@@ -401,7 +402,6 @@ function buttonPressed(node) {
             alert("Not Added: The selected FOR code is a duplicate");
         }
     }
-
     /* Reset the FOR field select boxes */
     first_select.selectedIndex = 0;
     second_select.innerHTML = "";

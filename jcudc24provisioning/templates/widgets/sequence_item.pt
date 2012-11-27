@@ -1,6 +1,6 @@
 <li tal:attributes="class field.error and field.widget.error_class"
     tal:omit-tag="field.widget.hidden"
-    id="sequence-{oid}"
+    id="sequence-${field.oid}"
     title="${field.schema.__dict__.get('placeholder')}" i18n:domain="deform">
   <!-- sequence_item -->
 
