@@ -15,8 +15,8 @@ def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
 
-    engine = engine_from_config(settings, 'sqlalchemy.')
-    DBSession.configure(bind=engine)
+#    engine = engine_from_config(settings, 'sqlalchemy.')
+#    DBSession.configure(bind=engine)
 
     deform_templates = resource_filename('deform', 'templates')
     search_path = (resource_filename('jcudc24provisioning', 'templates\widgets'),resource_filename('jcudc24provisioning', 'templates\widgets\readonly'), deform_templates)

@@ -9,7 +9,7 @@ from pyramid.paster import (
     setup_logging,
     )
 
-from models import (
+from jcudc24provisioning.models import (
     DBSession,
     Base,
     )

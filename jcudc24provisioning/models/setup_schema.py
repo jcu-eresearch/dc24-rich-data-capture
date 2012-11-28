@@ -1,7 +1,6 @@
 from sqlalchemy.types import String
 from colanderalchemy.declarative import Column
 import deform
-from models import Base
 
 __author__ = 'Casey Bajema'
 

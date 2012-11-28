@@ -5,7 +5,7 @@ from jcudc24provisioning.views.workflow.workflows import Workflows
 from deform.exception import ValidationFailure
 from deform.form import Form
 from pyramid.view import view_config
-from views.scripts import convert_schema
+from jcudc24provisioning.views.scripts import convert_schema
 
 __author__ = 'Casey Bajema'
 

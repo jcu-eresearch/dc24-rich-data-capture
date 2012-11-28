@@ -1,7 +1,7 @@
 
 from collections import OrderedDict
 import colander
-from models import Base
+from jcudc24provisioning.models import Base
 
 __author__ = 'Casey Bajema'
 

@@ -1,21 +1,14 @@
-import ConfigParser
 from collections import OrderedDict
-from ctypes.wintypes import BOOL
-import json
 import logging
-import urllib2
-from deform.schema import FileData
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.types import Integer, String, Enum, Boolean, Date
 from beaker.cache import cache_region
 from colanderalchemy.declarative import Column, relationship
-from models import Base, GroupBase
-from models.common_schemas import upload_widget
-import os
+from jcudc24provisioning.models import Base
+from jcudc24provisioning.models.common_schemas import upload_widget
 import colander
 import deform
-from jcudc24provisioning.models.common_schemas import Person, WebsiteSchema, People, Notes, Attachment, OneOfDict
-from jcudc24provisioning.views.widgets import SelectWithOtherWidget
+from jcudc24provisioning.models.common_schemas import Person, WebsiteSchema, People, OneOfDict
 
 __author__ = 'Casey Bajema'
 logger = logging.getLogger("jcu.dc24.provisioning.views.models")
@@ -55,7 +48,7 @@ def getFORCodes():
 
     for_codes_file = open(FOR_CODES_FILE).read()
     data = OrderedDict()
-    data['---Select One---'] = dict()
+    data['---Select One---'] = OrderedDict()
 
     item1 = ""
     item2 = ""
@@ -83,7 +76,7 @@ def getFORCodes():
         else:
             item1 = num[0:2] + " " + name
             data[item1] = OrderedDict()
-            data[item1]['---Select One---'] = dict()
+            data[item1]['---Select One---'] = OrderedDict()
 
     return data
 
@@ -94,7 +87,7 @@ def getSEOCodes():
 
     seo_codes_file = open(SEO_CODES_FILE).read()
     data = OrderedDict()
-    data['---Select One---'] = dict()
+    data['---Select One---'] = OrderedDict()
 
     item1 = ""
     item2 = ""
@@ -122,7 +115,7 @@ def getSEOCodes():
         else:
             item1 = num[0:2] + " " + name
             data[item1] = OrderedDict()
-            data[item1]['---Select One---'] = dict()
+            data[item1]['---Select One---'] = OrderedDict()
 
     return data
 
