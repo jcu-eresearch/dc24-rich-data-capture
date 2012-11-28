@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import logging
+from sqlalchemy.ext.declarative import _declarative_constructor, DeclarativeMeta
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.types import Integer, String, Enum, Boolean, Date
 from beaker.cache import cache_region
@@ -308,6 +309,8 @@ class Attachment(Base):
             [attachment_types[0][0], attachment_types[1][0], attachment_types[2][0]]),
         ca_title="Attachment type", ca_css_class="inline")
     attachment = Column(String(),  ca_widget=upload_widget)
+#    ca_params={'widget' : deform.widget.HiddenWidget()}
+
 
 
 class MintPerson(colander.MappingSchema):
@@ -423,7 +426,7 @@ class MetadataData(Base):
 
     #-------------coverage--------------------
     time_period_description = Column(String(), ca_order=9, ca_title="Time Period (description)",
-        ca_group_start="coverage", ca_collapsed=False,
+        ca_group_start="coverage", ca_group_collapsed=False,
         ca_placeholder="A textual description of the time period (eg. Summers of 1996 to 2006)", ca_missing="",
         ca_description="Provide a textual representation of the time period such as world war 2 or more information on the time within the dates provided.")
     date_from = Column(Date(), ca_order=10, ca_placeholder="", ca_title="Date From",
@@ -434,6 +437,7 @@ class MetadataData(Base):
         ca_description="Textual description of the location such as Australian Wet Tropics or further information such as elevation."
         , ca_missing="", ca_placeholder="eg. Australian Wet Tropics, Great Barrier Reef, 1m above ground level")
     coverage_map = relationship('Location', ca_order=13, ca_title="Location Map", ca_widget=deform.widget.SequenceWidget(template='map_sequence'),
+        ca_group_end="coverage",
         ca_missing=colander.null, ca_description=
         "<p>Geospatial location relevant to the research dataset/collection, registry/repository, catalogue or index. This may describe a geographical area where data was collected, a place which is the subject of a collection, or a location which is the focus of an activity, eg. coordinates or placename.</p>"\
         "<p>You may use the map to select an area, or manually enter a correctly formatted set of coordinates or a value supported by a standard such as a country code, a URL pointing to an XML based description of spatial coverage or free text describing a location."\

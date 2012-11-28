@@ -1,6 +1,7 @@
 
 from collections import OrderedDict
 import colander
+import deform
 from jcudc24provisioning.models import Base
 
 __author__ = 'Casey Bajema'
@@ -27,9 +28,10 @@ __author__ = 'Casey Bajema'
 def convert_schema(schema, **kw):
     schema.title = ''
 
-    print schema.children
     if kw.has_key('page'):
         schema = remove_nodes_not_on_page(schema, kw.pop('page'))
+
+    schema = fix_sequence_schemas(schema)
 
     schema = group_nodes(schema)
 
@@ -47,6 +49,28 @@ def remove_nodes_not_on_page(schema, page):
 
     return schema
 
+def fix_sequence_schemas(schema):
+    for child in schema.children:
+            if isinstance(child.typ, colander.Sequence):
+                only_one_displayed = True
+                displayed_child = None
+
+                for sub_child in child.children[0].children:
+                    if sub_child.name == 'ca_params' and isinstance(sub_child, dict):
+                        sub_child.__dict__.update()
+
+                    if not isinstance(sub_child.widget, deform.widget.HiddenWidget):
+                        if displayed_child:
+                            only_one_displayed = False
+                            continue
+
+                        displayed_child = sub_child
+
+                if only_one_displayed and displayed_child:
+                    child.children[0].widget = deform.widget.MappingWidget(template="ca_sequence_mapping", item_template="ca_sequence_mapping_item")
+
+
+    return schema
 
 def group_nodes(node):
     mappings = OrderedDict()
