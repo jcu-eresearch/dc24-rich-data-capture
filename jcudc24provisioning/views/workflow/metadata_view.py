@@ -20,13 +20,13 @@ class MetadataView(Workflows):
                                                                                                      "<li>Once the project has been submitted and accepted the metadata records will be generated and exported, any further alterations will need to be entered for each record in ReDBox-Mint</li>"\
                                                                                                      "<li>If specific datasets require additional metadata that cannot be entered through these forms, you can enter it directly in the ReDBox-Mint records once the project is submitted and accepted (Look under <i>[to be worked out]</i> for a link)</li>"\
                                                                                                      "</ul>"), page='metadata').bind(request=request)
-        print self.schema.children
-        print self.schema.children[0].children
-        print self.schema.children[0].children[1]
-        print self.schema.children[0].children[1].children[0]
-        print self.schema.children[0].children[1].children[0].children
-        print self.schema.children[0].children[1].children[0].children[2]
-        print self.schema.children[0].children[1].children[0].children[2].__dict__
+#        print self.schema.children
+#        print self.schema.children[0].children
+#        print self.schema.children[0].children[1]
+#        print self.schema.children[0].children[1].children[0]
+#        print self.schema.children[0].children[1].children[0].children
+#        print self.schema.children[0].children[1].children[0].children[2]
+#        print self.schema.children[0].children[1].children[0].children[2].__dict__
         self.form = Form(self.schema, action="metadata", buttons=('Save',), use_ajax=False)
 
     @view_config(renderer="../../templates/form.pt", name="metadata")

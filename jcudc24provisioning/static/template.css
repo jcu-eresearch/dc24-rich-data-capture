@@ -269,7 +269,7 @@ div#footer {
     float: right;
 }
 
-input[type=text], textarea {
+input[type=text], input, textarea, select {
     padding: 0.5em;
 }
 
