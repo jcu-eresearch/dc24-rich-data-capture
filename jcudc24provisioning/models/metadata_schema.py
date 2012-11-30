@@ -138,20 +138,36 @@ class SocioEconomicObjective(Base):
     socio_economic_objective = Column(String(), ca_title="Socio-Economic Objective", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
     ca_data=getSEOCodes())
 
-class Party(colander.MappingSchema):
-    relationship_types = (
+class Person(Base):
+    __tablename__ = 'person'
+    id = Column(Integer, ForeignKey('person.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+
+    title = Column(String(), ca_title="Title", ca_placeholder="eg. Mr, Mrs, Dr",)
+    given_name = Column(String(), ca_title="Given name")
+    family_name = Column(String(), ca_title="Family name")
+    email = Column(String(), ca_missing="", ca_validator=colander.Email())
+
+relationship_types = (
         (None, "---Select One---"), ("owner", "Owned by"), ("manager", "Managed by"), ("associated", "Associated with"),
         ("aggregated", "Aggregated by")
         , ("enriched", "Enriched by"))
-    relationship = colander.SchemaNode(colander.String(), title="This project is",
-        widget=deform.widget.SelectWidget(values=relationship_types),
-        validator=OneOfDict(relationship_types[1:]))
-    person = Person(title="")
+class Party(Base):
+    __tablename__ = 'party'
+    person_id = Column(Integer, ForeignKey('person.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('test.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
 
+    party_relationship = Column(Enum(relationship_types), ca_order=2, ca_title="This project is",
+        ca_widget=deform.widget.SelectWidget(values=relationship_types),
+        ca_validator=OneOfDict(relationship_types[1:]))
 
-class PartySchema(colander.SequenceSchema):
-    party = Party(title="Person")
+    person = relationship('Person', ca_order=3, uselist=False)
 
+class Creator(Base):
+    __tablename__ = 'creator'
+    person_id = Column(Integer, ForeignKey('person.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('test.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+
+    person = relationship('Person', uselist=False)
 
 class Keyword(Base):
     __tablename__ = 'keyword'
@@ -161,47 +177,56 @@ class Keyword(Base):
     keyword = Column(String(), )
 
 
-class CollaboratorSchema(colander.SequenceSchema):
-    collaborator = colander.SchemaNode(colander.String(), title="Collaborator",
-        placeholder="eg. CSIRO, University of X, Prof. Jim Bloggs, etc.")
+class Collaborator(Base):
+    __tablename__ = 'collaborator'
+    id = Column(Integer, ForeignKey('person.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('test.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+
+    collaborator = Column(String(), ca_title="Collaborator",
+        ca_placeholder="eg. CSIRO, University of X, Prof. Jim Bloggs, etc.")
 
 
 class Associations(colander.MappingSchema):
-    parties = PartySchema(title="People", widget=deform.widget.SequenceWidget(min_len=1), missing="",
-        description="Enter the details of associated people as described by the dropdown box.")
-    collaborators = CollaboratorSchema(
-        description="Names of other collaborators in the research project where applicable, this may be a person or organisation/group of some type."
-        , missing="")
-    related_publications = WebsiteSchema(title="Related Publications",
-        description="Include URL/s to any publications underpinning the research dataset/collection, registry/repository, catalogue or index.")
-    related_websites = WebsiteSchema(title="Related Websites", description="Include URL/s for the relevant website.")
-    activities = colander.SchemaNode(colander.String(), title="Grants (Activity)",
-        description="Enter details of which activities are associated with this record.", missing="",
-        placeholder="TODO: Autocomplete from Mint/Mint DB")
-    services = colander.SchemaNode(colander.String(), placeholder="Autocomplete - Mint/Mint DB",
-        description="Indicate any related Services to this Collection. A lookup works against Mint, or you can enter known information about remote Services."
-        , missing="")
+#    parties = PartySchema(title="People", widget=deform.widget.SequenceWidget(min_len=1), missing="",
+#        description="Enter the details of associated people as described by the dropdown box.")
+#    collaborators = Collaborator(
+#        description="Names of other collaborators in the research project where applicable, this may be a person or organisation/group of some type."
+#        , missing="")
+#    related_publications = WebsiteSchema(title="Related Publications",
+#        description="Include URL/s to any publications underpinning the research dataset/collection, registry/repository, catalogue or index.")
+#    related_websites = WebsiteSchema(title="Related Websites", description="Include URL/s for the relevant website.")
+#    activities = colander.SchemaNode(colander.String(), title="Grants (Activity)",
+#        description="Enter details of which activities are associated with this record.", missing="",
+#        placeholder="TODO: Autocomplete from Mint/Mint DB")
+#    services = colander.SchemaNode(colander.String(), placeholder="Autocomplete - Mint/Mint DB",
+#        description="Indicate any related Services to this Collection. A lookup works against Mint, or you can enter known information about remote Services."
+#        , missing="")
+    pass
 
 
-class CitationDate(colander.MappingSchema):
-    dateType = colander.SchemaNode(colander.String(), title="Date type",
-        widget=deform.widget.TextInputWidget(size="40", css_class="full_width"))
-    archivalDate = colander.SchemaNode(colander.Date(), title="Date")
+class CitationDate(Base):
+    __tablename__ = 'citation_date'
+    id = Column(Integer, ForeignKey('person.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('test.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+
+    dateType = Column(String(), ca_title="Date type",
+        ca_widget=deform.widget.TextInputWidget(size="40", css_class="full_width"))
+    archivalDate = Column(Date(), ca_title="Date")
+
+#
+#class CitationDates(colander.SequenceSchema):
+#    date = CitationDate(widget=deform.widget.MappingWidget(template="inline_mapping"))
 
 
-class CitationDates(colander.SequenceSchema):
-    date = CitationDate(widget=deform.widget.MappingWidget(template="inline_mapping"))
-
-
-class Citation(colander.MappingSchema):
-    title = colander.SchemaNode(colander.String(), placeholder="Mr, Mrs, Dr etc.", missing="")
-    creators = People(missing=None)
-    edition = colander.SchemaNode(colander.String(), missing="")
-    publisher = colander.SchemaNode(colander.String())
-    place_of_publication = colander.SchemaNode(colander.String(), title="Place of publication")
-    dates = CitationDates(title="Date(s)")
-    url = colander.SchemaNode(colander.String(), title="URL")
-    context = colander.SchemaNode(colander.String(), placeholder="citation context", missing="")
+#class Citation(colander.MappingSchema):
+#    title = colander.SchemaNode(colander.String(), placeholder="Mr, Mrs, Dr etc.", missing="")
+#    creators = People(missing=None)
+#    edition = colander.SchemaNode(colander.String(), missing="")
+#    publisher = colander.SchemaNode(colander.String())
+#    place_of_publication = colander.SchemaNode(colander.String(), title="Place of publication")
+#    dates = CitationDates(title="Date(s)")
+#    url = colander.SchemaNode(colander.String(), title="URL")
+#    context = colander.SchemaNode(colander.String(), placeholder="citation context", missing="")
 
 researchTypes = (
     ('select', 'Please select one...'), ('applied', 'Applied research'), ('experimental', 'Experimental development'),
@@ -365,6 +390,15 @@ class Location(Base):
         ca_title="Location Type", ca_missing="")
     location = Column(String())
 
+class WebResource(Base):
+    __tablename__ = 'web_resource'
+    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('test.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+
+    title = Column(String(), ca_title="Title", ca_placeholder="eg. Great Project Website", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
+    url = Column(String(), ca_title="URL", ca_placeholder="eg. http://www.somewhere.com.au", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
+    notes = Column(String(), ca_title="Notes", ca_missing="", ca_placeholder="eg. This article provides additional information on xyz", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
+
 class MetadataData(Base):
     __tablename__ = 'test'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
@@ -457,20 +491,81 @@ class MetadataData(Base):
         "<li><strong>Text</strong> - free-text representation of spatial location. Use this to record place or region names where geospatial notation is not available. In ReDBox this will search against the Geonames database and return a latitude and longitude value if selected. This will store as a DCMIPoint which in future will display as a point on a Google Map in Research Data Australia.</li></ul>")
 
     #-------------associations--------------------
-#    associations = Associations(collapsed=False, collapse_group='metadata')
+    parties = relationship('Party', ca_title="People", ca_order=14, ca_widget=deform.widget.SequenceWidget(min_len=1), ca_missing="",
+            ca_group_start="associations", ca_group_collapsed=False, ca_group_title="Associations",
+            ca_description="Enter the details of associated people as described by the dropdown box.")
+    collaborators = relationship('Collaborator', ca_order=15,
+        ca_description="Names of other collaborators in the research project where applicable, this may be a person or organisation/group of some type."
+        , ca_missing="")
+    related_publications = relationship('WebResource', ca_order=16, ca_title="Related Publications",
+        ca_description="Include URL/s to any publications underpinning the research dataset/collection, registry/repository, catalogue or index.")
+    related_websites = relationship('WebResource', ca_order=17, ca_title="Related Websites", ca_description="Include URL/s for the relevant website.", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"))
+    activities = Column(String(), ca_order=18, ca_title="Grants (Activity)",
+        ca_description="Enter details of which activities are associated with this record.", ca_missing="",
+        ca_placeholder="TODO: Autocomplete from Mint/Mint DB")
+    services = Column(String(), ca_order=19, ca_placeholder="Autocomplete - Mint/Mint DB",
+        ca_description="Indicate any related Services to this Collection. A lookup works against Mint, or you can enter known information about remote Services."
+        , ca_missing="",
+        ca_group_end="associations")
     #-------------legal--------------------
-#    legal = Legality(title="Legality", collapsed=False, collapse_group='metadata')
+    access_rights = Column(String(), ca_order=20, ca_title="Access Rights", ca_default="Open access",
+        ca_group_start="legality", ca_group_collapsed=False, ca_group_title="Licenses & Access Rights",
+        ca_description="Information about access to the collection or service, including access restrictions or embargoes based on privacy, security or other policies. A URI is optional.</br></br>"\
+                            "eg. Contact Chief Investigator to negotiate access to the data.</br></br>"\
+                            "eg. Embargoed until 1 year after publication of the research.")
+    access_rights_url = Column(String(), ca_order=21, ca_title="URL", ca_missing="")
+
+    rights = Column(String(), ca_order=22, ca_placeholder="TODO: replaced with default license", ca_missing="", ca_title="Usage Rights",
+        ca_description="Information about rights held in and over the collection such as copyright, licences and other intellectual property rights, eg. This dataset is made available under the Public Domain Dedication and License v1.0 whose full text can be found at: <b>http://www.opendatacommons.org/licences/pddl/1.0/</b></br>"\
+                        "A URI is optional. ")
+    rights_url = Column(String(), ca_order=23, ca_title="URL", ca_missing="")
+    #    TODO: Link to external sources
+
+    licenses = (
+               ('none', 'No License'),
+               ('creative_commons_by', 'Creative Commons - Attribution alone (by)'),
+               ('creative_commons_bync', 'Creative Commons - Attribution + Noncommercial (by-nc)'),
+               ('creative_commons_bynd', 'Creative Commons - Attribution + NoDerivatives (by-nd)'),
+               ('creative_commons_bysa', 'Creative Commons - Attribution + ShareAlike (by-sa)'),
+               ('creative_commons_byncnd', 'Creative Commons - Attribution + Noncommercial + NoDerivatives (by-nc-nd)'),
+               ('creative_commons_byncsa', 'Creative Commons - Attribution + Noncommercial + ShareAlike (by-nc-sa)'),
+               ('restricted_license', 'Restricted License'),
+               ('other', 'Other'),
+               )
+    license = Column(String(), ca_order=24, ca_title="License", ca_placeholder="creative_commons_by",
+        ca_default="creative_commons_by",
+        ca_widget=deform.widget.SelectWidget(values=licenses, template="select_with_other"),
+        ca_description="This list contains data licences that this server has been configured with. For more information about Creative Commons licences please <a href=\'http://creativecommons.org.au/learn-more/licences\' alt=\'licenses\'>see here</a>. ")
+
+    name = Column(String(), ca_order=25, ca_title="License Name", ca_placeholder="", ca_missing="",
+        ca_group_start="other_license", ca_group_title="Other", ca_group_description="If you want to use a license not included in the above list you can provide details below.</br></br>"\
+                                "<ul><li>If you are using this field frequently for the same license it would make sense to get your system administrator to add the license to the field above.</li>"\
+                                "<li>If you provide two licenses (one from above, plus this one) only the first will be sent to RDA in the RIF-CS.</li>"\
+                                "<li>Example of another license: http://www.opendefinition.org/licenses</li></ul>")
+    license_url = Column(String(), ca_order=26, ca_title="License URL", ca_placeholder="", ca_missing="",
+        ca_group_end="legality")
+
     #-------------citation--------------------
-#    citation = Citation(description="Provide metadata that should be used for the purposes of citing this record. Sending a citation to RDA is optional, but if you choose to enable this there are quite specific mandatory fields that will be required by RIF-CS.", collapsed=False, collapse_group='metadata')
+    title = Column(String(), ca_order=27, ca_placeholder="Mr, Mrs, Dr etc.", ca_missing="",
+        ca_group_collapsed=False, ca_group_start='citation', ca_group_title="Citation",
+        ca_group_description="Provide metadata that should be used for the purposes of citing this record. Sending a citation to RDA is optional, but if you choose to enable this there are quite specific mandatory fields that will be required by RIF-CS.")
+    creators = relationship('Creator', ca_order=28, ca_missing=None)
+    edition = Column(String(), ca_order=29, ca_missing="")
+    publisher = Column(String(), ca_order=30)
+    place_of_publication = Column(String(), ca_order=31, ca_title="Place of publication")
+    dates = relationship('CitationDate', ca_order=32, ca_title="Date(s)")
+    url = Column(String(), ca_order=33, ca_title="URL")
+    context = Column(String(), ca_order=34, ca_placeholder="citation context", ca_missing="",
+        ca_group_end='citation')
     #-------------additional_information--------------------
-    retention_period = Column(String(), ca_order=14, ca_title="Retention period",
+    retention_period = Column(String(), ca_order=35, ca_title="Retention period",
         ca_group_start="additional_information", ca_group_collapsed=False, ca_group_title="Additional Information",
         ca_widget=deform.widget.SelectWidget(values=retention_periods),
         ca_description="Record the period of time that the data must be kept in line with institutional/funding body retention policies.")
-    national_significance = Column(Boolean(), ca_order=15, ca_title="Is the data nationally significant?",
+    national_significance = Column(Boolean(), ca_order=36, ca_title="Is the data nationally significant?",
         ca_widget=deform.widget.RadioChoiceWidget(values=(("true", "Yes"), ("false", "No"))),
         ca_description="Do you know or believe that this projects data may be Nationally Significant?")
-    attachments = relationship('Attachment', ca_order=16, ca_missing=None)
-    notes = relationship('Notes', ca_order=17, ca_description="Enter administrative notes as required.", ca_missing=None,
+    attachments = relationship('Attachment', ca_order=37, ca_missing=None)
+    notes = relationship('Notes', ca_order=38, ca_description="Enter administrative notes as required.", ca_missing=None,
         ca_group_end="additional_information")
 
