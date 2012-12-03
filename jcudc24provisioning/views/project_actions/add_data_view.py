@@ -34,7 +34,7 @@ class AddDataSequence(colander.SequenceSchema):
 class AddDataSchema(colander.MappingSchema):
     data = AddDataSequence(widget=deform.widget.SequenceWidget(min_len=1))
 
-class DatasetsView(Workflows):
+class View(Workflows):
     title = "Add data"
 
     def __init__(self, request):

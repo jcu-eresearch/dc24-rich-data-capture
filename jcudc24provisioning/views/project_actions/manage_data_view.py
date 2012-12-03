@@ -53,7 +53,7 @@ class ManageDataResultsSchema(colander.MappingSchema):
     search_results = SearchResults()
 
 
-class DatasetsView(Workflows):
+class View(Workflows):
     title = "Manage Data"
 
     def __init__(self, request):

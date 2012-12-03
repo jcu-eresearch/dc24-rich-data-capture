@@ -1,6 +1,6 @@
 import colander
 import deform
-from jcudc24provisioning.views.workflow.workflows import Workflows
+from views.workflow.workflows import Workflows
 
 __author__ = 'Casey Bajema'
 
@@ -24,7 +24,7 @@ class AddUserSequence(colander.SequenceSchema):
 class SharingSchema(colander.MappingSchema):
     users = AddUserSequence()
 
-class DatasetsView(Workflows):
+class View(Workflows):
     title = "Sharing"
 
     def __init__(self, request):

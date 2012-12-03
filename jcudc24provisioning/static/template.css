@@ -269,7 +269,7 @@ div#footer {
     float: right;
 }
 
-input[type=text], textarea {
+input[type=text], input, textarea, select {
     padding: 0.5em;
 }
 
@@ -401,4 +401,8 @@ span.collapse_icon {
 .multi_select_sequence .third_field {
     margin-left: 40px;
     display: none;
+}
+
+.deform label {
+    font-size: 1em;
 }

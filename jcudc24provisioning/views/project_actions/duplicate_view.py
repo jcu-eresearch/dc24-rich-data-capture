@@ -25,7 +25,7 @@ class AddUserSequence(colander.MappingSchema):
      methods = SelectIndividualMethodsSchema()
      datasets = SelectIndividualMethodsSchema()
 
-class DatasetsView(Workflows):
+class View(Workflows):
     title = "Duplicate project"
 
     def __init__(self, request):

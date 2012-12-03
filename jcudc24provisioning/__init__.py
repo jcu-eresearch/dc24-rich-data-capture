@@ -1,22 +1,26 @@
 from pkg_resources import declare_namespace
-from sqlalchemy.engine import engine_from_config
-from models import DBSession
+from . import models
 
-__author__ = 'Casey Bajema'
 declare_namespace('jcudc24provisioning')
 
 from deform.form import Form
 from pyramid.config import Configurator
 from pkg_resources import resource_filename
 from pyramid_beaker import session_factory_from_settings, set_cache_regions_from_settings
+from sqlalchemy.engine import engine_from_config
+from models.project import ProjectSchema, DBSession, Base
+
+__author__ = 'Casey Bajema'
+
+
 
 def main(global_config, **settings):
 #def main():
     """ This function returns a Pyramid WSGI application.
     """
-
-#    engine = engine_from_config(settings, 'sqlalchemy.')
-#    DBSession.configure(bind=engine)
+    engine = engine_from_config(settings, 'sqlalchemy.')
+    DBSession.configure(bind=engine)
+    Base.metadata.create_all(engine)
 
     deform_templates = resource_filename('deform', 'templates')
     search_path = (resource_filename('jcudc24provisioning', 'templates/widgets'),resource_filename('jcudc24provisioning', 'templates/widgets/readonly'), deform_templates)
@@ -29,6 +33,7 @@ def main(global_config, **settings):
     config.add_static_view('deform_static', 'deform:static', cache_max_age=0)
     config.add_static_view('static', 'static')
     config.scan()
+
     return config.make_wsgi_app()
 
 
