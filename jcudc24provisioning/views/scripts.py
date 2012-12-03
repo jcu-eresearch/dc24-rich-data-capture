@@ -52,13 +52,15 @@ def remove_nodes_not_on_page(schema, page):
 def fix_sequence_schemas(schema):
     for child in schema.children:
             if isinstance(child.typ, colander.Sequence):
+                # Set the childs widget if ca_child_widget has been set on the sequence (I can't see any other way to do it)
+                if hasattr(child, "child_widget"):
+                    child.children[0].widget = child.child_widget
+
+                # If there is only 1 displayed child, hide the labels etc so that the item looks like a list
                 only_one_displayed = True
                 displayed_child = None
 
                 for sub_child in child.children[0].children:
-                    if sub_child.name == 'ca_params' and isinstance(sub_child, dict):
-                        sub_child.__dict__.update()
-
                     if not isinstance(sub_child.widget, deform.widget.HiddenWidget):
                         if displayed_child:
                             only_one_displayed = False

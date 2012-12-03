@@ -17,7 +17,7 @@ class ProjectSchema(Base):
 
     #--------------Setup--------------------
     project_title = Column(String(), ca_widget=deform.widget.TextInputWidget(css_class="full_width"), ca_page="setup",
-                ca_group_start="test", ca_group_description="test description", ca_group_collapsed=False,
+#                ca_group_start="test", ca_group_description="test description", ca_group_collapsed=False,
                 ca_placeholder="An easily identifiable, concise what and why - Include relevant keyword - Keep the description relevant to all generated records.",
                 ca_title="Project Title", ca_description="<p>A descriptive title that will make the generated records easy to search and describes the type of data collected and why.</p><p>It is recommended for datasets and collections, the title should be unique to the data, ie. do not use the publication title as the data title.</p><p>Make sure the title contains relevant keywords as it will be searched on and keep the title relevant to all generated records.</p>")
 

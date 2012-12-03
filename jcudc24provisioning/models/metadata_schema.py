@@ -470,7 +470,7 @@ class MetadataData(Base):
     national_significance = Column(Boolean(), ca_order=15, ca_title="Is the data nationally significant?",
         ca_widget=deform.widget.RadioChoiceWidget(values=(("true", "Yes"), ("false", "No"))),
         ca_description="Do you know or believe that this projects data may be Nationally Significant?")
-    attachments = relationship('Attachment', ca_order=16, ca_missing=None)
+    attachments = relationship('Attachment', ca_order=16, ca_missing=None, ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"))
     notes = relationship('Notes', ca_order=17, ca_description="Enter administrative notes as required.", ca_missing=None,
         ca_group_end="additional_information")
 
