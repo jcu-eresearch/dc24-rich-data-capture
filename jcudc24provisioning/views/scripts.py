@@ -2,7 +2,6 @@
 from collections import OrderedDict
 import colander
 import deform
-from jcudc24provisioning.models import Base
 
 __author__ = 'Casey Bajema'
 
@@ -31,11 +30,18 @@ def convert_schema(schema, **kw):
     if kw.has_key('page'):
         schema = remove_nodes_not_on_page(schema, kw.pop('page'))
 
+    force_required(schema)
+
     schema = fix_sequence_schemas(schema)
 
     schema = group_nodes(schema)
 
     return schema
+
+def force_required(schema):
+    for node in schema.children:
+        if hasattr(node, 'force_required') and node.force_required:
+            delattr(node, 'missing')
 
 def remove_nodes_not_on_page(schema, page):
     children_to_remove = []

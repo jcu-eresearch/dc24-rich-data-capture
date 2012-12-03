@@ -8,11 +8,8 @@ from pyramid.paster import (
     get_appsettings,
     setup_logging,
     )
+from models.project import DBSession, Base
 
-from jcudc24provisioning.models import (
-    DBSession,
-    Base,
-    )
 
 def usage(argv):
     cmd = os.path.basename(argv[0])

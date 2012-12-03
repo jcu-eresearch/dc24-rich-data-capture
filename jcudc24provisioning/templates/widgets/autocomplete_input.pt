@@ -1,23 +1,34 @@
 <span tal:omit-tag="">
-    <input type="text"
-           name="${field.name}"
-           value="${cstruct}"
-           tal:attributes="size field.widget.size;
-                           class field.widget.css_class"
+    <tal:block define="placeholder field.schema.__dict__.get('placeholder') or nothing;
+                           default_text cstruct or field.schema.default or placeholder">
+        <input type="text"
+               name="${field.name}"
+               value="${default_text}"
+               tal:attributes="size field.widget.size;
+                               class (field.widget.css_class or '') + (default_text == field.schema.__dict__.get('placeholder') and ' placeholder_text' or '')"
+               onclick="if (value == '${field.schema.__dict__.get('placeholder')}') {className = className.replace( /(?:^|\s)placeholder_text(?!\S)/g , '' ); value='';}"
+               onblur="if (value == '') {value='${placeholder}'; className += ' placeholder_text';}"
+               id="${field.oid}"/>
 
-           id="${field.oid}"/>
+        <script tal:condition="field.schema.default" type="text/javascript">
+            submitClearsDefaultValues("${field.oid}", "${field.schema.default}");
+        </script>
+        <script tal:condition="field.widget.values" type="text/javascript">
+            deform.addCallback(
+                    '${field.oid}',
+                    function (oid) {
+                        $('#' + oid).autocomplete({source: ${values}});
+                        $('#' + oid).autocomplete("option", ${options});
+                    }
+            );
+        </script>
+        <script tal:condition="field.schema.__dict__.get('placeholder')" type="text/javascript">
+            deform.addCallback(
+                    '${field.oid}',
+                    function (oid) {
+                        submitClearsDefaultValues(oid, "${field.schema.__dict__.get('placeholder')}");
+                    });
+        </script>
 
-    <script tal:condition="field.schema.default" type="text/javascript">
-        submitClearsDefaultValues("${field.oid}", "${field.schema.default}");
-    </script>
-    <script tal:condition="field.widget.values" type="text/javascript">
-        deform.addCallback(
-                '${field.oid}',
-                function (oid) {
-                    $('#' + oid).autocomplete({source: ${values}});
-                    $('#' + oid).autocomplete("option", ${options});
-                }
-        );
-    </script>
-
+    </tal:block>
 </span>

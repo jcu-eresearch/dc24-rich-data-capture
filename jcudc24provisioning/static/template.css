@@ -402,3 +402,7 @@ span.collapse_icon {
     margin-left: 40px;
     display: none;
 }
+
+.deform label {
+    font-size: 1em;
+}

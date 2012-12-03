@@ -398,7 +398,7 @@ function buttonPressed(node) {
     var i = 0;
     for (i; i < fields.length - 1; i++) {
         if (fields[i].innerHTML == text) {
-            deform.removeSequenceItem(fields[i]);
+            deform.removeSequenceItem($(fields[i]).parents('[id^="sequence"]').find(".deformClosebutton")[0]);
             alert("Not Added: The selected FOR code is a duplicate");
         }
     }
