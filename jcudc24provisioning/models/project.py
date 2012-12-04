@@ -1,7 +1,8 @@
+import ConfigParser
 from collections import OrderedDict
 from beaker.cache import cache_region
 import colander
-from sqlalchemy.engine import create_engine
+from sqlalchemy.engine import create_engine, engine_from_config
 from sqlalchemy.schema import ForeignKey
 from colanderalchemy.declarative import Column, relationship
 import deform
@@ -20,12 +21,17 @@ from sqlalchemy.orm import (
     scoped_session,
     sessionmaker,
     )
+import os
 
 from zope.sqlalchemy import ZopeTransactionExtension
 from models.common_schemas import SelectMappingSchema
 from models.method_schema import DataSchemas
 
-DBSession = scoped_session(sessionmaker(bind=create_engine("mysql://root:@localhost/dc24", echo=True)))
+config = ConfigParser.RawConfigParser()
+config.read('../../development.ini')
+db_engine = create_engine(config.get("app:main", "sqlalchemy.url"), echo=True)
+#db_engine.connect()
+DBSession = scoped_session(sessionmaker(bind=db_engine))
 Base = declarative_base()
 
 def research_theme_validator(form, value):
@@ -235,7 +241,8 @@ map_location_types = (
 class Location(Base):
     __tablename__ = 'location'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    project_id = Column(Integer, ForeignKey('project.id'), nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('project.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
+    dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
 
     location_type = Column(String(100), ca_widget=deform.widget.SelectWidget(values=map_location_types),
         ca_title="Location Type", ca_missing="")
@@ -322,8 +329,8 @@ class MethodWebsite(Base):
 
 class Method(Base):
     __tablename__ = 'method'
-    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=0)
-    project_id = Column(Integer, ForeignKey('project.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=1)
+    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('project.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
 
     copy_previous_method = Column(String(256), ca_title="Use a previously created method as a template",
         ca_widget=deform.widget.AutocompleteInputWidget(size=250, min_length=1, values=('Method A','Method B'), template="template_autocomplete_input"),ca_order=2,
@@ -332,12 +339,18 @@ class Method(Base):
                            "with the content in the selected method.<br />" \
                            "Usage: If the same sensor is used for 2 projects you don't need to recreate the same method twice!")
 
-    data_type = Column(String(100), ca_title="Data Type",ca_order=3,
+    data_type = Column(String(100), ca_title="Data Type",
         ca_widget=deform.widget.SelectWidget(values=data_types),
         ca_description="The type of data that is being collected, additional information/fields can be added by extending the base data types using the custom fields below.</br></br>" \
                     "<b>Only select 'No defined type' if no other type is applicable.</b>",
         ca_placeholder="Type of data being collected.")
-    data_source = Column(String(100), ca_title="Data Source",ca_order=4,
+    custom_fields = relationship('CustomField', ca_missing=colander.null, ca_title="Custom Fields",
+        ca_child_title="Custom Field", ca_description="Provide details of the schema that this input "\
+                                                      "method requires to store it\'s data along with "\
+                                                      "descriptions for the manual data entry form and "\
+                                                      "further notes to the administrators.")
+
+    data_source = Column(String(100), ca_title="Data Source",
         ca_widget=deform.widget.SelectWidget(values=data_sources),
         ca_description="How does the data get transferred into this system?"\
                     "<ul>"\
@@ -349,18 +362,92 @@ class Method(Base):
                     "</ul>",
         ca_placeholder="Select the easiest method for your project.  If all else fails, manual file uploads will work for all data types.")
 
-    method_name = Column(String(256),ca_order=5,
+    method_name = Column(String(256),
         ca_placeholder="Searchable identifier for this input method (eg. Invertebrate observations)",
         ca_description="Descriptive, human readable name for this input method.  The name will be used to select this method in the <i>Datasets</i> step and will also be searchable within the database.")
-    method_description = Column(Text(), ca_title="Description", ca_widget=deform.widget.TextAreaWidget(),ca_order=6,
+    method_description = Column(Text(), ca_title="Description", ca_widget=deform.widget.TextAreaWidget(),
         ca_description="Provide a description of this method, this should include what, why and how the data is being collected but <b>Don\'t enter where or when</b> as this is information relevant to the dataset, not the method.",
         ca_placeholder="Enter specific details for this method, users of your data will need to know how reliable your data is and how it was collected.")
-    method_url = relationship("MethodWebsite",ca_order=7, ca_missing=colander.null, ca_title="Further information (URL)", ca_description="If there are web addresses that can provide more information on your data collection method, add them here.  Examples may include manufacturers of your equipment or an article on the calibration methods used.")
-    method_attachments = relationship('MethodAttachment',ca_order=8, ca_missing=colander.null, ca_description="Attach information about this method, this is preferred to external URLs as it is persistent.  Example attachments would be sensor datasheets, documentation describing your file/data storage schema or calibration data.")
-    custom_fields = relationship('CustomField',ca_order=9, ca_missing=colander.null, ca_title="Custom Fields", ca_description="Provide details of the schema that this input " \
-                                                                         "method requires to store it\'s data along with " \
-                                                                         "descriptions for the manual data entry form and " \
-                                                                         "further notes to the administrators.")
+    method_url = relationship("MethodWebsite", ca_missing=colander.null, ca_title="Further information (URL)",
+        ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"), ca_child_title="Website",
+        ca_description="If there are web addresses that can provide more information on your data collection method, add them here.  Examples may include manufacturers of your equipment or an article on the calibration methods used.")
+    method_attachments = relationship('MethodAttachment', ca_missing=colander.null, ca_child_title="Attachment",
+        ca_description="Attach information about this method, this is preferred to external URLs as it is persistent.  Example attachments would be sensor datasheets, documentation describing your file/data storage schema or calibration data.")
+
+class Dataset(Base):
+    __tablename__ = 'dataset'
+    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=0)
+    project_id = Column(Integer, ForeignKey('project.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=1)
+    method_id = Column(Integer, ForeignKey('method.id'), nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=2)
+
+    description = Column(Text(),ca_order=3, ca_widget=deform.widget.TextAreaWidget(),
+        ca_placeholder="Provide a textual description of the dataset being collected.",
+        ca_description="Provide a dataset specific description that will be appended to the project description in metadata records.")
+
+    data_source_configuration = Column(String(256),ca_order=4, ca_description="TODO: Dataset specific configuration of the data source for the selected method.")
+
+    time_period_description = Column(String(256), ca_order=5, ca_title="Time Period (description)", ca_page="metadata",
+        ca_group_start="coverage", ca_group_collapsed=False,
+        ca_placeholder="eg. Summers of 1996-2006", ca_missing="",
+        ca_description="Provide a textual representation of the time period such as world war 2 or more information on the time within the dates provided.")
+    date_from = Column(Date(), ca_order=6, ca_placeholder="", ca_title="Date From", ca_page="metadata",
+        ca_description='The date that data will start being collected.')
+    date_to = Column(Date(), ca_order=7, ca_title="Date To", ca_page="metadata",
+        ca_description='The date that data will stop being collected.', ca_missing=colander.null)
+    location_description = Column(String(512), ca_order=8, ca_title="Location (description)", ca_page="metadata",
+        ca_description="Textual description of the location such as Australian Wet Tropics or further information such as elevation."
+        , ca_missing="", ca_placeholder="eg. Australian Wet Tropics, Great Barrier Reef, 1m above ground level")
+    coverage_map = relationship('Location', ca_order=9, ca_title="Location Map", ca_widget=deform.widget.SequenceWidget(template='map_sequence'), ca_page="metadata",
+        ca_group_end="coverage", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
+        ca_missing=colander.null, ca_description=
+        "<p>Geospatial location relevant to the research dataset/collection, registry/repository, catalogue or index. This may describe a geographical area where data was collected, a place which is the subject of a collection, or a location which is the focus of an activity, eg. coordinates or placename.</p>"\
+        "<p>You may use the map to select an area, or manually enter a correctly formatted set of coordinates or a value supported by a standard such as a country code, a URL pointing to an XML based description of spatial coverage or free text describing a location."\
+        "</p><p>If you wish to generate a map display in Research Data Australia, it is strongly advised that you use <b>DCMI Box</b> for shapes, or <b>DCMI Point</b> for points.</p><p>"\
+        "Formats supported by the map widget:"\
+        "<ul><li><a href=\"http://www.opengeospatial.org/standards/gml\" target=\"_blank\">GML</a> - OpenGIS Geography Markup Language (GML) Encoding Standard</li>"\
+        "<li><a href=\"http://code.google.com/apis/kml/\" target=\"_blank\">KML</a> - Keyhole Markup Language developed for use with Google Earth</li>"\
+        "<li><a href=\"http://dublincore.org/documents/dcmi-box\" target=\"_blank\">ISO19319dcmiBox</a> - DCMI Box notation derived from bounding box metadata conformant with the iso19139 schema</li>"\
+        "<li><a href=\"http://dublincore.org/documents/dcmi-point\" target=\"_blank\">DCMIPoint</a> - spatial location information specified in DCMI Point notation</li></ul>"\
+        "<p>When using the map to input shapes/points, only the above formats are supported. You can use the 'Find location' feature to pan the map to an area you are interested in, but you still need to select a map region to store geospatial data.</p>"\
+        "<p>Formats available for manual data entry:</p>"\
+        "<ul><li><a href=\"http://www.topografix.com/gpx.asp\" target=\"_blank\">GPX</a> - the GPS Exchange Format</li>"\
+        "<li><a href=\"http://www.iso.org/iso/country_codes/iso_3166_code_lists.htm\" target=\"_blank\">ISO3166</a> - ISO 3166-1 Codes for the representation of names of countries and their subdivisions - Part 1: Country codes</li>"\
+        "<li><a href=\"http://www.iso.org/iso/country-codes/background_on_iso_3166/iso_3166-2.htm\" target=\"_blank\">ISO31662</a> - Codes for the representation of names of countries and their subdivisions - Part 2: Country subdivision codes</li>"\
+        "<li><a href=\"http://code.google.com/apis/kml/\" target=\"_blank\">kmlPolyCoords</a> - A set of KML long/lat co-ordinates defining a polygon as described by the KML coordinates element</li>"\
+        "<li><a href=\"http://code.google.com/apis/kml/\" target=\"_blank\">gmlKmlPolyCoords</a> - A set of KML long/lat co-ordinates derived from GML defining a polygon as described by the KML coordinates element but without the altitude component</li>"\
+        "<li><strong>Text</strong> - free-text representation of spatial location. Use this to record place or region names where geospatial notation is not available. In ReDBox this will search against the Geonames database and return a latitude and longitude value if selected. This will store as a DCMIPoint which in future will display as a point on a Google Map in Research Data Australia.</li></ul>")
+
+
+    start_conditions = Column(String(100),ca_order=10, ca_title="Start conditions", ca_child_title="todo",
+        ca_group_start="sampling", ca_group_collapsed=False, ca_group_description="Provide filtering conditions for the data received, the most common and simplest"\
+                    "cases are a sampling rate (eg. once per hour) or a repeating time periods (such as "\
+                    "start at 6am, stop at 7am daily) but any filtering can be acheived by adding a custom "\
+                    "sampling script below.</br></br>  The sampling script API can be found <a href="">here</a>.")
+    stop_conditions = Column(String(100),ca_order=11, ca_title="Stop conditions", ca_child_title="todo")
+
+    custom_sampling_desc = Column(String(256),ca_order=12, ca_widget=deform.widget.TextAreaWidget(),
+        ca_group_start="custom_sampling", ca_group_title="Custom sampling",
+        ca_placeholder="eg. Extract some value from the comma separated file where the value is the first field.",
+        ca_title="Describe custom sampling needs", ca_missing="", ca_description="Describe your sampling "\
+                                                                          "requirements and what your uploaded script does, or what you will need help with.")
+
+    custom_sampling_script = Column(String(256),ca_order=13, ca_title="Upload custom sampling script", ca_missing = colander.null,
+        ca_group_end="sampling",
+        ca_description="Upload a custom Python script to "\
+                    "sample the data in some way.  The sampling script API can be found "\
+                    "<a title=\"Python sampling script API\"href=\"\">here</a>.")
+
+    custom_processor_desc = Column(String(256),ca_order=14, ca_widget=deform.widget.TextAreaWidget(),
+        ca_group_start="processing", ca_group_collapsed=False, ca_group_title="Custom processing",
+        ca_placeholder="eg. Extract some value from the comma separated file where the value is the first field.",
+        ca_title="Describe custom processing needs", ca_missing="", ca_description="Describe your processing "\
+                    "requirements and what your uploaded script does, or what you will need help with.")
+
+    custom_processor_script = Column(String(256),ca_order=15, ca_title="Upload custom processing script", ca_missing = colander.null,
+        ca_group_end="processing",
+        ca_description="Upload a custom Python script to "\
+            "process the data in some way.  The processing script API can be found "\
+            "<a title=\"Python processing script API\"href=\"\">here</a>.")
 
 
 class ProjectNote(Base):
@@ -492,7 +579,7 @@ class ProjectSchema(Base):
         ca_description="Textual description of the location such as Australian Wet Tropics or further information such as elevation."
         , ca_missing="", ca_placeholder="eg. Australian Wet Tropics, Great Barrier Reef, 1m above ground level")
     coverage_map = relationship('Location', ca_order=19, ca_title="Location Map", ca_widget=deform.widget.SequenceWidget(template='map_sequence'), ca_page="metadata",
-        ca_group_end="coverage",
+        ca_group_end="coverage", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
         ca_missing=colander.null, ca_description=
         "<p>Geospatial location relevant to the research dataset/collection, registry/repository, catalogue or index. This may describe a geographical area where data was collected, a place which is the subject of a collection, or a location which is the focus of an activity, eg. coordinates or placename.</p>"\
         "<p>You may use the map to select an area, or manually enter a correctly formatted set of coordinates or a value supported by a standard such as a country code, a URL pointing to an XML based description of spatial coverage or free text describing a location."\
@@ -519,9 +606,9 @@ class ProjectSchema(Base):
         ca_description="Names of other collaborators in the research project where applicable, this may be a person or organisation/group of some type."
         , ca_missing="")
     related_publications = relationship('WebResource', ca_order=22, ca_title="Related Publications", ca_page="metadata",
-        ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
+        ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"), ca_child_title="Related Publication",
         ca_description="Include URL/s to any publications underpinning the research dataset/collection, registry/repository, catalogue or index.")
-    related_websites = relationship('WebResource', ca_order=23, ca_title="Related Websites", ca_page="metadata",
+    related_websites = relationship('WebResource', ca_order=23, ca_title="Related Websites", ca_page="metadata", ca_child_title="Related Website",
         ca_description="Include URL/s for the relevant website.", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"))
     activities = Column(String(256), ca_order=24, ca_title="Grants (Activity)", ca_page="metadata",
         ca_description="Enter details of which activities are associated with this record.", ca_missing="",
@@ -591,12 +678,12 @@ class ProjectSchema(Base):
     national_significance = Column(Boolean(), ca_order=41, ca_title="Is the data nationally significant?", ca_page="metadata",
         ca_widget=deform.widget.RadioChoiceWidget(values=(("true", "Yes"), ("false", "No"))),
         ca_description="Do you know or believe that this projects data may be Nationally Significant?")
-    attachments = relationship('Attachment', ca_order=42, ca_missing=None, ca_page="metadata")
+    attachments = relationship('Attachment', ca_order=42, ca_missing=None, ca_page="metadata", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"))
     notes = relationship('Note', ca_order=43, ca_description="Enter administrative notes as required.", ca_missing=None, ca_page="metadata",
         ca_group_end="additional_information")
 
     #-----------------------------Method page----------------------------------------------------------
-    method_description = Column(Text(), ca_order=44, ca_title="Overall methods description", ca_page="methods",
+    overall_method_description = Column(Text(), ca_order=44, ca_title="Overall methods description", ca_page="methods",
             ca_widget=deform.widget.TextAreaWidget(rows=5),
             ca_placeholder="Provide an overview of all the data collection methods used in the project and why those methods were chosen.",
             ca_description="Provide a description for all data input methods used in the project.  This will be used as the description for data collection in the project metadata record and will provide users of your data with an overview of what the project is researching.")
@@ -605,8 +692,13 @@ class ProjectSchema(Base):
         ca_description="Add 1 method for each type of data collection method (eg. SOS temperature sensors, manually entered field observations using a form or files retrieved by polling a server...)")
 
     #----------------------------Dataset page------------------------------------------
-#    datasets = rerlationship('Dataset', ca_widget=deform.widget.SequenceWidget(min_len=1))
+    # The datasets page is dynamically generated from user input on the methods page, therefore a static
+    # ColanderAlchemy schema will not be able to generate the required deform schemas:
+    #   * Setup the ColanderAlchemy schema to correctly create the database
+    #   * Dynamically alter the generated schema in the view
+    datasets = relationship('Dataset', ca_widget=deform.widget.SequenceWidget(min_len=1), ca_order=46, ca_page="datasets",
+        ca_child_collapsed=False,)
 
     #-----------------------------------------Submit page---------------------------------------------------
-    project_notes = relationship("ProjectNote", ca_order=90, ca_page="submit",
+    project_notes = relationship("ProjectNote", ca_order=47, ca_page="submit",
         ca_description="Project comments that are only relevant to the provisioning system (eg. comments as to why the project was reopened after the creator submitted it).")

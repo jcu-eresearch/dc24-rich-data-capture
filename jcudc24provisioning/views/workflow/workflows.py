@@ -191,8 +191,8 @@ class DatasetsView(Workflows):
 
     def __init__(self, request):
         self.request = request
-        self.schema = DatasetSchema(description="Add individual datasets that your project will be collecting.  This is the when and where using the selected data collection method (what, why and how).  Such that an iButton sensor that is used to collect temperature at numerous sites would have been setup once within the Methods step and should be set-up in this step for each site it is used at.").bind(request=request)
-        self.form = Form(self.schema, action="datasets", buttons=('Save',), use_ajax=True)
+        self.schema = convert_schema(SQLAlchemyMapping(ProjectSchema, unknown='raise', ca_description="Add individual datasets that your project will be collecting.  This is the when and where using the selected data collection method (what, why and how).  Such that an iButton sensor that is used to collect temperature at numerous sites would have been setup once within the Methods step and should be set-up in this step for each site it is used at."), page="datasets").bind(request=request)
+        self.form = Form(self.schema, action="datasets", buttons=('Save',), use_ajax=False)
 
     @view_config(renderer="../../templates/form.pt", name="datasets")
     def handle_request(self):

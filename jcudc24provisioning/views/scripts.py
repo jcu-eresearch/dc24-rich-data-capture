@@ -1,5 +1,6 @@
 
 from collections import OrderedDict
+import inspect
 import colander
 import deform
 
@@ -32,11 +33,32 @@ def convert_schema(schema, **kw):
 
     force_required(schema)
 
-    schema = fix_sequence_schemas(schema)
+    fix_order(schema)
 
     schema = group_nodes(schema)
 
     return schema
+
+
+def fix_order(node):
+    oredering_node = node._reg.cls()
+
+
+    for item in oredering_node.__table__.__dict__.items():
+        print item
+
+    for child in node.children:
+        child.order = child._order
+#        print str(child.title) + " : " + str(child._order)
+        if isinstance(child, colander.MappingSchema):
+            fix_order(child)
+
+        if isinstance(child.typ, colander.Sequence):
+            fix_order(child.children[0])
+#        for attr in inspect.getmembers(child):
+#            if attr[0] == "_order":
+#                child.order = attr[1]
+
 
 def force_required(schema):
     for node in schema.children:
@@ -55,30 +77,29 @@ def remove_nodes_not_on_page(schema, page):
 
     return schema
 
-def fix_sequence_schemas(schema):
-    for child in schema.children:
-            if isinstance(child.typ, colander.Sequence):
-                # Set the childs widget if ca_child_widget has been set on the sequence (I can't see any other way to do it)
-                if hasattr(child, "child_widget"):
-                    child.children[0].widget = child.child_widget
+def fix_sequence_schemas(sequence_node):
+    # Set the childs widget if ca_child_widget has been set on the sequence (I can't see any other way to do it)
+    for attr in sequence_node.__dict__:
+        if attr[:6] == "child_":
+            setattr(sequence_node.children[0], attr[6:], sequence_node.__dict__[attr])
 
-                # If there is only 1 displayed child, hide the labels etc so that the item looks like a list
-                only_one_displayed = True
-                displayed_child = None
+#                if hasattr(child, "child_widget"):
+#                    child.children[0].widget = child.child_widget
 
-                for sub_child in child.children[0].children:
-                    if not isinstance(sub_child.widget, deform.widget.HiddenWidget):
-                        if displayed_child:
-                            only_one_displayed = False
-                            continue
+    # If there is only 1 displayed child, hide the labels etc so that the item looks like a list
+    only_one_displayed = True
+    displayed_child = None
 
-                        displayed_child = sub_child
+    for sub_child in sequence_node.children[0].children:
+        if not isinstance(sub_child.widget, deform.widget.HiddenWidget):
+            if displayed_child:
+                only_one_displayed = False
+                continue
 
-                if only_one_displayed and displayed_child:
-                    child.children[0].widget = deform.widget.MappingWidget(template="ca_sequence_mapping", item_template="ca_sequence_mapping_item")
+            displayed_child = sub_child
 
-
-    return schema
+    if only_one_displayed and displayed_child:
+        sequence_node.children[0].widget = deform.widget.MappingWidget(template="ca_sequence_mapping", item_template="ca_sequence_mapping_item")
 
 def group_nodes(node):
     mappings = OrderedDict()
@@ -108,6 +129,10 @@ def group_nodes(node):
 
         if isinstance(child, colander.MappingSchema):
             child = group_nodes(child)
+
+        if isinstance(child.typ, colander.Sequence):
+            fix_sequence_schemas(child)
+            group_nodes(child.children[0])
 
         if len(groups) > 0:
 

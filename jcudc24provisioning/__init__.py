@@ -22,19 +22,20 @@ def main(global_config, **settings):
     DBSession.configure(bind=engine)
     Base.metadata.create_all(engine)
 
+    print settings
     deform_templates = resource_filename('deform', 'templates')
     search_path = (resource_filename('jcudc24provisioning', 'templates/widgets'),resource_filename('jcudc24provisioning', 'templates/widgets/readonly'), deform_templates)
     Form.set_zpt_renderer(search_path)
 
     set_cache_regions_from_settings(settings)
     my_session_factory = session_factory_from_settings(settings)
-    config = Configurator(settings=settings, session_factory = my_session_factory)
+    configurator = Configurator(settings=settings, session_factory = my_session_factory)
 
-    config.add_static_view('deform_static', 'deform:static', cache_max_age=0)
-    config.add_static_view('static', 'static')
-    config.scan()
+    configurator.add_static_view('deform_static', 'deform:static', cache_max_age=0)
+    configurator.add_static_view('static', 'static')
+    configurator.scan()
 
-    return config.make_wsgi_app()
+    return configurator.make_wsgi_app()
 
 
 
