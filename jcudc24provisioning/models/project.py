@@ -3,7 +3,7 @@ from collections import OrderedDict
 from beaker.cache import cache_region
 import colander
 from sqlalchemy.engine import create_engine, engine_from_config
-from sqlalchemy.schema import ForeignKey
+from sqlalchemy.schema import ForeignKey, Table
 from colanderalchemy.declarative import Column, relationship
 import deform
 from sqlalchemy import (
@@ -327,30 +327,56 @@ class MethodWebsite(Base):
     url = Column(String(256), ca_title="URL", ca_placeholder="eg. http://www.somewhere.com.au", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
     notes = Column(Text(), ca_title="Notes", ca_missing="", ca_placeholder="eg. This article provides additional information on xyz", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
 
-class Method(Base):
-    __tablename__ = 'method'
-    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    project_id = Column(Integer, ForeignKey('project.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+schema_to_schema = Table("schema_to_schema", Base.metadata,
+    Column("child_schema_id", Integer, ForeignKey("node.id"), primary_key=True),
+    Column("parent_schema_id", Integer, ForeignKey("node.id"), primary_key=True)
+)
 
-    copy_previous_method = Column(String(256), ca_title="Use a previously created method as a template",
-        ca_widget=deform.widget.AutocompleteInputWidget(size=250, min_length=1, values=('Method A','Method B'), template="template_autocomplete_input"),ca_order=2,
+class MethodSchema(Base):
+    __tablename__ = 'method_schema'
+    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=0)
+    method_id = Column(Integer, ForeignKey('method.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=1)
+
+    parents = relationship("MethodSchema", secondary=schema_to_schema, primaryjoin=id==schema_to_schema.c.child_)
+
+    name = Column(String(256), ca_title="Title", ca_placeholder="eg. Great Project Website", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
+
+class MethodSchemaField(Base):
+    __tablename__ = 'method_schema_field'
+    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=0)
+    method_id = Column(Integer, ForeignKey('method.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=1)
+
+    name = Column(String(256), ca_title="Title", ca_placeholder="eg. Great Project Website", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
+    data_type = Column(String(256), ca_title="Title", ca_placeholder="eg. Great Project Website", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
+    attributes = Column(String(256), ca_title="Title", ca_placeholder="eg. Great Project Website", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
+    notes = Column(String(256), ca_title="Title", ca_placeholder="eg. Great Project Website", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
+
+class Method(Base):
+    order = 0
+
+    __tablename__ = 'method'
+    id = Column(Integer, ca_order=0, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('project.id'), ca_order=1, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+
+    copy_previous_method = Column(String(256), ca_order=2, ca_title="Use a previously created method as a template",
+        ca_widget=deform.widget.AutocompleteInputWidget(size=250, min_length=1, values=('Method A','Method B'), template="template_autocomplete_input"),
         ca_placeholder="TODO: Autocomplete from previous projects methods (based on method name)",
         ca_description="Use a previously created method as a template, <b>this will overwrite all fields on this page</b> " \
                            "with the content in the selected method.<br />" \
                            "Usage: If the same sensor is used for 2 projects you don't need to recreate the same method twice!")
 
-    data_type = Column(String(100), ca_title="Data Type",
+    data_type = Column(String(100), ca_order=3, ca_title="Data Type",
         ca_widget=deform.widget.SelectWidget(values=data_types),
         ca_description="The type of data that is being collected, additional information/fields can be added by extending the base data types using the custom fields below.</br></br>" \
                     "<b>Only select 'No defined type' if no other type is applicable.</b>",
         ca_placeholder="Type of data being collected.")
-    custom_fields = relationship('CustomField', ca_missing=colander.null, ca_title="Custom Fields",
+    custom_fields = relationship('CustomField', ca_order=4, ca_missing=colander.null, ca_title="Custom Fields",
         ca_child_title="Custom Field", ca_description="Provide details of the schema that this input "\
                                                       "method requires to store it\'s data along with "\
                                                       "descriptions for the manual data entry form and "\
                                                       "further notes to the administrators.")
 
-    data_source = Column(String(100), ca_title="Data Source",
+    data_source = Column(String(100), ca_order=5, ca_title="Data Source",
         ca_widget=deform.widget.SelectWidget(values=data_sources),
         ca_description="How does the data get transferred into this system?"\
                     "<ul>"\
@@ -362,17 +388,20 @@ class Method(Base):
                     "</ul>",
         ca_placeholder="Select the easiest method for your project.  If all else fails, manual file uploads will work for all data types.")
 
-    method_name = Column(String(256),
+    method_name = Column(String(256), ca_order=6,
         ca_placeholder="Searchable identifier for this input method (eg. Invertebrate observations)",
         ca_description="Descriptive, human readable name for this input method.  The name will be used to select this method in the <i>Datasets</i> step and will also be searchable within the database.")
-    method_description = Column(Text(), ca_title="Description", ca_widget=deform.widget.TextAreaWidget(),
+    method_description = Column(Text(), ca_order=7, ca_title="Description", ca_widget=deform.widget.TextAreaWidget(),
         ca_description="Provide a description of this method, this should include what, why and how the data is being collected but <b>Don\'t enter where or when</b> as this is information relevant to the dataset, not the method.",
         ca_placeholder="Enter specific details for this method, users of your data will need to know how reliable your data is and how it was collected.")
-    method_url = relationship("MethodWebsite", ca_missing=colander.null, ca_title="Further information (URL)",
+    method_url = relationship("MethodWebsite", ca_order=8, ca_missing=colander.null, ca_title="Further information (URL)",
         ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"), ca_child_title="Website",
         ca_description="If there are web addresses that can provide more information on your data collection method, add them here.  Examples may include manufacturers of your equipment or an article on the calibration methods used.")
-    method_attachments = relationship('MethodAttachment', ca_missing=colander.null, ca_child_title="Attachment",
+    method_attachments = relationship('MethodAttachment', ca_order=9, ca_missing=colander.null, ca_child_title="Attachment",
         ca_description="Attach information about this method, this is preferred to external URLs as it is persistent.  Example attachments would be sensor datasheets, documentation describing your file/data storage schema or calibration data.")
+
+
+
 
 class Dataset(Base):
     __tablename__ = 'dataset'
@@ -466,6 +495,7 @@ class ProjectSchema(Base):
     __tablename__ = 'project'
 
     id = Column(Integer, ca_order=0, primary_key=True, ca_widget=deform.widget.HiddenWidget(), ca_missing=-1)
+    project_creator = Column(String(100), ca_order=1000,ca_widget=deform.widget.HiddenWidget())
 
     #--------------Setup--------------------
     project_title = Column(String(512), ca_order=1, ca_widget=deform.widget.TextInputWidget(css_class="full_width"), ca_page="setup", ca_force_required=True,

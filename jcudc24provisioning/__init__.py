@@ -13,7 +13,6 @@ from models.project import ProjectSchema, DBSession, Base
 __author__ = 'Casey Bajema'
 
 
-
 def main(global_config, **settings):
 #def main():
     """ This function returns a Pyramid WSGI application.

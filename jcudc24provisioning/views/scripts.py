@@ -24,7 +24,6 @@ __author__ = 'Casey Bajema'
 #
 #    return schema
 
-
 def convert_schema(schema, **kw):
     schema.title = ''
 
@@ -33,31 +32,29 @@ def convert_schema(schema, **kw):
 
     force_required(schema)
 
-    fix_order(schema)
+#    fix_order(schema)
 
     schema = group_nodes(schema)
 
     return schema
 
 
-def fix_order(node):
-    oredering_node = node._reg.cls()
-
-
-    for item in oredering_node.__table__.__dict__.items():
-        print item
-
-    for child in node.children:
-        child.order = child._order
-#        print str(child.title) + " : " + str(child._order)
-        if isinstance(child, colander.MappingSchema):
-            fix_order(child)
-
-        if isinstance(child.typ, colander.Sequence):
-            fix_order(child.children[0])
-#        for attr in inspect.getmembers(child):
-#            if attr[0] == "_order":
-#                child.order = attr[1]
+#def fix_order(node):
+#    oredering_node = node._reg.cls()
+#
+#    for child in node.children:
+#        source = inspect.getsourcelines(child)
+##        print str(child.title) + " : " + str(child._order)
+#        if isinstance(child, colander.MappingSchema):
+#            fix_order(child)
+#        elif isinstance(child.typ, colander.Sequence):
+#            fix_order(child.children[0])
+#        else:
+#            child.order = node._reg.attrs[child.name].node_order
+#
+##        for attr in inspect.getmembers(child):
+##            if attr[0] == "_order":
+##                child.order = attr[1]
 
 
 def force_required(schema):
