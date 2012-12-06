@@ -21,7 +21,6 @@ def main(global_config, **settings):
     DBSession.configure(bind=engine)
     Base.metadata.create_all(engine)
 
-    print settings
     deform_templates = resource_filename('deform', 'templates')
     search_path = (resource_filename('jcudc24provisioning', 'templates/widgets'),resource_filename('jcudc24provisioning', 'templates/widgets/readonly'), deform_templates)
     Form.set_zpt_renderer(search_path)

@@ -11,7 +11,7 @@ from jcudc24provisioning.views.layouts import Layouts
 from pyramid.renderers import get_renderer
 from models.dataset_schema import DatasetSchema
 from models.method_schema import MethodsSchema
-from models.project import DBSession, ProjectSchema
+from models.project import DBSession, ProjectSchema, Method
 from views.scripts import convert_schema
 
 __author__ = 'Casey Bajema'
@@ -69,7 +69,7 @@ class Workflows(Layouts):
 
     def save_form(self, data):
          session = DBSession
-         if data['id'] == -1:
+         if data['id'] == -1 or data['id'] == colander.null:
              data.pop('id')
              if not self.is_form_empty(data):
                  model = ProjectSchema()
@@ -196,6 +196,12 @@ class DatasetsView(Workflows):
 
     @view_config(renderer="../../templates/form.pt", name="datasets")
     def handle_request(self):
+        if 'id' in self.request.POST.items():
+            project_id = self.request.POST['id']
+            session = DBSession
+            print self.form
+            self.form.methods = session.query(Method).filter_by(project_id=project_id).all()
+
         return super(DatasetsView, self).handle_request()
 
 class SubmitView(Workflows):

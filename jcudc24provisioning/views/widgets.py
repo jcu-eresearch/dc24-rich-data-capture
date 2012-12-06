@@ -215,4 +215,27 @@ class SelectWithOtherWidget(Widget):
             return null
         return pstruct
 
+class MethodSchemaWidget(Widget):
+    """
+    TODO: Create the schema designer widget - whether this is a full form generator or an info form for admins...
+    """
+    template = 'select_with_other'
+    readonly_template = 'readonly/select'
+    null_value = ''
+    default_schemas = ()
+    shared_schemas = ()
+    size = None
+    other = None
+
+    def serialize(self, field, cstruct, readonly=False):
+        if cstruct in (null, None):
+            cstruct = self.null_value
+        template = readonly and self.readonly_template or self.template
+        return field.renderer(template, field=field, cstruct=cstruct,
+            values=_normalize_choices(self.values))
+
+    def deserialize(self, field, pstruct):
+        if pstruct in (null, self.null_value):
+            return null
+        return pstruct
 

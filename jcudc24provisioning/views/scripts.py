@@ -103,7 +103,6 @@ def group_nodes(node):
     groups = []
     chilren_to_remove = []
     for child in node.children:
-
         if hasattr(child, "group_start"):
             group = child.__dict__.pop("group_start")
             group_params = {}
@@ -124,12 +123,14 @@ def group_nodes(node):
             else:
                 node.children.insert(node.children.index(child), mappings[group])
 
-        if isinstance(child, colander.MappingSchema):
-            child = group_nodes(child)
-
         if isinstance(child.typ, colander.Sequence):
             fix_sequence_schemas(child)
             group_nodes(child.children[0])
+        elif len(child.children) > 0:
+            child = group_nodes(child)
+
+
+
 
         if len(groups) > 0:
 
