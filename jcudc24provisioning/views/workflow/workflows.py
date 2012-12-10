@@ -1,3 +1,4 @@
+import copy
 from string import split
 import colander
 from deform.exception import ValidationFailure
@@ -9,9 +10,10 @@ from pyramid.view import view_config
 from colanderalchemy.types import SQLAlchemyMapping
 from jcudc24provisioning.views.layouts import Layouts
 from pyramid.renderers import get_renderer
+from models.common_schemas import SelectMappingSchema
 from models.dataset_schema import DatasetSchema
 from models.method_schema import MethodsSchema
-from models.project import DBSession, ProjectSchema, Method
+from models.project import DBSession, Project, Method, Base, Party, Dataset
 from views.scripts import convert_schema
 
 __author__ = 'Casey Bajema'
@@ -60,37 +62,76 @@ class Workflows(Layouts):
     def isDelete(self):
         return 'Delete' in self.request.POST
 
-    def is_form_empty(self, appstruct):
-        for key in appstruct:
-            if appstruct[key] is not None and appstruct[key] is not colander.null:
-                return False
+    def create_sqlalchemy_model(self, data, model_class=None, model_object=None):
+        is_data_empty = True
+        if model_object is None and model_class is not None:
+            model_object = model_class()
 
-        return True
+        if model_class is None and model_object is not None:
+            model_class = model_object._sa_instance_state.class_
+
+        if model_class is None or model_object is None:
+            raise ValueError
+
+        for key, value in data.items():
+            if hasattr(model_object, key):
+                if value is colander.null or value is None or value == 'None':
+                    continue
+                elif isinstance(value, list):
+                    for item in value:
+                        child_table_object = self.create_sqlalchemy_model(item, model_class=model_object._sa_class_manager[key].property.mapper.class_)
+
+                        if child_table_object is not None:
+                            is_data_empty = False
+                            getattr(model_object, key).append(child_table_object)
+                elif isinstance(value, dict):
+                    child_table_object = self.create_sqlalchemy_model(value, model_class=model_object._sa_class_manager[key].property.mapper.class_)
+
+                    if child_table_object is not None:
+                        setattr(model_object, key, child_table_object)
+                        is_data_empty = False
+                else:
+                    if value == False or value == 'false':
+                        value = 0
+                    elif value == True or value == 'true':
+                        value = 1
+
+                    ca_registry = model_class._sa_class_manager[key].comparator.mapper.columns._data[key]._ca_registry
+                    if ('default' not in ca_registry or not value == ca_registry['default']) and str(value) != str(getattr(model_object, key, None)):
+                        setattr(model_object, key, value)
+                        is_data_empty = False
+
+        if is_data_empty:
+            return None
+
+        return model_object
 
     def save_form(self, data):
          session = DBSession
          if data['id'] == -1 or data['id'] == colander.null:
              data.pop('id')
-             if not self.is_form_empty(data):
-                 model = ProjectSchema()
-                 model.__dict__.update(data)
+             model = self.create_sqlalchemy_model(data, model_class=Project)
+             if model is not None:
                  session.add(model)
                  session.commit()
                  data['id'] = model.id
          else:
-             model = session.query(ProjectSchema).filter_by(id=data['id']).first()
-             for key in data:
-                 if hasattr(model, key):
-                     setattr(model, key,data[key])
-                 else:
-                     print "Error: Trying to add invalid column to database"
-             session.commit()
+             model = session.query(Project).filter_by(id=data['id']).first()
+
+             # Update the model with all fields in the data
+             if self.create_sqlalchemy_model(data, model_object=model) is not None:
+                 session.commit()
+#             for key in data:
+#                 if hasattr(model, key):
+#                     setattr(model, key,data[key])
+#                 else:
+#                     print "Error: Trying to add invalid column to database"
 
     def handle_request(self):
         controls = self.request.POST.items()
 
         # If the form is being saved (there would be 1 item in controls if it is a fresh page with a project id set)
-        if len(controls) > 1:
+        if len(controls) > 0:
             # In either of the below cases get the data as a dict and get the rendered form
             try:
                 appstruct = self.form.validate(controls)
@@ -108,19 +149,22 @@ class Workflows(Layouts):
                 if self.form.use_ajax:
                     return {"page_title": 'Project Setup', "form": form, "form_only": self.form.use_ajax}
                 else:
+                    if 'id' in appstruct:
+                        location += '?id=' + str(appstruct['id'])
                     return HTTPFound(location=location)
 
             return {"page_title": 'Project Setup', "form": form, "form_only": self.form.use_ajax}
 
         # If the page has just been opened but it is set to a specific project
         appstruct = {}
-        for item in controls:
-            if item[0] == 'id':
-                id = item[1]
-                session = DBSession
-                model = session.query(ProjectSchema).filter_by(id=id).first()
-                for node in self.schema.children:
-                    appstruct[node.name] = model.__dict__[node.name]
+
+        if 'id' in  self.request.GET:
+            id = self.request.GET['id']
+            session = DBSession
+            model = session.query(Project).filter_by(id=id).first()
+            for node in self.schema.children:
+                if hasattr(model, node.name):
+                    appstruct[node.name] = getattr(model, node.name, None)
 
         return {"page_title": self.title, "form": self.form.render(appstruct), "form_only": False}
 
@@ -130,7 +174,7 @@ class SetupViews(Workflows):
 
     def __init__(self, request):
         self.request = request
-        self.schema = convert_schema(SQLAlchemyMapping(ProjectSchema, unknown='raise', ca_description=""), page='setup').bind(request=request)
+        self.schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description=""), page='setup').bind(request=request)
         self.form = Form(self.schema, action="setup", buttons=('Save',), use_ajax=False, ajax_options=redirect_options)
 
     @view_config(renderer="../../templates/form.pt", name="setup")
@@ -143,7 +187,7 @@ class DescriptionView(Workflows):
 
     def __init__(self, request):
         self.request = request
-        self.schema = convert_schema(SQLAlchemyMapping(ProjectSchema, unknown='raise',
+        self.schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise',
             ca_description="Fully describe your project to encourage other researchers to reuse your data:"\
                                        "<ul><li>The entered descriptions will be used for metadata record generation (ReDBox), provide detailed information that is relevant to the project as a whole.</li>"\
                                        "<li>Focus on what is being researched, why it is being researched and who is doing the research. The research locations and how the research is being conducted will be covered in the <i>Methods</i> and <i>Datasets</i> steps later on.</li></ul>"
@@ -161,7 +205,7 @@ class MetadataView(Workflows):
 
     def __init__(self, request):
         self.request = request
-        self.schema = convert_schema(SQLAlchemyMapping(ProjectSchema, unknown='raise', ca_description="<b>Please fill this section out completely</b> - it's purpose is to provide the majority of information for all generated metadata records so that you don't have to enter the same data more than once:"\
+        self.schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="<b>Please fill this section out completely</b> - it's purpose is to provide the majority of information for all generated metadata records so that you don't have to enter the same data more than once:"\
                                                                                                      "<ul><li>A metadata record (ReDBox) will be created for the entire project using the entered information directly.</li>"\
                                                                                                      "<li>A metadata record (ReDBox) will be created for each dataset using a combination of the below information and the information entered in the <i>Methods</i> and <i>Datasets</i> steps.</li>"\
                                                                                                      "<li>Once the project has been submitted and accepted the metadata records will be generated and exported, any further alterations will need to be entered for each record in ReDBox-Mint.</li>"\
@@ -178,7 +222,7 @@ class MethodsView(Workflows):
 
     def __init__(self, request):
         self.request = request
-        self.schema = convert_schema(SQLAlchemyMapping(ProjectSchema, unknown='raise', ca_description="Setup methods the project uses for collecting data (not individual datasets themselves as they will be setup in the next step).  Such that a type of sensor that is used to collect temperature at numerous sites would be setup <ol><li>Once within this step as a data method</li><li>As well as for each site it is used at in the next step</li></ol>This means you don't have to enter duplicate data!"), page="methods").bind(request=request)
+        self.schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="Setup methods the project uses for collecting data (not individual datasets themselves as they will be setup in the next step).  Such that a type of sensor that is used to collect temperature at numerous sites would be setup: <ol><li>Once within this step as a data method</li><li>As well as for each site it is used at in the next step</li></ol>This means you don't have to enter duplicate data!"), page="methods").bind(request=request)
         self.form = Form(self.schema, action="methods", buttons=('Save',), use_ajax=False)
 
 
@@ -191,16 +235,48 @@ class DatasetsView(Workflows):
 
     def __init__(self, request):
         self.request = request
-        self.schema = convert_schema(SQLAlchemyMapping(ProjectSchema, unknown='raise', ca_description="Add individual datasets that your project will be collecting.  This is the when and where using the selected data collection method (what, why and how).  Such that an iButton sensor that is used to collect temperature at numerous sites would have been setup once within the Methods step and should be set-up in this step for each site it is used at."), page="datasets").bind(request=request)
-        self.form = Form(self.schema, action="datasets", buttons=('Save',), use_ajax=False)
 
     @view_config(renderer="../../templates/form.pt", name="datasets")
     def handle_request(self):
-        if 'id' in self.request.POST.items():
-            project_id = self.request.POST['id']
+#        if 'id' in self.request.POST.items():
+#            project_id = self.request.POST['id']
+#            session = DBSession
+#            print self.form
+#            self.form.methods = session.query(Method).filter_by(project_id=project_id).all()
+
+        self.schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="Add individual datasets that your project will be collecting.  This is the when and where using the selected data collection method (what, why and how).  Such that an iButton sensor that is used to collect temperature at numerous sites would have been setup once within the Methods step and should be set-up in this step for each site it is used at."), page="datasets").bind(request=self.request)
+        dataset_items = self.schema.children[2].children[0].children
+
+        if 'id' in self.request.GET:
+            id = self.request.GET['id']
             session = DBSession
-            print self.form
-            self.form.methods = session.query(Method).filter_by(project_id=project_id).all()
+            methods = session.query(Method).filter_by(project_id=id).all()
+
+            method_schemas = []
+            for method in methods:
+                method_children = convert_schema(SQLAlchemyMapping(Dataset, unknown='raise')).children
+
+                if method.data_source is not None:
+                    for data_source in method_children[4].children:
+                        if data_source.name == method.data_source:
+                            method_children[4].children = [data_source]
+                            break
+                else:
+                    method_children[4].children = []
+
+                for child in method_children:
+                    if child.name == 'method_id':
+                        child.default = method.id
+                        break
+
+                method_schemas.append(colander.MappingSchema(*method_children, name=method.method_name))
+
+            method_select_schema = SelectMappingSchema(*method_schemas, title="Method")
+        else:
+            method_select_schema = SelectMappingSchema(title="Method")
+
+        self.schema.children[2].children[0].children = [method_select_schema]
+        self.form = Form(self.schema, action="datasets", buttons=('Save',), use_ajax=False)
 
         return super(DatasetsView, self).handle_request()
 
@@ -209,7 +285,7 @@ class SubmitView(Workflows):
 
     def __init__(self, request):
         self.request = request
-        self.schema = convert_schema(SQLAlchemyMapping(ProjectSchema, unknown='raise', ca_description="<b>Save:</b> Save the project as is, it doesn't need to be fully complete or valid.<br/><br/>"\
+        self.schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="<b>Save:</b> Save the project as is, it doesn't need to be fully complete or valid.<br/><br/>"\
                                                 "<b>Delete:</b> Delete the project, this can only be performed by administrators or before the project has been submitted.<br/><br/>"\
                                                 "<b>Submit:</b> Submit this project for admin approval. If there are no problems the project data will be used to create ReDBox-Mint records as well as configuring data ingestion into persistent storage<br/><br/>"\
                                                 "<b>Reopen:</b> Reopen the project for editing, this can only occur when the project has been submitted but not yet accepted (eg. the project may require updates before being approved)<br/><br/>" \

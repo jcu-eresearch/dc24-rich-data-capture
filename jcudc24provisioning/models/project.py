@@ -27,6 +27,7 @@ import os
 from zope.sqlalchemy import ZopeTransactionExtension
 from models.common_schemas import SelectMappingSchema
 from models.method_schema import DataSchemas
+from views.widgets import ConditionalCheckboxMapping
 
 config = ConfigParser.RawConfigParser()
 config.read('../../development.ini')
@@ -159,7 +160,7 @@ class Person(Base):
     email = Column(String(256), ca_missing="", ca_validator=colander.Email())
 
 relationship_types = (
-        (None, "---Select One---"), ("owner", "Owned by"), ("manager", "Managed by"), ("associated", "Associated with"),
+        (colander.null, "---Select One---"), ("owner", "Owned by"), ("manager", "Managed by"), ("associated", "Associated with"),
         ("aggregated", "Aggregated by")
         , ("enriched", "Enriched by"))
 
@@ -306,7 +307,7 @@ data_sources = (
 
 field_types = (
     ('integer', 'Integer number'),
-    ('decimal', 'Dceimal number'),
+    ('decimal', 'Decimal number'),
     ('text_input', 'Single line text'),
     ('text_area', 'Multi-line text'),
     ('checkbox', 'Checkbox'),
@@ -338,16 +339,16 @@ class MethodSchemaField(Base):
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
     method_schema_id = Column(Integer, ForeignKey('method_schema.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
-    field_type = Column(String(100), ca_title="Field Type",
+    type = Column(String(100), ca_title="Field Type",
         ca_widget=deform.widget.SelectWidget(values=field_types),
         ca_description="",
         ca_placeholder="Type of field that should be shown.")
-    field_name = Column(String(256), ca_title="Name", ca_placeholder="eg. Temperature", ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
-    custom_field_description = Column(Text(), ca_title="Description", ca_placeholder="eg. Calibrated temperature reading", ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
-    custom_field_placeholder = Column(String(256), ca_title="Example", ca_placeholder="eg. 26.3", ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
-    custom_field_default = Column(String(256), ca_title="Default Value.", ca_placeholder="Use appropriately where the user will usually enter the same value.", ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
-    custom_field_validators = Column(String(256), ca_title="Validator", ca_placeholder="eg. Numerical value with decimal places or what values are expected such as for a dropdown box", ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
-    custom_field_notes = Column(String(256), ca_title="Admin Notes", ca_placeholder="eg. Please read this field from the uploaded files, it will follow a pattern like temp:xxx.xx", ca_widget=deform.widget.TextAreaWidget(css_class="full_width"))
+    name = Column(String(256), ca_title="Name", ca_placeholder="eg. Temperature", ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
+    description = Column(Text(), ca_title="Description", ca_placeholder="eg. Calibrated temperature reading", ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
+    placeholder = Column(String(256), ca_title="Example", ca_placeholder="eg. 26.3", ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
+    default = Column(String(256), ca_title="Default Value.", ca_placeholder="Use appropriately where the user will usually enter the same value.", ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
+    validators = Column(String(256), ca_title="Validator", ca_placeholder="eg. Numerical value with decimal places or what values are expected such as for a dropdown box", ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
+    notes = Column(String(256), ca_title="Admin Notes", ca_placeholder="eg. Please read this field from the uploaded files, it will follow a pattern like temp:xxx.xx", ca_widget=deform.widget.TextAreaWidget(css_class="full_width"))
 
 class MethodWebsite(Base):
     order_counter = itertools.count()
@@ -374,16 +375,21 @@ class MethodSchema(Base):
     template_schema = Column(Boolean, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter)) # These are system schemas that users are encouraged to extend.
 
     name = Column(String(256), ca_order=next(order_counter), ca_title="Schema Name", ca_placeholder="eg. Temperature with sensor XYZ calibration data", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
-    parents = relationship("MethodSchema", secondary=method_schema_to_schema, primaryjoin=id==method_schema_to_schema.c.parent_id, secondaryjoin=id==method_schema_to_schema.c.child_id)
+    share_schema = Column(Boolean, ca_order=next(order_counter), ca_default=False) # These are system schemas that users are encouraged to extend.
+    parents = relationship("MethodSchema",ca_order=next(order_counter),
+        secondary=method_schema_to_schema,
+        primaryjoin=id==method_schema_to_schema.c.child_id,
+        secondaryjoin=id==method_schema_to_schema.c.parent_id,
+        ca_description="TODO: This is where the default and shared schemas will be selectable from")
     custom_fields = relationship("MethodSchemaField", ca_order=next(order_counter), ca_child_title="Custom Field",
-        ca_description="Provide details of the schema field and how it should be displayed.")
+        ca_description="Provide details of the schema field and how it should be displayed.<br /><br />TODO:  This needs to be displayed better - I'm thinking a custom template that has a sidebar for options and the fields are displayed 1 per line.  All fields will be shown here (including fields from parent/extended schemas selected above).")
 
 class Method(Base):
     order_counter = itertools.count()
 
     __tablename__ = 'method'
     id = Column(Integer, ca_order=next(order_counter), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    project_id = Column(Integer, ForeignKey('project.id'), ca_order=next(order_counter), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('project.id'), ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget())
 
 
     copy_previous_method = Column(String(256), ca_order=next(order_counter), ca_title="Use a previously created method as a template",
@@ -391,27 +397,24 @@ class Method(Base):
         ca_placeholder="TODO: Autocomplete from previous projects methods (based on method name)",
         ca_description="Use a previously created method as a template, <b>this will overwrite all fields on this page</b> " \
                            "with the content in the selected method.<br />" \
-                           "Usage: If the same sensor is used for 2 projects you don't need to recreate the same method twice!")
+                           "Usage: If the same method (eg. sensor) is used for 2 projects you don't need to recreate the same method twice!")
 
     data_type = relationship("MethodSchema", ca_order=next(order_counter), uselist=False,
         ca_description="<b>Under Development - Needs a new widget to provide required functionality!</b><br/><br/>The type of data that is being collected - <b>Please extend the provided schemas where possible only use the custom fields for additional information</b> (eg. specific calibration data).</br></br>" \
                     "Extending the provided schemas allows your data to be found in a generic search (eg. if you use the temperature schema then users will find your data " \
                     "when searching for temperatures, but if you make the schema using custom fields (even if it is the same), then it won't show up in the temperature search results).")
 
-    form_data_source = Column(Boolean(), ca_order = next(order_counter),
-        ca_group_start="data_source",ca_group_description="How does the data get transferred into this system",
-        ca_group_placeholder="Select the easiest method for your project.  If all else fails, manual file uploads will work for all data types.",
-        ca_description="<b>Web Form/Manual: </b>Only use an online form accessible through this interface to manually upload data (Other data sources also include this option).")
-    poll_data_source = Column(Boolean(), ca_order = next(order_counter),
-       ca_description="<b>Poll external file system: </b>Setup automatic polling of an external file system from a URL location, when new files of the correct type and naming convention are found they are ingested.")
-    push_data_source = Column(Boolean(), ca_order = next(order_counter),
-        ca_description="<b><i>(Advanced)</i> Push to this website through the API:</b>  Use the XMLRPC API to directly push data into persistent storage, on project acceptance you will be emailed your API key and instructions.")
-    sos_data_source = Column(Boolean(), ca_order = next(order_counter),
-        ca_description="<b>Sensor Observation Service: </b>Set-up a sensor that implements the Sensor Observation Service (SOS) to push data into this systems SOS server.")
-    dataset_data_source = Column(Boolean(), ca_order = next(order_counter),
-        ca_group_end="data_source",
-        ca_description="<b><i>(Advanced)</i> Output from other dataset: </b>This allows for advanced/chained processing of data, where the results of another dataset can be further processed and stored as required.")
+    data_sources=(
+        ("form_data_source","<b>Web Form/Manual:</b> Only use an online form accessible through this interface to manually upload data (Other data sources also include this option)."),
+        ("poll_data_source","<b>Poll external file system:</b> Setup automatic polling of an external file system from a URL location, when new files of the correct type and naming convention are found they are ingested."),
+        ("push_data_source","<b><i>(Advanced)</i> Push to this website through the API:</b> Use the XMLRPC API to directly push data into persistent storage, on project acceptance you will be emailed your API key and instructions."),
+        ("sos_data_source","<b>Sensor Observation Service:</b> Set-up a sensor that implements the Sensor Observation Service (SOS) to push data into this systems SOS server."),
+        ("dataset_data_source","<b><i>(Advanced)</i> Output from other dataset:</b> Output from other dataset: </b>This allows for advanced/chained processing of data, where the results of another dataset can be further processed and stored as required."),
+    )
 
+    data_source =  Column(String(50), ca_order = next(order_counter), ca_widget=deform.widget.RadioChoiceWidget(values=data_sources),
+        ca_description="How does the data get transferred into this system",
+        ca_placeholder="Select the easiest method for your project.  If all else fails, manual file uploads will work for all data types.")
 
     method_name = Column(String(256), ca_order=next(order_counter),
         ca_placeholder="Searchable identifier for this input method (eg. Invertebrate observations)",
@@ -485,34 +488,43 @@ class Dataset(Base):
     order_counter = itertools.count()
 
     __tablename__ = 'dataset'
-    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    project_id = Column(Integer, ForeignKey('project.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    method_id = Column(Integer, ForeignKey('method.id'), nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter),
+#        ca_group_start="method", ca_group_title="Method", ca_group_schema=SelectMappingSchema,
+        )
+    project_id = Column(Integer, ForeignKey('project.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter),
+#        ca_group_start="test_method", ca_group_title="Test Method",
+        )
+    method_id = Column(Integer, ForeignKey('method.id'), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
     description = Column(Text(),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
         ca_placeholder="Provide a textual description of the dataset being collected.",
         ca_description="Provide a dataset specific description that will be appended to the project description in metadata records.")
 
-#    form_data_source_config = relationship("FormDataSource", ca_order=next(order_counter), uselist=False,)
-    poll_data_source_config = relationship("PollDataSource", ca_order=next(order_counter), uselist=False,
-        ca_group_start="data_source_configuration", ca_group_widget=deform.widget.MappingWidget(template="data_source_config_mapping"), ca_group_description="<b>TODO: Specialised template/widget to display the data source fonfiguration correclty</b><br/><br/>Configure how this dataset will ingest data.")
-    push_data_source_config = relationship("PushDataSource", ca_order=next(order_counter), uselist=False,)
-    sos_data_source_config = relationship("SOSDataSource", ca_order=next(order_counter), uselist=False,)
-    dataset_data_source_config = relationship("DatasetDataSource", ca_order=next(order_counter), uselist=False,
+    form_data_source = relationship("FormDataSource", ca_order=next(order_counter), uselist=False,
+        ca_group_start="data_source_configuration", ca_group_collapsed=False, ca_group_widget=deform.widget.MappingWidget(template="data_source_config_mapping"), ca_group_description="<b>TODO: Specialised template/widget to display the data source configuration correctly</b><br/><br/>Configure how this dataset will ingest data.")
+    poll_data_source = relationship("PollDataSource", ca_order=next(order_counter), uselist=False,)
+    push_data_source = relationship("PushDataSource", ca_order=next(order_counter), uselist=False,)
+    sos_data_source = relationship("SOSDataSource", ca_order=next(order_counter), uselist=False,)
+    dataset_data_source = relationship("DatasetDataSource", ca_order=next(order_counter), uselist=False,
         ca_group_end="data_source_configuration")
 
-    time_period_description = Column(String(256), ca_order=next(order_counter), ca_title="Time Period (description)", ca_page="metadata",
+    publish_dataset = Column(Boolean, ca_title="Publish Dataset to ReDBox", ca_default=True, ca_order=next(order_counter),
+#        ca_widget=ConditionalCheckboxMapping(),
+        ca_description="Publish a metadata record to ReDBox for this dataset - leave this selected unless the data isn't relevant to anyone else (eg. Raw data where other users " \
+                       "will only search for the processed data).  <b>TODO:  Hide the Coverage section when checkbox isn't selected.</b>")
+
+    time_period_description = Column(String(256), ca_order=next(order_counter), ca_title="Time Period (description)",
         ca_group_start="coverage", ca_group_collapsed=False,
         ca_placeholder="eg. Summers of 1996-2006", ca_missing="",
         ca_description="Provide a textual representation of the time period such as world war 2 or more information on the time within the dates provided.")
-    date_from = Column(Date(), ca_order=next(order_counter), ca_placeholder="", ca_title="Date From", ca_page="metadata",
+    date_from = Column(Date(), ca_order=next(order_counter), ca_placeholder="", ca_title="Date From",
         ca_description='The date that data will start being collected.')
     date_to = Column(Date(), ca_order=next(order_counter), ca_title="Date To", ca_page="metadata",
         ca_description='The date that data will stop being collected.', ca_missing=colander.null)
-    location_description = Column(String(512), ca_order=next(order_counter), ca_title="Location (description)", ca_page="metadata",
+    location_description = Column(String(512), ca_order=next(order_counter), ca_title="Location (description)",
         ca_description="Textual description of the location such as Australian Wet Tropics or further information such as elevation."
         , ca_missing="", ca_placeholder="eg. Australian Wet Tropics, Great Barrier Reef, 1m above ground level")
-    coverage_map = relationship('Location', ca_order=next(order_counter), ca_title="Location Map", ca_widget=deform.widget.SequenceWidget(template='map_sequence'), ca_page="metadata",
+    coverage_map = relationship('Location', ca_order=next(order_counter), ca_title="Location Map", ca_widget=deform.widget.SequenceWidget(template='map_sequence'),
         ca_group_end="coverage", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
         ca_missing=colander.null, ca_description=
         "<p>Geospatial location relevant to the research dataset/collection, registry/repository, catalogue or index. This may describe a geographical area where data was collected, a place which is the subject of a collection, or a location which is the focus of an activity, eg. coordinates or placename.</p>"\
@@ -559,7 +571,7 @@ class Dataset(Base):
                     "requirements and what your uploaded script does, or what you will need help with.")
 
     custom_processor_script = Column(String(256),ca_order=next(order_counter), ca_title="Upload custom processing script", ca_missing = colander.null,
-        ca_group_end="processing",
+        ca_group_end="method",
         ca_description="Upload a custom Python script to "\
             "process the data in some way.  The processing script API can be found "\
             "<a title=\"Python processing script API\"href=\"\">here</a>.")
@@ -579,7 +591,7 @@ class ProjectNote(Base):
 
 choices = ['JCU Name 1', 'JCU Name 2', 'JCU Name 3', 'JCU Name 4']
 
-class ProjectSchema(Base):
+class Project(Base):
     order_counter = itertools.count()
 
     __tablename__ = 'project'

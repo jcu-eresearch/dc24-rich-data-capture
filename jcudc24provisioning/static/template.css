@@ -291,7 +291,7 @@ input[type=text], input[type=text].half_width {
 
 .description.first {
     /*background: #fff;*/
-    padding: 7px 10px;
+    /*padding: 7px 10px;*/
     /*border: 1px solid #00AEEF;*/
     /*box-shadow: #00AEEF 0px 0px 1px;*/
 }
@@ -309,7 +309,7 @@ input[type=text], input[type=text].half_width {
     margin-bottom: 8px;
     margin-bottom: 8px;
     margin-top: 5px;
-    padding: 7px 10px;
+    /*padding: 7px 10px;*/
     /*border: 1px solid #bfbfbf;*/
 
     /*-webkit-border-radius: 3px;*/
@@ -405,4 +405,9 @@ span.collapse_icon {
 
 .deform label {
     font-size: 1em;
+}
+
+.deform input[type=radio] {
+    border: 1px solid red;
+    display:block;
 }

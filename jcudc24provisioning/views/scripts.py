@@ -111,11 +111,15 @@ def group_nodes(node):
                 if param[:6] == 'group_':
                     group_params[param[6:]] = child.__dict__.pop(param)
 
-            group = child.__dict__["group_start"] = group # Need to re-add the group_start attribute for the logic below.
+            child.__dict__["group_start"] = group # Need to re-add the group_start attribute for the logic below.
 
             groups.append(group)
-            mappings[group] = colander.MappingSchema(name=group, collapse_group=group,
-                **group_params)
+            if 'schema' not in group_params:
+                mappings[group] = colander.MappingSchema(name=group, collapse_group=group,
+                    **group_params)
+            else:
+                mappings[group] = group_params.pop('schema')(name=group, collapse_group=group,
+                    **group_params)
 
             if len(groups) > 1:
                 parent_group = groups[groups.index(group) - 1]

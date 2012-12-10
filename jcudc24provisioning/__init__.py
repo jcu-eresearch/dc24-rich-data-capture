@@ -8,7 +8,7 @@ from pyramid.config import Configurator
 from pkg_resources import resource_filename
 from pyramid_beaker import session_factory_from_settings, set_cache_regions_from_settings
 from sqlalchemy.engine import engine_from_config
-from models.project import ProjectSchema, DBSession, Base
+from models.project import Project, DBSession, Base
 
 __author__ = 'Casey Bajema'
 

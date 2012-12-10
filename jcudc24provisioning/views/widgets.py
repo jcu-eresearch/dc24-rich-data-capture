@@ -1,7 +1,4 @@
 from colander import null, Invalid
-import colander
-import deform
-from deform.field import Field
 from deform.widget import Widget, _normalize_choices
 
 __author__ = 'Casey'
@@ -215,27 +212,67 @@ class SelectWithOtherWidget(Widget):
             return null
         return pstruct
 
+
 class MethodSchemaWidget(Widget):
     """
     TODO: Create the schema designer widget - whether this is a full form generator or an info form for admins...
     """
     template = 'select_with_other'
     readonly_template = 'readonly/select'
-    null_value = ''
-    default_schemas = ()
-    shared_schemas = ()
-    size = None
-    other = None
+    item_template = 'mapping_item'
+    readonly_item_template = 'readonly/mapping_item'
+    error_class = None
+    category = 'structural'
+    requirements = ( ('deform', None), )
+    user_id = -1
+
+    def __init__(self, method_id):
+        self.user_id = method_id
+
+    def get_template_schemas(self):
+        return []
+
+    def get_shared_schemas(self):
+        return []
+
+    def get_own_schemas(self):
+        return []
 
     def serialize(self, field, cstruct, readonly=False):
-        if cstruct in (null, None):
-            cstruct = self.null_value
-        template = readonly and self.readonly_template or self.template
-        return field.renderer(template, field=field, cstruct=cstruct,
-            values=_normalize_choices(self.values))
+            if cstruct in (null, None):
+                cstruct = {}
+            template = readonly and self.readonly_template or self.template
+            return field.renderer(template, field=field, cstruct=cstruct, null=null)
 
     def deserialize(self, field, pstruct):
-        if pstruct in (null, self.null_value):
+        error = None
+
+        result = {}
+
+        if pstruct is null:
+            pstruct = {}
+
+        checkbox_schema = pstruct.get(self.checkbox_element, null)
+        if checkbox_schema is null:
             return null
-        return pstruct
+
+        result[self.checkbox_element] = True
+
+        for num, subfield in enumerate(field.children):
+            name = subfield.name
+            subval = pstruct.get(name, null)
+
+            try:
+                result[name] = subfield.deserialize(subval)
+            except Invalid as e:
+                result[name] = e.value
+                if error is None:
+                    error = Invalid(field.schema, value=result)
+                error.add(e, num)
+
+        if error is not None:
+            raise error
+
+        result[self.checkbox_element] = True
+        return result
 
