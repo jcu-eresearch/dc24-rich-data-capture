@@ -63,6 +63,8 @@ class Workflows(Layouts):
         return 'Delete' in self.request.POST
 
     def create_sqlalchemy_model(self, data, model_class=None, model_object=None):
+#        Need to update this to use the passed in model where possible - it is creating new models which is being commited to the db as insert instead of update
+
         is_data_empty = True
         if model_object is None and model_class is not None:
             model_object = model_class()
@@ -127,6 +129,29 @@ class Workflows(Layouts):
 #                 else:
 #                     print "Error: Trying to add invalid column to database"
 
+    def convert_sqlalchemy_model_to_data(self, model, schema=None):
+#        model_class =
+
+        data = {}
+
+        for node in schema:
+            if hasattr(model, node.name):
+                value = getattr(model, node.name, None)
+                if isinstance(value, list):
+                    node_list = []
+                    for item in value:
+                        node_list.append(self.convert_sqlalchemy_model_to_data(item,  node.children[0]))
+
+                    data[node.name] = node_list
+                    # TODO: Check that 1:1 mappings don't cause errors here
+                elif len(node.children):
+                    data[node.name] = self.convert_sqlalchemy_model_to_data(value,  node)
+
+                else:
+                    data[node.name] = value
+
+        return data
+
     def handle_request(self):
         controls = self.request.POST.items()
 
@@ -159,12 +184,10 @@ class Workflows(Layouts):
         appstruct = {}
 
         if 'id' in  self.request.GET:
-            id = self.request.GET['id']
+            project_id = int(self.request.GET['id'])
             session = DBSession
-            model = session.query(Project).filter_by(id=id).first()
-            for node in self.schema.children:
-                if hasattr(model, node.name):
-                    appstruct[node.name] = getattr(model, node.name, None)
+            model = session.query(Project).filter_by(id=project_id).first()
+            appstruct = self.convert_sqlalchemy_model_to_data(model, self.schema)
 
         return {"page_title": self.title, "form": self.form.render(appstruct), "form_only": False}
 
@@ -248,7 +271,7 @@ class DatasetsView(Workflows):
         dataset_items = self.schema.children[2].children[0].children
 
         if 'id' in self.request.GET:
-            id = self.request.GET['id']
+            id = int(self.request.GET['id'])
             session = DBSession
             methods = session.query(Method).filter_by(project_id=id).all()
 
@@ -269,7 +292,7 @@ class DatasetsView(Workflows):
                         child.default = method.id
                         break
 
-                method_schemas.append(colander.MappingSchema(*method_children, name=method.method_name))
+                method_schemas.append(colander.MappingSchema(*method_children, name=(method.method_name and method.method_name or 'Un-named')))
 
             method_select_schema = SelectMappingSchema(*method_schemas, title="Method")
         else:

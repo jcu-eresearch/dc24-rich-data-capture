@@ -389,15 +389,15 @@ class Method(Base):
 
     __tablename__ = 'method'
     id = Column(Integer, ca_order=next(order_counter), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    project_id = Column(Integer, ForeignKey('project.id'), ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('project.id'), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 
 
     copy_previous_method = Column(String(256), ca_order=next(order_counter), ca_title="Use a previously created method as a template",
         ca_widget=deform.widget.AutocompleteInputWidget(size=250, min_length=1, values=('Method A','Method B'), template="template_autocomplete_input"),
-        ca_placeholder="TODO: Autocomplete from previous projects methods (based on method name)",
         ca_description="Use a previously created method as a template, <b>this will overwrite all fields on this page</b> " \
                            "with the content in the selected method.<br />" \
-                           "Usage: If the same method (eg. sensor) is used for 2 projects you don't need to recreate the same method twice!")
+                           "Usage: If the same method (eg. sensor) is used for 2 projects you don't need to recreate the same method twice!" \
+                           "<br /><br /><b>TODO: Rework this into a list of admin provided templates.</b>")
 
     data_type = relationship("MethodSchema", ca_order=next(order_counter), uselist=False,
         ca_description="<b>Under Development - Needs a new widget to provide required functionality!</b><br/><br/>The type of data that is being collected - <b>Please extend the provided schemas where possible only use the custom fields for additional information</b> (eg. specific calibration data).</br></br>" \
