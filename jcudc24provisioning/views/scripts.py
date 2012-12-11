@@ -24,6 +24,87 @@ __author__ = 'Casey Bajema'
 #
 #    return schema
 
+def create_sqlalchemy_model(data, model_class=None, model_object=None):
+    is_data_empty = True
+    if model_object is None and model_class is not None:
+        model_object = model_class()
+
+    if model_class is None and model_object is not None:
+        model_class = model_object._sa_instance_state.class_
+
+    if model_class is None or model_object is None:
+        raise ValueError
+
+    for key, value in data.items():
+        if hasattr(model_object, key):
+            if value is colander.null or value is None or value == 'None':
+                continue
+            elif isinstance(value, list):
+                for item in value:
+                    current_object = None
+                    if 'id' in item and (isinstance(item['id'], (long, int)) or (isinstance(item['id'], basestring) and item['id'].isnumeric())):
+                        for model_item in getattr(model_object, key, []):
+                            print "ID's: " + str(getattr(model_item, 'id', None)) + " : " + str(item['id'])
+                            current_object_id = getattr(model_item, 'id', None)
+                            print (isinstance(current_object_id, (int, long)) or (isinstance(current_object_id, basestring) and current_object_id.isnumeric()))
+                            if (isinstance(current_object_id, (int, long)) or (isinstance(current_object_id, basestring) and current_object_id.isnumeric())) and int(getattr(model_item, 'id', None)) == int(item['id']):
+                                current_object = model_item
+                                print "Current Object: " + str(current_object)
+                                break
+
+                    child_table_object = create_sqlalchemy_model(item, model_class=model_object._sa_class_manager[key].property.mapper.class_, model_object=current_object)
+
+                    if child_table_object is not None:
+                        is_data_empty = False
+                        getattr(model_object, key).append(child_table_object)
+            elif isinstance(value, dict):
+                current_object = None
+                if getattr(model_object, key, None) is not None:
+                    current_object = getattr(model_object, key, None)
+
+                child_table_object = create_sqlalchemy_model(value, model_class=model_object._sa_class_manager[key].property.mapper.class_, model_object=current_object)
+
+                if child_table_object is not None:
+                    setattr(model_object, key, child_table_object)
+                    is_data_empty = False
+            else:
+                if value == False or value == 'false':
+                    value = 0
+                elif value == True or value == 'true':
+                    value = 1
+
+                ca_registry = model_class._sa_class_manager[key].comparator.mapper.columns._data[key]._ca_registry
+                if ('default' not in ca_registry or not value == ca_registry['default']) and str(value) != str(getattr(model_object, key, None)):
+                    setattr(model_object, key, value)
+                    is_data_empty = False
+
+    if is_data_empty:
+        return None
+
+    return model_object
+
+def convert_sqlalchemy_model_to_data(model, schema=None):
+#        model_class =
+
+    data = {}
+
+    for node in schema:
+        if hasattr(model, node.name):
+            value = getattr(model, node.name, None)
+            if isinstance(value, list):
+                node_list = []
+                for item in value:
+                    node_list.append(convert_sqlalchemy_model_to_data(item,  node.children[0]))
+
+                data[node.name] = node_list
+            elif len(node.children):
+                data[node.name] = convert_sqlalchemy_model_to_data(value,  node)
+
+            else:
+                data[node.name] = value
+
+    return data
+
 def convert_schema(schema, **kw):
     schema.title = ''
 

@@ -58,7 +58,7 @@ function submitClearsDefaultValues(oid, default_text) {
     var form = document.getElementById('deform');
     default_text = escapeQuotes(default_text);
 
-    var submit_text = "if (document.getElementById('" + oid + "').value == '" + default_text + "') {document.getElementById('" + oid + "').value = '';}";
+    var submit_text = "if (document.getElementById('" + oid + "') != null && document.getElementById('" + oid + "').value == '" + default_text + "') {document.getElementById('" + oid + "').value = '';}";
 
     if (form.getAttribute('onsubmit') != null) {
         submit_text += form.getAttribute('onsubmit');

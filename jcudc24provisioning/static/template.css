@@ -340,7 +340,7 @@ div.description p {
     color: #999;
 }
 
-.hidden, .description.first.hidden, li.hidden {
+.deform .hidden, .description.first.hidden, li.hidden {
     display: none;
 }
 

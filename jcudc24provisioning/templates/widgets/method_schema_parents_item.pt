@@ -1,0 +1,38 @@
+<li style="margin:0px; padding:0px;margin-left: 5px;"
+    id="item-${field.oid}"
+    tal:omit-tag="field.widget.hidden"
+    i18n:domain="deform"
+    tal:condition="field.name == 'name' or field.name == 'id'"
+    tal:attributes="title field.schema.default or '';
+                    class field.name!='name' and 'hidden' or nothing">
+
+    <!-- mapping_item -->
+
+    <span tal:content="structure field.serialize(cstruct, readonly=True)" />
+
+
+    <p tal:condition="field.error and not field.widget.hidden and not field.typ.__class__.__name__=='Mapping'"
+       tal:define="errstr 'error-%s' % field.oid"
+       tal:repeat="msg field.error.messages()"
+       tal:attributes="id repeat.msg.index==0 and errstr or
+   ('%s-%s' % (errstr, repeat.msg.index))"
+       class="${field.widget.error_class}"
+       i18n:translate="">${msg}</p>
+
+    <script type="text/javascript">
+        deform.addCallback(
+                '${field.oid}',
+                function (oid) {
+                    var list_item = $("#item-" + oid);
+                    if (list_item.children(".structural_title_content").length > 0) {
+                        var structural_element = list_item.children(".structural_title_content")[0];
+                        var title_text = structural_element.innerHTML;
+                        list_item[0].title = title_text;
+                    }
+                });
+    </script>
+
+    <!-- /mapping_item -->
+</li>
+
+

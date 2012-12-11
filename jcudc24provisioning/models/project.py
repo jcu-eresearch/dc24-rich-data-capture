@@ -1,9 +1,8 @@
 import ConfigParser
 from collections import OrderedDict
 import itertools
-from beaker.cache import cache_region
 import colander
-from sqlalchemy.engine import create_engine, engine_from_config
+from sqlalchemy.engine import create_engine
 from sqlalchemy.schema import ForeignKey, Table
 from colanderalchemy.declarative import Column, relationship
 import deform
@@ -22,12 +21,7 @@ from sqlalchemy.orm import (
     scoped_session,
     sessionmaker,
     mapper)
-import os
-
-from zope.sqlalchemy import ZopeTransactionExtension
-from models.common_schemas import SelectMappingSchema
-from models.method_schema import DataSchemas
-from views.widgets import ConditionalCheckboxMapping
+from views.widgets import MethodSchemaWidget
 
 config = ConfigParser.RawConfigParser()
 config.read('../../development.ini')
@@ -371,7 +365,7 @@ class MethodSchema(Base):
 
     __tablename__ = 'method_schema'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    method_id = Column(Integer, ForeignKey('method.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    method_id = Column(Integer, ForeignKey('method.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     template_schema = Column(Boolean, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter)) # These are system schemas that users are encouraged to extend.
 
     name = Column(String(256), ca_order=next(order_counter), ca_title="Schema Name", ca_placeholder="eg. Temperature with sensor XYZ calibration data", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
@@ -380,6 +374,8 @@ class MethodSchema(Base):
         secondary=method_schema_to_schema,
         primaryjoin=id==method_schema_to_schema.c.child_id,
         secondaryjoin=id==method_schema_to_schema.c.parent_id,
+        ca_widget=deform.widget.SequenceWidget(template="method_schema_parents_sequence"),
+        ca_child_widget=deform.widget.MappingWidget(template="ca_sequence_mapping", item_template="method_schema_parents_item"),
         ca_description="TODO: This is where the default and shared schemas will be selectable from")
     custom_fields = relationship("MethodSchemaField", ca_order=next(order_counter), ca_child_title="Custom Field",
         ca_description="Provide details of the schema field and how it should be displayed.<br /><br />TODO:  This needs to be displayed better - I'm thinking a custom template that has a sidebar for options and the fields are displayed 1 per line.  All fields will be shown here (including fields from parent/extended schemas selected above).")
@@ -399,7 +395,7 @@ class Method(Base):
                            "Usage: If the same method (eg. sensor) is used for 2 projects you don't need to recreate the same method twice!" \
                            "<br /><br /><b>TODO: Rework this into a list of admin provided templates.</b>")
 
-    data_type = relationship("MethodSchema", ca_order=next(order_counter), uselist=False,
+    data_type = relationship("MethodSchema", ca_order=next(order_counter), uselist=False, ca_widget=MethodSchemaWidget(),
         ca_description="<b>Under Development - Needs a new widget to provide required functionality!</b><br/><br/>The type of data that is being collected - <b>Please extend the provided schemas where possible only use the custom fields for additional information</b> (eg. specific calibration data).</br></br>" \
                     "Extending the provided schemas allows your data to be found in a generic search (eg. if you use the temperature schema then users will find your data " \
                     "when searching for temperatures, but if you make the schema using custom fields (even if it is the same), then it won't show up in the temperature search results).")
@@ -588,6 +584,35 @@ class ProjectNote(Base):
         ca_placeholder="eg. Please enter all metadata, the supplied processing script has errors, please extend the existing temperature data type so that your data is searchable, etc..."
         , ca_widget=deform.widget.TextAreaWidget(rows=3))
 
+class ProjectTemplate(Base):
+    """
+    Indicate an existing project is a template that others can use to pre-populate their projects
+    """
+    __tablename__ = 'project_template'
+    order_counter = itertools.count()
+    project_id = Column(Integer, ForeignKey('project.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+
+class DatasetTemplate(Base):
+    """
+    Indicate that a dataset is a template that users can pre-populate datasets with.
+
+    This is only intended to be used by method templates
+    """
+    __tablename__ = 'dataset_template'
+    order_counter = itertools.count()
+    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget(), ca_missing=-1)
+    dataset_id = Column(Integer, ForeignKey('dataset.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    method_template_id = Column(Integer, ForeignKey('method_template.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+
+class MethodTemplate(Base):
+    """
+    Method templates that can be used to pre-populate a method with as well as datasets created for that method.
+    """
+    __tablename__ = 'method_template'
+    order_counter = itertools.count()
+    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget(), ca_missing=-1)
+    method_id = Column(Integer, ForeignKey('method.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    dataset_templates = relationship('DatasetTemplate')
 
 choices = ['JCU Name 1', 'JCU Name 2', 'JCU Name 3', 'JCU Name 4']
 

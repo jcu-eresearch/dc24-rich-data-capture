@@ -1,5 +1,6 @@
 from colander import null, Invalid
 from deform.widget import Widget, _normalize_choices
+from views.scripts import convert_sqlalchemy_model_to_data
 
 __author__ = 'Casey'
 
@@ -217,30 +218,33 @@ class MethodSchemaWidget(Widget):
     """
     TODO: Create the schema designer widget - whether this is a full form generator or an info form for admins...
     """
-    template = 'select_with_other'
-    readonly_template = 'readonly/select'
-    item_template = 'mapping_item'
-    readonly_item_template = 'readonly/mapping_item'
+    template = 'method_schema'
+    readonly_template = 'readonly/method_schema'
+    item_template = 'method_schema_item'
+    readonly_item_template = 'readonly/method_schema_item'
     error_class = None
     category = 'structural'
     requirements = ( ('deform', None), )
     user_id = -1
 
-    def __init__(self, method_id):
-        self.user_id = method_id
-
-    def get_template_schemas(self):
-        return []
-
-    def get_shared_schemas(self):
-        return []
-
-    def get_own_schemas(self):
-        return []
+#    def __init__(self, user_id):
+#        self.user_id = user_id
 
     def serialize(self, field, cstruct, readonly=False):
             if cstruct in (null, None):
                 cstruct = {}
+
+#            for child in field.children:
+#                if child.name == 'parents':
+#                    children_to_remove = []
+#                    for parent_item in child.children[0].children:
+#                        if parent_item.name != "name" and parent_item.name != 'id':
+#                            print parent_item
+#                            children_to_remove.append(parent_item)
+#
+#                    for parent_item in children_to_remove:
+#                        child.children[0].children.remove(parent_item)
+
             template = readonly and self.readonly_template or self.template
             return field.renderer(template, field=field, cstruct=cstruct, null=null)
 
@@ -252,11 +256,19 @@ class MethodSchemaWidget(Widget):
         if pstruct is null:
             pstruct = {}
 
-        checkbox_schema = pstruct.get(self.checkbox_element, null)
-        if checkbox_schema is null:
-            return null
+        # Convert the list of selected parent id's into a list of sqlalchemy parent objects in appstruct form.
+        if 'parents' in pstruct:
+            parents = []
+            for parent_id in pstruct['parents']:
+                parents.append(convert_sqlalchemy_model_to_data(field.view.get_schema(parent_id)))
 
-        result[self.checkbox_element] = True
+            pstruct['parents'] = parents
+
+        # Remove parent fields from the list of custom fields as they will be inherited through the parent 'link'
+        if 'custom_field' in pstruct:
+            for custom_field in pstruct['custom_fields']:
+                if custom_field.parent_field:
+                    pstruct.pop(custom_field)
 
         for num, subfield in enumerate(field.children):
             name = subfield.name
@@ -273,6 +285,5 @@ class MethodSchemaWidget(Widget):
         if error is not None:
             raise error
 
-        result[self.checkbox_element] = True
         return result
 

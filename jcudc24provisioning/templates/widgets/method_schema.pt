@@ -1,0 +1,66 @@
+<fieldset id="mapping-${field.oid}" i18n:domain="deform"
+          tal:attributes="class 'deformMappingFieldset ' + str((field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and ('collapsible-'+str(field.schema.__dict__.get('collapse_group')) or nothing))">
+    <!-- mapping -->  <!--<legend 1tal:condition="field.schema.__dict__.get('collapsed')"><span class="collapse_icon">+ </span>${field.title}</legend>-->
+    <legend class="collapsible"
+            tal:condition="(field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and field.title"
+            tal:define="symbol (field.schema.__dict__.get('collapsed') == True and '+') or '-'">
+            <span onclick="toggleCollapse(this.parentNode, '${field.schema.__dict__.get('collapse_group')}');" class="collapse_icon">${symbol}</span> ${field.title} [<a class="expand_all" onclick="expandAll('${field.schema.__dict__.get('collapse_group')}');">Expand All</a>/<a onclick="collapseAll('${field.schema.__dict__.get('collapse_group')}');" class="collapse_all">Collapse All</a>]
+    </legend>
+    <legend tal:condition="not (field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and field.title">
+        ${field.title}
+    </legend>
+        <!--  Standard mapping fields  -->
+        <ul tal:attributes="style ('display: ' + str(field.schema.__dict__.get('collapsed') == True and 'none'));
+                          class str((field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and 'collapsible_items' or nothing)">
+            <li class="errorLi" tal:condition="field.errormsg">
+                <h3 class="errorMsgLbl" i18n:translate="">There was a problem with this section</h3>
+
+                <p class="errorMsg">${field.errormsg}</p>
+            </li>
+            <li class="section description" tal:condition="field.description">
+                <div id="desc-${field.oid}" tal:content="structure field.description"></div>
+            </li>
+            <input type="hidden" name="__start__" value="${field.name}:mapping"/>
+
+            <tal:block tal:define="rndr field.renderer;
+                             tmpl field.widget.item_template"
+                tal:repeat="f field.children">
+                <!--<span tal:attributes="class (f.name == 'custom_fields') and 'hidden' or nothing">-->
+                    <span tal:replace="structure rndr(tmpl,field=f,cstruct=cstruct.get(f.name,null))" />
+                <!--</span>-->
+            </tal:block>
+            <input type="hidden" name="__end__" value="${field.name}:mapping"/>
+        </ul>
+        <!-- /mapping -->
+
+        <!--  Schema generator  -->
+        <!--<div id="schema_field_wrapper" style="display: relative;">-->
+            <!--<div id="schema_field_sidebar" style="float: left; width: 20%; border: 1px solid blue;">-->
+
+            <!--</div>-->
+            <!--<div id="schema_fields" style="float: left; width: 75%; border: 1px solid red;">-->
+            <!--</div>-->
+        <!--</div>-->
+
+    <script type="text/javascript" tal:condition="(field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False)">
+        deform.addCallback(
+                '${field.oid}',
+                function (oid) {
+//                    var collapse_span = $("#mapping-" + oid).find(".collapse_icon");
+//                    if (collapse_span.length <= 0) {
+//                        return;
+//                    }
+//
+//                    var collapsed = collapse_span.html().match(/\-/) == null;
+//                    var group = $("#mapping-" + oid)[0].className.split(" ")[1].split("-")[1];
+//                    if (collapsed == false && group != "None") {
+//                        var group_items = $(".collapsible-" + group + "[id!=mapping-" + oid + "]");
+//                        group_items.find(".collapsible_items").slideUp(200);
+//                        group_items.find(".collapse_icon").html('+');
+//                    }
+                });
+    </script>
+</fieldset>
+
+
+

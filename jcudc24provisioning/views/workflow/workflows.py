@@ -1,8 +1,10 @@
 import copy
 from string import split
+import string
 import colander
 from deform.exception import ValidationFailure
 from deform.form import Form
+from models.common_schemas import SelectMappingSchema
 from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPFound
 from pyramid.response import Response
@@ -10,11 +12,8 @@ from pyramid.view import view_config
 from colanderalchemy.types import SQLAlchemyMapping
 from jcudc24provisioning.views.layouts import Layouts
 from pyramid.renderers import get_renderer
-from models.common_schemas import SelectMappingSchema
-from models.dataset_schema import DatasetSchema
-from models.method_schema import MethodsSchema
-from models.project import DBSession, Project, Method, Base, Party, Dataset
-from views.scripts import convert_schema
+from models.project import DBSession, Project, Method, Base, Party, Dataset, MethodSchema
+from views.scripts import convert_schema, create_sqlalchemy_model, convert_sqlalchemy_model_to_data
 
 __author__ = 'Casey Bajema'
 
@@ -39,8 +38,6 @@ redirect_options = """
                 }
                 """
 
-
-
 class Workflows(Layouts):
     def __init__(self, request):
         self.request = request
@@ -62,57 +59,11 @@ class Workflows(Layouts):
     def isDelete(self):
         return 'Delete' in self.request.POST
 
-    def create_sqlalchemy_model(self, data, model_class=None, model_object=None):
-#        Need to update this to use the passed in model where possible - it is creating new models which is being commited to the db as insert instead of update
-
-        is_data_empty = True
-        if model_object is None and model_class is not None:
-            model_object = model_class()
-
-        if model_class is None and model_object is not None:
-            model_class = model_object._sa_instance_state.class_
-
-        if model_class is None or model_object is None:
-            raise ValueError
-
-        for key, value in data.items():
-            if hasattr(model_object, key):
-                if value is colander.null or value is None or value == 'None':
-                    continue
-                elif isinstance(value, list):
-                    for item in value:
-                        child_table_object = self.create_sqlalchemy_model(item, model_class=model_object._sa_class_manager[key].property.mapper.class_)
-
-                        if child_table_object is not None:
-                            is_data_empty = False
-                            getattr(model_object, key).append(child_table_object)
-                elif isinstance(value, dict):
-                    child_table_object = self.create_sqlalchemy_model(value, model_class=model_object._sa_class_manager[key].property.mapper.class_)
-
-                    if child_table_object is not None:
-                        setattr(model_object, key, child_table_object)
-                        is_data_empty = False
-                else:
-                    if value == False or value == 'false':
-                        value = 0
-                    elif value == True or value == 'true':
-                        value = 1
-
-                    ca_registry = model_class._sa_class_manager[key].comparator.mapper.columns._data[key]._ca_registry
-                    if ('default' not in ca_registry or not value == ca_registry['default']) and str(value) != str(getattr(model_object, key, None)):
-                        setattr(model_object, key, value)
-                        is_data_empty = False
-
-        if is_data_empty:
-            return None
-
-        return model_object
-
     def save_form(self, data):
          session = DBSession
          if data['id'] == -1 or data['id'] == colander.null:
              data.pop('id')
-             model = self.create_sqlalchemy_model(data, model_class=Project)
+             model = create_sqlalchemy_model(data, model_class=Project)
              if model is not None:
                  session.add(model)
                  session.commit()
@@ -121,7 +72,7 @@ class Workflows(Layouts):
              model = session.query(Project).filter_by(id=data['id']).first()
 
              # Update the model with all fields in the data
-             if self.create_sqlalchemy_model(data, model_object=model) is not None:
+             if create_sqlalchemy_model(data, model_object=model) is not None:
                  session.commit()
 #             for key in data:
 #                 if hasattr(model, key):
@@ -129,28 +80,7 @@ class Workflows(Layouts):
 #                 else:
 #                     print "Error: Trying to add invalid column to database"
 
-    def convert_sqlalchemy_model_to_data(self, model, schema=None):
-#        model_class =
 
-        data = {}
-
-        for node in schema:
-            if hasattr(model, node.name):
-                value = getattr(model, node.name, None)
-                if isinstance(value, list):
-                    node_list = []
-                    for item in value:
-                        node_list.append(self.convert_sqlalchemy_model_to_data(item,  node.children[0]))
-
-                    data[node.name] = node_list
-                    # TODO: Check that 1:1 mappings don't cause errors here
-                elif len(node.children):
-                    data[node.name] = self.convert_sqlalchemy_model_to_data(value,  node)
-
-                else:
-                    data[node.name] = value
-
-        return data
 
     def handle_request(self):
         controls = self.request.POST.items()
@@ -187,7 +117,7 @@ class Workflows(Layouts):
             project_id = int(self.request.GET['id'])
             session = DBSession
             model = session.query(Project).filter_by(id=project_id).first()
-            appstruct = self.convert_sqlalchemy_model_to_data(model, self.schema)
+            appstruct = convert_sqlalchemy_model_to_data(model, self.schema)
 
         return {"page_title": self.title, "form": self.form.render(appstruct), "form_only": False}
 
@@ -245,12 +175,32 @@ class MethodsView(Workflows):
 
     def __init__(self, request):
         self.request = request
-        self.schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="Setup methods the project uses for collecting data (not individual datasets themselves as they will be setup in the next step).  Such that a type of sensor that is used to collect temperature at numerous sites would be setup: <ol><li>Once within this step as a data method</li><li>As well as for each site it is used at in the next step</li></ol>This means you don't have to enter duplicate data!"), page="methods").bind(request=request)
-        self.form = Form(self.schema, action="methods", buttons=('Save',), use_ajax=False)
+        self.session = DBSession
 
+#    @reify
+#    def get_schema(self, schema_id):
+#        return self.session.query(MethodSchema).filter_by(id=schema_id).first()
+#
+    def get_template_schemas(self):
+        return self.session.query(MethodSchema).filter_by(template_schema=1).all()
+#
+#    @reify
+#    def get_shared_schemas(self):
+#        return self.session.query(MethodSchema).filter_by(share_schema=1).all()
+#
+#    @reify
+#    def get_own_schemas(self):
+#        return self.session.query(Project).join(Method).join(MethodSchema).\
+#        filter(Project.project_creator==self.user_id).\
+#        all()
 
     @view_config(renderer="../../templates/form.pt", name="methods")
     def handle_request(self):
+        self.schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="Setup methods the project uses for collecting data (not individual datasets themselves as they will be setup in the next step).  Such that a type of sensor that is used to collect temperature at numerous sites would be setup: <ol><li>Once within this step as a data method</li><li>As well as for each site it is used at in the next step</li></ol>This means you don't have to enter duplicate data!"), page="methods").bind(request=self.request)
+        print self.schema.children[3].children[0].children[3].children[5]
+        self.schema.children[3].children[0].children[3].children[5].template_schemas = self.get_template_schemas()
+        self.form = Form(self.schema, action="methods", buttons=('Save',), use_ajax=False)
+
         return super(MethodsView, self).handle_request()
 
 class DatasetsView(Workflows):
