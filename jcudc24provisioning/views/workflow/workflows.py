@@ -4,7 +4,9 @@ import string
 import colander
 from deform.exception import ValidationFailure
 from deform.form import Form
-from models.common_schemas import SelectMappingSchema
+from jcudc24ingesterapi.authentication import CredentialsAuthentication
+from jcudc24ingesterapi.ingester_platform_api import IngesterPlatformAPI
+from jcudc24provisioning.models.common_schemas import SelectMappingSchema
 from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPFound
 from pyramid.response import Response
@@ -12,18 +14,18 @@ from pyramid.view import view_config
 from colanderalchemy.types import SQLAlchemyMapping
 from jcudc24provisioning.views.layouts import Layouts
 from pyramid.renderers import get_renderer
-from models.project import DBSession, Project, Method, Base, Party, Dataset, MethodSchema
-from views.scripts import convert_schema, create_sqlalchemy_model, convert_sqlalchemy_model_to_data
+from jcudc24provisioning.models.project import DBSession, Project, Method, Base, Party, Dataset, MethodSchema
+from jcudc24provisioning.views.scripts import convert_schema, create_sqlalchemy_model, convert_sqlalchemy_model_to_data
 
 __author__ = 'Casey Bajema'
 
 WORKFLOW_STEPS = [
-        {'href': 'setup', 'title': 'Project Setup'},
+        {'href': 'setup', 'title': 'Setup'},
         {'href': 'description', 'title': 'Description'},
-        {'href': 'metadata', 'title': 'Metadata'},
+        {'href': 'metadata', 'title': 'Information'},
         {'href': 'methods', 'title': 'Methods'},
         {'href': 'datasets', 'title': 'Datasets'},
-        {'href': 'submit', 'title': 'Submit'},
+        {'href': 'submit', 'title': 'Submit & Approval'},
 ]
 
 redirect_options = """
@@ -113,7 +115,7 @@ class Workflows(Layouts):
         # If the page has just been opened but it is set to a specific project
         appstruct = {}
 
-        if 'id' in  self.request.GET:
+        if 'id' in self.request.GET:
             project_id = int(self.request.GET['id'])
             session = DBSession
             model = session.query(Project).filter_by(id=project_id).first()
@@ -127,7 +129,7 @@ class SetupViews(Workflows):
 
     def __init__(self, request):
         self.request = request
-        self.schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description=""), page='setup').bind(request=request)
+        self.schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="TODO: Restrict navigation to other steps until the setup page is adequately completed."), page='setup').bind(request=request)
         self.form = Form(self.schema, action="setup", buttons=('Save',), use_ajax=False, ajax_options=redirect_options)
 
     @view_config(renderer="../../templates/form.pt", name="setup")
@@ -197,8 +199,8 @@ class MethodsView(Workflows):
     @view_config(renderer="../../templates/form.pt", name="methods")
     def handle_request(self):
         self.schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="Setup methods the project uses for collecting data (not individual datasets themselves as they will be setup in the next step).  Such that a type of sensor that is used to collect temperature at numerous sites would be setup: <ol><li>Once within this step as a data method</li><li>As well as for each site it is used at in the next step</li></ol>This means you don't have to enter duplicate data!"), page="methods").bind(request=self.request)
-        print self.schema.children[3].children[0].children[3].children[5]
-        self.schema.children[3].children[0].children[3].children[5].template_schemas = self.get_template_schemas()
+
+        self.schema.children[3].children[0].children[5].children[5].template_schemas = self.get_template_schemas()
         self.form = Form(self.schema, action="methods", buttons=('Save',), use_ajax=False)
 
         return super(MethodsView, self).handle_request()
@@ -258,14 +260,52 @@ class SubmitView(Workflows):
 
     def __init__(self, request):
         self.request = request
-        self.schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="<b>Save:</b> Save the project as is, it doesn't need to be fully complete or valid.<br/><br/>"\
-                                                "<b>Delete:</b> Delete the project, this can only be performed by administrators or before the project has been submitted.<br/><br/>"\
-                                                "<b>Submit:</b> Submit this project for admin approval. If there are no problems the project data will be used to create ReDBox-Mint records as well as configuring data ingestion into persistent storage<br/><br/>"\
-                                                "<b>Reopen:</b> Reopen the project for editing, this can only occur when the project has been submitted but not yet accepted (eg. the project may require updates before being approved)<br/><br/>" \
-                                                "<b>Approve:</b> Approve this project, generate metadata records and setup data ingestion<br/><br/>" \
-                                                "<b>Disable:</b> Stop data ingestion, this would usually occur once the project has finished."), page="submit").bind(request=request)
+        self.schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise',
+            ca_description="TODO: The submission and approval should both follow a process of:"
+                           "<ol><li>Automated validation</li>"
+                           "<li>User fixes validation errors</li>"
+                           "<li>Reminders/action items for users to complete that can't be auto-validated</li>"
+                           "<li>Final confirmation and approval</li>"
+                           "<li>Recommendations and next steps</li></ol><br />"
+                "<b>Save:</b> Save the project as is, it doesn't need to be fully complete or valid.<br/><br/>"\
+                "<b>Delete:</b> Delete the project, this can only be performed by administrators or before the project has been submitted.<br/><br/>"\
+                "<b>Submit:</b> Submit this project for admin approval. If there are no problems the project data will be used to create ReDBox-Mint records as well as configuring data ingestion into persistent storage<br/><br/>"\
+                "<b>Reopen:</b> Reopen the project for editing, this can only occur when the project has been submitted but not yet accepted (eg. the project may require updates before being approved)<br/><br/>" \
+                "<b>Approve:</b> Approve this project, generate metadata records and setup data ingestion<br/><br/>" \
+                "<b>Disable:</b> Stop data ingestion, this would usually occur once the project has finished."), page="submit").bind(request=request)
         self.form = Form(self.schema, action="submit", buttons=('Save', 'Delete', 'Submit', 'Reopen', 'Approve', 'Disable'), use_ajax=False)
+
+    def sqlmodel_to_ingestermodel(self, model):
+        pass
 
     @view_config(renderer="../../templates/form.pt", name="submit")
     def handle_request(self):
+        if 'Approve' in self.request.POST and 'id' in self.request.POST:
+            self.auth = CredentialsAuthentication("casey", "password")
+            self.ingester_platform = IngesterPlatformAPI("http://localhost:8080", self.auth)
+            print self.ingester_platform.ping()
+
+            work = self.ingester_platform.createUnitOfWork()
+
+            project_id = int(self.request.POST['id'])
+            session = DBSession
+            model = session.query(Project).filter_by(id=project_id).first()
+
+            self.sqlmodel_to_ingestermodel(model)
+
+            for method in model.methods:
+                self.sqlmodel_to_ingestermodel(method)
+                work.post(method)
+
+            for method in model.datasets:
+                self.sqlmodel_to_ingestermodel(method)
+                work.post(method)
+
+            try:
+                work.commit()
+            except:
+                print "commit failed - TODO: error message"
+
+            print 'project approved - TODO: Success message'
+
         return super(SubmitView, self).handle_request()
