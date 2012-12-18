@@ -44,12 +44,12 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
                     current_object = None
                     if 'id' in item and (isinstance(item['id'], (long, int)) or (isinstance(item['id'], basestring) and item['id'].isnumeric())):
                         for model_item in getattr(model_object, key, []):
-                            print "ID's: " + str(getattr(model_item, 'id', None)) + " : " + str(item['id'])
+#                            print "ID's: " + str(getattr(model_item, 'id', None)) + " : " + str(item['id'])
                             current_object_id = getattr(model_item, 'id', None)
-                            print (isinstance(current_object_id, (int, long)) or (isinstance(current_object_id, basestring) and current_object_id.isnumeric()))
+#                            print (isinstance(current_object_id, (int, long)) or (isinstance(current_object_id, basestring) and current_object_id.isnumeric()))
                             if (isinstance(current_object_id, (int, long)) or (isinstance(current_object_id, basestring) and current_object_id.isnumeric())) and int(getattr(model_item, 'id', None)) == int(item['id']):
                                 current_object = model_item
-                                print "Current Object: " + str(current_object)
+#                                print "Current Object: " + str(current_object)
                                 break
 
                     child_table_object = create_sqlalchemy_model(item, model_class=model_object._sa_class_manager[key].property.mapper.class_, model_object=current_object)

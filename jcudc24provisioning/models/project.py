@@ -584,35 +584,6 @@ class ProjectNote(Base):
         ca_placeholder="eg. Please enter all metadata, the supplied processing script has errors, please extend the existing temperature data type so that your data is searchable, etc..."
         , ca_widget=deform.widget.TextAreaWidget(rows=3))
 
-class ProjectTemplate(Base):
-    """
-    Indicate an existing project is a template that others can use to pre-populate their projects
-    """
-    __tablename__ = 'project_template'
-    order_counter = itertools.count()
-    project_id = Column(Integer, ForeignKey('project.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-
-class DatasetTemplate(Base):
-    """
-    Indicate that a dataset is a template that users can pre-populate datasets with.
-
-    This is only intended to be used by method templates
-    """
-    __tablename__ = 'dataset_template'
-    order_counter = itertools.count()
-    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget(), ca_missing=-1)
-    dataset_id = Column(Integer, ForeignKey('dataset.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    method_template_id = Column(Integer, ForeignKey('method_template.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-
-class MethodTemplate(Base):
-    """
-    Method templates that can be used to pre-populate a method with as well as datasets created for that method.
-    """
-    __tablename__ = 'method_template'
-    order_counter = itertools.count()
-    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget(), ca_missing=-1)
-    method_id = Column(Integer, ForeignKey('method.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    dataset_templates = relationship('DatasetTemplate')
 
 choices = ['JCU Name 1', 'JCU Name 2', 'JCU Name 3', 'JCU Name 4']
 
@@ -623,6 +594,9 @@ class Project(Base):
 
     id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget(), ca_missing=-1)
     project_creator = Column(String(100), ca_order=next(order_counter),ca_widget=deform.widget.HiddenWidget())
+
+    # TODO: Add template field
+    # TODO: Add project category field (for more advanced templating)
 
     #--------------Setup--------------------
     project_title = Column(String(512), ca_order=next(order_counter), ca_widget=deform.widget.TextInputWidget(css_class="full_width"), ca_page="setup", ca_force_required=True,
@@ -859,3 +833,30 @@ class Project(Base):
     #-----------------------------------------Submit page---------------------------------------------------
     project_notes = relationship("ProjectNote", ca_order=next(order_counter), ca_page="submit",
         ca_description="<b>TODO: Select the method this dataset is for.</b><br/><br/>Project comments that are only relevant to the provisioning system (eg. comments as to why the project was reopened after the creator submitted it).")
+
+
+class DatasetTemplate(Base):
+    """
+    Indicate that a dataset is a template that users can pre-populate datasets with.
+
+    This is only intended to be used by method templates
+    """
+    __tablename__ = 'dataset_template'
+    order_counter = itertools.count()
+    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget(), ca_missing=-1)
+    dataset_id = Column(Integer, ForeignKey('dataset.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    method_template_id = Column(Integer, ForeignKey('method_template.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+
+class MethodTemplate(Base):
+    """
+    Method templates that can be used to pre-populate a method with as well as datasets created for that method.
+    """
+    __tablename__ = 'method_template'
+    order_counter = itertools.count()
+    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget(), ca_missing=-1)
+    method_id = Column(Integer, ForeignKey('method.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    dataset_templates = relationship('DatasetTemplate')
+
+
+# TODO: Work out template in-depth - Don't have separate tables? add the fields to the standard table?
+# TODO: Should templates have categories? such as DRO, which provides DRO specific methods for sensors etc.

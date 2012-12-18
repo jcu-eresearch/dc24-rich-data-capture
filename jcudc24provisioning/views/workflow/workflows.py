@@ -114,10 +114,10 @@ class Workflows(Layouts):
         appstruct = {}
 
         if 'id' in  self.request.GET:
-            project_id = int(self.request.GET['id'])
+            appstruct['id'] = int(self.request.GET['id'])
             session = DBSession
-            model = session.query(Project).filter_by(id=project_id).first()
-            appstruct = convert_sqlalchemy_model_to_data(model, self.schema)
+            model = session.query(Project).filter_by(id=appstruct['id']).first()
+            appstruct.update(convert_sqlalchemy_model_to_data(model, self.schema))
 
         return {"page_title": self.title, "form": self.form.render(appstruct), "form_only": False}
 
