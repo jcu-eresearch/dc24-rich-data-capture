@@ -2,6 +2,7 @@ import ConfigParser
 from collections import OrderedDict
 import itertools
 import colander
+from sqlalchemy.dialects.mysql.base import DOUBLE
 from sqlalchemy.engine import create_engine
 from sqlalchemy.schema import ForeignKey, Table
 from colanderalchemy.declarative import Column, relationship
@@ -23,7 +24,7 @@ from sqlalchemy.orm import (
     mapper)
 from jcudc24provisioning.views.widgets import MethodSchemaWidget
 
-config = ConfigParser.RawConfigParser()
+config = ConfigParser.SafeConfigParser()
 config.read('../../development.ini')
 db_engine = create_engine(config.get("app:main", "sqlalchemy.url"), echo=True)
 #db_engine.connect()
@@ -273,6 +274,7 @@ class Location(Base):
     #    location_type = Column(String(100), ca_widget=deform.widget.SelectWidget(values=map_location_types),
 #        ca_title="Location Type", ca_missing="")
     location = Column(String(512))
+    elevation = Column(DOUBLE(), ca_help="Elevation in meters from mean sea level")
 #    regions = relationship("Region", ca_widget=deform.widget.HiddenWidget())
 
 class RelatedPublication(Base):
@@ -358,12 +360,16 @@ class MethodSchemaField(Base):
         ca_widget=deform.widget.SelectWidget(values=field_types),
         ca_description="",
         ca_placeholder="Type of field that should be shown.")
+
+    units = Column(String(256), ca_placeholder="eg. mm")
+
     name = Column(String(256), ca_title="Name", ca_placeholder="eg. Temperature", ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
     description = Column(Text(), ca_title="Description", ca_placeholder="eg. Calibrated temperature reading", ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
     placeholder = Column(String(256), ca_title="Example", ca_placeholder="eg. 26.3", ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
     default = Column(String(256), ca_title="Default Value.", ca_placeholder="Use appropriately where the user will usually enter the same value.", ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
     validators = Column(String(256), ca_title="Validator", ca_placeholder="eg. Numerical value with decimal places or what values are expected such as for a dropdown box", ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
     notes = Column(String(256), ca_title="Admin Notes", ca_placeholder="eg. Please read this field from the uploaded files, it will follow a pattern like temp:xxx.xx", ca_widget=deform.widget.TextAreaWidget(css_class="full_width"))
+    # TODO: file mime type
 
 class MethodWebsite(Base):
     order_counter = itertools.count()
@@ -476,6 +482,10 @@ class PollDataSource(Base):
         ca_placeholder="eg. http://example.com.au/folder/",
         ca_description="Provide the url that should be polled for data - files will be ingested that follow the name convention of <i>TODO</i>")
 
+    poll_data_source_url = Column(String(100), ca_order=next(order_counter),
+            ca_description="<b>TODO: Redevelop into dropdown selection from schema fields that are of type file</b>")
+
+
     start_conditions = Column(String(100),ca_order=next(order_counter), ca_title="Start conditions(TODO)", ca_child_title="todo",
         ca_group_start="sampling", ca_group_title="Data Sampling/Filtering", ca_group_collapsed=False,
         ca_group_help="Provide filtering conditions for the data received, the most common and simplest"\
@@ -507,6 +517,9 @@ class PushDataSource(Base):
     api_key = Column(Text(), ca_title="API Key (Password to use this functionality)", ca_order=next(order_counter),
         ca_default="TODO: Auto-generate key",
         ca_description="The password that is needed to push your data into to this system.")
+
+    poll_data_source_url = Column(String(100), ca_order=next(order_counter),
+            ca_description="<b>TODO: Redevelop into dropdown selection from schema fields that are of type file</b>")
 
 class SOSDataSource(Base):
     order_counter = itertools.count()
@@ -606,7 +619,7 @@ class Dataset(Base):
         ca_help="Textual description of the location such as Australian Wet Tropics or further information such as elevation."
         , ca_missing="", ca_placeholder="eg. Australian Wet Tropics, Great Barrier Reef, 1m above ground level")
 
-    coverage_map = relationship('Location', ca_order=next(order_counter), ca_title="Location Map", ca_widget=deform.widget.SequenceWidget(template='map_sequence'),
+    dataset_location = relationship('Location', ca_order=next(order_counter), ca_title="Location Map", ca_widget=deform.widget.SequenceWidget(template='map_sequence'),
         ca_group_end="coverage", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
         ca_missing=colander.null, ca_help="All locations are added using the DCMI Point and DCMI Box formats.  Use the drawing tools on the map and/or edit the text representations below.")
 
@@ -831,7 +844,7 @@ class Project(Base):
     location_description = Column(String(512), ca_order=next(order_counter), ca_title="Location (description)", ca_page="metadata",
         ca_help="Textual description of the location such as Australian Wet Tropics or further information such as elevation."
         , ca_missing="", ca_placeholder="eg. Australian Wet Tropics, Great Barrier Reef, 1m above ground level")
-    coverage_map = relationship('Location', ca_order=next(order_counter), ca_title="Location Map", ca_widget=deform.widget.SequenceWidget(template='map_sequence'), ca_page="metadata",
+    locations = relationship('Location', ca_order=next(order_counter), ca_title="Location", ca_widget=deform.widget.SequenceWidget(template='map_sequence'), ca_page="metadata",
         ca_group_end="coverage", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
         ca_missing=colander.null, ca_help="All locations are added using the DCMI Point and DCMI Box formats.  Use the drawing tools on the map and/or edit the text representations below.")
 
@@ -866,7 +879,7 @@ class Project(Base):
         ca_widget=deform.widget.SelectWidget(values=licenses, template="select_with_other"),
         ca_help="This list contains data licences that this server has been configured with. For more information about Creative Commons licences please <a href=\'http://creativecommons.org.au/learn-more/licences\' alt=\'licenses\'>see here</a>. ")
 
-    name = Column(String(256), ca_order=next(order_counter), ca_title="License Name", ca_placeholder="", ca_missing="", ca_page="metadata",
+    license_name = Column(String(256), ca_order=next(order_counter), ca_title="License Name", ca_placeholder="", ca_missing="", ca_page="metadata",
         ca_group_start="other_license", ca_group_title="Other", ca_group_help="If you want to use a license not included in the above list you can provide details below.</br></br>"\
                                 "<ul><li>If you are using this field frequently for the same license it would make sense to get your system administrator to add the license to the field above.</li>"\
                                 "<li>If you provide two licenses (one from above, plus this one) only the first will be sent to RDA in the RIF-CS.</li>"\
