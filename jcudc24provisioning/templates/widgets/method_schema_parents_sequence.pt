@@ -2,7 +2,9 @@
     This template has been modified by removing the href from the add link, this stops the page from jumping to the
     top whenever an item is added.
 -->
-
+<div  tal:condition="not hasattr(field.schema, 'template_schemas')">
+    <i>No template schemas have been defined by the admins!</i>
+</div>
 <div class="deformSeq"
      id="${field.oid}"
      tal:define="rndr field.renderer;
@@ -10,7 +12,8 @@
                  min_len field.widget.min_len or 0;
                  max_len field.widget.max_len or 100000;
                  now_len len(subfields);
-                 prototype field.widget.prototype(field)">
+                 prototype field.widget.prototype(field)"
+     tal:condition="hasattr(field.schema, 'template_schemas')">
 
     <!-- sequence -->
 

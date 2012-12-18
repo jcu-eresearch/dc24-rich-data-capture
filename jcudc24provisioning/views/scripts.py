@@ -140,6 +140,9 @@ def convert_schema(schema, **kw):
 
 def force_required(schema):
     for node in schema.children:
+        if len(node.children) > 0:
+            force_required(node)
+
         if hasattr(node, 'force_required') and node.force_required:
             delattr(node, 'missing')
 
@@ -213,9 +216,6 @@ def group_nodes(node):
             group_nodes(child.children[0])
         elif len(child.children) > 0:
             child = group_nodes(child)
-
-
-
 
         if len(groups) > 0:
 

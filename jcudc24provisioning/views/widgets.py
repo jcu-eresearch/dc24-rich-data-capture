@@ -1,6 +1,6 @@
 from colander import null, Invalid
 from deform.widget import Widget, _normalize_choices
-from views.scripts import convert_sqlalchemy_model_to_data
+from jcudc24provisioning.views.scripts import convert_sqlalchemy_model_to_data
 
 __author__ = 'Casey'
 

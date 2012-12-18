@@ -441,16 +441,16 @@ function updateSecondFields(oid) {
         second_select.innerHTML = "";
         first_select.selectedIndex = 0;
         second_select.style.display = "none";
+        showAdd(oid, false);
     }
 
     third_select.innerHTML = "";
     third_select.style.display = "none";
     /* Make sure that the user can't have an invalid 3rd field selected when the first select is changed */
-    showAdd(oid, false);
 }
 
 function updateThirdFields(oid) {
-    oid_node = $('#' + oid);
+    var oid_node = $('#' + oid);
 
     var first_select = oid_node.children(".first_field")[0];
     var second_select = oid_node.children(".second_field")[0];
