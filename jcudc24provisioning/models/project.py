@@ -275,6 +275,13 @@ class Location(Base):
 #        ca_title="Location Type", ca_missing="")
     location = Column(String(512))
     elevation = Column(DOUBLE(), ca_help="Elevation in meters from mean sea level")
+
+    def getLatitude(self):
+        return 0
+
+    def getLongitude(self):
+        return 0
+
 #    regions = relationship("Region", ca_widget=deform.widget.HiddenWidget())
 
 class RelatedPublication(Base):

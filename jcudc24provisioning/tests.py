@@ -1,44 +1,45 @@
 import unittest
 from authentication import CredentialsAuthentication
 from ingester_platform_api import IngesterPlatformAPI
+import jcudc24ingesterapi
 from models.project import Project, Location, Method, Dataset, Keyword, FieldOfResearch, MethodSchema, MethodSchemaField, PollDataSource
 
 
-class TestMyView(unittest.TestCase):
+class TestIngesterPlatform(unittest.TestCase):
     def setUp(self):
         self.project = Project()
         self.project.id = 1
-        self.project.description = "This is a test description for the DC24 provisioning interface"
-        self.project.no_activity = True
-        self.project.project_title = "This is a test title for the test DC24 project"
-        self.project.data_manager = "A Person"
-        self.project.project_lead = "Another Person"
-        self.project.brief_description = "This is a test brief description"
-        self.project.full_description = "This is a test full description"
+#        self.project.description = "This is a test description for the DC24 provisioning interface"
+#        self.project.no_activity = True
+#        self.project.project_title = "This is a test title for the test DC24 project"
+#        self.project.data_manager = "A Person"
+#        self.project.project_lead = "Another Person"
+#        self.project.brief_description = "This is a test brief description"
+#        self.project.full_description = "This is a test full description"
 
-        keyword1 = Keyword()
-        keyword1.id = 0
-        keyword1.project_id = self.project.id
-        keyword1.keyword = "Test Keyword"
-        self.project.keywords.append(keyword1)
+#        keyword1 = Keyword()
+#        keyword1.id = 0
+#        keyword1.project_id = self.project.id
+#        keyword1.keyword = "Test Keyword"
+#        self.project.keywords.append(keyword1)
 
-        for1 = FieldOfResearch()
-        for1.id = 0
-        for1.project_id = self.project.id
-        for1.field_of_research = "010101"
-        self.project.fieldOfResearch.append(for1)
-
-        seo1 = FieldOfResearch()
-        seo1.id = 0
-        seo1.project_id = self.project.id
-        seo1.field_of_research = "010101"
-        self.project.socioEconomicObjective.append(seo1)
-        self.project.ecosystems_conservation_climate = True
-        self.project.typeOfResearch = "applied"
-        self.project.time_period_description = "Test time period description " + str(self.project.id)
-        self.project.date_from = 12345
-        self.project.date_to = 1234
-        self.project.location_description = "Test location description"
+#        for1 = FieldOfResearch()
+#        for1.id = 0
+#        for1.project_id = self.project.id
+#        for1.field_of_research = "010101"
+#        self.project.fieldOfResearch.append(for1)
+#
+#        seo1 = FieldOfResearch()
+#        seo1.id = 0
+#        seo1.project_id = self.project.id
+#        seo1.field_of_research = "010101"
+#        self.project.socioEconomicObjective.append(seo1)
+#        self.project.ecosystems_conservation_climate = True
+#        self.project.typeOfResearch = "applied"
+#        self.project.time_period_description = "Test time period description " + str(self.project.id)
+#        self.project.date_from = 12345
+#        self.project.date_to = 1234
+#        self.project.location_description = "Test location description"
 
         test_location = Location()
         test_location.id = 1
@@ -126,17 +127,72 @@ class TestMyView(unittest.TestCase):
         self.auth = CredentialsAuthentication("casey", "password")
         self.ingester_platform = IngesterPlatformAPI("http://localhost:8080/api", self.auth)
 
+    def add_project(self, work, project):
+        if isinstance(project, Project):
+            for dataset in project.datasets:
+                new_dataset = jcudc24ingesterapi.models.dataset.Dataset()
 
-    def add_model(self, work, model):
-        apiobject = None
+                new_dataset.id = dataset.dam_dataset_id  # This will be None if it is new (Should always be the case)
+                new_dataset.processing_script = dataset.custom_processor_script
+                new_dataset.redbox_uri = None   # TODO: Add redbox link
+                new_dataset.enabled = True
+                new_dataset.descripion = dataset.description
+
+                for location in dataset.dataset_location:
+                    if location.location[:5] == "POINT":
+                        new_location = jcudc24ingesterapi.models.locations.Location(
+                            latitude = location.getLatitude(),
+                            longitude = location.getLongitude(),
+                            location_name = dataset.location_description,
+                            elevation = location.elevation
+                        )
+                        # TODO: Handle offset locations
+                    else:
+                        pass
+                        # TODO: Regions
+
+                    # TODO: Project Regions
+
+                    work.post(new_location)
+                    new_dataset.location = new_location
+
+                for method in project.methods:
+                    if method.id == dataset.method_id:
+                        new_schema = jcudc24ingesterapi.schemas.data_entry_schemas.DataEntrySchema()
+
+                        # TODO: Make the schema in ingesterapi objects when it is updated
+
+                        work.post(new_schema)
+                        new_dataset.schema = new_schema
+
+                # TODO: Update datasources to add configuration
+                if dataset.form_data_source is not None:
+                    data_source = jcudc24ingesterapi.models.data_sources.FormDataSource()
+                if dataset.poll_data_source is not None:
+                    data_source = jcudc24ingesterapi.models.data_sources.PullDataSource()
+                if dataset.push_data_source is not None:
+                    data_source = jcudc24ingesterapi.models.data_sources.PushDataSource()
+                if dataset.sos_data_source is not None:
+                    data_source = jcudc24ingesterapi.models.data_sources.SOSDataSource()
+                if dataset.dataset_data_source is not None:
+                    data_source = jcudc24ingesterapi.models.data_sources.DatasetDataSource()
+
+                work.post(data_source)
+                new_dataset.data_source = data_source
+
+                work.post(new_dataset)
+        else:
+            assert(False,"Trying to add a project with a model of the wrong type.")
 
 
-        return  apiobject
-
-    def test_ingester(self):
+    def test_ingest_project(self):
         ingester_work = self.ingester_platform.createUnitOfWork()
-        self.add_model(ingester_work, self.project)
+        self.add_project(ingester_work, self.project)
+        ingester_work.commit()
 
+    def tearDown(self):
+        # TODO: Does the ingesterapi connection need to be closed?
+        pass
 
 if __name__ == '__main__':
     unittest.main()
