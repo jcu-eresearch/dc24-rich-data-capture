@@ -1,3 +1,4 @@
+import types
 from jcudc24provisioning.views.widgets import SelectMappingWidget, ConditionalCheckboxMapping
 from beaker.cache import cache_region
 import colander
@@ -93,11 +94,17 @@ class MapRegionSchema(colander.SequenceSchema):
 #        if not "widget" in kw: kw["widget"] = deform.widget.SequenceWidget(template='map_sequence')
 #        colander.SchemaNode.__init__(self, typ, *children, **kw)
 
+def preview_url(self, uid):
+    if uid in self.tempstore:
+        return self.tempdir + self.tempstore[uid]['randid']
+
+    return None
 
 @colander.deferred
 def upload_widget(node, kw):
     request = kw['request']
     tmp_store = SessionFileUploadTempStore(request)
+    tmp_store.preview_url = types.MethodType(preview_url, tmp_store)
     return deform.widget.FileUploadWidget(tmp_store)
 
 

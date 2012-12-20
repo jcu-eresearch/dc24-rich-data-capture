@@ -1,5 +1,6 @@
 from pkg_resources import declare_namespace
 from . import models
+from models.initialise_templates import InitialiseData
 
 declare_namespace('jcudc24provisioning')
 
@@ -32,6 +33,8 @@ def main(global_config, **settings):
     configurator.add_static_view('deform_static', 'deform:static', cache_max_age=0)
     configurator.add_static_view('static', 'static')
     configurator.scan()
+
+    InitialiseData()
 
     return configurator.make_wsgi_app()
 

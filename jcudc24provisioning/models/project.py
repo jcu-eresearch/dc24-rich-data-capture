@@ -273,6 +273,7 @@ class Location(Base):
 
     #    location_type = Column(String(100), ca_widget=deform.widget.SelectWidget(values=map_location_types),
 #        ca_title="Location Type", ca_missing="")
+    name = Column(String(256))
     location = Column(String(512))
     elevation = Column(DOUBLE(), ca_help="Elevation in meters from mean sea level")
 
@@ -355,6 +356,58 @@ class MethodAttachment(Base):
     attachment = Column(String(512),  ca_widget=upload_widget)
     note = colander.SchemaNode(colander.String(), placeholder="eg. data sheet", widget=deform.widget.TextInputWidget(css_class="full_width"))
 
+
+class MethodWebsite(Base):
+    order_counter = itertools.count()
+
+    __tablename__ = 'method_website'
+    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('method.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+
+    title = Column(String(256), ca_title="Title", ca_placeholder="eg. Great Project Website", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
+    url = Column(String(256), ca_title="URL", ca_placeholder="eg. http://www.somewhere.com.au", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
+    notes = Column(Text(), ca_title="Notes", ca_missing="", ca_placeholder="eg. This article provides additional information on xyz", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
+
+method_schema_to_schema = Table("schema_to_schema", Base.metadata,
+    Column("child_id", Integer, ForeignKey("method_schema.id"), primary_key=True),
+    Column("parent_id", Integer, ForeignKey("method_schema.id"), primary_key=True)
+)
+
+# TODO: test this validator
+def schema_validator(form, value):
+    if not value['name']:
+        exc = colander.Invalid(form)
+        exc['name'] = "The schema must have a name"
+
+    duplicates = find_duplicate_names([], [], value)
+    if len(duplicates) > 0:
+        if not exc:
+            exc = colander.Invalid(form)
+
+        for name in duplicates:
+            exc[name] = "All field names in the schema must be unique.  Please check " + str(name)
+
+    raise exc
+
+def find_duplicate_names(names, duplicates, values):
+    for key, value in values.items():
+        if isinstance(value, list):
+            for item in value:
+                find_duplicate_names(names, duplicates, values)
+
+        elif isinstance(value, dict):
+            find_duplicate_names(names, duplicates, values)
+        else:
+            if key in names and not key[0] == '_':
+                duplicates.append(key)
+            else:
+                names.append(key)
+
+    return duplicates
+
+
+
+# TODO: Test that schemas are fully recursive (eg. parents can have parents)
 class MethodSchemaField(Base):
     order_counter = itertools.count()
 
@@ -377,22 +430,6 @@ class MethodSchemaField(Base):
     validators = Column(String(256), ca_title="Validator", ca_placeholder="eg. Numerical value with decimal places or what values are expected such as for a dropdown box", ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
     notes = Column(String(256), ca_title="Admin Notes", ca_placeholder="eg. Please read this field from the uploaded files, it will follow a pattern like temp:xxx.xx", ca_widget=deform.widget.TextAreaWidget(css_class="full_width"))
     # TODO: file mime type
-
-class MethodWebsite(Base):
-    order_counter = itertools.count()
-
-    __tablename__ = 'method_website'
-    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    project_id = Column(Integer, ForeignKey('method.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-
-    title = Column(String(256), ca_title="Title", ca_placeholder="eg. Great Project Website", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
-    url = Column(String(256), ca_title="URL", ca_placeholder="eg. http://www.somewhere.com.au", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
-    notes = Column(Text(), ca_title="Notes", ca_missing="", ca_placeholder="eg. This article provides additional information on xyz", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
-
-method_schema_to_schema = Table("schema_to_schema", Base.metadata,
-    Column("child_id", Integer, ForeignKey("method_schema.id"), primary_key=True),
-    Column("parent_id", Integer, ForeignKey("method_schema.id"), primary_key=True)
-)
 
 class MethodSchema(Base):
     order_counter = itertools.count()
@@ -489,7 +526,7 @@ class PollDataSource(Base):
         ca_placeholder="eg. http://example.com.au/folder/",
         ca_description="Provide the url that should be polled for data - files will be ingested that follow the name convention of <i>TODO</i>")
 
-    poll_data_source_url = Column(String(100), ca_order=next(order_counter),
+    file_field = Column(String(100), ca_order=next(order_counter),
             ca_description="<b>TODO: Redevelop into dropdown selection from schema fields that are of type file</b>")
 
 
@@ -525,7 +562,7 @@ class PushDataSource(Base):
         ca_default="TODO: Auto-generate key",
         ca_description="The password that is needed to push your data into to this system.")
 
-    poll_data_source_url = Column(String(100), ca_order=next(order_counter),
+    file_field = Column(String(100), ca_order=next(order_counter),
             ca_description="<b>TODO: Redevelop into dropdown selection from schema fields that are of type file</b>")
 
 class SOSDataSource(Base):

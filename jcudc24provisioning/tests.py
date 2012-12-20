@@ -1,7 +1,7 @@
 import unittest
-from authentication import CredentialsAuthentication
-from ingester_platform_api import IngesterPlatformAPI
 import jcudc24ingesterapi
+from jcudc24ingesterapi.authentication import CredentialsAuthentication
+from jcudc24ingesterapi.ingester_platform_api import IngesterPlatformAPI
 from models.project import Project, Location, Method, Dataset, Keyword, FieldOfResearch, MethodSchema, MethodSchemaField, PollDataSource
 
 
@@ -127,62 +127,66 @@ class TestIngesterPlatform(unittest.TestCase):
         self.auth = CredentialsAuthentication("casey", "password")
         self.ingester_platform = IngesterPlatformAPI("http://localhost:8080/api", self.auth)
 
-    def add_project(self, work, project):
-        if isinstance(project, Project):
-            for dataset in project.datasets:
-                new_dataset = jcudc24ingesterapi.models.dataset.Dataset()
-
-                new_dataset.id = dataset.dam_dataset_id  # This will be None if it is new (Should always be the case)
-                new_dataset.processing_script = dataset.custom_processor_script
-                new_dataset.redbox_uri = None   # TODO: Add redbox link
-                new_dataset.enabled = True
-                new_dataset.descripion = dataset.description
-
-                for location in dataset.dataset_location:
-                    if location.location[:5] == "POINT":
-                        new_location = jcudc24ingesterapi.models.locations.Location(
-                            latitude = location.getLatitude(),
-                            longitude = location.getLongitude(),
-                            location_name = dataset.location_description,
-                            elevation = location.elevation
-                        )
-                        # TODO: Handle offset locations
-                    else:
-                        pass
-                        # TODO: Regions
-
-                    # TODO: Project Regions
-
-                    work.post(new_location)
-                    new_dataset.location = new_location
-
-                for method in project.methods:
-                    if method.id == dataset.method_id:
-                        new_schema = jcudc24ingesterapi.schemas.data_entry_schemas.DataEntrySchema()
-
-                        # TODO: Make the schema in ingesterapi objects when it is updated
-
-                        work.post(new_schema)
-                        new_dataset.schema = new_schema
-
-                # TODO: Update datasources to add configuration
-                if dataset.form_data_source is not None:
-                    data_source = jcudc24ingesterapi.models.data_sources.FormDataSource()
-                if dataset.poll_data_source is not None:
-                    data_source = jcudc24ingesterapi.models.data_sources.PullDataSource()
-                if dataset.push_data_source is not None:
-                    data_source = jcudc24ingesterapi.models.data_sources.PushDataSource()
-                if dataset.sos_data_source is not None:
-                    data_source = jcudc24ingesterapi.models.data_sources.SOSDataSource()
-                if dataset.dataset_data_source is not None:
-                    data_source = jcudc24ingesterapi.models.data_sources.DatasetDataSource()
-
-                work.post(data_source)
-                new_dataset.data_source = data_source
-
-                work.post(new_dataset)
+    def add_location(self, work, location):
+        if isinstance(location, Location):
+            if location.location[:5] == "POINT":
+                new_location = jcudc24ingesterapi.models.locations.Location(
+                    latitude = location.getLatitude(),
+                    longitude = location.getLongitude(),
+                    location_name = location.name,
+                    elevation = location.elevation
+                )
+                work.post(new_location)
+            else:
+                # TODO: Regions
+                pass
         else:
-            assert(False,"Trying to add a project with a model of the wrong type.")
+            # TODO: Handle offset locations
+            pass
+
+        return new_location
+
+    def add_project(self, work, project):
+        assert isinstance(project, Project),"Trying to add a project with a model of the wrong type."
+
+        for dataset in project.datasets:
+            new_dataset = jcudc24ingesterapi.models.dataset.Dataset()
+
+            new_dataset.id = dataset.dam_dataset_id  # This will be None if it is new (Should always be the case)
+            new_dataset.processing_script = dataset.custom_processor_script
+            new_dataset.redbox_uri = None   # TODO: Add redbox link
+            new_dataset.enabled = True
+            new_dataset.descripion = dataset.description
+
+            for location in dataset.dataset_location:
+                # TODO: Project Regions
+                new_dataset.location = self.add_location(work, location )
+
+            for method in project.methods:
+                if method.id == dataset.method_id:
+                    new_schema = jcudc24ingesterapi.schemas.data_entry_schemas.DataEntrySchema()
+                    # TODO: Add date_entry schema as a parent to all schemas created for a dataset.
+
+                    # TODO: Make the schema in ingesterapi objects when it is updated
+
+                    work.post(new_schema)
+                    new_dataset.schema = new_schema
+
+            # TODO: Update datasources to add configuration
+            if dataset.form_data_source is not None:
+                data_source = jcudc24ingesterapi.models.data_sources.FormDataSource()
+            if dataset.poll_data_source is not None:
+                data_source = jcudc24ingesterapi.models.data_sources.PullDataSource()
+            if dataset.push_data_source is not None:
+                data_source = jcudc24ingesterapi.models.data_sources.PushDataSource()
+            if dataset.sos_data_source is not None:
+                data_source = jcudc24ingesterapi.models.data_sources.SOSDataSource()
+            if dataset.dataset_data_source is not None:
+                data_source = jcudc24ingesterapi.models.data_sources.DatasetDataSource()
+
+            new_dataset.data_source = data_source
+
+            work.post(new_dataset)
 
 
     def test_ingest_project(self):

@@ -37,6 +37,11 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
 
     for key, value in data.items():
         if hasattr(model_object, key):
+            # Test if this is a file widget that needs to be converted to text (there is probably a more elegant way to do this)
+            if isinstance(value, dict) and 'fp' in value and 'filename' in value and 'mimetype' in value and 'preview_url' in value:
+                value = value['preview_url']
+                print value
+
             if value is colander.null or value is None or value == 'None':
                 continue
             elif isinstance(value, list):
