@@ -282,7 +282,7 @@ input[type=text].full_width, .full_width input[type=text] {
 }
 
 .deformMapSeq.location_map input {
-    width: 450px;
+    width: 275px;
 }
 
 input[type=text], input[type=text].half_width {
@@ -410,4 +410,10 @@ span.collapse_icon {
 .deform input[type=radio] {
     border: 1px solid red;
     display:block;
+}
+
+.msg {
+    background: #e0e0e0;
+    border: 1px solid black;
+    padding: 15px;
 }

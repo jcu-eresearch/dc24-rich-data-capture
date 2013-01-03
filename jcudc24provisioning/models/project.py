@@ -248,19 +248,6 @@ class Region(Base):
     project_id = Column(Integer, ForeignKey('project.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
     # TODO: Regions
 
-map_location_types = (
-    ("none", "---Select One---"),
-    ("gml", "OpenGIS Geography Markup Language"),
-    ("kml", "Keyhole Markup Language"),
-    ("iso19139dcmiBox", "DCMI Box notation (iso19139)"),
-    ("dcmiPoint", "DCMI Point notation"),
-    ("gpx", "GPS Exchange Format"),
-    ("iso31661", "Country code (iso31661)"),
-    ("iso31662", "Country subdivision code (iso31662)"),
-    ("kmlPolyCoords", "KML long/lat co-ordinates"),
-    ("gmlKmlPolyCoords", "KML long/lat co-ordinates derived from GML"),
-    ("text", "Free text"),
-    )
 class Location(Base):
     order_counter = itertools.count()
 
@@ -270,11 +257,8 @@ class Location(Base):
     project_id = Column(Integer, ForeignKey('project.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
     dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
 
-
-    #    location_type = Column(String(100), ca_widget=deform.widget.SelectWidget(values=map_location_types),
-#        ca_title="Location Type", ca_missing="")
     name = Column(String(256))
-    location = Column(String(512))
+    location = Column(String(512), ca_widget=deform.widget.TextInputWidget(css_class='map_location'), ca_help="<a href='http://en.wikipedia.org/wiki/Well-known_text#Geometric_Objects' title='Well-known Text (WKT) markup reference'>WTK format reference</a>")
     elevation = Column(DOUBLE(), ca_help="Elevation in meters from mean sea level")
 
     def getLatitude(self):
@@ -747,6 +731,18 @@ class Project(Base):
     project_creator = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 
     #--------------Setup--------------------
+    project_title = Column(String(512), ca_order=next(order_counter), ca_widget=deform.widget.TextInputWidget(css_class="full_width"), ca_page="setup", ca_force_required=True,
+        #                ca_group_start="test", ca_group_description="test description", ca_group_collapsed=False,
+        ca_placeholder="eg. Temperature deviation across rainforest canopy elevations",
+        ca_title="Project Title",
+        ca_help="<p>A descriptive title that will make the generated records easy to search:</P>"\
+                "<ul><li>The title should be a concise what and why including relevant keywords.</li>"\
+                "<li>Keep the description relevant to all generated records.</li>"\
+                "<li>The title should be unique to the data, ie. do not use the publication title as the data title.</li></ul>")
+
+    template = Column(String(512), ca_order=next(order_counter), ca_page="setup", ca_force_required=True,
+        ca_description="<b>TODO: Implement templating</b>",)
+
     no_activity = Column(Boolean(), ca_order=next(order_counter), ca_title="There is no associated research grant", ca_page="setup",
         ca_description="Must be selected if a research grant isn't provided below.")
 
@@ -754,19 +750,11 @@ class Project(Base):
             ca_help="Enter title of the research grant associated with this record.", ca_missing="", ca_force_required=True,
             ca_placeholder="TODO: Look into Mint lookup and create an addequate schema/widget.")
 
-    services = Column(String(256), ca_title="Services - Remove this?", ca_order=next(order_counter), ca_placeholder="Autocomplete - Mint/Mint DB", ca_page="setup",
-            ca_help="Indicate any related Services to this Collection. A lookup works against Mint, or you can enter known information about remote Services."
-            , ca_missing="",
-            ca_group_end="associations")
+#    services = Column(String(256), ca_title="Services - Remove this?", ca_order=next(order_counter), ca_placeholder="Autocomplete - Mint/Mint DB", ca_page="setup",
+#            ca_help="Indicate any related Services to this Collection. A lookup works against Mint, or you can enter known information about remote Services."
+#            , ca_missing="",
+#            ca_group_end="associations")
 
-    project_title = Column(String(512), ca_order=next(order_counter), ca_widget=deform.widget.TextInputWidget(css_class="full_width"), ca_page="setup", ca_force_required=True,
-#                ca_group_start="test", ca_group_description="test description", ca_group_collapsed=False,
-                ca_placeholder="eg. Temperature deviation across rainforest canopy elevations",
-                ca_title="Project Title",
-                ca_help="<p>A descriptive title that will make the generated records easy to search:</P>" \
-                         "<ul><li>The title should be a concise what and why including relevant keywords.</li>" \
-                         "<li>Keep the description relevant to all generated records.</li>" \
-                         "<li>The title should be unique to the data, ie. do not use the publication title as the data title.</li></ul>")
 
     data_manager = Column(String(256), ca_order=next(order_counter), ca_title="Data Manager (Primary contact)", ca_page="setup", ca_force_required=True,
         ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values=choices),
@@ -786,13 +774,6 @@ class Project(Base):
         ca_help="<b>TODO</b>",
         ca_description="Other collaborators in the project who cannot be added as a person in the Additional People field above.",
         ca_herlp="<b>TODO: This should give good definitions and edge cases etc...</b>", ca_missing="")
-    related_publications = relationship('RelatedPublication', ca_order=next(order_counter), ca_title="Related Publications", ca_page="setup",
-        ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"), ca_child_title="Related Publication",
-        ca_help="Please provide details on any publications that are related to this project including their title and URL with an optional note.")
-    related_websites = relationship('RelatedWebsite', ca_order=next(order_counter), ca_title="Related Websites", ca_page="setup", ca_child_title="Related Website",
-        ca_help="TODO.", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"))
-
-
 
     #---------------------description---------------------
     brief_description = Column(Text(), ca_order=next(order_counter), ca_page="description",
@@ -890,7 +871,7 @@ class Project(Base):
         , ca_missing="", ca_placeholder="eg. Australian Wet Tropics, Great Barrier Reef, 1m above ground level")
     locations = relationship('Location', ca_order=next(order_counter), ca_title="Location", ca_widget=deform.widget.SequenceWidget(template='map_sequence'), ca_page="metadata",
         ca_group_end="coverage", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
-        ca_missing=colander.null, ca_help="All locations are added using the DCMI Point and DCMI Box formats.  Use the drawing tools on the map and/or edit the text representations below.")
+        ca_missing=colander.null, ca_help="<p>Use the drawing tools on the map and/or edit the text representations below.</p><p>Locations are represented using <a href='http://en.wikipedia.org/wiki/Well-known_text#Geometric_Objects'>Well-known Text (WKT) markup</a> in the WGS 84 coordinate system (coordinate system used by GPS).</p>")
 
 
     #-------------legal--------------------
@@ -954,6 +935,12 @@ class Project(Base):
     national_significance = Column(Boolean(), ca_order=next(order_counter), ca_title="Is the data nationally significant?", ca_page="metadata",
         ca_widget=deform.widget.RadioChoiceWidget(values=(("true", "Yes"), ("false", "No"))),
         ca_help="Do you know or believe that this projects data may be Nationally Significant?")
+
+    related_publications = relationship('RelatedPublication', ca_order=next(order_counter), ca_title="Related Publications", ca_page="metadata",
+        ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"), ca_child_title="Related Publication",
+        ca_help="Please provide details on any publications that are related to this project including their title and URL with an optional note.")
+    related_websites = relationship('RelatedWebsite', ca_order=next(order_counter), ca_title="Related Websites", ca_page="metadata", ca_child_title="Related Website",
+        ca_help="TODO.", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"))
     attachments = relationship('Attachment', ca_order=next(order_counter), ca_missing=None, ca_page="metadata", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"))
 #    notes = relationship('Note', ca_order=next(order_counter), ca_description="Enter administrative notes as required.", ca_missing=None, ca_page="metadata",
 #        ca_group_end="additional_information")

@@ -140,7 +140,7 @@ function findMapFromLayer(layer) {
 
 function appendSequenceItem(add_link) {
     deform.appendSequenceItem(add_link);
-    var fields = $(add_link.parentNode).children('ul').first().find("input[type=text]");
+    var fields = $(add_link.parentNode).children('ul').first().find("input[type=text].map_location");
     fields[fields.length - 1].setAttribute("onblur", "locationTextModified(this);");
     fields[fields.length - 1].map_div = $(add_link.parentNode).children(".location_map")[0];
 
@@ -149,7 +149,7 @@ function appendSequenceItem(add_link) {
 }
 
 function addMapFeatures(oid) {
-    var fields = $("#" + oid).children('ul').first().find("input[type=text]");
+    var fields = $("#" + oid).children('ul').first().find("input[type=text].map_location");
     var map_div = $("#" + oid).children(".location_map")[0];
 
     var i = 0;
@@ -297,7 +297,7 @@ function featureInserted(object) {
     /* Add the feature */
     appendSequenceItem(oid_node.children(".deformSeqAdd")[0]);
 
-    fields = oid_node.children('ul').first().find("input[type=text]");
+    fields = oid_node.children('ul').first().find("input[type=text].map_location");
 
     var geometry = feature.geometry.clone();
     geometry.transform(map.getProjectionObject(), displayProj);
@@ -305,6 +305,7 @@ function featureInserted(object) {
 
     fields[fields.length - 1].value = geometry;
     fields[fields.length - 1].feature = feature;
+    fields[fields.length - 1].className = fields[fields.length - 1].className.replace( /(?:^|\s)placeholder_text(?!\S)/g , '' );
 }
 
 //--------------------conditional_heckbox_mapping.pt----------------

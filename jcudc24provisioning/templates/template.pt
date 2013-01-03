@@ -67,7 +67,9 @@
 
                     <div id="main">
                         <h1>${page_title}</h1>
-                            <div metal:define-slot="content">
+                        <div class="msg" tal:repeat="msg messages"
+                             tal:content="msg"/>
+                        <div metal:define-slot="content">
                         </div>
                     </div>
                 </div>

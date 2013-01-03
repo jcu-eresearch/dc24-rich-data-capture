@@ -110,7 +110,7 @@ class Workflows(Layouts):
                         location += '?id=' + str(appstruct['id'])
                     return HTTPFound(location=location)
 
-            return {"page_title": 'Project Setup', "form": form, "form_only": self.form.use_ajax}
+            return {"page_title": 'Project Setup', "form": form, "form_only": self.form.use_ajax, 'messages' : self.request.session.pop_flash() or ''}
 
         # If the page has just been opened but it is set to a specific project
         appstruct = {}
@@ -121,7 +121,7 @@ class Workflows(Layouts):
             model = session.query(Project).filter_by(id=project_id).first()
             appstruct = convert_sqlalchemy_model_to_data(model, self.schema)
 
-        return {"page_title": self.title, "form": self.form.render(appstruct), "form_only": False}
+        return {"page_title": self.title, "form": self.form.render(appstruct), "form_only": False, 'messages' : self.request.session.pop_flash() or ''}
 
 
 class SetupViews(Workflows):
@@ -134,6 +134,18 @@ class SetupViews(Workflows):
 
     @view_config(renderer="../../templates/form.pt", name="setup")
     def handle_request(self):
+        controls = self.request.POST.items()
+
+        # If the form is being saved (there would be 1 item in controls if it is a fresh page with a project id set)
+        if len(controls) > 0:
+            # In either of the below cases get the data as a dict and get the rendered form
+            try:
+                appstruct = self.form.validate(controls)
+            except ValidationFailure, e:
+                if 'target' in self.request.POST:
+                    self.request.POST['target'] = ''
+                    self.request.session.flash('Valid project setup data must be entered before entering more data.')
+
         return super(SetupViews, self).handle_request()
 
 
