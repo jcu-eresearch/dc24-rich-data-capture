@@ -104,7 +104,7 @@ class Workflows(Layouts):
             if self.request.POST['target']:
                 location = self.request.application_url + '/' + self.request.POST['target']
                 if self.form.use_ajax:
-                    return {"page_title": 'Project Setup', "form": form, "form_only": self.form.use_ajax}
+                    return {"page_title": 'Project Setup', "form": form, "form_only": self.form.use_ajax, 'messages' : None}
                 else:
                     if 'id' in appstruct:
                         location += '?id=' + str(appstruct['id'])
