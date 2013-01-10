@@ -1,12 +1,17 @@
+import ConfigParser
 import unittest
+from beaker.cache import cache_regions, CacheManager
+from jcudc24provisioning import main
 from jcudc24ingesterapi.ingester_platform_api import UnitOfWork
 import jcudc24ingesterapi
 from jcudc24ingesterapi.authentication import CredentialsAuthentication
 from jcudc24ingesterapi.ingester_platform_api import IngesterPlatformAPI
-from jcudc24ingesterapi.models.locations import LocationOffset
-from models.project import Project, Location, Method, Dataset, Keyword, FieldOfResearch, MethodSchema, MethodSchemaField, PullDataSource
+from jcudc24provisioning.models.project import Project, Location, LocationOffset, Method, Dataset, Keyword, FieldOfResearch, MethodSchema, MethodSchemaField, PullDataSource
 from jcudc24ingesterapi.schemas.data_types import Integer, Double, String, Boolean, FileDataType, DateTime, DataType
 from jcudc24ingesterapi.schemas import Schema
+from pyramid.config import Configurator
+from pyramid_beaker import set_cache_regions_from_settings
+from jcudc24provisioning.scripts.ingesterapi_wrapper import IngesterAPIWrapper
 
 class TestIngesterPlatform(unittest.TestCase):
     def setUp(self):
@@ -141,156 +146,16 @@ class TestIngesterPlatform(unittest.TestCase):
 
         self.project.datasets.append(dataset1)
 
+
         self.auth = CredentialsAuthentication("casey", "password")
-        self.ingester_platform = IngesterPlatformAPI("http://localhost:8080/api", self.auth)
-
-    def convert_location(self, location):
-        assert isinstance(location, Location), "Invalid location: " + str(location)
-        assert location.location[:5] == "POINT", "Provided location is not a point (only points can be used for dataset or data_entry locations).  Value: " + location.location
-
-        new_location = jcudc24ingesterapi.models.locations.Location(
-            latitude = location.get_latitude(),
-            longitude = location.get_longitude(),
-            location_name = location.name,
-            elevation = location.elevation
-        )
-
-        return new_location
-
-    def convert_location_offset(self, location_offset):
-        assert isinstance(location_offset, LocationOffset), "Invalid location offset: " + str(location_offset)
-
-        new_location_offset = jcudc24ingesterapi.models.locations.LocationOffset(
-            location_offset.x,
-            location_offset.y,
-            location_offset.z
-        )
-        return new_location_offset
-
-    def add_region(self, location):
-        assert isinstance(location, Location), "Invalid location: " + str(location)
-        assert not location.location[:5] == "POINT", "Provided location is a point (It doesn't make sense for a region to be a single point).  Value: " + location.location
-
-        region = jcudc24ingesterapi.models.locations.Region(
-            region_name = location.name,
-            region_points = location.get_points()
-        )
-        return region
-
-    def convert_schema(self, schema):
-        assert isinstance(schema, MethodSchema), "Invalid schema: " + str(schema)
-
-        if True: # TODO: If the data entries don't need offsets
-            new_schema = jcudc24ingesterapi.schemas.data_entry_schemas.DataEntrySchema()
-        else:
-            pass #TODO: new_schema = jcudc24ingesterapi.schemas.data_entry_schemas.OffsetDataEntrySchema()
-
-        # Set the schema parents/extends
-        extends = []
-        for parent in schema.parents:
-            extends.append(parent.dam_schema_id)
-
-        new_schema.extends = extends
-
-        new_schema.name = schema.name
-
-        for field in schema.custom_fields:
-            if field.type == 'integer':
-                schema_field =  Integer(field.name, field.description, field.units)
-            elif field.type == 'decimal':
-                schema_field =  Double(field.name, field.description, field.units)
-            elif field.type == 'text_input' or field.type == 'text_area' or field.type == 'select' or\
-                 field.type == 'radio' or field.type == 'website' or field.type == 'email'\
-                 or field.type == 'phone' or field.type == 'hidden':
-                schema_field =  String(field.name, field.description, field.units)
-            elif field.type == 'checkbox':
-                schema_field =  Boolean(field.name, field.description, field.units)
-            elif field.type == 'file':
-                schema_field =  FileDataType(field.name, field.description, field.units)
-            elif field.type == 'date':
-                schema_field =  DateTime(field.name, field.description, field.units)
-            else:
-                assert True, "Unknown field typ: " + field.type
-
-            new_schema.addAttr(schema_field)
-
-        return new_schema
-
-    def add_project(self, work, project):
-        # TODO: These functions to be refactored into a data_layer package with better modularity.
-
-        assert isinstance(project, Project),"Trying to add a project with a model of the wrong type."
-        assert isinstance(work, UnitOfWork), "Invalid unit of work"
-
-        for dataset in project.datasets:
-            new_dataset = jcudc24ingesterapi.models.dataset.Dataset()
-
-            new_dataset.id = dataset.dam_dataset_id  # This will be None if it is new (Should always be the case)
-#            new_dataset.processing_script = dataset.custom_processor_script - Moved to datasource
-            new_dataset.redbox_uri = None   # TODO: Add redbox link
-            new_dataset.enabled = True
-            new_dataset.descripion = dataset.description
-
-            first_location_found = False
-            for location in dataset.dataset_location:
-                if not first_location_found and location.is_point:
-                    first_location_found = True
-                    new_dataset.location = location.dam_location_id
-                    if new_dataset.location is None:
-                        new_dataset.location = work.post(self.convert_location(location))
-                else:
-                    # TODO: Discuss regions when we get here - there is currently only 1 region in a dataset (this will fail if run)
-                    if location.dam_location_id is None:
-                        new_dataset.regions.append(work.post(self.convert_region(location)))
-                    else:
-                        new_dataset.regions.append(location.dam_location_id)
-
-            if dataset.location_offset is not None:
-                new_dataset.location_offset = self.convert_location_offset(dataset.location_offset)
-
-            for method in project.methods:
-                if method.id == dataset.method_id:
-                    if method.data_type.dam_schema_id is not None:
-                        new_dataset.schema = method.data_type.dam_schema_id
-                    else:
-                        new_dataset.schema = work.post(self.convert_schema(method.data_type))
-
-
-            if dataset.form_data_source is not None:
-                data_source = jcudc24ingesterapi.models.data_sources.FormDataSource()
-                # TODO: Update datasource configuration
-            if dataset.pull_data_source is not None:
-                data_source = jcudc24ingesterapi.models.data_sources.PullDataSource(
-                    dataset.pull_data_source.uri,
-                    dataset.pull_data_source.file_field,
-                    dataset.pull_data_source.filename_pattern,
-                    dataset.pull_data_source.mime_type,
-                    dataset.custom_processor_script,
-                    dataset.pull_data_source.custom_sampling_script,
-
-                )
-            if dataset.push_data_source is not None:
-                data_source = jcudc24ingesterapi.models.data_sources.PushDataSource()
-                # TODO: Update datasource configuration
-            if dataset.sos_data_source is not None:
-                data_source = jcudc24ingesterapi.models.data_sources.SOSDataSource()
-                # TODO: Update datasource configuration
-            if dataset.dataset_data_source is not None:
-                data_source = jcudc24ingesterapi.models.data_sources.DatasetDataSource()
-                # TODO: Update datasource configuration
-
-            new_dataset.data_source = data_source
-
-            work.post(new_dataset)
-
+        self.ingester_api = IngesterAPIWrapper("http://localhost:8080/api", self.auth)
 
     def test_ingest_project(self):
-        work = self.ingester_platform.createUnitOfWork()
-        self.add_project(work, self.project)
-        work.commit()
+        self.ingester_api.post(self.project)
+        pass
 
     def tearDown(self):
-        self.ingester_platform.close()
+        self.ingester_api.close()
         pass
 
 if __name__ == '__main__':

@@ -244,7 +244,7 @@ class Note(Base):
 class Region(Base):
     __tablename__ = 'region'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    dam_region_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget())
+    dam_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget())
     project_id = Column(Integer, ForeignKey('project.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
     # TODO: Regions
 
@@ -253,7 +253,7 @@ class Location(Base):
 
     __tablename__ = 'location'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    dam_location_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget())
+    dam_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget())
     project_id = Column(Integer, ForeignKey('project.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
     dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
 
@@ -279,7 +279,7 @@ class LocationOffset(Base):
 
     __tablename__ = 'location_offset'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    dam_location_offset_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget())
+    dam_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget())
     dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
     data_entry_id = Column(Integer, ForeignKey('data_entry.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
 
@@ -287,12 +287,18 @@ class LocationOffset(Base):
     y = Column(DOUBLE(), ca_help="Y/Longitude Offset from the location (meters)")
     z = Column(DOUBLE(), ca_help="Z/Elevation Offset from the location (meters)")
 
+    def __init__(self, x, y, z):
+        self.x = x
+        self.y = y
+        self.z = z
+
+
 class DataEntry(Base):
     order_counter = itertools.count()
 
     __tablename__ = 'data_entry'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    dam_data_entry_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget())
+    dam_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget())
     dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
 
 class RelatedPublication(Base):
@@ -422,7 +428,7 @@ class MethodSchemaField(Base):
 
     __tablename__ = 'method_schema_field'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    dam_schema_field_id = Column(Integer, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    dam_id = Column(Integer, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     method_schema_id = Column(Integer, ForeignKey('method_schema.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
     type = Column(String(100), ca_title="Field Type",
@@ -445,7 +451,7 @@ class MethodSchema(Base):
 
     __tablename__ = 'method_schema'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    dam_schema_id = Column(Integer, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    dam_id = Column(Integer, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     method_id = Column(Integer, ForeignKey('method.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     template_schema = Column(Boolean, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter)) # These are system schemas that users are encouraged to extend.
 
@@ -634,7 +640,7 @@ class Dataset(Base):
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter),
 #        ca_group_start="method", ca_group_title="Method", ca_group_schema=SelectMappingSchema,
         )
-    dam_dataset_id = Column(Integer, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    dam_id = Column(Integer, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     project_id = Column(Integer, ForeignKey('project.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter),
 #        ca_group_start="test_method", ca_group_title="Test Method",
         )

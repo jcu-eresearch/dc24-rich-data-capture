@@ -1,6 +1,7 @@
 from pkg_resources import declare_namespace
 from . import models
 from models.initialise_templates import InitialiseData
+from pyramid.scripting import get_root
 
 declare_namespace('jcudc24provisioning')
 
@@ -18,6 +19,9 @@ def main(global_config, **settings):
 #def main():
     """ This function returns a Pyramid WSGI application.
     """
+    set_cache_regions_from_settings(settings)
+    configurator = Configurator(root_factory=get_root, settings=settings)
+
     engine = engine_from_config(settings, 'sqlalchemy.')
     DBSession.configure(bind=engine)
     Base.metadata.create_all(engine)
@@ -26,9 +30,7 @@ def main(global_config, **settings):
     search_path = (resource_filename('jcudc24provisioning', 'templates/widgets'),resource_filename('jcudc24provisioning', 'templates/widgets/readonly'), deform_templates)
     Form.set_zpt_renderer(search_path)
 
-    set_cache_regions_from_settings(settings)
-    my_session_factory = session_factory_from_settings(settings)
-    configurator = Configurator(settings=settings, session_factory = my_session_factory)
+
 
     configurator.add_static_view('deform_static', 'deform:static', cache_max_age=0)
     configurator.add_static_view('static', 'static')
