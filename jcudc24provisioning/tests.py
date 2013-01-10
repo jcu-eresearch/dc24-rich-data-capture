@@ -165,7 +165,7 @@ class TestIngesterPlatform(unittest.TestCase):
             for method in project.methods:
                 if method.id == dataset.method_id:
                     new_schema = jcudc24ingesterapi.schemas.data_entry_schemas.DataEntrySchema()
-                    # TODO: Add date_entry schema as a parent to all schemas created for a dataset.
+                    # TODO: Add data_entry schema as a parent to all schemas created for a dataset.
 
                     # TODO: Make the schema in ingesterapi objects when it is updated
 
@@ -195,7 +195,7 @@ class TestIngesterPlatform(unittest.TestCase):
         ingester_work.commit()
 
     def tearDown(self):
-        # TODO: Does the ingesterapi connection need to be closed?
+        self.ingester_platform.close()
         pass
 
 if __name__ == '__main__':
