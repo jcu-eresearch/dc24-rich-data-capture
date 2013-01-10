@@ -10,4 +10,4 @@ class DashboardView(Layouts):
 
     @view_config(renderer="../templates/dashboard.pt")
     def dashboard_view(self):
-        return {"page_title": "Provisioning Dashboard"}
+        return {"page_title": "Provisioning Dashboard", 'messages' : None}

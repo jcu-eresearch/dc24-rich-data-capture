@@ -244,7 +244,7 @@ class Note(Base):
 class Region(Base):
     __tablename__ = 'region'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    dam_region_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget())
+    dam_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget())
     project_id = Column(Integer, ForeignKey('project.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
     # TODO: Regions
 
@@ -253,21 +253,53 @@ class Location(Base):
 
     __tablename__ = 'location'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    dam_location_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget())
+    dam_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget())
     project_id = Column(Integer, ForeignKey('project.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
     dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
 
     name = Column(String(256))
     location = Column(String(512), ca_widget=deform.widget.TextInputWidget(css_class='map_location'), ca_help="<a href='http://en.wikipedia.org/wiki/Well-known_text#Geometric_Objects' title='Well-known Text (WKT) markup reference'>WTK format reference</a>")
     elevation = Column(DOUBLE(), ca_help="Elevation in meters from mean sea level")
+    # regions = relationship("Region", ca_widget=deform.widget.HiddenWidget())
 
-    def getLatitude(self):
-        return 0
+    def is_point(self):
+        return self.location[:5] == "POINT"
 
-    def getLongitude(self):
-        return 0
+    def get_latitude(self):
+        return 0.0
 
-#    regions = relationship("Region", ca_widget=deform.widget.HiddenWidget())
+    def get_longitude(self):
+        return 0.0
+
+    def get_points(self):
+        return [[]]
+
+class LocationOffset(Base):
+    order_counter = itertools.count()
+
+    __tablename__ = 'location_offset'
+    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    dam_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget())
+    dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
+    data_entry_id = Column(Integer, ForeignKey('data_entry.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
+
+    x = Column(DOUBLE(), ca_help="X/Lattitude Offset from the location (meters)")
+    y = Column(DOUBLE(), ca_help="Y/Longitude Offset from the location (meters)")
+    z = Column(DOUBLE(), ca_help="Z/Elevation Offset from the location (meters)")
+
+    def __init__(self, x, y, z):
+        self.x = x
+        self.y = y
+        self.z = z
+
+
+class DataEntry(Base):
+    order_counter = itertools.count()
+
+    __tablename__ = 'data_entry'
+    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    dam_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget())
+    dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
 
 class RelatedPublication(Base):
     order_counter = itertools.count()
@@ -320,13 +352,12 @@ field_types = (
     ('text_area', 'Multi-line text'),
     ('checkbox', 'Checkbox'),
     ('select', 'Select/Dropdown box'),
-    ('select', 'Radio buttons/Multiple choice'),
+    ('radio', 'Radio buttons/Multiple choice'),
     ('file', 'File upload'),
     ('website', 'Website'),
     ('email', 'Email'),
     ('phone', 'Phone'),
-    ('address', 'Address'),
-    ('person', 'Person'),
+    ('date', 'Date picker'),
     ('hidden', 'Hidden (Used by custom processing only)'),
 )
 
@@ -397,7 +428,6 @@ class MethodSchemaField(Base):
 
     __tablename__ = 'method_schema_field'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    dam_schema_field_id = Column(Integer, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     method_schema_id = Column(Integer, ForeignKey('method_schema.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
     type = Column(String(100), ca_title="Field Type",
@@ -420,7 +450,7 @@ class MethodSchema(Base):
 
     __tablename__ = 'method_schema'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    dam_schema_id = Column(Integer, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    dam_id = Column(Integer, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     method_id = Column(Integer, ForeignKey('method.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     template_schema = Column(Boolean, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter)) # These are system schemas that users are encouraged to extend.
 
@@ -472,7 +502,7 @@ class Method(Base):
 
     data_sources=(
         ("form_data_source","<b>Web Form/Manual:</b> Only use an online form accessible through this interface to manually upload data (Other data sources also include this option)."),
-        ("poll_data_source","<b>Poll external file system:</b> Setup automatic polling of an external file system from a URL location, when new files of the correct type and naming convention are found they are ingested."),
+        ("pull_data_source","<b>Poll external file system:</b> Setup automatic polling of an external file system from a URL location, when new files of the correct type and naming convention are found they are ingested."),
         ("push_data_source","<b><i>(Advanced)</i> Push to this website through the API:</b> Use the XMLRPC API to directly push data into persistent storage, on project acceptance you will be emailed your API key and instructions."),
         ("sos_data_source","<b>Sensor Observation Service:</b> Set-up a sensor that implements the Sensor Observation Service (SOS) to push data into this systems SOS server."),
         ("dataset_data_source","<b><i>(Advanced)</i> Output from other dataset:</b> Output from other dataset: </b>This allows for advanced/chained processing of data, where the results of another dataset can be further processed and stored as required."),
@@ -499,20 +529,25 @@ class FormDataSource(Base):
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
-class PollDataSource(Base):
+class PullDataSource(Base):
     order_counter = itertools.count()
 
-    __tablename__ = 'poll_data_source'
+    __tablename__ = 'pull_data_source'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
-    poll_data_source_url = Column(Text(), ca_order=next(order_counter),
+    uri = Column(Text(), ca_order=next(order_counter),
         ca_placeholder="eg. http://example.com.au/folder/",
         ca_description="Provide the url that should be polled for data - files will be ingested that follow the name convention of <i>TODO</i>")
 
     file_field = Column(String(100), ca_order=next(order_counter),
             ca_description="<b>TODO: Redevelop into dropdown selection from schema fields that are of type file</b>")
 
+
+    # TODO: filename_patterns
+    filename_pattern=None
+    # TODO: file mime_types
+    mime_type=None
 
     start_conditions = Column(String(100),ca_order=next(order_counter), ca_title="Start conditions(TODO)", ca_child_title="todo",
         ca_group_start="sampling", ca_group_title="Data Sampling/Filtering", ca_group_collapsed=False,
@@ -604,14 +639,14 @@ class Dataset(Base):
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter),
 #        ca_group_start="method", ca_group_title="Method", ca_group_schema=SelectMappingSchema,
         )
-    dam_dataset_id = Column(Integer, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    dam_id = Column(Integer, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     project_id = Column(Integer, ForeignKey('project.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter),
 #        ca_group_start="test_method", ca_group_title="Test Method",
         )
     method_id = Column(Integer, ForeignKey('method.id'), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
     disabled = Column(Boolean,ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
-    redbox_link = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+    redbox_uri = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 
 
     description = Column(Text(),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
@@ -621,7 +656,7 @@ class Dataset(Base):
     form_data_source = relationship("FormDataSource", ca_order=next(order_counter), uselist=False,
         ca_group_start="data_source_configuration", ca_group_collapsed=False, ca_group_widget=deform.widget.MappingWidget(template="data_source_config_mapping"),
         ca_group_help="<b>TODO: Specialised template/widget to display the data source configuration correctly</b><br/><br/>Configure how this dataset will ingest data.")
-    poll_data_source = relationship("PollDataSource", ca_order=next(order_counter), uselist=False,)
+    pull_data_source = relationship("PullDataSource", ca_order=next(order_counter), uselist=False,)
     push_data_source = relationship("PushDataSource", ca_order=next(order_counter), uselist=False,)
     sos_data_source = relationship("SOSDataSource", ca_order=next(order_counter), uselist=False,)
     dataset_data_source = relationship("DatasetDataSource", ca_order=next(order_counter), uselist=False,
@@ -647,9 +682,12 @@ class Dataset(Base):
         ca_help="Textual description of the location such as Australian Wet Tropics or further information such as elevation."
         , ca_missing="", ca_placeholder="eg. Australian Wet Tropics, Great Barrier Reef, 1m above ground level")
 
+    # TODO: Validation that there is only 1 point (or someway to say which point is the dataset point)
     dataset_location = relationship('Location', ca_order=next(order_counter), ca_title="Location Map", ca_widget=deform.widget.SequenceWidget(template='map_sequence'),
         ca_group_end="coverage", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
         ca_missing=colander.null, ca_help="All locations are added using the DCMI Point and DCMI Box formats.  Use the drawing tools on the map and/or edit the text representations below.")
+
+    # TODO: location_offset =
 
     custom_processor_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
         ca_group_start="processing", ca_group_collapsed=False, ca_group_title="Custom Data Processing",

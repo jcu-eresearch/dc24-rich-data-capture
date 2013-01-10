@@ -16,6 +16,7 @@ from jcudc24provisioning.views.layouts import Layouts
 from pyramid.renderers import get_renderer
 from jcudc24provisioning.models.project import DBSession, Project, Method, Base, Party, Dataset, MethodSchema
 from jcudc24provisioning.views.scripts import convert_schema, create_sqlalchemy_model, convert_sqlalchemy_model_to_data
+from jcudc24provisioning.scripts.ingesterapi_wrapper import IngesterAPIWrapper
 
 __author__ = 'Casey Bajema'
 
@@ -104,7 +105,7 @@ class Workflows(Layouts):
             if self.request.POST['target']:
                 location = self.request.application_url + '/' + self.request.POST['target']
                 if self.form.use_ajax:
-                    return {"page_title": 'Project Setup', "form": form, "form_only": self.form.use_ajax}
+                    return {"page_title": 'Project Setup', "form": form, "form_only": self.form.use_ajax, 'messages' : None}
                 else:
                     if 'id' in appstruct:
                         location += '?id=' + str(appstruct['id'])
@@ -287,36 +288,19 @@ class SubmitView(Workflows):
                 "<b>Disable:</b> Stop data ingestion, this would usually occur once the project has finished."), page="submit").bind(request=request)
         self.form = Form(self.schema, action="submit", buttons=('Save', 'Delete', 'Submit', 'Reopen', 'Approve', 'Disable'), use_ajax=False)
 
-    def sqlmodel_to_ingestermodel(self, model):
-        pass
-
     @view_config(renderer="../../templates/form.pt", name="submit")
     def handle_request(self):
         if 'Approve' in self.request.POST and 'id' in self.request.POST:
-            self.auth = CredentialsAuthentication("casey", "password")
-            self.ingester_platform = IngesterPlatformAPI("http://localhost:8080", self.auth)
-            print self.ingester_platform.ping()
-
-            work = self.ingester_platform.createUnitOfWork()
-
+            print self.request.POST
             project_id = int(self.request.POST['id'])
             session = DBSession
-            model = session.query(Project).filter_by(id=project_id).first()
+            project = session.query(Project).filter_by(id=project_id).first()
 
-            self.sqlmodel_to_ingestermodel(model)
+            auth = CredentialsAuthentication("casey", "password")
+            ingester_api = IngesterAPIWrapper("http://localhost:8080/api", auth)
 
-            for method in model.methods:
-                self.sqlmodel_to_ingestermodel(method)
-                work.post(method)
-
-            for method in model.datasets:
-                self.sqlmodel_to_ingestermodel(method)
-                work.post(method)
-
-            try:
-                work.commit()
-            except:
-                print "commit failed - TODO: error message"
+            ingester_api.post(project)
+            ingester_api.close()
 
             print 'project approved - TODO: Success message'
 

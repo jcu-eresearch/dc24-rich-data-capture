@@ -1,9 +1,17 @@
+import ConfigParser
 import unittest
+from beaker.cache import cache_regions, CacheManager
+from jcudc24provisioning import main
+from jcudc24ingesterapi.ingester_platform_api import UnitOfWork
 import jcudc24ingesterapi
 from jcudc24ingesterapi.authentication import CredentialsAuthentication
 from jcudc24ingesterapi.ingester_platform_api import IngesterPlatformAPI
-from models.project import Project, Location, Method, Dataset, Keyword, FieldOfResearch, MethodSchema, MethodSchemaField, PollDataSource
-
+from jcudc24provisioning.models.project import Project, Location, LocationOffset, Method, Dataset, Keyword, FieldOfResearch, MethodSchema, MethodSchemaField, PullDataSource
+from jcudc24ingesterapi.schemas.data_types import Integer, Double, String, Boolean, FileDataType, DateTime, DataType
+from jcudc24ingesterapi.schemas import Schema
+from pyramid.config import Configurator
+from pyramid_beaker import set_cache_regions_from_settings
+from jcudc24provisioning.scripts.ingesterapi_wrapper import IngesterAPIWrapper
 
 class TestIngesterPlatform(unittest.TestCase):
     def setUp(self):
@@ -61,38 +69,41 @@ class TestIngesterPlatform(unittest.TestCase):
         method1.data_type.method_id = method1.id
         method1.data_type.name = "Test Schema"
 
-        offset_schema = MethodSchema()
-        offset_schema.id = 1
-        offset_schema.template_schema = True
-        offset_schema.name = "XYZ Offset Schema"
-
-        x_offset = MethodSchemaField()
-        x_offset.id = 0
-        x_offset.method_schema_id = offset_schema.id
-        x_offset.type = "Double"
-        x_offset.units = "m"
-        offset_schema.custom_fields.append(x_offset)
-
-        y_offset = MethodSchemaField()
-        y_offset.id = 1
-        y_offset.method_schema_id = offset_schema.id
-        y_offset.type = "Double"
-        y_offset.units = "m"
-        offset_schema.custom_fields.append(y_offset)
-
-        z_offset = MethodSchemaField()
-        z_offset.id = 2
-        z_offset.method_schema_id = offset_schema.id
-        z_offset.type = "Double"
-        z_offset.units = "m"
-        offset_schema.custom_fields.append(z_offset)
-
-        method1.data_type.parents.append(offset_schema)
+# The data entry location offset functionality has been changed
+#        offset_schema = MethodSchema()
+#        offset_schema.id = 1
+#        offset_schema.template_schema = True
+#        offset_schema.name = "XYZ Offset Schema"
+#        offset = LocationOffset()
+#
+#        x_offset = MethodSchemaField()
+#        x_offset.id = 0
+#        x_offset.method_schema_id = offset_schema.id
+#        x_offset.type = "Double"
+#        x_offset.units = "m"
+#        offset_schema.custom_fields.append(x_offset)
+#
+#        y_offset = MethodSchemaField()
+#        y_offset.id = 1
+#        y_offset.method_schema_id = offset_schema.id
+#        y_offset.type = "Double"
+#        y_offset.units = "m"
+#        offset_schema.custom_fields.append(y_offset)
+#
+#        z_offset = MethodSchemaField()
+#        z_offset.id = 2
+#        z_offset.method_schema_id = offset_schema.id
+#        z_offset.type = "Double"
+#        z_offset.units = "m"
+#        offset_schema.custom_fields.append(z_offset)
+#
+#        method1.data_type.parents.append(offset_schema)
 
         custom_field = MethodSchemaField()
         custom_field.id = 3
         custom_field.method_schema_id = method1.data_type.id
-        custom_field.type = "Double"
+        custom_field.name = "Distance"
+        custom_field.type = "decimal"
         custom_field.units = "m"
         method1.data_type.custom_fields.append(custom_field)
         self.project.methods.append(method1)
@@ -104,16 +115,24 @@ class TestIngesterPlatform(unittest.TestCase):
         dataset1.disabled = False
         dataset1.description = "Test dataset"
 
-        data_source = PollDataSource()
+        data_source = PullDataSource()
         data_source.id = 0
         data_source.dataset_id = dataset1.id
-        data_source.poll_data_source_url = "http://test.com.au"
-        dataset1.poll_data_source = data_source
+        data_source.uri = "http://test.com.au"
+        dataset1.pull_data_source = data_source
+
         dataset1.time_period_description = "Test dataset time description"
         dataset1.date_from = 1234
         dataset1.date_to = 1234
         dataset1.location_description = "Test dataset location description"
         dataset1.elevation = 12.5
+
+        # If project location is set:
+        #   Allow user to provide offset only (set dataset location to project location)
+        # Else:
+        #   Must set location (with optional offset)
+
+        # TODO: For locations in project: add as region to location
 
         dataset_location = Location()
         dataset_location.id = 1
@@ -122,80 +141,21 @@ class TestIngesterPlatform(unittest.TestCase):
         dataset_location.elevation = 12.6
         dataset1.dataset_location.append(dataset_location)
 
+        location_offset = LocationOffset(0, 0, 5)
+        dataset1.location_offset = location_offset
+
         self.project.datasets.append(dataset1)
 
+
         self.auth = CredentialsAuthentication("casey", "password")
-        self.ingester_platform = IngesterPlatformAPI("http://localhost:8080/api", self.auth)
-
-    def add_location(self, work, location):
-        if isinstance(location, Location):
-            if location.location[:5] == "POINT":
-                new_location = jcudc24ingesterapi.models.locations.Location(
-                    latitude = location.getLatitude(),
-                    longitude = location.getLongitude(),
-                    location_name = location.name,
-                    elevation = location.elevation
-                )
-                work.post(new_location)
-            else:
-                # TODO: Regions
-                pass
-        else:
-            # TODO: Handle offset locations
-            pass
-
-        return new_location
-
-    def add_project(self, work, project):
-        assert isinstance(project, Project),"Trying to add a project with a model of the wrong type."
-
-        for dataset in project.datasets:
-            new_dataset = jcudc24ingesterapi.models.dataset.Dataset()
-
-            new_dataset.id = dataset.dam_dataset_id  # This will be None if it is new (Should always be the case)
-            new_dataset.processing_script = dataset.custom_processor_script
-            new_dataset.redbox_uri = None   # TODO: Add redbox link
-            new_dataset.enabled = True
-            new_dataset.descripion = dataset.description
-
-            for location in dataset.dataset_location:
-                # TODO: Project Regions
-                new_dataset.location = self.add_location(work, location )
-
-            for method in project.methods:
-                if method.id == dataset.method_id:
-                    new_schema = jcudc24ingesterapi.schemas.data_entry_schemas.DataEntrySchema()
-                    # TODO: Add data_entry schema as a parent to all schemas created for a dataset.
-
-                    # TODO: Make the schema in ingesterapi objects when it is updated
-
-                    work.post(new_schema)
-                    new_dataset.schema = new_schema
-
-            # TODO: Update datasources to add configuration
-            if dataset.form_data_source is not None:
-                data_source = jcudc24ingesterapi.models.data_sources.FormDataSource()
-            if dataset.poll_data_source is not None:
-                data_source = jcudc24ingesterapi.models.data_sources.PullDataSource()
-            if dataset.push_data_source is not None:
-                data_source = jcudc24ingesterapi.models.data_sources.PushDataSource()
-            if dataset.sos_data_source is not None:
-                data_source = jcudc24ingesterapi.models.data_sources.SOSDataSource()
-            if dataset.dataset_data_source is not None:
-                data_source = jcudc24ingesterapi.models.data_sources.DatasetDataSource()
-
-            new_dataset.data_source = data_source
-
-            work.post(new_dataset)
-
+        self.ingester_api = IngesterAPIWrapper("http://localhost:8080/api", self.auth)
 
     def test_ingest_project(self):
-        ingester_work = self.ingester_platform.createUnitOfWork()
-        self.add_project(ingester_work, self.project)
-        ingester_work.commit()
+        self.ingester_api.post(self.project)
+        pass
 
     def tearDown(self):
-        self.ingester_platform.close()
+        self.ingester_api.close()
         pass
 
 if __name__ == '__main__':
