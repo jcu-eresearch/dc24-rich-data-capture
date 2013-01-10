@@ -3,7 +3,7 @@ from jcudc24ingesterapi.authentication import CredentialsAuthentication
 from jcudc24ingesterapi.ingester_platform_api import IngesterPlatformAPI
 from jcudc24ingesterapi.ingester_platform_api import UnitOfWork
 import jcudc24ingesterapi
-from jcudc24provisioning.models.project import Location, LocationOffset, MethodSchema, Base, Project, Region
+from jcudc24provisioning.models.project import Location, LocationOffset, MethodSchema, Base, Project, Region, Dataset
 from jcudc24ingesterapi.schemas.data_types import DateTime, FileDataType, Integer, String, Double, Boolean
 
 __author__ = 'Casey Bajema'
@@ -101,12 +101,15 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             return super(IngesterAPIWrapper, self).delete(model)
 
     #---------------Provisioning interface specific functions for processing the models-------------
+    # TODO: Update all processing to add listeners to the ingesterapi models to propagate the id changes to the provisioning interface models (on commit)
     def process_model(self, model, command):
         assert hasattr(model, "__tablename__"), "Trying to process a invalid provisioning model"
         assert hasattr(command, "func_name") and hasattr(UnitOfWork, command.func_name), "Trying to process a model with an invalid command"
 
         if isinstance(model, Project):
             return self.process_project(model, command)
+        if isinstance(model, Dataset):
+            return self.process_dataset(model, command)
         elif isinstance(model, Location):
             return self.process_location(model, command)
         elif isinstance(model, LocationOffset):
@@ -274,5 +277,81 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
                 new_dataset.id = dataset.dam_id
 
             dataset.dam_id = command(new_dataset)
+
+    def process_dataset(self, model, command):
+        assert isinstance(model, Dataset),"Trying to add a project with a model of the wrong type."
+
+        new_dataset = jcudc24ingesterapi.models.dataset.Dataset()
+
+        new_dataset.id = model.dam_id  # This will be None if it is new (Should always be the case)
+        #            new_dataset.processing_script = dataset.custom_processor_script - Moved to datasource
+        new_dataset.redbox_uri = None   # TODO: Add redbox link
+        new_dataset.enabled = True
+        new_dataset.descripion = model.description
+
+        first_location_found = False
+        for location in model.dataset_location:
+            if not first_location_found and location.is_point:
+                first_location_found = True
+                new_dataset.location = location.dam_id
+                if new_dataset.location is None:
+                    new_dataset.location = self.process_location(location, command)
+            else:
+                # TODO: Discuss regions when we get here - there is currently only 1 region in a dataset (this will fail if run)
+                if location.dam_location_id is None:
+                    new_dataset.regions.append(self.process_region(location, command))
+                else:
+                    new_dataset.regions.append(location.dam_location_id)
+
+        if model.location_offset is not None:
+            new_dataset.location_offset = self.process_location_offset(model.location_offset, command)
+
+        for method in model.methods:
+            if method.id == model.method_id:
+                if method.data_type.dam_id is not None:
+                    new_dataset.schema = method.data_type.dam_id
+                else:
+                    new_dataset.schema = self.process_schema(method.data_type, command)
+
+        if model.form_data_source is not None:
+            data_source = jcudc24ingesterapi.models.data_sources.FormDataSource()
+            # TODO: Update datasource configuration
+        if model.pull_data_source is not None:
+            data_source = jcudc24ingesterapi.models.data_sources.PullDataSource(
+                model.pull_data_source.uri,
+                model.pull_data_source.file_field,
+                model.pull_data_source.filename_pattern,
+                model.pull_data_source.mime_type,
+                model.custom_processor_script,
+                model.pull_data_source.custom_sampling_script,
+            )
+        if model.push_data_source is not None:
+            data_source = jcudc24ingesterapi.models.data_sources.PushDataSource()
+            # TODO: Update datasource configuration
+        if model.sos_data_source is not None:
+            data_source = jcudc24ingesterapi.models.data_sources.SOSDataSource()
+            # TODO: Update datasource configuration
+        if model.dataset_data_source is not None:
+            data_source = jcudc24ingesterapi.models.data_sources.DatasetDataSource()
+            # TODO: Update datasource configuration
+
+        new_dataset.data_source = data_source
+
+
+        if model.dam_id is not None:
+            new_dataset.id = model.dam_id
+
+        model.dam_id = command(new_dataset)
+        return model.dam_id
+
+    def process_data_entry(self, model, command):
+        pass # TODO: data_entries
+
+    def process_metadata(self, model, command):
+        pass # TODO: metadata
+
+
+
+
 
 

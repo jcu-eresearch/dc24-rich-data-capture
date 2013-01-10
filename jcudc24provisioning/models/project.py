@@ -428,7 +428,6 @@ class MethodSchemaField(Base):
 
     __tablename__ = 'method_schema_field'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    dam_id = Column(Integer, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     method_schema_id = Column(Integer, ForeignKey('method_schema.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
     type = Column(String(100), ca_title="Field Type",
@@ -647,7 +646,7 @@ class Dataset(Base):
     method_id = Column(Integer, ForeignKey('method.id'), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
     disabled = Column(Boolean,ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
-    redbox_link = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+    redbox_uri = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 
 
     description = Column(Text(),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
