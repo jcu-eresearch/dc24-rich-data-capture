@@ -2,15 +2,15 @@
     <div metal:use-macro="view.global_template">
         <div metal:fill-slot="content">
             <div id="workflow">
-                <div id="workflow_nav">
-                    <input id="workflow_target" form="deform" type="hidden" name="target" />
+                <input id="workflow_target" form="deform" type="hidden" name="target" />
+                <div id="workflow_nav" tal:condition="not view.is_hidden_workflow">
                     <ul>
                         <li tal:repeat="menu view.workflow_menu">
                             <tal:block tal:condition="menu.current">
                                 <span>${menu.title}</span>
                             </tal:block>
                             <tal:block tal:condition="not menu.current">
-                                <span><a style="cursor: pointer;" onclick="document.getElementById('workflow_target').value='${menu.href}'; if(document.getElementById('deform').onsubmit != null) {document.getElementById('deform').onsubmit();} document.getElementById('deform').submit();">${menu.title}</a></span>
+                                <span><input type="submit" form="deform" href="${view.request.matched_route.name}" onclick="document.getElementById('workflow_target').value='${menu.href}';" value="${menu.title}"></input></span>
 
                             </tal:block>
                         </li>

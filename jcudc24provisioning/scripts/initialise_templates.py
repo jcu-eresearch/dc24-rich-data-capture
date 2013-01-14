@@ -1,3 +1,4 @@
+import transaction
 from jcudc24provisioning.models.project import MethodSchema, MethodSchemaField, DBSession
 from jcudc24ingesterapi.schemas.data_types import Double
 
@@ -42,6 +43,6 @@ class InitialiseData(object):
             location_offsets_schema.custom_fields.append(z_offset_field)
 
             self.session.add(location_offsets_schema)
-            self.session.commit()
+            transaction.commit()
 
             # TODO: Add the offset schema to CC-DAM as well

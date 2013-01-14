@@ -1,6 +1,7 @@
+execfile("D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py", dict(__file__="D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py"))
 from pkg_resources import declare_namespace
 from . import models
-from models.initialise_templates import InitialiseData
+from scripts.initialise_templates import InitialiseData
 
 declare_namespace('jcudc24provisioning')
 
@@ -15,6 +16,8 @@ __author__ = 'Casey Bajema'
 
 
 def main(global_config, **settings):
+#    execfile("D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py", dict(__file__="D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py"))
+
 #def main():
     """ This function returns a Pyramid WSGI application.
     """
@@ -28,15 +31,32 @@ def main(global_config, **settings):
 
     set_cache_regions_from_settings(settings)
     my_session_factory = session_factory_from_settings(settings)
-    configurator = Configurator(settings=settings, session_factory = my_session_factory)
+    config = Configurator(settings=settings, session_factory = my_session_factory)
 
-    configurator.add_static_view('deform_static', 'deform:static', cache_max_age=0)
-    configurator.add_static_view('static', 'static')
-    configurator.scan()
+    config.add_route('dashboard', '/')                                      # Home page/user dashboard
+    config.add_route('login', '/login')                                     # Login page
+    config.add_route('search', '/search')                                   # Search and manage projects and data
+    config.add_route('admin', '/admin')                                     # administer user permissions + view admin required items
+
+#    ---------------Project/Workflow pages------------------------
+    config.add_route('share', '/project/share')                             # Set project permissions
+    config.add_route('setup', '/project/setup')              # Project creation wizard - templates, pre-fill etc.
+    config.add_route('general', '/project/{project_id}/general')              # Project creation wizard - templates, pre-fill etc.
+    config.add_route('description', '/project/{project_id}/description')    # descriptions
+    config.add_route('information', '/project/{project_id}/information')    # metadata or associated information
+    config.add_route('methods', '/project/{project_id}/methods')            # Data collection methods
+    config.add_route('datasets', '/project/{project_id}/datasets')          # Datasets or collections of data
+    config.add_route('submit', '/project/{project_id}/submit')              # Submit, review and approval
+    config.add_route('manage', '/project/{project_id}/manage')              # Manage projecct data, eg. change sample rates, add data values
+
+    config.add_static_view('deform_static', 'deform:static', cache_max_age=0)
+    config.add_static_view('static', 'static')
+
+    config.scan()
 
     InitialiseData()
 
-    return configurator.make_wsgi_app()
+    return config.make_wsgi_app()
 
 
 

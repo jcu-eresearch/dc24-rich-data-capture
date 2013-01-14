@@ -1,20 +1,13 @@
-import ConfigParser
+
 import unittest
-from beaker.cache import cache_regions, CacheManager
-from jcudc24provisioning import main
-from jcudc24ingesterapi.ingester_platform_api import UnitOfWork
-import jcudc24ingesterapi
 from jcudc24ingesterapi.authentication import CredentialsAuthentication
-from jcudc24ingesterapi.ingester_platform_api import IngesterPlatformAPI
 from jcudc24provisioning.models.project import Project, Location, LocationOffset, Method, Dataset, Keyword, FieldOfResearch, MethodSchema, MethodSchemaField, PullDataSource
-from jcudc24ingesterapi.schemas.data_types import Integer, Double, String, Boolean, FileDataType, DateTime, DataType
-from jcudc24ingesterapi.schemas import Schema
-from pyramid.config import Configurator
-from pyramid_beaker import set_cache_regions_from_settings
 from jcudc24provisioning.scripts.ingesterapi_wrapper import IngesterAPIWrapper
+
 
 class TestIngesterPlatform(unittest.TestCase):
     def setUp(self):
+
         self.project = Project()
         self.project.id = 1
 #        self.project.description = "This is a test description for the DC24 provisioning interface"
@@ -145,7 +138,6 @@ class TestIngesterPlatform(unittest.TestCase):
         dataset1.location_offset = location_offset
 
         self.project.datasets.append(dataset1)
-
 
         self.auth = CredentialsAuthentication("casey", "password")
         self.ingester_api = IngesterAPIWrapper("http://localhost:8080/api", self.auth)

@@ -4,17 +4,20 @@ jcu.dc24.provisioning README
 Getting Started
 ---------------
 
+!This needs to be updated!
+
 - cd <directory containing this file>
 
 - $venv/bin/python setup.py develop
 
 - $venv/bin/initialize_jcu.dc24.provisioning_db development.ini
 
-- $venv/bin/pserve development.ini
+- $venv/bin/pserve ../../development.ini (development.ini is contained in an external repository to seperate the code from the run configurations - use its location on your system)
 
-- Configure teh development.ini/production.ini pyramid_deform.tempdir to the desired temp folder
+- Configure the development.ini/production.ini pyramid_deform.tempdir to the desired temp folder
 - Setup a cron job or equivalent to remove old files (eg. daily).
 
+Note: Windows uses scripts instead of bin
 
 Editing Schemas
 ---------------
@@ -28,3 +31,11 @@ Schema attributes for working with ColanderAlchemy have been made to work as fol
  * The ca_force_required attribute can be added to make the generated deform schema node be required without needing to add the ColanderAlchemy nullable attribute (which makes the database column not nullable)
  * The convert_schema method has been created to make the above notes work without alterning the base ColanderAlchemy code.
 
+
+Developing in an IDE
+--------------------
+IDE support seems to be limited and can be difficult to get working
+* Setup and install following the above steps + information from the internet so that you can run the application from a command line (eg. in the virtualenv activate then run)
+* If possible add a pre-run executable to run activate/activate.bat/activate-this.py
+* Add $venv/bin/site-packages as both classes and sources libraries
+* If it still doesn't work, try adding execfile(".../activate_this.py", dict(__file__=".../activate_this.py")) to the lowest level init file.

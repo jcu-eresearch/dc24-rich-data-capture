@@ -1,21 +1,29 @@
 import ConfigParser
-import json
-from jcudc24provisioning.views.workflow.workflows import Workflows
-from pyramid.view import view_config
 import urllib2
+from pyramid.view import view_config
 
 __author__ = 'Casey Bajema'
+from pyramid.renderers import get_renderer
+from pyramid.decorator import reify
 
-class MetadataView(Workflows):
-    title = "Get Mint Users"
 
+class Layouts(object):
     def __init__(self, request):
         self.request = request
 
-    @view_config(renderer="../../templates/get_mint_users.pt", name="mint_users")
+    @reify
+    def global_template(self):
+        renderer = get_renderer("../templates/template.pt")
+        return renderer.implementation().macros['layout']
+
+    @reify
+    def get_message(self):
+        return self.request.GET.get('msg')
+
+
+    @reify
     def metadata_view(self):
         request_data = self.request.POST.items()
-        print request_data
         queryString = ""
 
         for key, value in request_data:
@@ -26,9 +34,10 @@ class MetadataView(Workflows):
         url_template = location + '?%(query)s'
         url = url_template % dict(query=queryString)
         result = ""
-        print url
         data = urllib2.urlopen(url).read()
-        print data
 
-        return {"page_title": 'Mint Users', "values": data}
+        return data
 
+    @view_config(renderer="../templates/dashboard.pt", route_name="dashboard")
+    def dashboard_view(self):
+        return {"page_title": "Provisioning Dashboard", 'messages' : None}

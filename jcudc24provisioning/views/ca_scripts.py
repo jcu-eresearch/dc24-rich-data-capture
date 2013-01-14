@@ -1,6 +1,5 @@
 
 from collections import OrderedDict
-import inspect
 import colander
 import deform
 
@@ -36,6 +35,12 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
         raise ValueError
 
     for key, value in data.items():
+        key = key.split(":")[-1]
+
+        if not hasattr(model_object, key) and isinstance(value, dict):
+            # This is a grouping - add its fields to the current model_object
+            create_sqlalchemy_model(value, model_class=model_class, model_object=model_object)
+
         if hasattr(model_object, key):
             # Test if this is a file widget that needs to be converted to text (there is probably a more elegant way to do this)
             if isinstance(value, dict) and 'fp' in value and 'filename' in value and 'mimetype' in value and 'preview_url' in value:
@@ -47,12 +52,18 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
             elif isinstance(value, list):
                 for item in value:
                     current_object = None
-                    if 'id' in item and (isinstance(item['id'], (long, int)) or (isinstance(item['id'], basestring) and item['id'].isnumeric())):
+
+                    if len(item) == 0:
+                        continue
+
+                    prefix = item.items()[0][0].split(":")[0] + ":"
+
+                    if prefix + 'id' in item and (isinstance(item[prefix + 'id'], (long, int)) or (isinstance(item[prefix + 'id'], basestring) and item[prefix + 'id'].isnumeric())):
                         for model_item in getattr(model_object, key, []):
 #                            print "ID's: " + str(getattr(model_item, 'id', None)) + " : " + str(item['id'])
                             current_object_id = getattr(model_item, 'id', None)
 #                            print (isinstance(current_object_id, (int, long)) or (isinstance(current_object_id, basestring) and current_object_id.isnumeric()))
-                            if (isinstance(current_object_id, (int, long)) or (isinstance(current_object_id, basestring) and current_object_id.isnumeric())) and int(getattr(model_item, 'id', None)) == int(item['id']):
+                            if (isinstance(current_object_id, (int, long)) or (isinstance(current_object_id, basestring) and current_object_id.isnumeric())) and int(getattr(model_item, 'id', None)) == int(item[prefix + 'id']):
                                 current_object = model_item
 #                                print "Current Object: " + str(current_object)
                                 break
@@ -78,7 +89,7 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
                 elif value == True or value == 'true':
                     value = 1
 
-                ca_registry = model_class._sa_class_manager[key].comparator.mapper.columns._data[key]._ca_registry
+                ca_registry = model_class._sa_class_manager[key]._parententity.columns._data[key]._ca_registry
                 if ('default' not in ca_registry or not value == ca_registry['default']) and str(value) != str(getattr(model_object, key, None)):
                     setattr(model_object, key, value)
                     is_data_empty = False
@@ -88,14 +99,16 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
 
     return model_object
 
-def convert_sqlalchemy_model_to_data(model, schema=None):
-#        model_class =
-
+def convert_sqlalchemy_model_to_data(model, schema):
     data = {}
 
+    if model is None:
+        return data
+
     for node in schema:
-        if hasattr(model, node.name):
-            value = getattr(model, node.name, None)
+        name = node.name.split(":")[-1]
+        if hasattr(model, name):
+            value = getattr(model, name, None)
             if isinstance(value, list):
                 node_list = []
                 for item in value:
@@ -107,6 +120,8 @@ def convert_sqlalchemy_model_to_data(model, schema=None):
 
             else:
                 data[node.name] = value
+        elif len(node.children) > 0:
+             node_data = convert_sqlalchemy_model_to_data(model, node.children)
 
     return data
 
@@ -121,6 +136,8 @@ def convert_schema(schema, **kw):
 #    fix_order(schema)
 
     schema = group_nodes(schema)
+
+    schema = prevent_duplicate_fields(schema)
 
     return schema
 
@@ -142,6 +159,15 @@ def convert_schema(schema, **kw):
 ##            if attr[0] == "_order":
 ##                child.order = attr[1]
 
+def prevent_duplicate_fields(schema):
+    for node in schema.children:
+        node.name = schema.name + ":" + node.name
+
+        if isinstance(node.typ, colander.Sequence):
+            prevent_duplicate_fields(node.children[0])
+        elif len(node.children) > 0:
+            node = prevent_duplicate_fields(node)
+    return schema
 
 def force_required(schema):
     for node in schema.children:

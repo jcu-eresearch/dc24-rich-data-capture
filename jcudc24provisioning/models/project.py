@@ -5,6 +5,7 @@ import colander
 from sqlalchemy.dialects.mysql.base import DOUBLE
 from sqlalchemy.engine import create_engine
 from sqlalchemy.schema import ForeignKey, Table
+from zope.sqlalchemy import ZopeTransactionExtension
 from colanderalchemy.declarative import Column, relationship
 import deform
 from sqlalchemy import (
@@ -22,13 +23,14 @@ from sqlalchemy.orm import (
     scoped_session,
     sessionmaker,
     mapper)
-from jcudc24provisioning.views.widgets import MethodSchemaWidget
+from jcudc24provisioning.views.deform_widgets import MethodSchemaWidget
 
 config = ConfigParser.SafeConfigParser()
 config.read('../../development.ini')
 db_engine = create_engine(config.get("app:main", "sqlalchemy.url"), echo=True)
 #db_engine.connect()
-DBSession = scoped_session(sessionmaker(bind=db_engine))
+#DBSession = scoped_session(sessionmaker(bind=db_engine))
+DBSession = scoped_session(sessionmaker(bind=db_engine, extension=ZopeTransactionExtension()))
 Base = declarative_base()
 
 def research_theme_validator(form, value):
@@ -463,7 +465,7 @@ class MethodSchema(Base):
         secondary=method_schema_to_schema,
         primaryjoin=id==method_schema_to_schema.c.child_id,
         secondaryjoin=id==method_schema_to_schema.c.parent_id,
-        ca_title="Template(s) to base your data schema off (Recommended)",
+        ca_title="Template(s) to base/extend your data schema from (Recommended)",
         ca_widget=deform.widget.SequenceWidget(template="method_schema_parents_sequence"),
         ca_child_widget=deform.widget.MappingWidget(template="ca_sequence_mapping", item_template="method_schema_parents_item"),
         ca_description="TODO: This is where the default and shared schemas will be selectable from")
@@ -475,8 +477,8 @@ class Method(Base):
     order_counter = itertools.count()
 
     __tablename__ = 'method'
-    id = Column(Integer, ca_order=next(order_counter), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
     project_id = Column(Integer, ForeignKey('project.id'), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+    id = Column(Integer, ca_order=next(order_counter), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
 
 
     method_template = Column(String(256), ca_order=next(order_counter), ca_title="Select a template to base this method off (Overrides all fields)",

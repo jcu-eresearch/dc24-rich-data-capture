@@ -1,9 +1,7 @@
 import colander
 import deform
 from jcudc24provisioning.views.project_actions.add_metadata import AddMetadataView
-from jcudc24provisioning.models.common_schemas import Attachment
-from jcudc24provisioning.views.workflow.workflows import Workflows
-from pyramid.response import Response
+from views.workflows import Workflows
 
 __author__ = 'Casey Bajema'
 

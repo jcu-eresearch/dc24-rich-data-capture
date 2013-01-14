@@ -1,5 +1,5 @@
 import types
-from jcudc24provisioning.views.widgets import SelectMappingWidget, ConditionalCheckboxMapping
+from jcudc24provisioning.views.deform_widgets import SelectMappingWidget, ConditionalCheckboxMapping
 from beaker.cache import cache_region
 import colander
 import deform

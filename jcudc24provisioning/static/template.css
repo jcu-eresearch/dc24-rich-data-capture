@@ -189,12 +189,12 @@ div#main {
     -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
     border-radius: 5px;
+}
+
 
 .rounded-corners {
     behavior: url(/css/border-radius.htc);
 }
-
-    }
 
 .deformInlineMappingFieldset .inline_mapping li {
     display: block;
@@ -233,8 +233,7 @@ div#workflow_nav ul {
     padding: 0px;
 }
 
-div#workflow_nav ul li a:hover, div#workflow_nav ul li a:visited, div#workflow_nav ul li a:active, div#workflow_nav ul li a {
-    text-decoration: none;
+div#workflow_nav ul li {
     color: #fff;
 }
 
@@ -245,6 +244,20 @@ div#workflow_nav ul li {
     margin: 0px;
     padding: 0px;
     padding-right: 10px;
+}
+
+
+div#workflow_nav ul li input {
+    font-family: verdana, serif;
+    background: none;
+    border: none;
+    cursor: pointer;
+
+    color: #ddb421;
+    font-weight: bold;
+    font-size: 1.1em;
+    text-align: center;
+    text-shadow: 0px 0px 2px #000;
 }
 
 div#footer {
