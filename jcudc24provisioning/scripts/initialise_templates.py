@@ -1,3 +1,4 @@
+from schemas.metadata_schemas import DataEntryMetadataSchema
 import transaction
 from jcudc24provisioning.models.project import MethodSchema, MethodSchemaField, DBSession
 from jcudc24ingesterapi.schemas.data_types import Double
@@ -5,10 +6,12 @@ from jcudc24ingesterapi.schemas.data_types import Double
 __author__ = 'Casey Bajema'
 
 
-class InitialiseData(object):
+class InitialiseSchemas(object):
     def __init__(self):
         self.session = DBSession
-        self.initialise_offset_locations_schema()
+#        self.initialise_offset_locations_schema()
+        self.initialise_temperature_schema()
+        transaction.commit()
 
     def initialise_offset_locations_schema(self):
 
@@ -43,6 +46,24 @@ class InitialiseData(object):
             location_offsets_schema.custom_fields.append(z_offset_field)
 
             self.session.add(location_offsets_schema)
-            transaction.commit()
+            self.session.flush()
 
             # TODO: Add the offset schema to CC-DAM as well
+
+    def initialise_temperature_schema(self):
+        temp_schema = self.session.query(MethodSchema).filter_by(name="Temperature").first()
+        if not temp_schema:
+            temp_schema = MethodSchema()
+            temp_schema.name = "Temperature"
+            temp_schema.template_schema = True
+            temp_schema.schema_type = "DataEntryMetadataSchema"
+
+            temp_field = MethodSchemaField()
+            temp_field.type = "decimal"
+            temp_field.units = "Celcius"
+            temp_field.name = "Temperature"
+            temp_field.validators = "decimal" # TODO: Auto schema validators
+            temp_schema.custom_fields.append(temp_field)
+
+            self.session.add(temp_schema)
+            self.session.flush()

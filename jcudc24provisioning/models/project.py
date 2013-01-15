@@ -34,15 +34,17 @@ DBSession = scoped_session(sessionmaker(bind=db_engine, extension=ZopeTransactio
 Base = declarative_base()
 
 def research_theme_validator(form, value):
-    if not value['ecosystems_conservation_climate'] and not value['industries_economies']\
-       and not value['peoples_societies'] and not value['health_medicine_biosecurity']:
-        exc = colander.Invalid(
-            form) # Uncomment to add a block message: , 'At least 1 research theme or Not aligned needs to be selected')
-        exc['ecosystems_conservation_climate'] = 'At least 1 research theme needs to be selected'
-        exc['industries_economies'] = 'At least 1 research theme needs to be selected'
-        exc['peoples_societies'] = 'At least 1 research theme needs to be selected'
-        exc['health_medicine_biosecurity'] = 'At least 1 research theme needs to be selected'
-        #exc['not_aligned'] = 'Select this if the none above are applicable'
+    error = True
+    exc = colander.Invalid(form) # Uncomment to add a block message: , 'At least 1 research theme or Not aligned needs to be selected')
+
+    for key, selected in value.items():
+        if selected:
+            error = False
+
+        exc[key] = 'At least 1 research theme needs to be selected'
+
+
+    if error:
         raise exc
 
 #@cache_region('long_term')
@@ -289,7 +291,7 @@ class LocationOffset(Base):
     y = Column(DOUBLE(), ca_help="Y/Longitude Offset from the location (meters)")
     z = Column(DOUBLE(), ca_help="Z/Elevation Offset from the location (meters)")
 
-    def __init__(self, x, y, z):
+    def __init__(self, x=0, y=0, z=0):
         self.x = x
         self.y = y
         self.z = z
@@ -437,15 +439,15 @@ class MethodSchemaField(Base):
         ca_description="",
         ca_placeholder="Type of field that should be shown.")
 
-    units = Column(String(256), ca_placeholder="eg. mm")
+    units = Column(String(256), ca_placeholder="eg. mm", ca_widget=deform.widget.TextInputWidget(css_class="custom_field_units"))
 
-    name = Column(String(256), ca_title="Name", ca_placeholder="eg. Temperature", ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
-    description = Column(Text(), ca_title="Description", ca_placeholder="eg. Calibrated temperature reading", ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
-    placeholder = Column(String(256), ca_title="Example", ca_placeholder="eg. 26.3", ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
-    default = Column(String(256), ca_title="Default Value.", ca_placeholder="Use appropriately where the user will usually enter the same value.", ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
-    validators = Column(String(256), ca_title="Validator", ca_placeholder="eg. Numerical value with decimal places or what values are expected such as for a dropdown box", ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
-    notes = Column(String(256), ca_title="Admin Notes", ca_placeholder="eg. Please read this field from the uploaded files, it will follow a pattern like temp:xxx.xx", ca_widget=deform.widget.TextAreaWidget(css_class="full_width"))
-    # TODO: file mime type
+    name = Column(String(256), ca_title="Name", ca_placeholder="eg. Temperature", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_name"))
+    description = Column(Text(), ca_title="Description", ca_placeholder="eg. Calibrated temperature reading", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_description"))
+    placeholder = Column(String(256), ca_title="Example", ca_placeholder="eg. 26.3", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_example"))
+    default = Column(String(256), ca_title="Default Value", ca_placeholder="Use appropriately where the user will usually enter the same value.", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_default"))
+    values = Column(Text(), ca_title="List of Values", ca_placeholder="Provide possible selections", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_values"))
+    validators = Column(String(256), ca_title="Validator", ca_placeholder="eg. Numerical value with decimal places or what values are expected such as for a dropdown box", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_validators"))
+    notes = Column(String(256), ca_title="Admin Notes", ca_placeholder="eg. Please read this field from the uploaded files, it will follow a pattern like temp:xxx.xx", ca_widget=deform.widget.TextAreaWidget(css_class="full_width custom_field_notes"))
 
 class MethodSchema(Base):
     order_counter = itertools.count()
@@ -454,7 +456,11 @@ class MethodSchema(Base):
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dam_id = Column(Integer, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     method_id = Column(Integer, ForeignKey('method.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+
     template_schema = Column(Boolean, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter)) # These are system schemas that users are encouraged to extend.
+
+    schema_type = Column(String(256), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+
 
     name = Column(String(256), ca_order=next(order_counter), ca_title="Schema Name", ca_placeholder="eg. Temperature with sensor XYZ calibration data",
         ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40),
@@ -467,11 +473,15 @@ class MethodSchema(Base):
         secondaryjoin=id==method_schema_to_schema.c.parent_id,
         ca_title="Template(s) to base/extend your data schema from (Recommended)",
         ca_widget=deform.widget.SequenceWidget(template="method_schema_parents_sequence"),
+        ca_child_title = "Parent Schema",
         ca_child_widget=deform.widget.MappingWidget(template="ca_sequence_mapping", item_template="method_schema_parents_item"),
         ca_description="TODO: This is where the default and shared schemas will be selectable from")
+
     custom_fields = relationship("MethodSchemaField", ca_order=next(order_counter), ca_child_title="Custom Field",
+        ca_child_widget=deform.widget.MappingWidget(item_template="method_schema_field_item"),
         ca_description="Provide details of the schema field and how it should be displayed.",
         ca_help="TODO:  This needs to be displayed better - I'm thinking a custom template that has a sidebar for options and the fields are displayed 1 per line.  All fields will be shown here (including fields from parent/extended schemas selected above).")
+
 
 class Method(Base):
     order_counter = itertools.count()
@@ -680,16 +690,14 @@ class Dataset(Base):
     location_description = Column(String(512), ca_order=next(order_counter), ca_title="Location (description)",
         ca_help="Textual description of the location such as Australian Wet Tropics or further information such as elevation."
         , ca_missing="", ca_placeholder="eg. Australian Wet Tropics, Great Barrier Reef, 1m above ground level")
-    elevation = Column(String(512), ca_order=next(order_counter), ca_title="Location (description)",
-        ca_help="Textual description of the location such as Australian Wet Tropics or further information such as elevation."
-        , ca_missing="", ca_placeholder="eg. Australian Wet Tropics, Great Barrier Reef, 1m above ground level")
 
-    # TODO: Validation that there is only 1 point (or someway to say which point is the dataset point)
     dataset_location = relationship('Location', ca_order=next(order_counter), ca_title="Location Map", ca_widget=deform.widget.SequenceWidget(template='map_sequence'),
-        ca_group_end="coverage", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
-        ca_missing=colander.null, ca_help="All locations are added using the DCMI Point and DCMI Box formats.  Use the drawing tools on the map and/or edit the text representations below.")
+        ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
+        ca_missing=colander.null, ca_help="<p>Use the drawing tools on the map and/or edit the text representations below.<br /><b>Note: Only the first valid point will be used for the data ingestion.</b></p><p>Locations are represented using <a href='http://en.wikipedia.org/wiki/Well-known_text#Geometric_Objects'>Well-known Text (WKT) markup</a> in the WGS 84 coordinate system (coordinate system used by GPS).</p>")
 
-    # TODO: location_offset =
+    location_offset = relationship('LocationOffset', uselist=False, ca_order=next(order_counter), ca_title="Location Offset (optional)",
+        ca_group_end="coverage", ca_widget=deform.widget.MappingWidget(),
+        ca_missing=colander.null, ca_help="Use an offset from the current location where the current location is the project location if valid, else the dataset location (eg. such as the artificial tree location is known so use z offsets for datasets).")
 
     custom_processor_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
         ca_group_start="processing", ca_group_collapsed=False, ca_group_title="Custom Data Processing",
@@ -723,6 +731,7 @@ class ProjectTemplate(Base):
     __tablename__ = 'project_template'
     order_counter = itertools.count()
     project_id = Column(Integer, ForeignKey('project.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    category = Column(String(100),ca_order=next(order_counter), ca_description="Category of template, this is a flexible way of grouping templates such as DRO, SEMAT or other organisational groupings.")
 
 class DatasetTemplate(Base):
     """
@@ -761,7 +770,6 @@ class UntouchedFields(Base):
 
     field_name = Column(String(100))
 
-
 class Project(Base):
     order_counter = itertools.count()
 
@@ -780,6 +788,7 @@ class Project(Base):
                 "<li>Keep the description relevant to all generated records.</li>"\
                 "<li>The title should be unique to the data, ie. do not use the publication title as the data title.</li></ul>")
 
+    # TODO: Refactor template, activity and data_manager/project_lead into setup page - use the autocomplete functionality to add details to project.
     template = Column(String(512), ca_order=next(order_counter), ca_page="setup", ca_force_required=True,
         ca_description="<b>TODO: Implement templating</b>",)
 
@@ -1005,3 +1014,32 @@ class Project(Base):
     #-----------------------------------------Submit page---------------------------------------------------
     project_notes = relationship("ProjectNote", ca_order=next(order_counter), ca_page="submit",
         ca_help="Project comments that are only relevant to the provisioning system (eg. comments as to why the project was reopened after the creator submitted it).")
+
+#class CreatePage(colander.MappingSchema):
+#    template = colander.SchemaNode(colander.String(), widget=deform.widget.TextAreaWidget(),
+#        default="Provide a textual description of the dataset being collected.",
+#        description="<b>TODO: Implement templating</b>")
+#
+#    no_activity = colander.SchemaNode(colander.Boolean(), description="Must be selected if a research grant isn't provided below.",
+#        title="There is no associated research grant")
+#
+#    activity = Column(String(256), ca_order=next(order_counter), ca_title="Research Grant", ca_page="setup",
+#        ca_help="Enter title of the research grant associated with this record.", ca_missing="", ca_force_required=True,
+#        ca_placeholder="TODO: Look into Mint lookup and create an addequate schema/widget.")
+#
+#    #    services = Column(String(256), ca_title="Services - Remove this?", ca_order=next(order_counter), ca_placeholder="Autocomplete - Mint/Mint DB", ca_page="setup",
+#    #            ca_help="Indicate any related Services to this Collection. A lookup works against Mint, or you can enter known information about remote Services."
+#    #            , ca_missing="",
+#    #            ca_group_end="associations")
+#
+#
+#    data_manager = Column(String(256), ca_order=next(order_counter), ca_title="Data Manager (Primary contact)", ca_page="setup", ca_force_required=True,
+#        ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values=choices),
+#        ca_placeholder="eg. TODO: data manager of artificial tree",
+#        ca_help="Primary contact for the project, this should be the person in charge of the data and actively working on the project.<br /><br />"\
+#                "<i>Autocomplete from most universities and large organisations, if the person you are trying to select isn't available please organise an external JCU account for them.</i>")
+#    project_lead = Column(String(256), ca_order=next(order_counter), ca_title="Project Lead (Supervisor)", ca_page="setup",
+#        ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values=choices), ca_force_required=True,
+#        ca_placeholder="eg. Dr Jeremy Vanderwal",
+#        ca_help="Head supervisor of the project that should be contacted when the data manager is unavailable.<br /><br />"\
+#                "<i>Autocomplete from most universities and large organisations, if the person you are trying to select isn't available please organise an external JCU account for them.</i>")

@@ -18,9 +18,12 @@
     <!-- sequence -->
 
     <select class="method_schema_parents_item">
-        <option tal:repeat="schema field.schema.template_schemas"
-                tal:content="schema.name"
-                tal:attributes="value schema"/>
+        <tal:block tal:repeat="schema field.schema.template_schemas">
+
+            <option tal:content="schema.name"
+                    tal:attributes="value schema.id"/>
+
+        </tal:block>
     </select>
     <input type="hidden" name="__start__" value="${field.name}:sequence"
            class="deformProto"
@@ -34,7 +37,6 @@
     </a>
 
     <ul id="seq_items-${field.oid}">
-
         <div tal:repeat="tup subfields"
              tal:replace="structure rndr(item_tmpl, field=tup[1], cstruct=tup[0],
                       parent=field)"/>
@@ -52,9 +54,8 @@
             var select_element=$(add_button.parentNode).children('select').first()[0];
             var selected_option = select_element.options[select_element.selectedIndex];
             var name_element = $(add_button.parentNode).find('ul').first().find('p:last')[0];
-
             name_element.innerHTML=selected_option.innerHTML;
-            var id=$(add_button.parentNode).find('ul').first().find('input[name="id"]:last')[0].value=selected_option.value
+            $(add_button.parentNode).find('ul').first().find('span input:first')[0].value=selected_option.value;
         }
 
         deform.addCallback(

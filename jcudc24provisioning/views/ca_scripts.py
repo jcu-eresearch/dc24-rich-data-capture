@@ -35,7 +35,7 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
         raise ValueError
 
     for key, value in data.items():
-        key = key.split(":")[-1]
+        key = fix_schema_field_name(key)
 
         if not hasattr(model_object, key) and isinstance(value, dict):
             # This is a grouping - add its fields to the current model_object
@@ -89,7 +89,11 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
                 elif value == True or value == 'true':
                     value = 1
 
-                ca_registry = model_class._sa_class_manager[key]._parententity.columns._data[key]._ca_registry
+                # TODO: Need a more reliable way of doing this, these seem to change version to version.
+                if not hasattr(model_class._sa_class_manager[key], '_parententity'):
+                    ca_registry = model_class._sa_class_manager[key].comparator.mapper.columns._data[key]._ca_registry
+                else:
+                    ca_registry = model_class._sa_class_manager[key]._parententity.columns._data[key]._ca_registry
                 if ('default' not in ca_registry or not value == ca_registry['default']) and str(value) != str(getattr(model_object, key, None)):
                     setattr(model_object, key, value)
                     is_data_empty = False
@@ -106,7 +110,7 @@ def convert_sqlalchemy_model_to_data(model, schema):
         return data
 
     for node in schema:
-        name = node.name.split(":")[-1]
+        name = fix_schema_field_name(node.name)
         if hasattr(model, name):
             value = getattr(model, name, None)
             if isinstance(value, list):
@@ -124,6 +128,9 @@ def convert_sqlalchemy_model_to_data(model, schema):
              node_data = convert_sqlalchemy_model_to_data(model, node.children)
 
     return data
+
+def fix_schema_field_name(field_name):
+    return field_name.split(":")[-1]
 
 def convert_schema(schema, **kw):
     schema.title = ''

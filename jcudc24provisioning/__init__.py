@@ -1,7 +1,7 @@
-execfile("D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py", dict(__file__="D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py"))
+#execfile("D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py", dict(__file__="D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py"))
 from pkg_resources import declare_namespace
 from . import models
-from scripts.initialise_templates import InitialiseData
+from scripts.initialise_templates import InitialiseSchemas
 
 declare_namespace('jcudc24provisioning')
 
@@ -54,7 +54,7 @@ def main(global_config, **settings):
 
     config.scan()
 
-    InitialiseData()
+    InitialiseSchemas()
 
     return config.make_wsgi_app()
 

@@ -19,9 +19,10 @@ from pyramid.view import view_config, view_defaults
 from colanderalchemy.types import SQLAlchemyMapping
 from jcudc24provisioning.views.views import Layouts
 from pyramid.renderers import get_renderer
-from jcudc24provisioning.models.project import DBSession, Project, Method, Base, Party, Dataset, MethodSchema
-from jcudc24provisioning.views.ca_scripts import convert_schema, create_sqlalchemy_model, convert_sqlalchemy_model_to_data
+from jcudc24provisioning.models.project import DBSession, Project,  Method, Base, Party, Dataset, MethodSchema
+from jcudc24provisioning.views.ca_scripts import convert_schema, create_sqlalchemy_model, convert_sqlalchemy_model_to_data,fix_schema_field_name
 from jcudc24provisioning.scripts.ingesterapi_wrapper import IngesterAPIWrapper
+
 
 __author__ = 'Casey Bajema'
 
@@ -140,7 +141,7 @@ class Workflows(Layouts):
 
             # save the data even if it didn't validate - this allows the user to easily navigate and fill fields out as they get the info.
             self.save_form(appstruct)
-
+            # TODO: Walk through schema saving to look at parent schemas (throws duplicate id error)
 #            If there is a target workflow step set then change to that page.
             if self.request.POST['target']:
                 target = self.request.POST['target']
@@ -162,26 +163,32 @@ class Workflows(Layouts):
 
         return {"page_title": self.find_page_title(self.request.matched_route.name), "form": form.render(appstruct), "form_only": False, 'messages': self.request.session.pop_flash() or ''}
 
+
+
     @view_config(route_name="setup")
+    def setup_view(self):
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="TODO: Restrict navigation to other steps until the setup page is adequately completed."), page='setup').bind(request=self.request)
+        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False, ajax_options=redirect_options)
+
+        controls = self.request.POST.items()
+
+        # If the form is being saved (there would be 1 item in controls if it is a fresh page with a project id set)
+        if len(controls) > 0:
+            self.request.POST['target'] = 'general' # Make the page redirect to the general page on the workflow on successful creation
+            # In either of the below cases get the data as a dict and get the rendered form
+            try:
+                appstruct = form.validate(controls)
+            except ValidationFailure, e:
+                if 'target' in self.request.POST:
+                    self.request.POST['target'] = ''
+                    self.request.session.flash('Valid project setup data must be entered before progressing.')
+
+        return self.handle_form(form, schema)
+
     @view_config(route_name="general")
     def general_view(self):
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="TODO: Restrict navigation to other steps until the setup page is adequately completed."), page='setup').bind(request=self.request)
         form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False, ajax_options=redirect_options)
-
-        if self.request.matched_route.name == "setup":
-            controls = self.request.POST.items()
-
-            # If the form is being saved (there would be 1 item in controls if it is a fresh page with a project id set)
-            if len(controls) > 0:
-                self.request.POST['target'] = 'general' # Make the page redirect to the general page on the workflow on successful creation
-                # In either of the below cases get the data as a dict and get the rendered form
-                try:
-                    appstruct = form.validate(controls)
-                except ValidationFailure, e:
-                    if 'target' in self.request.POST:
-                        self.request.POST['target'] = ''
-                        self.request.session.flash('Valid project setup data must be entered before progressing.')
-
         return self.handle_form(form, schema)
 
 
@@ -217,7 +224,10 @@ class Workflows(Layouts):
     def methods_view(self):
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="Setup methods the project uses for collecting data (not individual datasets themselves as they will be setup in the next step).  Such that a type of sensor that is used to collect temperature at numerous sites would be setup: <ol><li>Once within this step as a data method</li><li>As well as for each site it is used at in the next step</li></ol>This means you don't have to enter duplicate data!"), page="methods").bind(request=self.request)
 
-        schema.children[3].children[0].children[5].children[5].template_schemas = self.get_template_schemas()
+        # TODO: Better way of getting indexes
+        schema.children[3].children[0].children[5].children[7].template_schemas = self.get_template_schemas()
+        print schema.children[3].children[0].children[5].children[7]
+#        assert False
         form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False)
 
         return self.handle_form(form, schema)
@@ -234,17 +244,18 @@ class Workflows(Layouts):
 #            db_engine = create_engine(config.get("app:main", "sqlalchemy.url"), echo=True)
 
             #scoped_session(sessionmaker(bind=db_engine))
-        if self.project_id != None:
+        if self.project_id is not None:
             methods = self.session.query(Method).filter_by(project_id=self.project_id).all()
             method_schemas = []
             for method in methods:
                 method_children = convert_schema(SQLAlchemyMapping(Dataset, unknown='raise')).children
 
+                # TODO: Find programatical/more reliable way of finding the index
                 DATA_CONFIG_INDEX = 7
 
                 if method.data_source is not None:
                     for data_source in method_children[DATA_CONFIG_INDEX].children:
-                        if data_source.name == method.data_source:
+                        if fix_schema_field_name(data_source.name) == method.data_source:
                             method_children[DATA_CONFIG_INDEX].children = [data_source]
                             break
                 else:
@@ -252,7 +263,7 @@ class Workflows(Layouts):
                     method_children[DATA_CONFIG_INDEX].description = "No associated data source - please select a datasource on the Methods page."
 
                 for child in method_children:
-                    if child.name == 'id':
+                    if fix_schema_field_name(child.name) == 'id':
                         child.default = method.id
                         break
 

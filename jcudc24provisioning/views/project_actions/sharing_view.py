@@ -1,6 +1,6 @@
 import colander
 import deform
-from views.workflows import Workflows
+from jcudc24provisioning.views.workflows import Workflows
 
 __author__ = 'Casey Bajema'
 

@@ -2,12 +2,11 @@
     id="item-${field.oid}"
     tal:omit-tag="field.widget.hidden"
     i18n:domain="deform"
-    tal:condition="field.name == 'name' or field.name == 'id'"
-    tal:attributes="title field.schema.default or '';
-                    class field.name!='name' and 'hidden' or nothing">
+    tal:define="name field.name.split(':')[-1]"
+    tal:attributes="title field.schema.default or nothing;
+                    class name != 'name' and 'hidden' or nothing">
 
     <!-- mapping_item -->
-
     <span tal:content="structure field.serialize(cstruct, readonly=True)" />
 
 

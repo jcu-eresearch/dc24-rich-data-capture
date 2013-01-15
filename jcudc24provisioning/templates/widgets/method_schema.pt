@@ -1,3 +1,6 @@
+<!--This is the base template for the whole schema creator-->
+
+
 <fieldset id="mapping-${field.oid}" i18n:domain="deform"
           tal:attributes="class 'deformMappingFieldset ' + str((field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and ('collapsible-'+str(field.schema.__dict__.get('collapse_group')) or nothing))">
     <!-- mapping -->  <!--<legend 1tal:condition="field.schema.__dict__.get('collapsed')"><span class="collapse_icon">+ </span>${field.title}</legend>-->

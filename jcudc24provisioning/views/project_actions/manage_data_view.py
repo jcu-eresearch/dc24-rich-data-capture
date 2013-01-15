@@ -1,7 +1,7 @@
 import colander
 import deform
 from jcudc24provisioning.views.project_actions.add_metadata import AddMetadataView
-from views.workflows import Workflows
+from jcudc24provisioning.views.workflows import Workflows
 
 __author__ = 'Casey Bajema'
 

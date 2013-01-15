@@ -1,6 +1,6 @@
 import colander
 from jcudc24provisioning.models.common_schemas import ConditionalCheckboxSchema
-from views.workflows import Workflows
+from jcudc24provisioning.views.workflows import Workflows
 
 __author__ = 'Casey Bajema'
 
