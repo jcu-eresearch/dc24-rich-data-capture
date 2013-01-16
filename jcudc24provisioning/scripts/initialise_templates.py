@@ -1,4 +1,4 @@
-from schemas.metadata_schemas import DataEntryMetadataSchema
+
 import transaction
 from jcudc24provisioning.models.project import MethodSchema, MethodSchemaField, DBSession
 from jcudc24ingesterapi.schemas.data_types import Double
