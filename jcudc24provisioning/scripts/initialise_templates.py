@@ -1,6 +1,6 @@
-from schemas.metadata_schemas import DataEntryMetadataSchema
+
 import transaction
-from jcudc24provisioning.models.project import MethodSchema, MethodSchemaField, DBSession
+from jcudc24provisioning.models.project import MethodSchema,ProjectTemplate, MethodSchemaField, DBSession, Project
 from jcudc24ingesterapi.schemas.data_types import Double
 
 __author__ = 'Casey Bajema'
@@ -11,6 +11,7 @@ class InitialiseSchemas(object):
         self.session = DBSession
 #        self.initialise_offset_locations_schema()
         self.initialise_temperature_schema()
+        self.initialise_project_templates()
         transaction.commit()
 
     def initialise_offset_locations_schema(self):
@@ -67,3 +68,20 @@ class InitialiseSchemas(object):
 
             self.session.add(temp_schema)
             self.session.flush()
+
+    def initialise_project_templates(self):
+        blank_template = self.session.query(ProjectTemplate).filter_by(name="Blank Template").first()
+        if not blank_template:
+            blank_project = Project()
+            self.session.add(blank_project) # Add an empty project as a blank template
+            self.session.flush()
+
+            blank_template = ProjectTemplate()
+            blank_template.project_id = blank_project.id
+            blank_template.category = "General"
+            blank_template.name = "Blank Template"
+            blank_template.description = "An empty template that allows you to start from scratch (only for advanced " \
+                                         "users or if no other template is relevent)."
+            self.session.add(blank_template) # Add an empty project as a blank template
+
+

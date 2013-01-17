@@ -17,10 +17,11 @@
             deform.addCallback(
                     '${field.oid}',
                     function (oid) {
-                        $('#' + oid).autocomplete({source: ${values}});
+                        $('#' + oid).autocomplete({source: ${values});
                         $('#' + oid).autocomplete("option", ${options});
                     }
             );
+
         </script>
         <script tal:condition="field.schema.__dict__.get('placeholder')" type="text/javascript">
             deform.addCallback(

@@ -1,13 +1,19 @@
 import ConfigParser
 import copy
+import json
 from string import split
 import string
+import urllib2
+import datetime
+from sqlalchemy.orm.properties import ColumnProperty, RelationProperty
+from sqlalchemy.orm.util import object_mapper
 import colander
 from deform.exception import ValidationFailure
 from deform.form import Form
 from pyramid.url import route_url
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
+from pyramid_debugtoolbar.utils import logger
 import transaction
 from jcudc24ingesterapi.authentication import CredentialsAuthentication
 from jcudc24ingesterapi.ingester_platform_api import IngesterPlatformAPI
@@ -19,7 +25,7 @@ from pyramid.view import view_config, view_defaults
 from colanderalchemy.types import SQLAlchemyMapping
 from jcudc24provisioning.views.views import Layouts
 from pyramid.renderers import get_renderer
-from jcudc24provisioning.models.project import DBSession, Project,  Method, Base, Party, Dataset, MethodSchema
+from jcudc24provisioning.models.project import DBSession, ProjectTemplate, Project, CreatePage, Method, Base, Party, Dataset, MethodSchema
 from jcudc24provisioning.views.ca_scripts import convert_schema, create_sqlalchemy_model, convert_sqlalchemy_model_to_data,fix_schema_field_name
 from jcudc24provisioning.scripts.ingesterapi_wrapper import IngesterAPIWrapper
 
@@ -164,29 +170,73 @@ class Workflows(Layouts):
         return {"page_title": self.find_page_title(self.request.matched_route.name), "form": form.render(appstruct), "form_only": False, 'messages': self.request.session.pop_flash() or ''}
 
 
+    def clone (self, source):
+        """
+        Clone a database model
+        """
+        new_object = type(source)()
+        for prop in object_mapper(source).iterate_properties:
+            if (isinstance(prop, ColumnProperty) or isinstance(prop, RelationProperty) and prop.secondary):
+                setattr(new_object, prop.key, getattr(source, prop.key))
+
+        return new_object
+
+
 
     @view_config(route_name="setup")
     def setup_view(self):
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="TODO: Restrict navigation to other steps until the setup page is adequately completed."), page='setup').bind(request=self.request)
+        schema = CreatePage()
+        templates = self.session.query(ProjectTemplate).order_by(ProjectTemplate.category).all()
+        categories = []
+        for template in templates:
+            if not template.category in categories:
+                categories.append(template.category)
+
+        schema.children[0].templates_data = templates
+        schema.children[0].template_categories = categories
+
+#        print self.get_grants("a")
+
         form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False, ajax_options=redirect_options)
 
         controls = self.request.POST.items()
+        appstruct = {}
 
         # If the form is being saved (there would be 1 item in controls if it is a fresh page with a project id set)
         if len(controls) > 0:
-            self.request.POST['target'] = 'general' # Make the page redirect to the general page on the workflow on successful creation
             # In either of the below cases get the data as a dict and get the rendered form
             try:
                 appstruct = form.validate(controls)
-            except ValidationFailure, e:
-                if 'target' in self.request.POST:
-                    self.request.POST['target'] = ''
-                    self.request.session.flash('Valid project setup data must be entered before progressing.')
+                print appstruct
 
-        return self.handle_form(form, schema)
+                new_project = Project()
+
+                if 'template' in appstruct:
+                    template = self.session.query(Project).filter_by(id=appstruct['template']).first()
+                    if template is not None:
+                        new_project = self.clone(template)
+                        new_project.id = None
+
+                if 'activity' in appstruct:
+                    pass # Auto-complete project based on Mint lookup
+
+                self.session.add(new_project)
+                self.session.flush()
+
+                self.request.session.flash('New project successfully created.')
+                return HTTPFound(self.request.route_url('general', project_id=new_project.id))
+
+            except ValidationFailure, e:
+                appstruct = e.cstruct
+                self.request.session.flash('Valid project setup data must be entered before progressing.')
+                return {"page_title": self.find_page_title(self.request.matched_route.name), "form": e.render(), "form_only": False, 'messages': self.request.session.pop_flash() or ''}
+
+        return {"page_title": self.find_page_title(self.request.matched_route.name), "form": form.render(appstruct), "form_only": False, 'messages': self.request.session.pop_flash() or ''}
+
 
     @view_config(route_name="general")
     def general_view(self):
+        print self.request.POST
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="TODO: Restrict navigation to other steps until the setup page is adequately completed."), page='setup').bind(request=self.request)
         form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False, ajax_options=redirect_options)
         return self.handle_form(form, schema)
