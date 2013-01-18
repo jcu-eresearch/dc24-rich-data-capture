@@ -1,1 +1,1 @@
-<p id="${field.oid}">${field.schema.__dict__.get('placeholder')}</p>
+<input type="text" readonly="readonly" id="${field.oid}" name="${field.name}" value="${cstruct}" />

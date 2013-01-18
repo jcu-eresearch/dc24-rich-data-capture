@@ -130,7 +130,7 @@ class FieldOfResearch(Base):
 
     __tablename__ = 'field_of_research'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    project_id = Column(Integer, ForeignKey('project.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('project.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget())
 
     field_of_research = Column(String(50), ca_title="Field Of Research", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
     ca_data=getFORCodes())
@@ -141,7 +141,7 @@ class SocioEconomicObjective(Base):
 
     __tablename__ = 'socio_economic_objective'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    project_id = Column(Integer, ForeignKey('project.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('project.id'), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
     socio_economic_objective = Column(String(50), ca_title="Socio-Economic Objective", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
     ca_data=getSEOCodes())
@@ -166,21 +166,25 @@ class Party(Base):
     order_counter = itertools.count()
 
     __tablename__ = 'party'
-    person_id = Column(Integer, ForeignKey('person.id'), ca_order=next(order_counter), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    project_id = Column(Integer, ForeignKey('project.id'), ca_order=next(order_counter), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+#    person_id = Column(Integer, ForeignKey('person.id'), ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('project.id'), ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
     party_relationship = Column(String(100), ca_order=next(order_counter), ca_title="This project is",
         ca_widget=deform.widget.SelectWidget(values=relationship_types),
         ca_validator=OneOfDict(relationship_types[1:]))
 
-    person = relationship('Person', ca_order=next(order_counter), uselist=False)
+    identifier = Column(String(100), ca_order=next(order_counter), ca_title="Persistent Identifier",
+        ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/parties/', template="mint_autocomplete_input"),)
+#    person = relationship('Person', ca_order=next(order_counter), uselist=False)
 
 class Creator(Base):
     order_counter = itertools.count()
 
     __tablename__ = 'creator'
-    person_id = Column(Integer, ForeignKey('person.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    project_id = Column(Integer, ForeignKey('project.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    person_id = Column(Integer, ForeignKey('person.id'), nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('project.id'), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
     person = relationship('Person', uselist=False)
 
@@ -189,7 +193,7 @@ class Keyword(Base):
 
     __tablename__ = 'keyword'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    project_id = Column(Integer, ForeignKey('project.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('project.id'), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
     keyword = Column(String(512), )
 
@@ -198,8 +202,8 @@ class Collaborator(Base):
     order_counter = itertools.count()
 
     __tablename__ = 'collaborator'
-    id = Column(Integer, ForeignKey('person.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    project_id = Column(Integer, ForeignKey('project.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('project.id'), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
     collaborator = Column(String(256), ca_title="Collaborator",
         ca_placeholder="eg. CSIRO, University of X, Prof. Jim Bloggs, etc.")
@@ -209,8 +213,8 @@ class CitationDate(Base):
     order_counter = itertools.count()
 
     __tablename__ = 'citation_date'
-    id = Column(Integer, ForeignKey('person.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    project_id = Column(Integer, ForeignKey('project.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('project.id'), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
     dateType = Column(String(100), ca_title="Date type",
         ca_widget=deform.widget.TextInputWidget(size="40", css_class="full_width"))
@@ -223,7 +227,7 @@ class Attachment(Base):
 
     __tablename__ = 'attachment'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    project_id = Column(Integer, ForeignKey('project.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('project.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget())
 
     type = Column(String(100), ca_widget=deform.widget.SelectWidget(values=attachment_types),
         ca_validator=colander.OneOf(
@@ -238,7 +242,7 @@ class Note(Base):
 
     __tablename__ = 'note'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    project_id = Column(Integer, ForeignKey('project.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('project.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget())
 
     note = Column(Text(), ca_widget=deform.widget.TextAreaWidget())
 
@@ -310,7 +314,7 @@ class RelatedPublication(Base):
 
     __tablename__ = 'related_publication'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    project_id = Column(Integer, ForeignKey('project.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('project.id'), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
     title = Column(String(512), ca_title="Title", ca_placeholder="eg. TODO", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40), ca_force_required=True)
     url = Column(String(512), ca_title="URL", ca_placeholder="eg. http://www.somewhere.com.au", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40), ca_force_required=True)
@@ -321,7 +325,7 @@ class RelatedWebsite(Base):
 
     __tablename__ = 'related_website'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    project_id = Column(Integer, ForeignKey('project.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('project.id'), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
     url = Column(String(512), ca_title="URL", ca_placeholder="eg. http://www.somewhere.com.au", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40), ca_force_required=True)
     notes = Column(String(512), ca_title="Note", ca_missing="", ca_placeholder="eg. This website provides additional information on xyz", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=85))
@@ -370,7 +374,7 @@ class MethodAttachment(Base):
 
     __tablename__ = 'method_attachment'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    project_id = Column(Integer, ForeignKey('method.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('method.id'), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
     attachment = Column(String(512),  ca_widget=upload_widget)
     note = colander.SchemaNode(colander.String(), placeholder="eg. data sheet", widget=deform.widget.TextInputWidget(css_class="full_width"))
@@ -381,7 +385,7 @@ class MethodWebsite(Base):
 
     __tablename__ = 'method_website'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    project_id = Column(Integer, ForeignKey('method.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('method.id'), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
     title = Column(String(256), ca_title="Title", ca_placeholder="eg. Great Project Website", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
     url = Column(String(256), ca_title="URL", ca_placeholder="eg. http://www.somewhere.com.au", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
@@ -732,6 +736,8 @@ class ProjectTemplate(Base):
     order_counter = itertools.count()
     project_id = Column(Integer, ForeignKey('project.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     category = Column(String(100),ca_order=next(order_counter), ca_description="Category of template, this is a flexible way of grouping templates such as DRO, SEMAT or other organisational groupings.")
+    name = Column(String(100),ca_order=next(order_counter), ca_description="Name the template (eg. Artificial tree).")
+    description = Column(String(256),ca_order=next(order_counter), ca_description="Provide a short description (<256 chars) of the template for the end user.")
 
 class DatasetTemplate(Base):
     """
@@ -742,7 +748,7 @@ class DatasetTemplate(Base):
     __tablename__ = 'dataset_template'
     order_counter = itertools.count()
     id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget(), ca_missing=-1)
-    dataset_id = Column(Integer, ForeignKey('dataset.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     method_template_id = Column(Integer, ForeignKey('method_template.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
 class MethodTemplate(Base):
@@ -752,7 +758,7 @@ class MethodTemplate(Base):
     __tablename__ = 'method_template'
     order_counter = itertools.count()
     id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget(), ca_missing=-1)
-    method_id = Column(Integer, ForeignKey('method.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    method_id = Column(Integer, ForeignKey('method.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dataset_templates = relationship('DatasetTemplate')
 
 choices = ['JCU Name 1', 'JCU Name 2', 'JCU Name 3', 'JCU Name 4']
@@ -777,6 +783,7 @@ class Project(Base):
 
     id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget(), ca_missing=-1)
     project_creator = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+    template_only = Column(Boolean, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 
     #--------------Setup--------------------
     project_title = Column(String(512), ca_order=next(order_counter), ca_widget=deform.widget.TextInputWidget(css_class="full_width"), ca_page="setup", ca_force_required=True,
@@ -789,15 +796,16 @@ class Project(Base):
                 "<li>The title should be unique to the data, ie. do not use the publication title as the data title.</li></ul>")
 
     # TODO: Refactor template, activity and data_manager/project_lead into setup page - use the autocomplete functionality to add details to project.
-    template = Column(String(512), ca_order=next(order_counter), ca_page="setup", ca_force_required=True,
-        ca_description="<b>TODO: Implement templating</b>",)
-
-    no_activity = Column(Boolean(), ca_order=next(order_counter), ca_title="There is no associated research grant", ca_page="setup",
-        ca_description="Must be selected if a research grant isn't provided below.")
-
+#    template = Column(String(512), ca_order=next(order_counter), ca_page="setup", ca_force_required=True,
+#        ca_description="<b>TODO: Implement templating</b>",)
+#
+#    no_activity = Column(Boolean(), ca_order=next(order_counter), ca_title="There is no associated research grant", ca_page="setup",
+#        ca_description="Must be selected if a research grant isn't provided below.")
+#
     activity = Column(String(256), ca_order=next(order_counter), ca_title="Research Grant", ca_page="setup",
-            ca_help="Enter title of the research grant associated with this record.", ca_missing="", ca_force_required=True,
-            ca_placeholder="TODO: Look into Mint lookup and create an addequate schema/widget.")
+            ca_missing="", ca_force_required=True,
+            ca_help="Enter title of the research grant associated with this record.",
+            ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/activities/', template="mint_autocomplete_input"))
 
 #    services = Column(String(256), ca_title="Services - Remove this?", ca_order=next(order_counter), ca_placeholder="Autocomplete - Mint/Mint DB", ca_page="setup",
 #            ca_help="Indicate any related Services to this Collection. A lookup works against Mint, or you can enter known information about remote Services."
@@ -805,20 +813,24 @@ class Project(Base):
 #            ca_group_end="associations")
 
 
-    data_manager = Column(String(256), ca_order=next(order_counter), ca_title="Data Manager (Primary contact)", ca_page="setup", ca_force_required=True,
-        ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values=choices),
-        ca_placeholder="eg. TODO: data manager of artificial tree",
-        ca_help="Primary contact for the project, this should be the person in charge of the data and actively working on the project.<br /><br />" \
-                       "<i>Autocomplete from most universities and large organisations, if the person you are trying to select isn't available please organise an external JCU account for them.</i>")
-    project_lead = Column(String(256), ca_order=next(order_counter), ca_title="Project Lead (Supervisor)", ca_page="setup",
-        ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values=choices), ca_force_required=True,
-        ca_placeholder="eg. Dr Jeremy Vanderwal",
-        ca_help="Head supervisor of the project that should be contacted when the data manager is unavailable.<br /><br />" \
-                       "<i>Autocomplete from most universities and large organisations, if the person you are trying to select isn't available please organise an external JCU account for them.</i>")
+#    data_manager = Column(String(256), ca_order=next(order_counter), ca_title="Data Manager (Primary contact)", ca_page="setup", ca_force_required=True,
+#        ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values=choices),
+#        ca_placeholder="eg. TODO: data manager of artificial tree",
+#        ca_help="Primary contact for the project, this should be the person in charge of the data and actively working on the project.<br /><br />" \
+#                       "<i>Autocomplete from most universities and large organisations, if the person you are trying to select isn't available please organise an external JCU account for them.</i>")
+#    project_lead = Column(String(256), ca_order=next(order_counter), ca_title="Project Lead (Supervisor)", ca_page="setup",
+#        ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values=choices), ca_force_required=True,
+#        ca_placeholder="eg. Dr Jeremy Vanderwal",
+#        ca_help="Head supervisor of the project that should be contacted when the data manager is unavailable.<br /><br />" \
+#                       "<i>Autocomplete from most universities and large organisations, if the person you are trying to select isn't available please organise an external JCU account for them.</i>")
 
       #-------------associations--------------------
-    parties = relationship('Party', ca_title="Additional People", ca_order=next(order_counter), ca_widget=deform.widget.SequenceWidget(min_len=0), ca_missing="", ca_page="setup", #ca_force_required=True,
-            ca_child_title="Person", ca_help="Enter the details of associated people <b>TODO: Update this text + create a more inline widget based on Mint autocompletion</b>.")
+    parties = relationship('Party', ca_title="People", ca_order=next(order_counter),
+        ca_widget=deform.widget.SequenceWidget(min_len=0), ca_missing="", ca_page="setup", #ca_force_required=True,
+        ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
+        ca_child_title="Person",
+        ca_help="Enter the details of associated people <b>TODO: Update this text + create a more inline widget based on Mint autocompletion</b>.")
+
     collaborators = relationship('Collaborator', ca_order=next(order_counter), ca_page="setup", ca_title="Collaborators (Organisations, groups or external people)",
         ca_help="<b>TODO</b>",
         ca_description="Other collaborators in the project who cannot be added as a person in the Additional People field above.",
@@ -1015,31 +1027,31 @@ class Project(Base):
     project_notes = relationship("ProjectNote", ca_order=next(order_counter), ca_page="submit",
         ca_help="Project comments that are only relevant to the provisioning system (eg. comments as to why the project was reopened after the creator submitted it).")
 
-#class CreatePage(colander.MappingSchema):
-#    template = colander.SchemaNode(colander.String(), widget=deform.widget.TextAreaWidget(),
-#        default="Provide a textual description of the dataset being collected.",
-#        description="<b>TODO: Implement templating</b>")
-#
+
+class CreatePage(colander.MappingSchema):
+    template = colander.SchemaNode(colander.Integer(), title="Select a Project Template",
+        widget=deform.widget.TextInputWidget(template="project_template_mapping"),
+        help="Templates pre-fill the project with as much information as possible to make this process as quick and easy as possible.")
 #    no_activity = colander.SchemaNode(colander.Boolean(), description="Must be selected if a research grant isn't provided below.",
 #        title="There is no associated research grant")
-#
-#    activity = Column(String(256), ca_order=next(order_counter), ca_title="Research Grant", ca_page="setup",
-#        ca_help="Enter title of the research grant associated with this record.", ca_missing="", ca_force_required=True,
-#        ca_placeholder="TODO: Look into Mint lookup and create an addequate schema/widget.")
-#
-#    #    services = Column(String(256), ca_title="Services - Remove this?", ca_order=next(order_counter), ca_placeholder="Autocomplete - Mint/Mint DB", ca_page="setup",
-#    #            ca_help="Indicate any related Services to this Collection. A lookup works against Mint, or you can enter known information about remote Services."
-#    #            , ca_missing="",
-#    #            ca_group_end="associations")
-#
-#
-#    data_manager = Column(String(256), ca_order=next(order_counter), ca_title="Data Manager (Primary contact)", ca_page="setup", ca_force_required=True,
-#        ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values=choices),
-#        ca_placeholder="eg. TODO: data manager of artificial tree",
-#        ca_help="Primary contact for the project, this should be the person in charge of the data and actively working on the project.<br /><br />"\
-#                "<i>Autocomplete from most universities and large organisations, if the person you are trying to select isn't available please organise an external JCU account for them.</i>")
-#    project_lead = Column(String(256), ca_order=next(order_counter), ca_title="Project Lead (Supervisor)", ca_page="setup",
-#        ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values=choices), ca_force_required=True,
-#        ca_placeholder="eg. Dr Jeremy Vanderwal",
-#        ca_help="Head supervisor of the project that should be contacted when the data manager is unavailable.<br /><br />"\
-#                "<i>Autocomplete from most universities and large organisations, if the person you are trying to select isn't available please organise an external JCU account for them.</i>")
+
+    activity = colander.SchemaNode(colander.String(), title="Research Grant",
+        help="Enter title of the research grant associated with this record.", missing=None,
+        widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/activities/', template="mint_autocomplete_input"))
+
+    #    services = Column(String(256), ca_title="Services - Remove this?", ca_order=next(order_counter), ca_placeholder="Autocomplete - Mint/Mint DB", ca_page="setup",
+    #            ca_help="Indicate any related Services to this Collection. A lookup works against Mint, or you can enter known information about remote Services."
+    #            , ca_missing="",
+    #            ca_group_end="associations")
+
+
+    data_manager = colander.SchemaNode(colander.String(), title="Data Manager (Primary contact)",
+        widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/parties/', template="mint_autocomplete_input"),
+        help="Primary contact for the project, this should be the person in charge of the data and actively working on the project.<br /><br />"\
+                "<i>Autocomplete from most universities and large organisations, if the person you are trying to select isn't available please organise an external JCU account for them.</i>")
+    project_lead = colander.SchemaNode(colander.String(), title="Project Lead (Supervisor)",
+        widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/parties/', template="mint_autocomplete_input"),
+        help="Head supervisor of the project that should be contacted when the data manager is unavailable.<br /><br />"\
+                "<i>Autocomplete from most universities and large organisations, if the person you are trying to select isn't available please organise an external JCU account for them.</i>")
+
+

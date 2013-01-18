@@ -386,10 +386,10 @@ function buttonPressed(node) {
     var second_select = oid_node.children(".second_field")[0];
     var third_select = oid_node.children(".third_field")[0];
 
-    var fields = oid_node.children('ul').first().find("p");
+    var fields = oid_node.children('ul').first().find("input[readonly='readonly']");
 
     var text = third_select.options[third_select.selectedIndex].value;
-    fields[fields.length - 1].innerHTML = text;
+    fields[fields.length - 1].value = text;
     fields[fields.length - 1].style.display = "inline";
     var removeButton = $(fields[fields.length - 1]).parents('[id^="sequence"]').find(".deformClosebutton")[0];
     removeButton.setAttribute("onclick","deform.removeSequenceItem(this);" + "showAdd('" + id + "', false);");
@@ -398,7 +398,7 @@ function buttonPressed(node) {
     /* Delete duplicates */
     var i = 0;
     for (i; i < fields.length - 1; i++) {
-        if (fields[i].innerHTML == text) {
+        if (fields[i].value == text) {
             deform.removeSequenceItem($(fields[i]).parents('[id^="sequence"]').find(".deformClosebutton")[0]);
             alert("Not Added: The selected FOR code is a duplicate");
         }

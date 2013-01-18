@@ -49,6 +49,10 @@ def main(global_config, **settings):
     config.add_route('submit', '/project/{project_id}/submit')              # Submit, review and approval
     config.add_route('manage', '/project/{project_id}/manage')              # Manage projecct data, eg. change sample rates, add data values
 
+#    --------------JSON Search views--------------------------------
+    config.add_route('get_activities', '/search/activities/{search_terms}')              # Manage projecct data, eg. change sample rates, add data values
+    config.add_route('get_parties', '/search/parties/{search_terms}')              # Manage projecct data, eg. change sample rates, add data values
+
     config.add_static_view('deform_static', 'deform:static', cache_max_age=0)
     config.add_static_view('static', 'static')
 

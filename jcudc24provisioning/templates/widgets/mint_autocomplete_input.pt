@@ -1,0 +1,80 @@
+<span tal:omit-tag="">
+    <tal:block define="placeholder field.schema.__dict__.get('placeholder') or nothing;
+                           default_text cstruct or field.schema.default or placeholder">
+        <div class="ui-widget">
+            <input type="text"
+                   name="${field.name}"
+                   value="${default_text}"
+                   tal:attributes="size field.widget.size;"
+                   id="${field.oid}"/>
+        </div>
+        <input type="hidden" name="${field.name}-url" value="${field.widget.values}" id="${field.oid}-url"/>
+
+        <style>
+            .ui-autocomplete {
+                max-height: 300px;
+                overflow-y: auto;
+                /* prevent horizontal scrollbar */
+                overflow-x: hidden;
+            }
+                /* IE 6 doesn't support max-height
+                * we use height instead, but this forces the menu to always be this tall
+                */
+            * html .ui-autocomplete {
+                height: 300px;
+            }
+            .ui-autocomplete-loading {
+                background: white url('http://jqueryui.com/images/ui-anim_basic_16x16.gif') right center no-repeat;
+            }
+            #${field.oid} { width: 25em;}
+        </style>
+    <script tal:condition="field.widget.values" type="text/javascript">
+        function lookup_mint(url, request, response) {
+            $.ajax({
+                url: url + request.term,
+                dataType: "json",
+                success: function( data ) {
+                    response($.map( data, function( item ) {
+                        return {
+                            label: item.label,
+                            value: item.value
+                        }
+                    }));
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    alert(jqXHR.responseText);
+                    alert(textStatus + " : " + errorThrown)
+                },
+                open: function() {
+                    $( this ).removeClass( "ui-corner-all" ).addClass( "ui-corner-top" );
+                },
+                close: function() {
+                    $( this ).removeClass( "ui-corner-top" ).addClass( "ui-corner-all" );
+                }
+            });
+         }
+
+        function partial(func /*, 0..n args */) {
+          var args = Array.prototype.slice.call(arguments, 1);
+          return function() {
+            var allArguments = args.concat(Array.prototype.slice.call(arguments));
+            return func.apply(this, allArguments);
+          };
+        }
+
+
+
+        deform.addCallback(
+                '${field.oid}',
+                function (oid) {
+                    var lookup = partial(lookup_mint, ($('#' + oid + '-url')[0].value));
+
+                    $('#' + oid).autocomplete({source: lookup});
+                    $('#' + oid).autocomplete("option", ${options});
+                }
+        );
+
+        </script>
+
+    </tal:block>
+</span>

@@ -51,6 +51,13 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
                 continue
             elif isinstance(value, list):
                 for item in value:
+                    if not item or item is colander.null:
+                        continue
+
+                    if 'schema_select' in item and len(item) == 2:  # This is the custom developed select mapping - flatten the select out
+                        method = item.pop('schema_select')
+                        item = item.values()[0]
+
                     current_object = None
 
                     if len(item) == 0:
@@ -125,7 +132,9 @@ def convert_sqlalchemy_model_to_data(model, schema):
             else:
                 data[node.name] = value
         elif len(node.children) > 0:
-             node_data = convert_sqlalchemy_model_to_data(model, node.children)
+            # TODO: Fix data for select mapping schemas
+            node_data = convert_sqlalchemy_model_to_data(model, node.children)
+            data[node.name] = node_data
 
     return data
 

@@ -1,13 +1,20 @@
 import ConfigParser
 import copy
+from datetime import datetime, date
+import json
 from string import split
 import string
+import urllib2
+from sqlalchemy.orm.properties import ColumnProperty, RelationProperty
+from sqlalchemy.orm.util import object_mapper
 import colander
 from deform.exception import ValidationFailure
 from deform.form import Form
 from pyramid.url import route_url
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
+from pyramid_debugtoolbar.utils import logger
+import time
 import transaction
 from jcudc24ingesterapi.authentication import CredentialsAuthentication
 from jcudc24ingesterapi.ingester_platform_api import IngesterPlatformAPI
@@ -19,9 +26,10 @@ from pyramid.view import view_config, view_defaults
 from colanderalchemy.types import SQLAlchemyMapping
 from jcudc24provisioning.views.views import Layouts
 from pyramid.renderers import get_renderer
-from jcudc24provisioning.models.project import DBSession, Project,  Method, Base, Party, Dataset, MethodSchema
+from jcudc24provisioning.models.project import DBSession, ProjectTemplate, Project, CreatePage, Method, Base, Party, Dataset, MethodSchema
 from jcudc24provisioning.views.ca_scripts import convert_schema, create_sqlalchemy_model, convert_sqlalchemy_model_to_data,fix_schema_field_name
 from jcudc24provisioning.scripts.ingesterapi_wrapper import IngesterAPIWrapper
+from jcudc24provisioning.views.mint_lookup import MintLookup
 
 
 __author__ = 'Casey Bajema'
@@ -48,6 +56,7 @@ redirect_options = """
                    }
                 }
                 """
+
 
 @view_defaults(renderer="../templates/form.pt")
 class Workflows(Layouts):
@@ -164,32 +173,103 @@ class Workflows(Layouts):
         return {"page_title": self.find_page_title(self.request.matched_route.name), "form": form.render(appstruct), "form_only": False, 'messages': self.request.session.pop_flash() or ''}
 
 
+    def clone (self, source):
+        """
+        Clone a database model
+        """
+        new_object = type(source)()
+        for prop in object_mapper(source).iterate_properties:
+            if (isinstance(prop, ColumnProperty) or isinstance(prop, RelationProperty) and prop.secondary):
+                setattr(new_object, prop.key, getattr(source, prop.key))
+
+        return new_object
+
+
 
     @view_config(route_name="setup")
     def setup_view(self):
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="TODO: Restrict navigation to other steps until the setup page is adequately completed."), page='setup').bind(request=self.request)
-        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Create','Cancel',), use_ajax=False, ajax_options=redirect_options)
+        schema = CreatePage()
+        templates = self.session.query(ProjectTemplate).order_by(ProjectTemplate.category).all()
+        categories = []
+        for template in templates:
+            if not template.category in categories:
+                categories.append(template.category)
+
+        schema.children[0].templates_data = templates
+        schema.children[0].template_categories = categories
+
+#        print self.get_grants("a")
+
+        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False, ajax_options=redirect_options)
 
         controls = self.request.POST.items()
+        appstruct = {}
 
         # If the form is being saved (there would be 1 item in controls if it is a fresh page with a project id set)
         if len(controls) > 0:
-            if 'Cancel' in self.request.POST:
-                self.request.POST['target'] = 'dashboard'
-            else:
-                self.request.POST['target'] = 'general' # Make the page redirect to the general page on the workflow on successful creation
-                # In either of the below cases get the data as a dict and get the rendered form
-                try:
-                    appstruct = form.validate(controls)
-                except ValidationFailure, e:
-                    if 'target' in self.request.POST:
-                        self.request.POST['target'] = ''
-                        self.request.session.flash('Valid project setup data must be entered before progressing.')
+            # In either of the below cases get the data as a dict and get the rendered form
+            try:
+                appstruct = form.validate(controls)
 
-        return self.handle_form(form, schema)
+                new_project = Project()
+
+                if 'template' in appstruct:
+                    template = self.session.query(Project).filter_by(id=appstruct['template']).first()
+                    if template is not None:
+                        new_project = self.clone(template)
+                        new_project.id = None
+
+
+                new_parties = []
+                if 'data_manager' in appstruct:
+                    data_manager = Party()
+                    data_manager.party_relationship = "manager"
+                    data_manager.identifier = appstruct['data_manager']
+                    new_parties.append(data_manager)
+
+                if 'project_lead' in appstruct:
+                    project_lead = Party()
+                    project_lead.party_relationship = "owner"
+                    project_lead.identifier = appstruct['data_manager']
+                    new_parties.append(project_lead)
+
+                if 'activity' in appstruct:
+                    new_project.activity = appstruct['activity']
+                    activity_results = MintLookup(None).get_from_identifier(appstruct['activity'])
+                    new_project.brief_description = activity_results['dc:description']
+                    new_project.title = activity_results['dc:title']
+
+                    for contributor in activity_results['result-metadata']['all']['dc_contributor']:
+                        if str(contributor).strip() != appstruct['data_manager'].split("/")[-1].strip():
+                            new_party = Party()
+                            new_party.identifier = "jcu.edu.au/parties/people/" + str(contributor).strip()
+                            new_parties.append(new_party)
+
+                    if activity_results['result-metadata']['all']['dc_date'][0]:
+                        new_project.date_from = date(int(activity_results['result-metadata']['all']['dc_date'][0]), 1, 1)
+
+                    if activity_results['result-metadata']['all']['dc_date_end'][0]:
+                        new_project.date_to = date(int(activity_results['result-metadata']['all']['dc_date_end'][0]), 1, 1)
+
+                new_project.parties = new_parties
+
+                self.session.add(new_project)
+                self.session.flush()
+
+                self.request.session.flash('New project successfully created.')
+                return HTTPFound(self.request.route_url('general', project_id=new_project.id))
+
+            except ValidationFailure, e:
+                appstruct = e.cstruct
+                self.request.session.flash('Valid project setup data must be entered before progressing.')
+                return {"page_title": self.find_page_title(self.request.matched_route.name), "form": e.render(), "form_only": False, 'messages': self.request.session.pop_flash() or ''}
+
+        return {"page_title": self.find_page_title(self.request.matched_route.name), "form": form.render(appstruct), "form_only": False, 'messages': self.request.session.pop_flash() or ''}
+
 
     @view_config(route_name="general")
     def general_view(self):
+        print self.request.POST
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="TODO: Restrict navigation to other steps until the setup page is adequately completed."), page='setup').bind(request=self.request)
         form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False, ajax_options=redirect_options)
         return self.handle_form(form, schema)
@@ -228,8 +308,7 @@ class Workflows(Layouts):
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="Setup methods the project uses for collecting data (not individual datasets themselves as they will be setup in the next step).  Such that a type of sensor that is used to collect temperature at numerous sites would be setup: <ol><li>Once within this step as a data method</li><li>As well as for each site it is used at in the next step</li></ol>This means you don't have to enter duplicate data!"), page="methods").bind(request=self.request)
 
         # TODO: Better way of getting indexes
-        schema.children[3].children[0].children[5].children[7].template_schemas = self.get_template_schemas()
-        print schema.children[3].children[0].children[5].children[7]
+        schema.children[4].children[0].children[5].children[7].template_schemas = self.get_template_schemas()
 #        assert False
         form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False)
 
@@ -238,7 +317,7 @@ class Workflows(Layouts):
     @view_config(route_name="datasets")
     def datasets_view(self):
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="Add individual datasets that your project will be collecting.  This is the when and where using the selected data collection method (what, why and how).  Such that an iButton sensor that is used to collect temperature at numerous sites would have been setup once within the Methods step and should be set-up in this step for each site it is used at."), page="datasets").bind(request=self.request)
-        dataset_items = schema.children[2].children[0].children
+        dataset_items = schema.children[3].children[0].children
 
 #        if 'id' in self.request.GET:
 #            id = int(self.request.GET['id'])
@@ -266,17 +345,18 @@ class Workflows(Layouts):
                     method_children[DATA_CONFIG_INDEX].description = "No associated data source - please select a datasource on the Methods page."
 
                 for child in method_children:
-                    if fix_schema_field_name(child.name) == 'id':
+                    if fix_schema_field_name(child.name) == 'method_id':
+                        child.missing = method.id
                         child.default = method.id
                         break
 
                 method_schemas.append(colander.MappingSchema(*method_children, name=(method.method_name and method.method_name or 'Un-named')))
 
-            method_select_schema = SelectMappingSchema(*method_schemas, title="Method")
+            method_select_schema = SelectMappingSchema(*method_schemas, title="Method", name="dataset")
         else:
-            method_select_schema = SelectMappingSchema(title="Method")
+            method_select_schema = SelectMappingSchema(title="Method", name="dataset")
 
-        schema.children[2].children[0].children = [method_select_schema]
+        schema.children[3].children = [method_select_schema]
         form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False)
 
         return self.handle_form(form, schema)
