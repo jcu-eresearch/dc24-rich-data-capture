@@ -168,20 +168,23 @@ class Workflows(Layouts):
     @view_config(route_name="setup")
     def setup_view(self):
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="TODO: Restrict navigation to other steps until the setup page is adequately completed."), page='setup').bind(request=self.request)
-        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False, ajax_options=redirect_options)
+        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Create','Cancel',), use_ajax=False, ajax_options=redirect_options)
 
         controls = self.request.POST.items()
 
         # If the form is being saved (there would be 1 item in controls if it is a fresh page with a project id set)
         if len(controls) > 0:
-            self.request.POST['target'] = 'general' # Make the page redirect to the general page on the workflow on successful creation
-            # In either of the below cases get the data as a dict and get the rendered form
-            try:
-                appstruct = form.validate(controls)
-            except ValidationFailure, e:
-                if 'target' in self.request.POST:
-                    self.request.POST['target'] = ''
-                    self.request.session.flash('Valid project setup data must be entered before progressing.')
+            if 'Cancel' in self.request.POST:
+                self.request.POST['target'] = 'dashboard'
+            else:
+                self.request.POST['target'] = 'general' # Make the page redirect to the general page on the workflow on successful creation
+                # In either of the below cases get the data as a dict and get the rendered form
+                try:
+                    appstruct = form.validate(controls)
+                except ValidationFailure, e:
+                    if 'target' in self.request.POST:
+                        self.request.POST['target'] = ''
+                        self.request.session.flash('Valid project setup data must be entered before progressing.')
 
         return self.handle_form(form, schema)
 

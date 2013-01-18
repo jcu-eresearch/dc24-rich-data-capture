@@ -9,6 +9,9 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="module" module-name="jcu.dc24.ingesterapi" />
     <orderEntry type="module" module-name="ColanderAlchemy" />
+    <orderEntry type="library" name="site-packages" level="project" />
+    <orderEntry type="library" name="site-packages (classes)" level="project" />
+    <orderEntry type="library" name="venv" level="project" />
   </component>
 </module>
 
