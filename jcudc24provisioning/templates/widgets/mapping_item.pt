@@ -1,3 +1,11 @@
+<!--
+Modified:
+ * Structural titles
+ * Structural descriptions
+ * Toggleable help
+ * Checkboxes go in front of label
+-->
+
 <li class="field${field.error and ' ' + (field.widget.error_class or '')}"
     id="item-${field.oid}"
     tal:omit-tag="field.widget.hidden"
@@ -8,19 +16,26 @@
           tal:condition="field.schema.__dict__.get('placeholder')"
           tal:content="structure field.schema.__dict__.get('placeholder')"></span>
 
+    <span tal:condition="'CheckboxWidget' in str(field.widget)" tal:content="structure field.serialize(cstruct)" />
+
+    <span class="help_icon"
+          onclick="$(this.parentNode).children('.help_text').first().toggle(200)"
+          tal:condition="not (field.widget.hidden or field.widget.category == 'structural') and field.schema.__dict__.get('help')">
+        ?
+    </span>
+
     <!-- mapping_item -->
     <label tal:condition="not (field.widget.hidden or
                              field.widget.category == 'structural')"
+           style="display: inline;"
            class="desc"
            for="${field.oid}">
-        <span style="cursor: pointer; background-color: #ddd;" onclick="$(this.parentNode.parentNode).children('.help_text').first().toggle(200)" tal:condition="field.schema.__dict__.get('help')">?</span>
         ${field.title}<span tal:condition="field.required" class="req" id="req-${field.oid}">*</span>
-
     </label>
 
 
     <div id="help-${field.oid}" tal:condition="field.schema.__dict__.get('help') and not (field.widget.hidden or
-                           field.widget.category == 'structural')"
+         field.widget.category == 'structural')"
          class="help_text hidden"
          tal:content="structure field.schema.__dict__.get('help')">
     </div>
@@ -31,7 +46,8 @@
          tal:content="structure field.description">
     </div>
 
-    <span tal:content="structure field.serialize(cstruct)"/>
+    <span tal:condition="not 'CheckboxWidget' in str(field.widget)" tal:content="structure field.serialize(cstruct)"
+            style="display: block;"/>
 
 
     <p tal:condition="field.error and not field.widget.hidden and not field.typ.__class__.__name__=='Mapping'"

@@ -26,7 +26,7 @@ from pyramid.view import view_config, view_defaults
 from colanderalchemy.types import SQLAlchemyMapping
 from jcudc24provisioning.views.views import Layouts
 from pyramid.renderers import get_renderer
-from jcudc24provisioning.models.project import DBSession, ProjectTemplate, Project, CreatePage, Method, Base, Party, Dataset, MethodSchema
+from jcudc24provisioning.models.project import DBSession, ProjectTemplate, Project, CreatePage, Method, Base, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
 from jcudc24provisioning.views.ca_scripts import convert_schema, create_sqlalchemy_model, convert_sqlalchemy_model_to_data,fix_schema_field_name
 from jcudc24provisioning.scripts.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.mint_lookup import MintLookup
@@ -35,8 +35,8 @@ from jcudc24provisioning.views.mint_lookup import MintLookup
 __author__ = 'Casey Bajema'
 
 WORKFLOW_STEPS = [
-        {'href': 'setup', 'title': 'Setup', 'page_title': 'Setup New Project', 'hidden': True},
-        {'href': 'general', 'title': 'Setup', 'page_title': 'General Details'},
+        {'href': 'setup', 'title': 'Setup', 'page_title': 'Setup a New Project', 'hidden': True},
+        {'href': 'general', 'title': 'Details', 'page_title': 'General Details'},
         {'href': 'description', 'title': 'Description', 'page_title': 'Description'},
         {'href': 'information', 'title': 'Information', 'page_title': 'Associated Information'},
         {'href': 'methods', 'title': 'Methods', 'page_title': 'Data Collection Methods'},
@@ -188,7 +188,8 @@ class Workflows(Layouts):
 
     @view_config(route_name="setup")
     def setup_view(self):
-        schema = CreatePage()
+        schema = CreatePage(description="This project creation wizard helps pre-fill as many fields as possible to make the process as painless as possible!",
+            validator=grant_validator)
         templates = self.session.query(ProjectTemplate).order_by(ProjectTemplate.category).all()
         categories = []
         for template in templates:
@@ -236,22 +237,27 @@ class Workflows(Layouts):
                 if 'activity' in appstruct:
                     new_project.activity = appstruct['activity']
                     activity_results = MintLookup(None).get_from_identifier(appstruct['activity'])
-                    new_project.brief_description = activity_results['dc:description']
-                    new_project.title = activity_results['dc:title']
 
-                    for contributor in activity_results['result-metadata']['all']['dc_contributor']:
-                        if str(contributor).strip() != appstruct['data_manager'].split("/")[-1].strip():
-                            new_party = Party()
-                            new_party.identifier = "jcu.edu.au/parties/people/" + str(contributor).strip()
-                            new_parties.append(new_party)
+                    if activity_results is not None:
+                        new_project.brief_description = activity_results['dc:description']
+                        new_project.project_title = activity_results['dc:title']
 
-                    if activity_results['result-metadata']['all']['dc_date'][0]:
-                        new_project.date_from = date(int(activity_results['result-metadata']['all']['dc_date'][0]), 1, 1)
+                        for contributor in activity_results['result-metadata']['all']['dc_contributor']:
+                            if str(contributor).strip() != appstruct['data_manager'].split("/")[-1].strip():
+                                new_party = Party()
+                                new_party.identifier = "jcu.edu.au/parties/people/" + str(contributor).strip()
+                                new_parties.append(new_party)
 
-                    if activity_results['result-metadata']['all']['dc_date_end'][0]:
-                        new_project.date_to = date(int(activity_results['result-metadata']['all']['dc_date_end'][0]), 1, 1)
+                        if activity_results['result-metadata']['all']['dc_date'][0]:
+                            new_project.date_from = date(int(activity_results['result-metadata']['all']['dc_date'][0]), 1, 1)
+
+                        if activity_results['result-metadata']['all']['dc_date_end'][0]:
+                            new_project.date_to = date(int(activity_results['result-metadata']['all']['dc_date_end'][0]), 1, 1)
 
                 new_project.parties = new_parties
+
+                # TODO:  Add the current user (known because of login) as a creator for citations
+                # TODO:  Add the current user (known because of login) as the creator of the project
 
                 self.session.add(new_project)
                 self.session.flush()
@@ -270,7 +276,7 @@ class Workflows(Layouts):
     @view_config(route_name="general")
     def general_view(self):
         print self.request.POST
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="TODO: Restrict navigation to other steps until the setup page is adequately completed."), page='setup').bind(request=self.request)
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description=""), page='setup').bind(request=self.request)
         form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False, ajax_options=redirect_options)
         return self.handle_form(form, schema)
 
@@ -305,10 +311,19 @@ class Workflows(Layouts):
 
     @view_config(route_name="methods")
     def methods_view(self):
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="Setup methods the project uses for collecting data (not individual datasets themselves as they will be setup in the next step).  Such that a type of sensor that is used to collect temperature at numerous sites would be setup: <ol><li>Once within this step as a data method</li><li>As well as for each site it is used at in the next step</li></ol>This means you don't have to enter duplicate data!"), page="methods").bind(request=self.request)
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="Setup methods the project uses for collecting data (not individual datasets themselves as they will be setup in the next step)."), page="methods").bind(request=self.request)
+
+        templates = self.session.query(MethodTemplate).order_by(MethodTemplate.category).all()
+        categories = []
+        for template in templates:
+            if not template.category in categories:
+                categories.append(template.category)
+
+        schema.children[3].children[0].children[2].templates_data = templates
+        schema.children[3].children[0].children[2].template_categories = categories
 
         # TODO: Better way of getting indexes
-        schema.children[4].children[0].children[5].children[7].template_schemas = self.get_template_schemas()
+        schema.children[3].children[0].children[5].children[6].template_schemas = self.get_template_schemas()
 #        assert False
         form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False)
 
@@ -316,7 +331,7 @@ class Workflows(Layouts):
 
     @view_config(route_name="datasets")
     def datasets_view(self):
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="Add individual datasets that your project will be collecting.  This is the when and where using the selected data collection method (what, why and how).  Such that an iButton sensor that is used to collect temperature at numerous sites would have been setup once within the Methods step and should be set-up in this step for each site it is used at."), page="datasets").bind(request=self.request)
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="<p>Add individual datasets that your project will be collecting.  This is the when and where using the selected data collection method (what, why and how).</p><p><i>Such that an iButton sensor that is used to collect temperature at numerous sites would have been setup once within the Methods step and should be set-up in this step for each site it is used at.</i></p>"), page="datasets").bind(request=self.request)
         dataset_items = schema.children[3].children[0].children
 
 #        if 'id' in self.request.GET:

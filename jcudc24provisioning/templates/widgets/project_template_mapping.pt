@@ -1,7 +1,7 @@
 <!--Display a categorised select list of templates-->
 
     <!--Hidden input for holding the templates id if/when it is selected-->
-<input type="hidden" name="${field.name}" id="${field.oid}" xmlns="http://www.w3.org/1999/html"/>
+<input type="hidden" name="${field.name}" id="${field.oid}" xmlns="http://www.w3.org/1999/html" value="${cstruct}"/>
 
     <div id="${field.oid}-tabs">
         <ul>
@@ -14,10 +14,11 @@
             <div id="${category}" class="template_selection">
                 <tal:block tal:repeat="template field.schema.templates_data">
                     <div class="selectable" tal:condition="template.category == category"
+                         id="${template.template_id}-template_item"
                             onclick="select_template(this);">
                         <h3>${template.name}</h3>
                         ${template.description}
-                        <input type="hidden" value="${template.project_id}"/>
+                        <input type="hidden" value="${template.template_id}"/>
                     </div>
                 </tal:block>
             </div>
@@ -28,6 +29,11 @@
         deform.addCallback(
             '${field.oid}',
             function (oid) {
+                var selected_item = $("#" + $("#" + oid)[0].value + "-template_item")[0];
+                if (selected_item) {
+                    $(selected_item).addClass('selected');
+                }
+
                 $("#" + oid+"-tabs").tabs().addClass( "ui-tabs-vertical ui-helper-clearfix" );
                 $("#" + oid+"-tabs li" ).removeClass( "ui-corner-top" ).addClass( "ui-corner-left" );
         });

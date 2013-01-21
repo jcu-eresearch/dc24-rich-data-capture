@@ -191,7 +191,7 @@ def force_required(schema):
             force_required(node)
 
         if hasattr(node, 'force_required') and node.force_required:
-            delattr(node, 'missing')
+            setattr(node, 'missing', colander._marker)
 
 def remove_nodes_not_on_page(schema, page):
     children_to_remove = []

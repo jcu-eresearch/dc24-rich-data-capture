@@ -66,6 +66,11 @@ p, h1, h2, h3, h4, div, li, a {
     padding: 10px;
 }
 
+.deform input[type=radio] {
+    display: inline;
+}
+
+
 #nav a {
     color: #fff;
     text-decoration: none;
@@ -317,11 +322,12 @@ input[type=text], input[type=text].half_width {
     /*box-shadow: #00AEEF 0px 0px 3px;*/
 }
 
-.description, .inline_mapping li.description {
+.description, .help_text, .inline_mapping .help_text, .inline_mapping .description {
     /*box-shadow: #ccc 0px 0px 1px;*/
     margin-bottom: 8px;
     margin-bottom: 8px;
     margin-top: 5px;
+
     /*padding: 7px 10px;*/
     /*border: 1px solid #bfbfbf;*/
 
@@ -333,18 +339,35 @@ input[type=text], input[type=text].half_width {
     /*}*/
 }
 
-.description ul {
-    display: block;
+.description, .help_text {
+    margin: 0px;
+    padding: 0px;
+    margin-bottom: 10px;
+}
+
+.help_text {
+    /*border: 2px solid #e6ffe6;*/
+}
+
+.description li, .help_text li {
+    display: list-item;
+    margin: 0px;
+    padding: 2px;
+    list-style-position: outside;
     list-style-type: disc;
+}
+
+li.description, li.help_text {
+    list-style-type: none;
+}
+
+.description ul, .help_text ul, .description ol, .help_text ol {
+    display: block;
     padding: 2px 1px;
     margin-left: 20px;
 }
 
-.description li {
-    list-style-type: decimal;
-}
-
-div.description p {
+div.description p, div.help_text p {
     padding: 2px 0px;
     margin: 0px;
 }
@@ -420,13 +443,17 @@ span.collapse_icon {
     font-size: 1em;
 }
 
-.deform input[type=radio] {
-    border: 1px solid red;
-    display:block;
-}
 
 .msg {
     background: #e0e0e0;
     border: 1px solid black;
     padding: 15px;
 }
+
+.help_icon {
+    cursor: pointer;
+    background-color: #ddd;
+    display: inline;
+    margin-right: 5px;
+}
+

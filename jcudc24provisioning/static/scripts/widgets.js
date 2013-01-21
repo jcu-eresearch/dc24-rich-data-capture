@@ -145,7 +145,7 @@ function appendSequenceItem(add_link) {
     fields[fields.length - 1].map_div = $(add_link.parentNode).children(".location_map")[0];
 
     var deleteLink = $(fields[fields.length - 1]).parents("li").children('.deformClosebutton')[0];
-    deleteLink.setAttribute("onclick", deleteLink.getAttribute("onclick") + " deleteFeature($(this.parentNode).find('input[type=text]')[0].feature);");
+    deleteLink.setAttribute("onclick", deleteLink.getAttribute("onclick") + " deleteFeature($(this.parentNode).find('input[type=text]')[1].feature);");
 }
 
 function addMapFeatures(oid) {
@@ -244,6 +244,7 @@ function modifyFeature(object) {
 
 function deleteFeature(feature) {
     var layer = findMapLayerFromFeature(feature);
+
     var map = findMapFromLayer(layer);
     var displayProj = new OpenLayers.Projection("EPSG:4326");
 
@@ -255,7 +256,7 @@ function deleteFeature(feature) {
     var i = 0;
     for (i; i < fields.length; i++) {
         if (fields[i].value == geometry.toString()) {
-            deform.removeSequenceItem(fields[i].parentNode.parentNode.parentNode);
+            deform.removeSequenceItem($(fields[i].parentNode.parentNode.parentNode.parentNode.parentNode).find(".deformClosebutton"));
         }
     }
 
@@ -389,6 +390,11 @@ function buttonPressed(node) {
     var fields = oid_node.children('ul').first().find("input[readonly='readonly']");
 
     var text = third_select.options[third_select.selectedIndex].value;
+
+    if (text == "---Select One---") {
+        var text = second_select.options[second_select.selectedIndex].value;
+    }
+
     fields[fields.length - 1].value = text;
     fields[fields.length - 1].style.display = "inline";
     var removeButton = $(fields[fields.length - 1]).parents('[id^="sequence"]').find(".deformClosebutton")[0];

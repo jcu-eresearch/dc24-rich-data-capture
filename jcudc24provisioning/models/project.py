@@ -23,7 +23,8 @@ from sqlalchemy.orm import (
     scoped_session,
     sessionmaker,
     mapper)
-from jcudc24provisioning.views.deform_widgets import MethodSchemaWidget
+from jcudc24provisioning.views.deform_widgets import MethodSchemaWidget, ConditionalCheckboxMapping
+from views.mint_lookup import MintLookup
 
 config = ConfigParser.SafeConfigParser()
 config.read('../../development.ini')
@@ -175,7 +176,9 @@ class Party(Base):
         ca_validator=OneOfDict(relationship_types[1:]))
 
     identifier = Column(String(100), ca_order=next(order_counter), ca_title="Persistent Identifier",
-        ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/parties/', template="mint_autocomplete_input"),)
+        ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/parties/', template="mint_autocomplete_input", size="70"),
+        ca_help="Primary contact for the project, this should be the person in charge of the data and actively working on the project.<br /><br />"\
+                                "<i>Autocomplete from most universities and large organisations, if the person you are trying to select isn't available please organise an external JCU account for them.</i>")
 #    person = relationship('Person', ca_order=next(order_counter), uselist=False)
 
 class Creator(Base):
@@ -266,7 +269,10 @@ class Location(Base):
     dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
 
     name = Column(String(256))
-    location = Column(String(512), ca_widget=deform.widget.TextInputWidget(css_class='map_location'), ca_help="<a href='http://en.wikipedia.org/wiki/Well-known_text#Geometric_Objects' title='Well-known Text (WKT) markup reference'>WTK format reference</a>")
+    location = Column(String(512), ca_widget=deform.widget.TextInputWidget(css_class='map_location'),
+        ca_force_required=True,
+        ca_help="<a href='http://en.wikipedia.org/wiki/Well-known_text#Geometric_Objects' title='Well-known Text (WKT) markup reference'>WTK format reference</a>")
+
     elevation = Column(DOUBLE(), ca_help="Elevation in meters from mean sea level")
     # regions = relationship("Region", ca_widget=deform.widget.HiddenWidget())
 
@@ -291,9 +297,9 @@ class LocationOffset(Base):
     dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
     data_entry_id = Column(Integer, ForeignKey('data_entry.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
 
-    x = Column(DOUBLE(), ca_help="X/Lattitude Offset from the location (meters)")
-    y = Column(DOUBLE(), ca_help="Y/Longitude Offset from the location (meters)")
-    z = Column(DOUBLE(), ca_help="Z/Elevation Offset from the location (meters)")
+    x = Column(DOUBLE(), ca_help="X/Lattitude Offset (meters).", ca_widget=deform.widget.TextInputWidget(size=10, css_class="full_width"))
+    y = Column(DOUBLE(), ca_help="Y/Longitude Offset (meters).", ca_widget=deform.widget.TextInputWidget(size=10, css_class="full_width"))
+    z = Column(DOUBLE(), ca_help="Z/Elevation Offset (meters).", ca_widget=deform.widget.TextInputWidget(size=10, css_class="full_width"))
 
     def __init__(self, x=0, y=0, z=0):
         self.x = x
@@ -467,10 +473,10 @@ class MethodSchema(Base):
 
 
     name = Column(String(256), ca_order=next(order_counter), ca_title="Schema Name", ca_placeholder="eg. Temperature with sensor XYZ calibration data",
-        ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40),
-        ca_help="This field is just a human readable name to describe the schema.")
-    nominate_as_template = Column(Boolean, ca_order=next(order_counter), ca_default=False, ca_title="Nominate this schema as a template",
-        ca_help="Use this checkbox to suggest to admins that it would be helpful for this schema to be added as a template") # These are system schemas that users are encouraged to extend.
+        ca_widget=deform.widget.TextInputWidget(size=40),
+        ca_help="Try to enter a unique name that easily identifies this schema.")
+#    nominate_as_template = Column(Boolean, ca_order=next(order_counter), ca_default=False, ca_title="Nominate this schema as a template",
+#        ca_help="Use this checkbox to suggest to admins that it would be helpful for this schema to be added as a template") # These are system schemas that users are encouraged to extend.
     parents = relationship("MethodSchema",ca_order=next(order_counter),
         secondary=method_schema_to_schema,
         primaryjoin=id==method_schema_to_schema.c.child_id,
@@ -479,7 +485,8 @@ class MethodSchema(Base):
         ca_widget=deform.widget.SequenceWidget(template="method_schema_parents_sequence"),
         ca_child_title = "Parent Schema",
         ca_child_widget=deform.widget.MappingWidget(template="ca_sequence_mapping", item_template="method_schema_parents_item"),
-        ca_description="TODO: This is where the default and shared schemas will be selectable from")
+        ca_help="Add existing schemas to use or extend from.  This makes it both easier to create the data schema (data "
+                "formats) and re-use existing schemas making cross project searching possible.")
 
     custom_fields = relationship("MethodSchemaField", ca_order=next(order_counter), ca_child_title="Custom Field",
         ca_child_widget=deform.widget.MappingWidget(item_template="method_schema_field_item"),
@@ -496,36 +503,41 @@ class Method(Base):
 
 
     method_template = Column(String(256), ca_order=next(order_counter), ca_title="Select a template to base this method off (Overrides all fields)",
-        ca_widget=deform.widget.AutocompleteInputWidget(size=250, min_length=1, values=('Method A','Method B'), template="template_autocomplete_input"),
-        ca_help="Use a previously created method as a template, <b>this will overwrite all fields on this page</b> " \
-                           "with the content in the selected method.<br />" \
-                           "Usage: If the same method (eg. sensor) is used for 2 projects you don't need to recreate the same method twice!" \
-                           "<br /><br /><b>TODO: Rework this into a list of admin provided templates.</b>")
+        ca_widget=deform.widget.AutocompleteInputWidget(size=250, min_length=1, values=('Method A','Method B'), template="project_template_mapping"),
+        ca_help="<p>Method templates provide pre-configured data collection methods and pre-fill as much information as possible to make this process as quick and easy as possible.</p>"
+             "<ul><li>If you don't want to use any template, select the general category and Blank template."
+             "</li><li>Please contact the administrators to request new templates.</li>",
+        ca_description="<ol><li>First select the category or organisational group on the left hand side.</li>"
+                    "<li>Then select the most relevant template from the list on the right hand side.</li>")
 
     method_name = Column(String(256), ca_order=next(order_counter),
             ca_placeholder="Searchable identifier for this input method (eg. Invertebrate observations)",
-            ca_description="Descriptive, human readable name for this input method.  The name will be used to select this method in the <i>Datasets</i> step and will also be searchable within the database.")
+            ca_description="Descriptive, human readable name for this data collection method.  The name is used for selecting this method in the <i>Datasets</i> step.")
     method_description = Column(Text(), ca_order=next(order_counter), ca_title="Description", ca_widget=deform.widget.TextAreaWidget(),
-        ca_description="Provide a description of this method, this should include what, why and how the data is being collected but <b>Don\'t enter where or when</b> as this is information relevant to the dataset, not the method.",
+        ca_description="Provide a description of this method, this should include what, why and how the data is being collected but <b>Don\'t enter where or when</b> as this information is relevant to the dataset, not the method.",
         ca_placeholder="Enter specific details for this method, users of your data will need to know how reliable your data is and how it was collected.")
 
     data_type = relationship("MethodSchema", ca_order=next(order_counter), uselist=False, ca_widget=MethodSchemaWidget(), ca_title="Type of data being collected",
         ca_collapsed=False,
-        ca_help="<b>Under Development - Needs a new widget to provide required functionality!</b><br/><br/>The type of data that is being collected - <b>Please extend the provided schemas where possible only use the custom fields for additional information</b> (eg. specific calibration data).</br></br>" \
+        ca_help="The type of data that is being collected - <b>Please extend the provided schemas where possible only use the custom fields for additional information</b> (eg. specific calibration data).</br></br>" \
                     "Extending the provided schemas allows your data to be found in a generic search (eg. if you use the temperature schema then users will find your data " \
                     "when searching for temperatures, but if you make the schema using custom fields (even if it is the same), then it won't show up in the temperature search results).",
         ca_description="Extend existing data types wherever possible - only create custom fields or schemas if you cannot find an existing schema.")
 
     data_sources=(
-        ("form_data_source","<b>Web Form/Manual:</b> Only use an online form accessible through this interface to manually upload data (Other data sources also include this option)."),
-        ("pull_data_source","<b>Poll external file system:</b> Setup automatic polling of an external file system from a URL location, when new files of the correct type and naming convention are found they are ingested."),
+        ("form_data_source","<b>Web form/manual only:</b> Only use an online form accessible through this interface to manually upload data (Other data sources also include this option)."),
+        ("pull_data_source","<b>Pull from external file system:</b> Setup automatic polling of an external file system from a URL location, when new files of the correct type and naming convention are found they are ingested."),
         ("push_data_source","<b><i>(Advanced)</i> Push to this website through the API:</b> Use the XMLRPC API to directly push data into persistent storage, on project acceptance you will be emailed your API key and instructions."),
         ("sos_data_source","<b>Sensor Observation Service:</b> Set-up a sensor that implements the Sensor Observation Service (SOS) to push data into this systems SOS server."),
         ("dataset_data_source","<b><i>(Advanced)</i> Output from other dataset:</b> Output from other dataset: </b>This allows for advanced/chained processing of data, where the results of another dataset can be further processed and stored as required."),
     )
 
     data_source =  Column(String(50), ca_order = next(order_counter), ca_widget=deform.widget.RadioChoiceWidget(values=data_sources),
-        ca_title="Data Source (How the data gets transferred into this system)",
+        ca_title="Data Source (How the data gets transferred into this system)", ca_force_required=True,
+        ca_description="Select how data will be collected or entered into the projects data storage.",
+        ca_help="<p>'Web form/manual' is the default and included in all others anyway, 'Output from other dataset' provides advanced "
+                "processing features and the other three methods allow automatic ingestion from compatible sensors or devices.</p>"
+                "<p><i>Please refer to the help section or contact the administrators if you need additional information.</i></p>",
         ca_placeholder="Select the easiest method for your project.  If all else fails, manual file uploads will work for all data types.")
 
     method_attachments = relationship('MethodAttachment', ca_order=next(order_counter), ca_missing=colander.null, ca_child_title="Attachment",
@@ -664,10 +676,40 @@ class Dataset(Base):
     disabled = Column(Boolean,ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
     redbox_uri = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 
-
-    description = Column(Text(),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
+    title = Column(Text(),ca_order=next(order_counter),
         ca_placeholder="Provide a textual description of the dataset being collected.",
-        ca_help="Provide a dataset specific description that will be appended to the project description in metadata records.")
+        ca_help="Provide a dataset specific title for the metadata records.", ca_force_required=True)
+
+    publish_dataset = Column(Boolean, ca_title="Publish Dataset to ReDBox", ca_default=True, ca_order=next(order_counter),
+#        ca_widget=ConditionalCheckboxMapping(),
+        ca_help="Publish a metadata record to ReDBox for this dataset - leave this selected unless the data isn't relevant to anyone else (eg. Raw data where other users " \
+                       "will only search for the processed data).")
+
+    description = Column(Text(),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(rows=6),
+            ca_placeholder="Provide a textual description of the dataset being collected.",
+            ca_help="Provide a dataset specific description for the metadata records.")
+
+    time_period_description = Column(String(256), ca_order=next(order_counter), ca_title="Time Period (description)",
+        ca_group_start="coverage", ca_group_collapsed=False, ca_group_title="Dataset Date and Location",
+        ca_placeholder="eg. Summers of 1996-2006", ca_missing="",
+        ca_help="Provide a textual representation of the time period such as world war 2 or more information on the time within the dates provided.")
+    date_from = Column(Date(), ca_order=next(order_counter), ca_placeholder="", ca_title="Date From",
+        ca_help='The date that data will start being collected.', ca_force_required=True)
+    date_to = Column(Date(), ca_order=next(order_counter), ca_title="Date To", ca_page="metadata",
+        ca_help='The date that data will stop being collected.', ca_missing=colander.null)
+    location_description = Column(String(512), ca_order=next(order_counter), ca_title="Location (description)",
+        ca_help="Textual description of the location such as Australian Wet Tropics."
+        , ca_missing="", ca_placeholder="eg. Australian Wet Tropics or Great Barrier Reef")
+
+    dataset_locations = relationship('Location', ca_order=next(order_counter), ca_title="Location", ca_widget=deform.widget.SequenceWidget(template='map_sequence'),
+        ca_force_required=True,
+        ca_group_end="coverage", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
+        ca_missing="", ca_help="<p>Use the drawing tools on the map and/or edit the text representations below.</p><p>Locations are represented using <a href='http://en.wikipedia.org/wiki/Well-known_text#Geometric_Objects'>Well-known Text (WKT) markup</a> in the WGS 84 coordinate system (coordinate system used by GPS).</p>")
+
+
+    location_offset = relationship('LocationOffset', uselist=False, ca_order=next(order_counter), ca_title="Location Offset (optional)",
+        ca_group_end="coverage", ca_widget=deform.widget.MappingWidget(template="inline_mapping", show_label=True),
+        ca_missing=colander.null, ca_help="Use an offset from the current location where the current location is the project location if valid, else the dataset location (eg. such as the artificial tree location is known so use z offsets for datasets).")
 
     form_data_source = relationship("FormDataSource", ca_order=next(order_counter), uselist=False,
         ca_group_start="data_source_configuration", ca_group_collapsed=False, ca_group_widget=deform.widget.MappingWidget(template="data_source_config_mapping"),
@@ -677,31 +719,6 @@ class Dataset(Base):
     sos_data_source = relationship("SOSDataSource", ca_order=next(order_counter), uselist=False,)
     dataset_data_source = relationship("DatasetDataSource", ca_order=next(order_counter), uselist=False,
         ca_group_end="data_source_configuration")
-
-    publish_dataset = Column(Boolean, ca_title="Publish Dataset to ReDBox", ca_default=True, ca_order=next(order_counter),
-#        ca_widget=ConditionalCheckboxMapping(),
-        ca_help="Publish a metadata record to ReDBox for this dataset - leave this selected unless the data isn't relevant to anyone else (eg. Raw data where other users " \
-                       "will only search for the processed data).  <b>TODO:  Hide the Coverage section when checkbox isn't selected.</b>")
-
-    time_period_description = Column(String(256), ca_order=next(order_counter), ca_title="Time Period (description)",
-        ca_group_start="coverage", ca_group_collapsed=False, ca_group_title="Dataset Date and Location",
-        ca_placeholder="eg. Summers of 1996-2006", ca_missing="",
-        ca_help="Provide a textual representation of the time period such as world war 2 or more information on the time within the dates provided.")
-    date_from = Column(Date(), ca_order=next(order_counter), ca_placeholder="", ca_title="Date From",
-        ca_help='The date that data will start being collected.')
-    date_to = Column(Date(), ca_order=next(order_counter), ca_title="Date To", ca_page="metadata",
-        ca_help='The date that data will stop being collected.', ca_missing=colander.null)
-    location_description = Column(String(512), ca_order=next(order_counter), ca_title="Location (description)",
-        ca_help="Textual description of the location such as Australian Wet Tropics or further information such as elevation."
-        , ca_missing="", ca_placeholder="eg. Australian Wet Tropics, Great Barrier Reef, 1m above ground level")
-
-    dataset_location = relationship('Location', ca_order=next(order_counter), ca_title="Location Map", ca_widget=deform.widget.SequenceWidget(template='map_sequence'),
-        ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
-        ca_missing=colander.null, ca_help="<p>Use the drawing tools on the map and/or edit the text representations below.<br /><b>Note: Only the first valid point will be used for the data ingestion.</b></p><p>Locations are represented using <a href='http://en.wikipedia.org/wiki/Well-known_text#Geometric_Objects'>Well-known Text (WKT) markup</a> in the WGS 84 coordinate system (coordinate system used by GPS).</p>")
-
-    location_offset = relationship('LocationOffset', uselist=False, ca_order=next(order_counter), ca_title="Location Offset (optional)",
-        ca_group_end="coverage", ca_widget=deform.widget.MappingWidget(),
-        ca_missing=colander.null, ca_help="Use an offset from the current location where the current location is the project location if valid, else the dataset location (eg. such as the artificial tree location is known so use z offsets for datasets).")
 
     custom_processor_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
         ca_group_start="processing", ca_group_collapsed=False, ca_group_title="Custom Data Processing",
@@ -734,7 +751,7 @@ class ProjectTemplate(Base):
     """
     __tablename__ = 'project_template'
     order_counter = itertools.count()
-    project_id = Column(Integer, ForeignKey('project.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    template_id = Column(Integer, ForeignKey('project.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     category = Column(String(100),ca_order=next(order_counter), ca_description="Category of template, this is a flexible way of grouping templates such as DRO, SEMAT or other organisational groupings.")
     name = Column(String(100),ca_order=next(order_counter), ca_description="Name the template (eg. Artificial tree).")
     description = Column(String(256),ca_order=next(order_counter), ca_description="Provide a short description (<256 chars) of the template for the end user.")
@@ -758,8 +775,13 @@ class MethodTemplate(Base):
     __tablename__ = 'method_template'
     order_counter = itertools.count()
     id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget(), ca_missing=-1)
-    method_id = Column(Integer, ForeignKey('method.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    template_id = Column(Integer, ForeignKey('method.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+
+    name = Column(String(100),ca_order=next(order_counter), ca_description="Name the template (eg. Artificial tree).")
+    description = Column(String(256),ca_order=next(order_counter), ca_description="Provide a short description (<256 chars) of the template for the end user.")
+
     dataset_templates = relationship('DatasetTemplate')
+    category = Column(String(100),ca_order=next(order_counter), ca_description="Category of template, this is a flexible way of grouping templates such as DRO, SEMAT or other organisational groupings.")
 
 choices = ['JCU Name 1', 'JCU Name 2', 'JCU Name 3', 'JCU Name 4']
 
@@ -804,7 +826,7 @@ class Project(Base):
 #
     activity = Column(String(256), ca_order=next(order_counter), ca_title="Research Grant", ca_page="setup",
             ca_missing="", ca_force_required=True,
-            ca_help="Enter title of the research grant associated with this record.",
+            ca_help="Enter the associated research grant associated with this record (this field will autocomplete).",
             ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/activities/', template="mint_autocomplete_input"))
 
 #    services = Column(String(256), ca_title="Services - Remove this?", ca_order=next(order_counter), ca_placeholder="Autocomplete - Mint/Mint DB", ca_page="setup",
@@ -829,49 +851,61 @@ class Project(Base):
         ca_widget=deform.widget.SequenceWidget(min_len=0), ca_missing="", ca_page="setup", #ca_force_required=True,
         ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
         ca_child_title="Person",
-        ca_help="Enter the details of associated people <b>TODO: Update this text + create a more inline widget based on Mint autocompletion</b>.")
+        ca_help="Enter the details of all associated people.  There will already be some pre-filled:"
+                "<ul><li>Project lead and data manager from the project creation wizard.</li>"
+                "<li>People associated with the research grant.</li></ul>")
 
     collaborators = relationship('Collaborator', ca_order=next(order_counter), ca_page="setup", ca_title="Collaborators (Organisations, groups or external people)",
-        ca_help="<b>TODO</b>",
-        ca_description="Other collaborators in the project who cannot be added as a person in the Additional People field above.",
+        ca_help="Enter the collaborators fully qualified name:<ul><li>Try to avoid abbreviations.</li><li>If the collaborator is a person, it is preferable to organise an external JCU account and add them in the people section above.</li></ul>",
+        ca_description="Other people, groups or organisations who are associated with this project but cannot be added as a person above.",
         ca_herlp="<b>TODO: This should give good definitions and edge cases etc...</b>", ca_missing="")
 
     #---------------------description---------------------
     brief_description = Column(Text(), ca_order=next(order_counter), ca_page="description",
         ca_placeholder="eg.  TODO: Get a well written brief description for the artificial tree project.",
         ca_widget=deform.widget.TextAreaWidget(rows=6), ca_title="Brief Description",
-        ca_description="A short description (Approx. 6 lines) targeted at a general audience.",
+        ca_description="<p>A short description (Approx. 6 lines) targeted at a general audience.</p><p>This field may be pre-filled with the grant description (<b>as a starting point</b>).</p>",
         ca_help="A short description (Approx. 6 lines) of the research done, why the research was done and the collection and research methods used:" \
                        "<ul><li>Write this description in lay-mans terms targeted for the general population to understand.</li>" \
-                       "<li>A short description of the <i>project level</i> where and when can also be included.</li>" \
+                       "<li>A short description of the (project level) where and when can also be included.</li>" \
                        "<li>Note: Keep the description relevant to all generated records.</li></ul>")
     full_description = Column(Text(), ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(rows=20), ca_page="description",
         ca_title="Full Description", ca_placeholder="eg.  TODO: Get a well written full description for the artificial tree project.",
-        ca_description="A full description (Approx. 10-20 lines) targeted at researchers and scientists",
+        ca_description="Full description (Approx. 10-20 lines) targeted at researchers and scientists",
         ca_help="A full description (Approx. 10-20 lines) of the research done, why the research was done and the collection and research methods used:" \
                     "<ul><li>Write this description targeted for other researchers  to understand (include the technicalities).</li>" \
                     "<li>Information about the research dataset/collection, registry/repository, catalogue or index, including its characteristics and features, eg. This dataset contains observational data, calibration files and catalogue information collected from the Mount Stromlo Observatory Facility.</li>" \
                     "<li>If applicable: the scope; details of entities being studied or recorded; methodologies used.</li>"
                     "<li>Note: Keep the description relevant to all generated records.</li></ul>")
 
+    overall_method_description = Column(Text(), ca_order=next(order_counter), ca_title="Project wide methods description", ca_page="description",
+        ca_widget=deform.widget.TextAreaWidget(rows=5),
+        ca_description="Provide a description for all data input methods used in the project <i>(Refer to the Methods page)</i>.",
+        ca_placeholder="Provide an overview of all the data collection methods used in the project and why those methods were chosen.",
+        ca_help="<p>This will be used as the description for data collection in the project metadata record and will provide users of your data with an overview of what the project is researching.</p>"
+                "<p><i>If you aren't sure what a method is return to this description after completing the Methods page.</i></p>")
 
     #---------------------metadata---------------------
     #-------------Subject--------------------
     keywords = relationship('Keyword', ca_order=next(order_counter), ca_page="metadata",
         ca_group_collapsed=False, ca_group_start='subject', ca_group_title="Area of Research",
         ca_group_description="",
-        ca_description="Enter keywords that users are likely to search on when looking for this projects data.")
+        ca_help="Enter keywords that users are likely to search on when looking for this projects data.")
 
     fieldOfResearch = relationship('FieldOfResearch', ca_order=next(order_counter), ca_title="Fields of Research", ca_page="metadata",
+        ca_force_required=True,
         ca_widget=deform.widget.SequenceWidget(template='multi_select_sequence'),
-        ca_help="Select or enter applicable Fields of Research (FoR) from the drop-down menus, and click the 'Add Field Of Research' button (which is hidden until a code is selected)."
+        ca_child_title="Field of Research",
+        ca_help="Select the most applicable Fields of Research (FoR) from the drop-down menus, and click the 'Add Field Of Research' button (which is hidden until a code is selected)."
         , ca_missing="")
     #    colander.SchemaNode(colander.String(), title="Fields of Research",
     #        placeholder="To be redeveloped similar to ReDBox", description="Select relevant FOR code/s. ")
 #
     socioEconomicObjective = relationship('SocioEconomicObjective', ca_order=next(order_counter), ca_title="Socio-Economic Objectives", ca_page="metadata",
+        ca_force_required=True,
         ca_widget=deform.widget.SequenceWidget(template='multi_select_sequence'),
-        ca_help="<b>TODO: Update this</b> - Select relevant Socio-Economic Objectives below.", ca_missing="")
+        ca_child_title="Socio-Economic Objective",
+        ca_help="Select the most applicable Socio-Economic Objective (SEO) from the drop-down menus, and click the 'Add Socio-Economic Objective' button (which is hidden until a code is selected).")
 
 #    researchThemes = Column(String(),
 #
@@ -882,6 +916,7 @@ class Project(Base):
     ecosystems_conservation_climate = Column(Boolean(), ca_order=next(order_counter), ca_widget=deform.widget.CheckboxWidget(), ca_page="metadata",
         ca_title='Tropical Ecosystems, Conservation and Climate Change',
         ca_group_start="research_themes", ca_group_title="Research Themes",ca_group_validator=research_theme_validator,
+        ca_group_force_required=True,
 #        ca_group_description="Select one or more of the 4 themes, or \'Not aligned to a University theme\'.",
         ca_group_required=True,)
     industries_economies = Column(Boolean(), ca_order=next(order_counter),ca_widget=deform.widget.CheckboxWidget(), ca_page="metadata",
@@ -904,11 +939,12 @@ class Project(Base):
         ('pure_strategic', '<b>Strategic basic research</b> is experimental and theoretical work undertaken to acquire new knowledge directed into specified broad areas in the expectation of useful discoveries. It provides the broad base of knowledge necessary for the solution of recognised practical problems.'))
 
     typeOfResearch = Column(String(50), ca_order=next(order_counter), ca_page="metadata",
-        ca_description="<b>TODO: This field may be removed or a default set - to be confirmed by Marianne</b>",
+#        ca_description="<b>TODO: This field may be removed or a default set - to be confirmed by Marianne</b>",
         ca_group_end="subject",
         ca_widget=deform.widget.RadioChoiceWidget(values=researchTypes),
         ca_validator=OneOfDict(researchTypes[1:]),
         ca_title="Type of Research Activity",
+        ca_force_required=True,
 #        ca_description="1297.0 Australian Standard Research Classification (ANZSRC) 2008. </br></br>"\
 #                    "<b>Pure basic research</b> is experimental and theoretical work undertaken to acquire new knowledge without looking for long term benefits other than the advancement of knowledge.</br></br>"\
 #                    "<b>Strategic basic research</b> is experimental and theoretical work undertaken to acquire new knowledge directed into specified broad areas in the expectation of useful discoveries. It provides the broad base of knowledge necessary for the solution of recognised practical problems.</br></br>"\
@@ -922,15 +958,16 @@ class Project(Base):
     time_period_description = Column(String(256), ca_order=next(order_counter), ca_title="Time Period (description)", ca_page="metadata",
         ca_group_start="coverage", ca_group_collapsed=False, ca_group_title="Project Date and Location",
         ca_placeholder="eg. Summers of 1996-2006", ca_missing="",
-        ca_help="Provide a textual representation of the time period such as world war 2 or more information on the time within the dates provided.")
-    date_from = Column(Date(), ca_order=next(order_counter), ca_placeholder="", ca_title="Date From", ca_page="metadata",
+        ca_help="Provide a textual representation of the time period such as 'world war 2' or more information on the time within the dates provided.")
+    date_from = Column(Date(), ca_order=next(order_counter), ca_placeholder="", ca_title="Date From", ca_page="metadata", ca_force_required=True,
         ca_help='The date that data will start being collected - if you would like to be more specific add the details in the description field above')
     date_to = Column(Date(), ca_order=next(order_counter), ca_title="Date To", ca_page="metadata",
         ca_help='The date that data will stop being collected - if you would like to be more specific add the details in the description field above', ca_missing=colander.null)
     location_description = Column(String(512), ca_order=next(order_counter), ca_title="Location (description)", ca_page="metadata",
-        ca_help="Textual description of the location such as Australian Wet Tropics or further information such as elevation."
-        , ca_missing="", ca_placeholder="eg. Australian Wet Tropics, Great Barrier Reef, 1m above ground level")
+        ca_help="Textual description of the region covered such as Australian Wet Tropics."
+        , ca_missing="", ca_placeholder="eg. Australian Wet Tropics or Great Barrier Reef")
     locations = relationship('Location', ca_order=next(order_counter), ca_title="Location", ca_widget=deform.widget.SequenceWidget(template='map_sequence'), ca_page="metadata",
+        ca_force_required=True,
         ca_group_end="coverage", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
         ca_missing=colander.null, ca_help="<p>Use the drawing tools on the map and/or edit the text representations below.</p><p>Locations are represented using <a href='http://en.wikipedia.org/wiki/Well-known_text#Geometric_Objects'>Well-known Text (WKT) markup</a> in the WGS 84 coordinate system (coordinate system used by GPS).</p>")
 
@@ -938,14 +975,13 @@ class Project(Base):
     #-------------legal--------------------
     access_rights = Column(String(256), ca_order=next(order_counter), ca_title="Access Rights", ca_default="Open access", ca_page="metadata",
         ca_group_start="legality", ca_group_collapsed=False, ca_group_title="Licenses & Access Rights",
-        ca_help="Information about access to the collection or service, including access restrictions or embargoes based on privacy, security or other policies. A URI is optional.</br></br>"\
-                            "eg. Contact Chief Investigator to negotiate access to the data.</br></br>"\
-                            "eg. Embargoed until 1 year after publication of the research.")
+        ca_help="Information how to access the records data, including access restrictions or embargoes based on privacy, security or other policies. A URI is optional.")
     access_rights_url = Column(String(256), ca_order=next(order_counter), ca_title="URL", ca_missing="", ca_page="metadata",)
 
-    rights = Column(String(256), ca_order=next(order_counter), ca_placeholder="TODO: replaced with default license", ca_missing="", ca_title="Usage Rights", ca_page="metadata",
-        ca_help="Information about rights held in and over the collection such as copyright, licences and other intellectual property rights, eg. This dataset is made available under the Public Domain Dedication and License v1.0 whose full text can be found at: <b>http://www.opendatacommons.org/licences/pddl/1.0/</b></br>"\
-                        "A URI is optional. ")
+    rights = Column(String(256), ca_order=next(order_counter), ca_missing="", ca_title="Usage Rights", ca_page="metadata",
+        ca_placeholder=" eg. Made available under the Public Domain Dedication and License v1.0",
+        ca_help="Information about rights held over the collection such as copyright, licences and other intellectual property rights.  A URI is optional.",
+        ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
     rights_url = Column(String(256), ca_order=next(order_counter), ca_title="URL", ca_missing="", ca_page="metadata",)
     #    TODO: Link to external sources
 
@@ -961,22 +997,27 @@ class Project(Base):
                ('other', 'Other'),
                )
     license = Column(String(256), ca_order=next(order_counter), ca_title="License", ca_placeholder="creative_commons_by", ca_page="metadata",
-        ca_default="creative_commons_by",
+        ca_default="creative_commons_by", ca_force_required=True,
         ca_widget=deform.widget.SelectWidget(values=licenses, template="select_with_other"),
-        ca_help="This list contains data licences that this server has been configured with. For more information about Creative Commons licences please <a href=\'http://creativecommons.org.au/learn-more/licences\' alt=\'licenses\'>see here</a>. ")
+        ca_help="<p>This list contains data licences that this server has been configured with. For more information about "
+                "Creative Commons licences please <a href=\'http://creativecommons.org.au/learn-more/licences\' alt=\'licenses\'>see here</a>.</p>"
+                "<p><i>If you would like to add additional licenses please contact the administrators.</i></p>")
 
-    license_name = Column(String(256), ca_order=next(order_counter), ca_title="License Name", ca_placeholder="", ca_missing="", ca_page="metadata",
-        ca_group_start="other_license", ca_group_title="Other", ca_group_help="If you want to use a license not included in the above list you can provide details below.</br></br>"\
-                                "<ul><li>If you are using this field frequently for the same license it would make sense to get your system administrator to add the license to the field above.</li>"\
-                                "<li>If you provide two licenses (one from above, plus this one) only the first will be sent to RDA in the RIF-CS.</li>"\
-                                "<li>Example of another license: http://www.opendefinition.org/licenses</li></ul>")
-    license_url = Column(String(256), ca_order=next(order_counter), ca_title="License URL", ca_placeholder="", ca_missing="", ca_page="metadata",
-        ca_group_end="legality")
+#    license_name = Column(String(256), ca_order=next(order_counter), ca_title="License Name", ca_placeholder="", ca_missing="", ca_page="metadata",
+#        ca_group_start="other_license", ca_group_title="Other", ca_group_help="If you want to use a license not included in the above list you can provide details below.</br></br>"\
+#                                "<ul><li>If you are using this field frequently for the same license it would make sense to get your system administrator to add the license to the field above.</li>"\
+#                                "<li>If you provide two licenses (one from above, plus this one) only the first will be sent to RDA in the RIF-CS.</li>"\
+#                                "<li>Example of another license: http://www.opendefinition.org/licenses</li></ul>")
+#    license_url = Column(String(256), ca_order=next(order_counter), ca_title="License URL", ca_placeholder="", ca_missing="", ca_page="metadata",
+#        ca_group_end="legality")
 
     #-------------citation--------------------
-    title = Column(String(512), ca_order=next(order_counter), ca_placeholder="Mr, Mrs, Dr etc.", ca_missing="", ca_page="metadata",
+    title = Column(String(512), ca_order=next(order_counter), ca_placeholder="", ca_missing="", ca_page="metadata",
         ca_group_collapsed=False, ca_group_start='citation', ca_group_title="Citation",
-        ca_group_description="Provide metadata that should be used for the purposes of citing this record. Sending a citation to RDA is optional, but if you choose to enable this there are quite specific mandatory fields that will be required by RIF-CS.")
+        ca_group_description="<b>TODO:  Need to work out what these feilds actually mean and refactor/reword."
+                             "</b><br/>Provide metadata that should be used for the purposes of citing this record. Providing a "
+                             "citation is optional, but if you choose to enable this there are quite specific mandatory "
+                             "fields that will be required.")
     creators = relationship('Creator', ca_order=next(order_counter), ca_missing=None, ca_page="metadata",)
     edition = Column(String(256), ca_order=next(order_counter), ca_missing="", ca_page="metadata",)
     publisher = Column(String(256), ca_order=next(order_counter), ca_page="metadata")
@@ -992,28 +1033,25 @@ class Project(Base):
     retention_period = Column(String(50), ca_order=next(order_counter), ca_title="Retention period", ca_page="metadata",
 #        ca_group_start="additional_information", ca_group_collapsed=False, ca_group_title="Additional Information",
         ca_widget=deform.widget.SelectWidget(values=retention_periods),
-        ca_help="Record the period of time that the data must be kept in line with institutional/funding body retention policies.")
+        ca_help="Record the period of time that the data must be kept in line with institutional or funding body policies.")
     national_significance = Column(Boolean(), ca_order=next(order_counter), ca_title="Is the data nationally significant?", ca_page="metadata",
         ca_widget=deform.widget.RadioChoiceWidget(values=(("true", "Yes"), ("false", "No"))),
         ca_help="Do you know or believe that this projects data may be Nationally Significant?")
 
-    related_publications = relationship('RelatedPublication', ca_order=next(order_counter), ca_title="Related Publications", ca_page="metadata",
-        ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"), ca_child_title="Related Publication",
-        ca_help="Please provide details on any publications that are related to this project including their title and URL with an optional note.")
-    related_websites = relationship('RelatedWebsite', ca_order=next(order_counter), ca_title="Related Websites", ca_page="metadata", ca_child_title="Related Website",
-        ca_help="TODO.", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"))
-    attachments = relationship('Attachment', ca_order=next(order_counter), ca_missing=None, ca_page="metadata", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"))
+    related_publications = relationship('RelatedPublication', ca_order=next(order_counter), ca_title="Related Publications or Websites", ca_page="metadata",
+        ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"), ca_child_title="Related Publication or Website",
+        ca_help="Please provide details on any publications or websites that are related to this project including their title and URL with an optional note.")
+
+    attachments = relationship('Attachment', ca_order=next(order_counter), ca_missing=None, ca_page="metadata", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
+        ca_help="Optionally provide additional information as attachments.")
 #    notes = relationship('Note', ca_order=next(order_counter), ca_description="Enter administrative notes as required.", ca_missing=None, ca_page="metadata",
 #        ca_group_end="additional_information")
 
     #-----------------------------Method page----------------------------------------------------------
-    overall_method_description = Column(Text(), ca_order=next(order_counter), ca_title="Project wide methods description", ca_page="methods",
-            ca_widget=deform.widget.TextAreaWidget(rows=5),
-            ca_placeholder="Provide an overview of all the data collection methods used in the project and why those methods were chosen.",
-            ca_help="Provide a description for all data input methods used in the project.  This will be used as the description for data collection in the project metadata record and will provide users of your data with an overview of what the project is researching.")
+
     methods = relationship('Method', ca_title="Data Collection Methods", ca_widget=deform.widget.SequenceWidget(min_len=1), ca_order=next(order_counter), ca_page="methods",
         ca_child_collapsed=False,
-        ca_description="Add 1 method for each type of data collection method (eg. temperature sensors, manually entered field observations using a form or files retrieved by polling a server...)")
+        ca_description="Add one method for each type of data collection method (eg. temperature sensors, manually entered field observations using a form or files retrieved by polling a server...)")
 
     #----------------------------Dataset page------------------------------------------
     # The datasets page is dynamically generated from user input on the methods page, therefore a static
@@ -1028,15 +1066,43 @@ class Project(Base):
         ca_help="Project comments that are only relevant to the provisioning system (eg. comments as to why the project was reopened after the creator submitted it).")
 
 
+def grant_validator(form, value):
+    error = False
+    exc = colander.Invalid(form) # Uncomment to add a block message: , 'At least 1 research theme or Not aligned needs to be selected')
+
+    if value['no_activity'] is False and len(value['activity']) <= 0:
+        exc['activity'] = "'There is no associated research grant' must be selected if a research grant isn't provided."
+        error = True
+
+    mint = MintLookup(None)
+    if mint.get_from_identifier(value['activity']) is None:
+        exc['activity'] = "The entered activity isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
+        error = True
+
+    if mint.get_from_identifier(value['project_lead']) is None:
+            exc['project_lead'] = "The entered project lead isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
+            error = True
+
+    if mint.get_from_identifier(value['data_manager']) is None:
+            exc['data_manager'] = "The entered data manager isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
+            error = True
+
+    if error:
+        raise exc
+
 class CreatePage(colander.MappingSchema):
+
     template = colander.SchemaNode(colander.Integer(), title="Select a Project Template",
         widget=deform.widget.TextInputWidget(template="project_template_mapping"),
-        help="Templates pre-fill the project with as much information as possible to make this process as quick and easy as possible.")
-#    no_activity = colander.SchemaNode(colander.Boolean(), description="Must be selected if a research grant isn't provided below.",
-#        title="There is no associated research grant")
+        help="<p>Templates pre-fill the project with as much information as possible to make this process as quick and easy as possible.</p><ul><li>If you don't want to use any template, select the general category and Blank template.</li><li>Please contact the administrators to request new templates.</li>",
+        description="<ol><li>First select the category or organisational group on the left hand side.</li><li>Then select the most relevant template from the list on the right hand side.</li>")
+
+    no_activity = colander.SchemaNode(colander.Boolean(), help="Must be selected if a research grant isn't provided below.",
+        title="There is no associated research grant")
 
     activity = colander.SchemaNode(colander.String(), title="Research Grant",
-        help="Enter title of the research grant associated with this record.", missing=None,
+        help="Enter title of the research grant associated with this record (Autocomplete).  The grant will be looked up for additional information that can be pre-filled.",
+        description="Select 'There is no associated research grant' above if your project isn't associated with a research grant.",
         widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/activities/', template="mint_autocomplete_input"))
 
     #    services = Column(String(256), ca_title="Services - Remove this?", ca_order=next(order_counter), ca_placeholder="Autocomplete - Mint/Mint DB", ca_page="setup",

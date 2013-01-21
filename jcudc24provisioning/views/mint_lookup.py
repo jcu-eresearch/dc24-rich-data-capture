@@ -66,6 +66,8 @@ class MintLookup(object):
     def get_from_identifier(self, identifier):
 #        assert 'identifier' in self.request.matchdict, "Error: Trying to lookup people/parties from Mint without a search term."
 #        identifier = self.request.matchdict['identifier']
+        if identifier is None or len(str(identifier)) <= 0:
+            return None
 
         if self.mint_url:
             url_template = self.mint_url + "default/opensearch/lookup?count=999&searchTerms=dc_identifier:%(search)s"
@@ -73,7 +75,10 @@ class MintLookup(object):
             data = urllib2.urlopen(url_template % dict(search=urllib.quote_plus(identifier)))
             result_object = json.loads(data.read(), strict=False)
 
-            result = result_object['results'][0]
+            if len(result_object['results']) <= 0:
+                return None
 
-            return result
+            return result_object['results'][0]
+
+
 

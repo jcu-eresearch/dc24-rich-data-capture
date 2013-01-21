@@ -26,7 +26,6 @@
             .ui-autocomplete-loading {
                 background: white url('http://jqueryui.com/images/ui-anim_basic_16x16.gif') right center no-repeat;
             }
-            #${field.oid} { width: 25em;}
         </style>
     <script tal:condition="field.widget.values" type="text/javascript">
         function lookup_mint(url, request, response) {
@@ -34,6 +33,13 @@
                 url: url + request.term,
                 dataType: "json",
                 success: function( data ) {
+                    if (data.length == 0) {
+                        return response([{
+                            label: "None available",
+                            value: ""
+                        }]);
+                    }
+
                     response($.map( data, function( item ) {
                         return {
                             label: item.label,
@@ -42,8 +48,10 @@
                     }));
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
-                    alert(jqXHR.responseText);
-                    alert(textStatus + " : " + errorThrown)
+                    return response([{
+                        label: "None available",
+                        value: ""
+                    }]);
                 },
                 open: function() {
                     $( this ).removeClass( "ui-corner-all" ).addClass( "ui-corner-top" );
