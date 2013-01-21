@@ -125,8 +125,10 @@ class Workflows(Layouts):
 
          else:
              # Update the model with all fields in the data
-             if not create_sqlalchemy_model(data, model_object=model) is not None:
+             if create_sqlalchemy_model(data, model_object=model) is None:
                  return # There were no changes (if there were changes they will still be commited through the internals of sqlalchemy though).
+             else:
+                 self.session.merge(model)
 
          self.session.flush()
          self.project_id = model.id

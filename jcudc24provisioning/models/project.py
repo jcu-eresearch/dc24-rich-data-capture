@@ -130,10 +130,10 @@ class FieldOfResearch(Base):
     order_counter = itertools.count()
 
     __tablename__ = 'field_of_research'
-    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    project_id = Column(Integer, ForeignKey('project.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget())
+    id = Column(Integer, primary_key=True, ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('project.id'),ca_order=next(order_counter),  nullable=False, ca_widget=deform.widget.HiddenWidget())
 
-    field_of_research = Column(String(50), ca_title="Field Of Research", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
+    field_of_research = Column(String(50), ca_order=next(order_counter), ca_title="Field Of Research", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
     ca_data=getFORCodes())
 
 
@@ -141,22 +141,22 @@ class SocioEconomicObjective(Base):
     order_counter = itertools.count()
 
     __tablename__ = 'socio_economic_objective'
-    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    project_id = Column(Integer, ForeignKey('project.id'), nullable=False, ca_widget=deform.widget.HiddenWidget())
+    id = Column(Integer, primary_key=True, ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('project.id'), ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
-    socio_economic_objective = Column(String(50), ca_title="Socio-Economic Objective", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
+    socio_economic_objective = Column(String(50), ca_order=next(order_counter), ca_title="Socio-Economic Objective", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
     ca_data=getSEOCodes())
 
 class Person(Base):
     order_counter = itertools.count()
 
     __tablename__ = 'person'
-    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    id = Column(Integer, primary_key=True, ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
-    title = Column(String(5), ca_title="Title", ca_placeholder="eg. Mr, Mrs, Dr",)
-    given_name = Column(String(256), ca_title="Given name")
-    family_name = Column(String(256), ca_title="Family name")
-    email = Column(String(256), ca_missing="", ca_validator=colander.Email())
+    title = Column(String(5), ca_title="Title", ca_order=next(order_counter), ca_placeholder="eg. Mr, Mrs, Dr",)
+    given_name = Column(String(256), ca_order=next(order_counter), ca_title="Given name")
+    family_name = Column(String(256), ca_order=next(order_counter), ca_title="Family name")
+    email = Column(String(256), ca_order=next(order_counter), ca_missing="", ca_validator=colander.Email())
 
 relationship_types = (
         (colander.null, "---Select One---"), ("owner", "Owned by"), ("manager", "Managed by"), ("associated", "Associated with"),
@@ -167,7 +167,7 @@ class Party(Base):
     order_counter = itertools.count()
 
     __tablename__ = 'party'
-    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    id = Column(Integer, primary_key=True, nullable=False, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 #    person_id = Column(Integer, ForeignKey('person.id'), ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
     project_id = Column(Integer, ForeignKey('project.id'), ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
@@ -185,11 +185,11 @@ class Creator(Base):
     order_counter = itertools.count()
 
     __tablename__ = 'creator'
-    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    person_id = Column(Integer, ForeignKey('person.id'), nullable=False, ca_widget=deform.widget.HiddenWidget())
-    project_id = Column(Integer, ForeignKey('project.id'), nullable=False, ca_widget=deform.widget.HiddenWidget())
+    id = Column(Integer, primary_key=True, nullable=False, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+    person_id = Column(Integer, ForeignKey('person.id'), ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('project.id'), ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
-    person = relationship('Person', uselist=False)
+    person = relationship('Person', ca_order=next(order_counter), uselist=False)
 
 class Keyword(Base):
     order_counter = itertools.count()

@@ -50,6 +50,12 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
             if value is colander.null or value is None or value == 'None':
                 continue
             elif isinstance(value, list):
+
+                # Remove all items from the list, so that any items that aren't there are deleted.
+                old_items = []
+                for i in reversed(range(len(getattr(model_object, key, [])))):
+                    old_items.append(getattr(model_object, key)[i])
+
                 for item in value:
                     if not item or item is colander.null:
                         continue
@@ -66,12 +72,13 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
                     prefix = item.items()[0][0].split(":")[0] + ":"
 
                     if prefix + 'id' in item and (isinstance(item[prefix + 'id'], (long, int)) or (isinstance(item[prefix + 'id'], basestring) and item[prefix + 'id'].isnumeric())):
-                        for model_item in getattr(model_object, key, []):
+                        for model_item in old_items:
 #                            print "ID's: " + str(getattr(model_item, 'id', None)) + " : " + str(item['id'])
                             current_object_id = getattr(model_item, 'id', None)
 #                            print (isinstance(current_object_id, (int, long)) or (isinstance(current_object_id, basestring) and current_object_id.isnumeric()))
                             if (isinstance(current_object_id, (int, long)) or (isinstance(current_object_id, basestring) and current_object_id.isnumeric())) and int(getattr(model_item, 'id', None)) == int(item[prefix + 'id']):
                                 current_object = model_item
+                                old_items.remove(current_object)
 #                                print "Current Object: " + str(current_object)
                                 break
 
@@ -79,7 +86,14 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
 
                     if child_table_object is not None:
                         is_data_empty = False
-                        getattr(model_object, key).append(child_table_object)
+                        getattr(model_object, key).append(child_table_object) # Add the modified object
+                    else:
+                        getattr(model_object, key).append(current_object) # Re-add the un-modified object
+
+                for item in old_items:
+                    del item
+                    is_data_empty = False
+
             elif isinstance(value, dict):
                 current_object = None
                 if getattr(model_object, key, None) is not None:

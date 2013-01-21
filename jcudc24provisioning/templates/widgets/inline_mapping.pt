@@ -26,6 +26,8 @@
         <div id="desc-${field.oid}" tal:content="structure field.description"></div>
     </li>
     <input type="hidden" name="__start__" value="${field.name}:mapping"/>
+
+
     <div
        tal:define="rndr field.renderer;
                    tmpl field.widget.item_template"
