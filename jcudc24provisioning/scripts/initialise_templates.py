@@ -72,8 +72,8 @@ class InitialiseSchemas(object):
 
     def initialise_project_templates(self):
         blank_template = self.session.query(ProjectTemplate).filter_by(name="Blank Template").first()
+        blank_project = Project()
         if not blank_template:
-            blank_project = Project()
             self.session.add(blank_project) # Add an empty project as a blank template
             self.session.flush()
 
