@@ -24,7 +24,7 @@ from sqlalchemy.orm import (
     sessionmaker,
     mapper)
 from jcudc24provisioning.views.deform_widgets import MethodSchemaWidget, ConditionalCheckboxMapping
-from views.mint_lookup import MintLookup
+from jcudc24provisioning.views.mint_lookup import MintLookup
 
 config = ConfigParser.SafeConfigParser()
 config.read('../../development.ini')
@@ -749,9 +749,12 @@ class ProjectTemplate(Base):
     """
     Indicate an existing project is a template that others can use to pre-populate their projects
     """
-    __tablename__ = 'project_template'
     order_counter = itertools.count()
-    template_id = Column(Integer, ForeignKey('project.id'), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+
+    __tablename__ = 'project_template'
+    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget(), ca_missing=-1)
+    order_counter = itertools.count()
+    template_id = Column(Integer, ForeignKey('project.id'), nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     category = Column(String(100),ca_order=next(order_counter), ca_description="Category of template, this is a flexible way of grouping templates such as DRO, SEMAT or other organisational groupings.")
     name = Column(String(100),ca_order=next(order_counter), ca_description="Name the template (eg. Artificial tree).")
     description = Column(String(256),ca_order=next(order_counter), ca_description="Provide a short description (<256 chars) of the template for the end user.")
