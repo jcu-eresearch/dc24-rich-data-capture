@@ -150,6 +150,8 @@ class Workflows(Layouts):
                 appstruct = e.cstruct
                 display = e.render()
 
+            print appstruct
+
             # save the data even if it didn't validate - this allows the user to easily navigate and fill fields out as they get the info.
             self.save_form(appstruct)
             # TODO: Walk through schema saving to look at parent schemas (throws duplicate id error)
@@ -350,7 +352,7 @@ class Workflows(Layouts):
                 method_children = convert_schema(SQLAlchemyMapping(Dataset, unknown='raise')).children
 
                 # TODO: Find programatical/more reliable way of finding the index
-                DATA_CONFIG_INDEX = 7
+                DATA_CONFIG_INDEX = 11
 
                 if method.data_source is not None:
                     for data_source in method_children[DATA_CONFIG_INDEX].children:
@@ -374,6 +376,7 @@ class Workflows(Layouts):
             method_select_schema = SelectMappingSchema(title="Method", name="dataset")
 
         schema.children[3].children = [method_select_schema]
+
         form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False)
 
         return self.handle_form(form, schema)

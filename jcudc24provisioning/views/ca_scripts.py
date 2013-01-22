@@ -146,8 +146,20 @@ def convert_sqlalchemy_model_to_data(model, schema):
             else:
                 data[node.name] = value
         elif len(node.children) > 0:
-            # TODO: Fix data for select mapping schemas
             node_data = convert_sqlalchemy_model_to_data(model, node.children)
+
+            # Fix data for select mapping schemas
+            print node.name
+            print node.widget
+            print node
+            if 'SelectMappingWidget' in str(node.widget):
+#                node_data = {''}
+
+                print name
+                print node.children
+                print data
+                print "Model: " + str(model)
+
             data[node.name] = node_data
 
     return data

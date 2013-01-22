@@ -6,16 +6,16 @@
     <div id="${field.oid}-tabs">
         <ul>
             <tal:block tal:repeat="category field.schema.template_categories">
-                <li><a href="#${category}">${category}</a></li>
+                <li><a href="#${category.replace(' ', '_')}">${category}</a></li>
             </tal:block>
         </ul>
 
         <tal:block tal:repeat="category field.schema.template_categories">
-            <div id="${category}" class="template_selection">
+            <div id="${category.replace(' ', '_')}" class="template_selection">
                 <tal:block tal:repeat="template field.schema.templates_data">
                     <div class="selectable" tal:condition="template.category == category"
-                         id="${template.template_id}-template_item"
-                            onclick="select_template(this);">
+                        id="${template.template_id}-template_item"
+                        onclick="select_template(this);">
                         <h3>${template.name}</h3>
                         ${template.description}
                         <input type="hidden" value="${template.template_id}"/>
