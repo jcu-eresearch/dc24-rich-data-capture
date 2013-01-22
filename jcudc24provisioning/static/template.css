@@ -218,13 +218,26 @@ div#main {
     margin: 0px;
 }
 
-.deform legend {
-    font-size: 1.1em;
+.deform legend.collapsible {
+    font-size: 1.4em;
     padding-left: 0px;
+    font-weight: bolder;
+    color: #3f3e3e;
+    /*text-shadow: -1px -1px 1px #fff, 1px 1px 1px #000;*/
+}
+
+.deform legend {
+    font-size: 1.2em;
+    padding-left: 0px;
+    font-weight: bold;
+}
+
+.deform legend .collapse_icon {
+    text-shadow: none;
 }
 
 .deform label {
-    font-size: 0.8em;
+    font-size: 1.1em;
 }
 
 .inline_mapping li {
@@ -439,11 +452,6 @@ span.collapse_icon {
     display: none;
 }
 
-.deform label {
-    font-size: 1em;
-}
-
-
 .msg {
     background: #e0e0e0;
     border: 1px solid black;
@@ -457,3 +465,9 @@ span.collapse_icon {
     margin-right: 5px;
 }
 
+
+.workflow_error {
+    font-weight: bold;
+    font-style: italic;
+    color: #3c3c3c;
+}

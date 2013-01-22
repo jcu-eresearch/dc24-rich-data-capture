@@ -1,4 +1,8 @@
-<fieldset id="mapping-${field.oid}" i18n:domain="deform"
+<div tal:condition="len(field.children) <= 1" class="workflow_error">
+    No methods have been configured.  You need to create a method in the previous step first!
+</div>
+
+<fieldset tal:condition="len(field.children) > 1" id="mapping-${field.oid}" i18n:domain="deform"
         tal:attributes="class 'selectMappingFieldset ' + str((field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and ('collapsible-'+str(field.schema.__dict__.get('collapse_group'))))">
     <!-- select mapping -->
     <legend class="collapsible"
@@ -18,7 +22,8 @@
         <li class="section description" tal:condition="field.description">
             <div tal:content="structure field.description"></div>
         </li>
-        <label class="desc" for="${field.oid}">${field.title}<span tal:condition="field.required" class="req"
+        asdf${field.__dict__.get('select_title')}
+        <label class="desc" for="${field.oid}">${'select_title' in field.__dict__ and field.__dict__[select_title] or field.title}<span tal:condition="field.required" class="req"
                                                                    id="req-${field.oid}">*</span>
         </label>
         <span id="select_mapping_options-${field.oid}" style="display: none;"><span tal:repeat="f field.children"

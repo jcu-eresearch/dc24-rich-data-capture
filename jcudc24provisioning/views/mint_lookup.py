@@ -2,6 +2,7 @@ import ConfigParser
 import json
 import urllib
 import urllib2
+import colander
 from pyramid.view import view_config, view_defaults
 from pyramid_debugtoolbar.utils import logger
 
@@ -78,7 +79,9 @@ class MintLookup(object):
             assert 'identifier' in self.request.matchdict, "Error: Trying to lookup people/parties from Mint without a search term."
             identifier = self.request.matchdict['identifier']
 
-        if identifier is None or len(str(identifier)) <= 0:
+        if identifier is None or identifier is colander.null or len(str(identifier)) <= 0:
+            if hasattr(self.request, 'matchdict'):
+                return {'values': ''}
             return None
 
         if self.mint_url:
@@ -87,11 +90,15 @@ class MintLookup(object):
             data = urllib2.urlopen(url_template % dict(search=urllib.quote_plus(identifier)))
             result_object = json.loads(data.read(), strict=False)
 
+
             if len(result_object['results']) <= 0:
+                if hasattr(self.request, 'matchdict'):
+                    return {'values': ''}
                 return None
 
             if hasattr(self.request, 'matchdict'):
                 return {'values': json.dumps(result_object['results'][0])}
+
 
             return result_object['results'][0]
 

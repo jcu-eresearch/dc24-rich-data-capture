@@ -477,7 +477,7 @@ class MethodSchema(Base):
         ca_help="Try to enter a unique name that easily identifies this schema.")
 #    nominate_as_template = Column(Boolean, ca_order=next(order_counter), ca_default=False, ca_title="Nominate this schema as a template",
 #        ca_help="Use this checkbox to suggest to admins that it would be helpful for this schema to be added as a template") # These are system schemas that users are encouraged to extend.
-    parents = relationship("MethodSchema",ca_order=next(order_counter), cascade="all, delete-orphan",
+    parents = relationship("MethodSchema",ca_order=next(order_counter),
         secondary=method_schema_to_schema,
         primaryjoin=id==method_schema_to_schema.c.child_id,
         secondaryjoin=id==method_schema_to_schema.c.parent_id,
@@ -899,6 +899,7 @@ class Project(Base):
     #---------------------metadata---------------------
     #-------------Subject--------------------
     keywords = relationship('Keyword', ca_order=next(order_counter), ca_page="metadata",
+        ca_widget=deform.widget.SequenceWidget(min_len=1),
         cascade="all, delete-orphan",
         ca_group_collapsed=False, ca_group_start='subject', ca_group_title="Area of Research",
         ca_group_description="",
@@ -916,7 +917,6 @@ class Project(Base):
 #
     socioEconomicObjective = relationship('SocioEconomicObjective', ca_order=next(order_counter), ca_title="Socio-Economic Objectives", ca_page="metadata",
         cascade="all, delete-orphan",
-        ca_force_required=True,
         ca_widget=deform.widget.SequenceWidget(template='multi_select_sequence'),
         ca_child_title="Socio-Economic Objective",
         ca_help="Select the most applicable Socio-Economic Objective (SEO) from the drop-down menus, and click the 'Add Socio-Economic Objective' button (which is hidden until a code is selected).")
@@ -947,23 +947,22 @@ class Project(Base):
 
         #-------typeOfResearch---------------------
     researchTypes = (
-        ('applied', '<b>Applied research</b> is original work undertaken primarily to acquire new knowledge with a specific application in view. It is undertaken either to determine possible uses for the findings of basic research or to determine new ways of achieving some specific and predetermined objectives.'),
-        ('experimental', '<b>Experimental development</b> is systematic work, using existing knowledge gained from research or practical experience, that is directed to producing new materials, products or devices, to installing new processes, systems and services, or to improving substantially those already produced or installed.'),
-        ('pure_basic', '<b>Pure basic research</b> is experimental and theoretical work undertaken to acquire new knowledge without looking for long term benefits other than the advancement of knowledge.'),
-        ('pure_strategic', '<b>Strategic basic research</b> is experimental and theoretical work undertaken to acquire new knowledge directed into specified broad areas in the expectation of useful discoveries. It provides the broad base of knowledge necessary for the solution of recognised practical problems.'))
+        ('applied', 'Applied research'),
+        ('experimental', 'Experimental development'),
+        ('pure_basic', 'Pure basic research'),
+        ('pure_strategic', 'Strategic basic research'))
 
     typeOfResearch = Column(String(50), ca_order=next(order_counter), ca_page="metadata",
-#        ca_description="<b>TODO: This field may be removed or a default set - to be confirmed by Marianne</b>",
         ca_group_end="subject",
         ca_widget=deform.widget.RadioChoiceWidget(values=researchTypes),
         ca_validator=OneOfDict(researchTypes[1:]),
         ca_title="Type of Research Activity",
         ca_force_required=True,
-#        ca_description="1297.0 Australian Standard Research Classification (ANZSRC) 2008. </br></br>"\
-#                    "<b>Pure basic research</b> is experimental and theoretical work undertaken to acquire new knowledge without looking for long term benefits other than the advancement of knowledge.</br></br>"\
-#                    "<b>Strategic basic research</b> is experimental and theoretical work undertaken to acquire new knowledge directed into specified broad areas in the expectation of useful discoveries. It provides the broad base of knowledge necessary for the solution of recognised practical problems.</br></br>"\
-#                    "<b>Applied research</b> is original work undertaken primarily to acquire new knowledge with a specific application in view. It is undertaken either to determine possible uses for the findings of basic research or to determine new ways of achieving some specific and predetermined objectives.</br></br>"\
-#                    "<b>Experimental development</b> is systematic work, using existing knowledge gained from research or practical experience, that is directed to producing new materials, products or devices, to installing new processes, systems and services, or to improving substantially those already produced or installed."
+        ca_help="1297.0 Australian Standard Research Classification (ANZSRC) 2008. </br></br>"\
+                    "<b>Pure basic research</b> is experimental and theoretical work undertaken to acquire new knowledge without looking for long term benefits other than the advancement of knowledge.</br></br>"\
+                    "<b>Strategic basic research</b> is experimental and theoretical work undertaken to acquire new knowledge directed into specified broad areas in the expectation of useful discoveries. It provides the broad base of knowledge necessary for the solution of recognised practical problems.</br></br>"\
+                    "<b>Applied research</b> is original work undertaken primarily to acquire new knowledge with a specific application in view. It is undertaken either to determine possible uses for the findings of basic research or to determine new ways of achieving some specific and predetermined objectives.</br></br>"\
+                    "<b>Experimental development</b> is systematic work, using existing knowledge gained from research or practical experience, that is directed to producing new materials, products or devices, to installing new processes, systems and services, or to improving substantially those already produced or installed."
     )
         #------------end typeOfResearch--------------
 
@@ -988,16 +987,20 @@ class Project(Base):
 
 
     #-------------legal--------------------
+    # TODO: Make this into a drop down - still need the list of options though.
     access_rights = Column(String(256), ca_order=next(order_counter), ca_title="Access Rights", ca_default="Open access", ca_page="metadata",
         ca_group_start="legality", ca_group_collapsed=False, ca_group_title="Licenses & Access Rights",
         ca_help="Information how to access the records data, including access restrictions or embargoes based on privacy, security or other policies. A URI is optional.")
-    access_rights_url = Column(String(256), ca_order=next(order_counter), ca_title="URL", ca_missing="", ca_page="metadata",)
+    # TODO: Pre-populate with a url - still waiting on URL to use
+    access_rights_url = Column(String(256), ca_order=next(order_counter), ca_title="URL", ca_missing="", ca_page="metadata",
+        ca_requires_admin=True)
 
     rights = Column(String(256), ca_order=next(order_counter), ca_missing="", ca_title="Usage Rights", ca_page="metadata",
+        ca_requires_admin=True,
         ca_placeholder=" eg. Made available under the Public Domain Dedication and License v1.0",
         ca_help="Information about rights held over the collection such as copyright, licences and other intellectual property rights.  A URI is optional.",
         ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
-    rights_url = Column(String(256), ca_order=next(order_counter), ca_title="URL", ca_missing="", ca_page="metadata",)
+    rights_url = Column(String(256), ca_order=next(order_counter), ca_title="URL", ca_missing="", ca_page="metadata",ca_requires_admin=True,)
     #    TODO: Link to external sources
 
     licenses = (
@@ -1018,27 +1021,35 @@ class Project(Base):
                 "Creative Commons licences please <a href=\'http://creativecommons.org.au/learn-more/licences\' alt=\'licenses\'>see here</a>.</p>"
                 "<p><i>If you would like to add additional licenses please contact the administrators.</i></p>")
 
-#    license_name = Column(String(256), ca_order=next(order_counter), ca_title="License Name", ca_placeholder="", ca_missing="", ca_page="metadata",
-#        ca_group_start="other_license", ca_group_title="Other", ca_group_help="If you want to use a license not included in the above list you can provide details below.</br></br>"\
-#                                "<ul><li>If you are using this field frequently for the same license it would make sense to get your system administrator to add the license to the field above.</li>"\
-#                                "<li>If you provide two licenses (one from above, plus this one) only the first will be sent to RDA in the RIF-CS.</li>"\
-#                                "<li>Example of another license: http://www.opendefinition.org/licenses</li></ul>")
-#    license_url = Column(String(256), ca_order=next(order_counter), ca_title="License URL", ca_placeholder="", ca_missing="", ca_page="metadata",
-#        ca_group_end="legality")
+    license_name = Column(String(256), ca_order=next(order_counter), ca_title="License Name", ca_placeholder="", ca_missing="", ca_page="metadata",
+        ca_group_start="other_license", ca_group_title="Other", ca_group_help="If you want to use a license not included in the above list you can provide details below.</br></br>"\
+                                "<ul><li>If you are using this field frequently for the same license it would make sense to get your system administrator to add the license to the field above.</li>"\
+                                "<li>If you provide two licenses (one from above, plus this one) only the first will be sent to RDA in the RIF-CS.</li>"\
+                                "<li>Example of another license: http://www.opendefinition.org/licenses</li></ul>", ca_requires_admin=True,)
+    license_url = Column(String(256), ca_order=next(order_counter), ca_title="License URL", ca_placeholder="", ca_missing="", ca_page="metadata",
+        ca_requires_admin=True, ca_group_end="legality")
 
     #-------------citation--------------------
+    # Autocomplete from project title
     title = Column(String(512), ca_order=next(order_counter), ca_placeholder="", ca_missing="", ca_page="metadata",
-        ca_group_collapsed=False, ca_group_start='citation', ca_group_title="Citation",
+        ca_group_collapsed=False, ca_group_start='citation', ca_group_title="Citation", ca_group_requires_admin=True,
         ca_group_description="<b>TODO:  Need to work out what these feilds actually mean and refactor/reword."
                              "</b><br/>Provide metadata that should be used for the purposes of citing this record. Providing a "
                              "citation is optional, but if you choose to enable this there are quite specific mandatory "
                              "fields that will be required.")
+    # Autocomplete from all people
     creators = relationship('Creator', ca_order=next(order_counter), ca_missing=None, ca_page="metadata",cascade="all, delete-orphan",)
+    # Dont know?
     edition = Column(String(256), ca_order=next(order_counter), ca_missing="", ca_page="metadata",)
+    # Autocomplete as James Cook University
     publisher = Column(String(256), ca_order=next(order_counter), ca_page="metadata")
+    # Autocomplete as James Cook University
     place_of_publication = Column(String(512), ca_order=next(order_counter), ca_title="Place of publication", ca_page="metadata")
+    # Dates of data, eg. data data started being collected
     dates = relationship('CitationDate', ca_order=next(order_counter), ca_title="Date(s)", ca_page="metadata",cascade="all, delete-orphan",)
+    # Autocomplete as link to data (CC-DAM)
     url = Column(String(256), ca_order=next(order_counter), ca_title="URL", ca_page="metadata")
+    # Unknown
     context = Column(String(512), ca_order=next(order_counter), ca_placeholder="citation context", ca_missing="", ca_page="metadata",
         ca_group_end='citation')
     #-------------additional_information--------------------
@@ -1077,7 +1088,7 @@ class Project(Base):
     #   * Setup the ColanderAlchemy schema to correctly create the database
     #   * Dynamically alter the generated schema in the view
     datasets = relationship('Dataset', ca_widget=deform.widget.SequenceWidget(min_len=1), ca_order=next(order_counter), ca_page="datasets",
-        ca_child_collapsed=False,cascade="all, delete-orphan",)
+        ca_child_title="Dataset", ca_child_collapsed=False,cascade="all, delete-orphan",)
 
     #-----------------------------------------Submit page---------------------------------------------------
     project_notes = relationship("ProjectNote", ca_order=next(order_counter), ca_page="submit",
@@ -1089,14 +1100,16 @@ def grant_validator(form, value):
     error = False
     exc = colander.Invalid(form) # Uncomment to add a block message: , 'At least 1 research theme or Not aligned needs to be selected')
 
+    mint = MintLookup(None)
+
+    print value
     if value['no_activity'] is False and len(value['activity']) <= 0:
         exc['activity'] = "'There is no associated research grant' must be selected if a research grant isn't provided."
         error = True
-
-    mint = MintLookup(None)
-    if mint.get_from_identifier(value['activity']) is None:
-        exc['activity'] = "The entered activity isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
-        error = True
+    elif value['no_activity'] is False:
+        if mint.get_from_identifier(value['activity']) is None:
+            exc['activity'] = "The entered activity isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
+            error = True
 
     if mint.get_from_identifier(value['project_lead']) is None:
             exc['project_lead'] = "The entered project lead isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
@@ -1120,6 +1133,7 @@ class CreatePage(colander.MappingSchema):
         title="There is no associated research grant")
 
     activity = colander.SchemaNode(colander.String(), title="Research Grant",
+        missing=colander.null, required=False,
         help="Enter title of the research grant associated with this record (Autocomplete).  The grant will be looked up for additional information that can be pre-filled.",
         description="Select 'There is no associated research grant' above if your project isn't associated with a research grant.",
         widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/activities/', template="mint_autocomplete_input"))

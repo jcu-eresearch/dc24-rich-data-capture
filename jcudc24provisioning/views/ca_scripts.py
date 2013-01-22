@@ -175,8 +175,24 @@ def convert_schema(schema, **kw):
 
     schema = prevent_duplicate_fields(schema)
 
+    remove_admin_fields(schema, "TODO")
+
     return schema
 
+def remove_admin_fields(schema, user_rights):
+    denied_nodes = []
+    for node in schema.children:
+        if hasattr(node, 'requires_admin') and node.requires_admin:
+            print "Removed node: " + str(node)
+            denied_nodes.append(node)
+        else:
+            if len(node.children) > 0:
+                remove_admin_fields(node, user_rights)
+
+    for node in denied_nodes:
+        schema.children.remove(node)
+
+    return schema
 
 #def fix_order(node):
 #    oredering_node = node._reg.cls()

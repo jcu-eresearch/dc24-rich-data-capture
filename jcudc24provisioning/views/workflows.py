@@ -371,9 +371,9 @@ class Workflows(Layouts):
 
                 method_schemas.append(colander.MappingSchema(*method_children, name=(method.method_name and method.method_name or 'Un-named')))
 
-            method_select_schema = SelectMappingSchema(*method_schemas, title="Method", name="dataset")
+            method_select_schema = SelectMappingSchema(*method_schemas, select_title="Method", name="dataset")
         else:
-            method_select_schema = SelectMappingSchema(title="Method", name="dataset")
+            method_select_schema = SelectMappingSchema(select_title="Method", name="dataset")
 
         schema.children[3].children = [method_select_schema]
 

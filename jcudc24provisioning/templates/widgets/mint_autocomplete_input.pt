@@ -6,12 +6,27 @@
             <input type="text"
                    tal:attributes="size field.widget.size;"
                    id="${field.oid}-autocomplete"/>
-            <a target="_blank" class="mint-more-info hidden" >More Info</a>
+            <a class="mint-more-info hidden" onclick="$('.more_info_panel').hide(); $(this).siblings('.more_info_panel').show();" style="cursor: pointer; color: blue;">More Info</a>
+            <div class="more_info_panel hidden"></div>
 
         </div>
         <input type="hidden" name="${field.name}-url" value="${field.widget.values}" id="${field.oid}-url"/>
 
         <style>
+            .hidden {display:none;}
+
+            div.more_info_panel div {
+                padding: 5px;
+            }
+            div.more_info_panel {
+                max-width: 500px;
+                padding: 10px;
+                border: 1px solid #b6b6b6;
+                background: #f4f4f4;
+                position: absolute;
+                /*top: 50%; left: 50%*/
+            }
+
             .ui-autocomplete {
                 max-height: 300px;
                 overflow-y: auto;
@@ -34,19 +49,55 @@
                 url: "/search/" + identifier,
                 dataType: "json",
                 success: function( data ) {
+                    var data_all = data['result-metadata']['all'];
                     var value = "";
                     if (identifier.match(/.*people.*/g)) {
-                         value = data['result-metadata']['all']['Honorific'][0] + " " + data['result-metadata']['all']['Given_Name'][0] +
-                                " "  + data['result-metadata']['all']['Family_Name'][0];
+                        value = data_all['Honorific'][0] + " " + data_all['Given_Name'][0] + " ";
+                        for (var i=0; i<data_all['Other_Names'].length; i++) {
+                            if (data_all['Other_Names'][i].trim().length > 0) {
+                                value += data_all['Other_Names'][i] + " ";
+                            }
+                        }
+                        value = value.trim() + " " + data_all['Family_Name'][0];
                     } else if (identifier.match(/.*activities.*/g)) {
                         value = data['dc:title'];
                     }
 
                     $("#" + oid + "-autocomplete")[0].value = value;
 
-                    $('#' + oid).siblings("a.mint-more-info")[0].href = data['rdf:about'];
+
+//                    $('#' + oid).siblings("a.mint-more-info")[0].href = data['rdf:about'];
                     $('#' + oid).siblings("a.mint-more-info").removeClass('hidden');
 
+                    var more_info_panel = $('#' + oid).siblings("div.more_info_panel");
+                    more_info_panel.children().remove();
+
+                    more_info_panel.append("<div><b>Name:</b> " + value + "</div>");
+                    if (data_all['Email'] && data_all['Email'][0].length > 0) {
+                        more_info_panel.append("<div><b>Email:</b> <a href='mailto:" + data_all['Email'][0] + "'>" + data_all['Email'] + "</div>");
+                    }
+                    if (data_all['dc_description'] && data_all['dc_description'][0].length > 0) {
+                        more_info_panel.append("<div><b>Description:</b>" + data_all['dc_description'][0] + "</div>");
+                    }
+
+                    var links_panel = "<div><b>Links:</b> <ul>";
+                    if (data_all['Personal_Homepage'] && data_all['Personal_Homepage'][0]) {
+                        links_panel += "<li><a style='overflow: hidden;' target='_blank' href='" + data_all['Personal_Homepage'][0] + "'>Personal Homepage</li>";
+                    }
+                    if (data_all['Staff_Profile_Homepage'] && data_all['Staff_Profile_Homepage'][0]) {
+                        links_panel += "<li><a style='overflow: hidden;' target='_blank' href='" + data_all['Staff_Profile_Homepage'][0] + "'>Staff Profile</li>";
+                    }
+                    if (data_all['Personal_URI'] && data_all['Personal_URI'][0]) {
+                        links_panel += "<li><a style='overflow: hidden;' target='_blank' href='" + data_all['Personal_URI'][0] + "'>Personal URI</li>";
+                    }
+                    links_panel += "<li><a style='overflow: hidden;' target='_blank' href='" + data['rdf:about'] + "'>Mint Record</li>";
+
+                    links_panel += "</ul></div>";
+                    more_info_panel.append(links_panel);
+
+                    var onclick = '$("#' + oid + '").siblings(".more_info_panel").hide();';
+                    var close = "<div class='close_button' onclick='" + onclick + "' style='border: 1px solid #f0f0f0; float: right; padding: 5px; margin-top: 20px; cursor: pointer; color: blue;'>Close</div>";
+                    more_info_panel.append(close);
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
 //                    alert(textStatus);
@@ -64,8 +115,7 @@
                         return response([{
                             label: "None available",
                             value: "",
-                            identifier: "",
-                            about: ""
+                            identifier: ""
                         }]);
                     }
 
@@ -73,8 +123,7 @@
                         return {
                             label: item.label,
                             value: item.label,
-                            identifier: item.value,
-                            about: item.about
+                            identifier: item.value
                         }
                     }));
                 },
@@ -82,8 +131,7 @@
                     return response([{
                         label: "None available",
                         value: "",
-                        identifier: "",
-                        about: ""
+                        identifier: ""
                     }]);
                 },
                 open: function() {
@@ -105,14 +153,7 @@
 
         function autocomplete_selected(event, ui){
             $("#"+ event.target.id.replace("-autocomplete", ""))[0].value = ui.item.identifier;
-
-            var more_info_element = $("#"+ event.target.id.replace("-autocomplete", "")).siblings("a.mint-more-info")[0];
-            if (ui.item.about.length == 0) {
-                $(more_info_element).addClass('hidden');
-            } else {
-                $(more_info_element).removeClass('hidden');
-                more_info_element.href = ui.item.about;
-            }
+            get_name_from_identifier(event.target.id.replace("-autocomplete", ""), ui.item.identifier);
         }
 
 
