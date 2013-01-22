@@ -90,6 +90,7 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
                         getattr(model_object, key).append(current_object) # Re-add the un-modified object
 
                 for item in old_items:
+                    getattr(model_object, key).remove(item)
                     del item
                     is_data_empty = False
 
