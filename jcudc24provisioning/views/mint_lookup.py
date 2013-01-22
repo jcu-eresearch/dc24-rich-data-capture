@@ -37,7 +37,11 @@ class MintLookup(object):
             grants = []
 
             for result in result_object['results']:
-                grants.append({'label': str(result['dc:title']), 'value': str(result['dc:identifier'])})
+                grants.append({
+                    'label': str(result['dc:title']),
+                    'value': str(result['dc:identifier']),
+                    'about': str(result['rdf:about'])
+                })
 
             grants = json.dumps(grants)
             return {'values': grants}
@@ -58,14 +62,22 @@ class MintLookup(object):
             for result in result_object['results']:
                 name = str(result['result-metadata']['all']['Honorific'][0]) + " " + str(result['result-metadata']['all']['Given_Name'][0]) \
                             + " " + str(result['result-metadata']['all']['Family_Name'][0])
-                grants.append({'label': name, 'value': str(result['dc:identifier'])})
+                grants.append({
+                    'label': name,
+                    'value': str(result['dc:identifier']),
+                    'about': str(result['rdf:about'])
+                })
 
             grants = json.dumps(grants)
             return {'values': grants}
 
-    def get_from_identifier(self, identifier):
-#        assert 'identifier' in self.request.matchdict, "Error: Trying to lookup people/parties from Mint without a search term."
-#        identifier = self.request.matchdict['identifier']
+    @view_config(route_name="get_from_identifier")
+    def get_from_identifier(self, identifier=None):
+
+        if identifier is None and hasattr(self.request, 'matchdict'):
+            assert 'identifier' in self.request.matchdict, "Error: Trying to lookup people/parties from Mint without a search term."
+            identifier = self.request.matchdict['identifier']
+
         if identifier is None or len(str(identifier)) <= 0:
             return None
 
@@ -77,6 +89,9 @@ class MintLookup(object):
 
             if len(result_object['results']) <= 0:
                 return None
+
+            if hasattr(self.request, 'matchdict'):
+                return {'values': json.dumps(result_object['results'][0])}
 
             return result_object['results'][0]
 

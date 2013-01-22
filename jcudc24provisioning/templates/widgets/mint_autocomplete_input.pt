@@ -2,11 +2,12 @@
     <tal:block define="placeholder field.schema.__dict__.get('placeholder') or nothing;
                            default_text cstruct or field.schema.default or placeholder">
         <div class="ui-widget">
+            <input type="hidden" value="${default_text}" name="${field.name}" id="${field.oid}"/>
             <input type="text"
-                   name="${field.name}"
-                   value="${default_text}"
                    tal:attributes="size field.widget.size;"
-                   id="${field.oid}"/>
+                   id="${field.oid}-autocomplete"/>
+            <a target="_blank" class="mint-more-info hidden" >More Info</a>
+
         </div>
         <input type="hidden" name="${field.name}-url" value="${field.widget.values}" id="${field.oid}-url"/>
 
@@ -28,6 +29,32 @@
             }
         </style>
     <script tal:condition="field.widget.values" type="text/javascript">
+        function get_name_from_identifier(oid, identifier) {
+            $.ajax({
+                url: "/search/" + identifier,
+                dataType: "json",
+                success: function( data ) {
+                    var value = "";
+                    if (identifier.match(/.*people.*/g)) {
+                         value = data['result-metadata']['all']['Honorific'][0] + " " + data['result-metadata']['all']['Given_Name'][0] +
+                                " "  + data['result-metadata']['all']['Family_Name'][0];
+                    } else if (identifier.match(/.*activities.*/g)) {
+                        value = data['dc:title'];
+                    }
+
+                    $("#" + oid + "-autocomplete")[0].value = value;
+
+                    $('#' + oid).siblings("a.mint-more-info")[0].href = data['rdf:about'];
+                    $('#' + oid).siblings("a.mint-more-info").removeClass('hidden');
+
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+//                    alert(textStatus);
+//                    alert(errorThrown);
+                }
+            });
+        }
+
         function lookup_mint(url, request, response) {
             $.ajax({
                 url: url + request.term,
@@ -36,21 +63,27 @@
                     if (data.length == 0) {
                         return response([{
                             label: "None available",
-                            value: ""
+                            value: "",
+                            identifier: "",
+                            about: ""
                         }]);
                     }
 
                     response($.map( data, function( item ) {
                         return {
                             label: item.label,
-                            value: item.value
+                            value: item.label,
+                            identifier: item.value,
+                            about: item.about
                         }
                     }));
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
                     return response([{
                         label: "None available",
-                        value: ""
+                        value: "",
+                        identifier: "",
+                        about: ""
                     }]);
                 },
                 open: function() {
@@ -70,15 +103,31 @@
           };
         }
 
+        function autocomplete_selected(event, ui){
+            $("#"+ event.target.id.replace("-autocomplete", ""))[0].value = ui.item.identifier;
+
+            var more_info_element = $("#"+ event.target.id.replace("-autocomplete", "")).siblings("a.mint-more-info")[0];
+            if (ui.item.about.length == 0) {
+                $(more_info_element).addClass('hidden');
+            } else {
+                $(more_info_element).removeClass('hidden');
+                more_info_element.href = ui.item.about;
+            }
+        }
+
 
 
         deform.addCallback(
                 '${field.oid}',
                 function (oid) {
+                    get_name_from_identifier(oid, $("#"+oid)[0].value);
                     var lookup = partial(lookup_mint, ($('#' + oid + '-url')[0].value));
 
-                    $('#' + oid).autocomplete({source: lookup});
-                    $('#' + oid).autocomplete("option", ${options});
+                    $('#' + oid +"-autocomplete").autocomplete({
+                        source: lookup,
+                        select: autocomplete_selected
+                        });
+                    $('#' + oid +"-autocomplete").autocomplete("option", ${options});
                 }
         );
 
