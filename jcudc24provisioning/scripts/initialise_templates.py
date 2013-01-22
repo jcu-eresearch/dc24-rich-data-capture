@@ -86,25 +86,29 @@ class InitialiseSchemas(object):
             self.session.add(blank_template) # Add an empty project as a blank template
 
 
-#           add blank templates for testing, delete when production ready
-            placeholder_template_names = [
-                "DRO",
-                "Australian Wet Tropics",
-                "TERN Supersite",
-                "The Wallace Initiative",
-                "Tropical Futures",
-                ]
-            count = 0
+#       add blank templates for testing, delete when production ready
+        placeholder_template_names = [
+            "DRO",
+            "Australian Wet Tropics",
+            "TERN Supersite",
+            "The Wallace Initiative",
+            "Tropical Futures",
+            ]
+        count = 0
+
+        templates = self.session.query(ProjectTemplate).all()
+        if len(templates) <= 1:
             for name in placeholder_template_names:
-                for i in range(random.randint(2, 10)):
-                    template = ProjectTemplate()
-                    template.template_id = blank_project.id
-                    template.category = name
-                    template.name = "Placeholder Template " + str(count) + " (Testing Only)"
-                    count += 1
-                    template.description = "An empty template that allows you to start from scratch (only for advanced "\
-                                             "users or if no other template is relevent)."
-                    self.session.add(template) # Add an empty project as a blank template
+                if not blank_template:
+                    for i in range(random.randint(2, 10)):
+                        template = ProjectTemplate()
+                        template.template_id = blank_project.id
+                        template.category = name
+                        template.name = "Placeholder Template " + str(count) + " (Testing Only)"
+                        count += 1
+                        template.description = "An empty template that allows you to start from scratch (only for advanced "\
+                                                 "users or if no other template is relevent)."
+                        self.session.add(template) # Add an empty project as a blank template
 
 
     def initialise_method_templates(self):
