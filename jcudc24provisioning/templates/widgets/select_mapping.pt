@@ -32,18 +32,20 @@
                 tal:attributes="size field.widget.size"
                 tal:attributes="class field.widget.css_class">
             <option tal:attributes="class field.widget.css_class" value="none">---Select One---</option>
-            <option tal:repeat="f field.children[1:]"
-                    tal:attributes="selected f.oid == cstruct.get('schema_select') and 'selected';
-                         class field.widget.css_class"
-                    value="${f.oid}">${f.title}
-            </option>
+            <tal:block tal:repeat="f field.children[1:]">
+                <option tal:define="method_id cstruct.get(f.name,null) and cstruct.get(f.name,null)['dataset:method_id']"
+                        tal:attributes="selected (str(method_id) == str(cstruct.get('schema_select'))) and 'selected';
+                             class field.widget.css_class"
+                        value="${f.oid}">${f.title}
+                </option>
+            </tal:block>
         </select>
 
         <div id="select_mapping_content-${field.oid}">
             <div tal:define="rndr field.renderer; tmpl field.widget.item_template"
                  tal:repeat="f field.children">
-                <div
-                     tal:replace="structure ((f.oid ==  cstruct.get('schema_select')) and rndr(tmpl,field=f,cstruct=cstruct.get(f.name,null))) or nothing" />
+                <div tal:define="method_id isinstance(cstruct.get(f.name,null), dict) and cstruct.get(f.name,null) and cstruct.get(f.name,null)['dataset:method_id'] or None"
+                     tal:replace="structure (method_id is not None and (str(method_id) == str(cstruct.get('schema_select'))) and rndr(tmpl,field=f,cstruct=cstruct.get(f.name,null))) or nothing" />
             </div>
         </div>
 
@@ -64,6 +66,8 @@
         deform.addCallback(
                 '${field.oid}',
                 function (oid) {
+
+
                     var collapse_span = $("#mapping-" + oid).find(".collapse_icon");
                     if (collapse_span.length <= 0) {
                         return;

@@ -150,7 +150,7 @@ class Workflows(Layouts):
                 appstruct = e.cstruct
                 display = e.render()
 
-            print appstruct
+            print "appstruct: " + str(appstruct)
 
             # save the data even if it didn't validate - this allows the user to easily navigate and fill fields out as they get the info.
             self.save_form(appstruct)

@@ -830,7 +830,7 @@ class Project(Base):
     activity = Column(String(256), ca_order=next(order_counter), ca_title="Research Grant", ca_page="setup",
             ca_missing="", ca_force_required=True,
             ca_help="Enter the associated research grant associated with this record (this field will autocomplete).",
-            ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/activities/', template="mint_autocomplete_input"))
+            ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/activities/', template="mint_autocomplete_input", size=400))
 
 #    services = Column(String(256), ca_title="Services - Remove this?", ca_order=next(order_counter), ca_placeholder="Autocomplete - Mint/Mint DB", ca_page="setup",
 #            ca_help="Indicate any related Services to this Collection. A lookup works against Mint, or you can enter known information about remote Services."

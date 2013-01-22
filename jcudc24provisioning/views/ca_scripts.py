@@ -45,7 +45,6 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
             # Test if this is a file widget that needs to be converted to text (there is probably a more elegant way to do this)
             if isinstance(value, dict) and 'fp' in value and 'filename' in value and 'mimetype' in value and 'preview_url' in value:
                 value = value['preview_url']
-                print value
 
             if value is colander.null or value is None or value == 'None':
                 continue
@@ -132,8 +131,10 @@ def convert_sqlalchemy_model_to_data(model, schema):
 
     for node in schema:
         name = fix_schema_field_name(node.name)
+
         if hasattr(model, name):
             value = getattr(model, name, None)
+
             if isinstance(value, list):
                 node_list = []
                 for item in value:
@@ -149,16 +150,8 @@ def convert_sqlalchemy_model_to_data(model, schema):
             node_data = convert_sqlalchemy_model_to_data(model, node.children)
 
             # Fix data for select mapping schemas
-            print node.name
-            print node.widget
-            print node
-            if 'SelectMappingWidget' in str(node.widget):
-#                node_data = {''}
-
-                print name
-                print node.children
-                print data
-                print "Model: " + str(model)
+            if not ':' in node.name:
+                data['schema_select'] = str(getattr(model, 'method_id', None))
 
             data[node.name] = node_data
 
