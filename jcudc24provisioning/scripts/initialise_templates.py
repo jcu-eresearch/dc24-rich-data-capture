@@ -94,17 +94,17 @@ class InitialiseSchemas(object):
             "The Wallace Initiative",
             "Tropical Futures",
             ]
-        count = 0
 
         templates = self.session.query(ProjectTemplate).all()
         print len(templates)
         if len(templates) <= 1:
+            count = 0
             for name in placeholder_template_names:
                 for i in range(random.randint(2, 10)):
                     template = ProjectTemplate()
                     template.template_id = blank_project.id
                     template.category = name
-                    template.name = "Placeholder Template " + str(count) + " (Testing Only)"
+                    template.name = name + " Placeholder Template " + str(count) + " (Testing Only)"
                     count += 1
                     template.description = "An empty template that allows you to start from scratch (only for advanced "\
                                              "users or if no other template is relevent)."
@@ -115,6 +115,7 @@ class InitialiseSchemas(object):
         blank_template = self.session.query(MethodTemplate).filter_by(name="Blank Template").first()
         if not blank_template:
             blank_method = Method()
+            blank_method.method_description = "Test description"
             self.session.add(blank_method) # Add an empty project as a blank template
             self.session.flush()
 
@@ -126,4 +127,27 @@ class InitialiseSchemas(object):
                                          "users or if no other template is relevent)."
             self.session.add(blank_template) # Add an empty project as a blank template
 
+
+        placeholder_template_names = [
+            "DRO",
+            "Australian Wet Tropics",
+            "TERN Supersite",
+            "The Wallace Initiative",
+            "Tropical Futures",
+            ]
+
+        templates = self.session.query(MethodTemplate).all()
+        print len(templates)
+        if len(templates) <= 1:
+            count = 0
+            for name in placeholder_template_names:
+                for i in range(random.randint(2, 10)):
+                    template = MethodTemplate()
+                    template.template_id = blank_template.id
+                    template.category = name
+                    template.name = name + " Placeholder Template " + str(count) + " (Testing Only)"
+                    count += 1
+                    template.description = "An empty template that allows you to start from scratch (only for advanced "\
+                                           "users or if no other template is relevent)."
+                    self.session.add(template) # Add an empty project as a blank template
 

@@ -1,6 +1,7 @@
 import ConfigParser
 from collections import OrderedDict
 import itertools
+import sys
 import colander
 from sqlalchemy.dialects.mysql.base import DOUBLE
 from sqlalchemy.engine import create_engine
@@ -32,6 +33,7 @@ db_engine = create_engine(config.get("app:main", "sqlalchemy.url"), echo=True)
 #db_engine.connect()
 #DBSession = scoped_session(sessionmaker(bind=db_engine))
 DBSession = scoped_session(sessionmaker(bind=db_engine, extension=ZopeTransactionExtension()))
+APISession = scoped_session(sessionmaker(bind=db_engine))
 Base = declarative_base()
 
 def research_theme_validator(form, value):
@@ -175,7 +177,7 @@ class Party(Base):
         ca_widget=deform.widget.SelectWidget(values=relationship_types),
         ca_validator=OneOfDict(relationship_types[1:]),)
 
-    identifier = Column(String(100), ca_order=next(order_counter), ca_title="Persistent Identifier",
+    identifier = Column(String(100), ca_order=next(order_counter), ca_title="Persistent Identifier", ca_force_required=True,
         ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/parties/', template="mint_autocomplete_input", size="70"),
         ca_help="Primary contact for the project, this should be the person in charge of the data and actively working on the project.<br /><br />"\
                                 "<i>Autocomplete from most universities and large organisations, if the person you are trying to select isn't available please organise an external JCU account for them.</i>")
@@ -256,6 +258,7 @@ class Region(Base):
     __tablename__ = 'region'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
     dam_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget())
+    dam_version = Column(String(128), ca_widget=deform.widget.HiddenWidget())
     project_id = Column(Integer, ForeignKey('project.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
     # TODO: Regions
 
@@ -265,6 +268,7 @@ class Location(Base):
     __tablename__ = 'location'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
     dam_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget())
+    dam_version = Column(String(128), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     project_id = Column(Integer, ForeignKey('project.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
     dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
 
@@ -294,6 +298,7 @@ class LocationOffset(Base):
     __tablename__ = 'location_offset'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
     dam_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget())
+    dam_version = Column(String(128), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
     data_entry_id = Column(Integer, ForeignKey('data_entry.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
 
@@ -313,6 +318,7 @@ class DataEntry(Base):
     __tablename__ = 'data_entry'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
     dam_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget())
+    dam_version = Column(String(128), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
 
 class RelatedPublication(Base):
@@ -465,6 +471,7 @@ class MethodSchema(Base):
     __tablename__ = 'method_schema'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dam_id = Column(Integer, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    dam_version = Column(String(128), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     method_id = Column(Integer, ForeignKey('method.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
     template_schema = Column(Boolean, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter)) # These are system schemas that users are encouraged to extend.
@@ -503,8 +510,8 @@ class Method(Base):
     id = Column(Integer, ca_order=next(order_counter), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
 
 
-    method_template = Column(String(256), ca_order=next(order_counter), ca_title="Select a template to base this method off (Overrides all fields)",
-        ca_widget=deform.widget.AutocompleteInputWidget(size=250, min_length=1, values=('Method A','Method B'), template="project_template_mapping"),
+    method_template = Column(Integer, ca_order=next(order_counter), ca_title="Select a template to base this method off (Overrides all fields)",
+        ca_widget=deform.widget.TextInputWidget(template="project_template_mapping"),
         ca_help="<p>Method templates provide pre-configured data collection methods and pre-fill as much information as possible to make this process as quick and easy as possible.</p>"
              "<ul><li>If you don't want to use any template, select the general category and Blank template."
              "</li><li>Please contact the administrators to request new templates.</li>",
@@ -672,6 +679,7 @@ class Dataset(Base):
 #        ca_group_start="method", ca_group_title="Method", ca_group_schema=SelectMappingSchema,
         )
     dam_id = Column(Integer, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    dam_version = Column(String(128), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     project_id = Column(Integer, ForeignKey('project.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter),
 #        ca_group_start="test_method", ca_group_title="Test Method",
         )
@@ -688,6 +696,9 @@ class Dataset(Base):
 #        ca_widget=ConditionalCheckboxMapping(),
         ca_help="Publish a metadata record to ReDBox for this dataset - leave this selected unless the data isn't relevant to anyone else (eg. Raw data where other users " \
                        "will only search for the processed data).")
+
+    publish_date = Column(Date(), ca_order=next(order_counter), ca_title="Date to make ReDBox record publicly available",
+        ca_help='The date that data will start being collected.', ca_force_required=True)
 
     description = Column(Text(),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(rows=6),
             ca_placeholder="Provide a textual description of the dataset being collected.",
@@ -708,7 +719,7 @@ class Dataset(Base):
     dataset_locations = relationship('Location', ca_order=next(order_counter), ca_title="Location",
         cascade="all, delete-orphan",ca_widget=deform.widget.SequenceWidget(template='map_sequence'),
         ca_force_required=True,
-        ca_group_end="coverage", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
+        ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
         ca_missing="", ca_help="<p>Use the drawing tools on the map and/or edit the text representations below.</p><p>Locations are represented using <a href='http://en.wikipedia.org/wiki/Well-known_text#Geometric_Objects'>Well-known Text (WKT) markup</a> in the WGS 84 coordinate system (coordinate system used by GPS).</p>")
 
 
@@ -858,7 +869,7 @@ class Project(Base):
       #-------------associations--------------------
     parties = relationship('Party', ca_title="People", ca_order=next(order_counter),
         cascade="all, delete-orphan",
-        ca_widget=deform.widget.SequenceWidget(min_len=0), ca_missing="", ca_page="setup", #ca_force_required=True,
+        ca_widget=deform.widget.SequenceWidget(min_len=1), ca_missing="", ca_page="setup",
         ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
         ca_child_title="Person",
         ca_help="Enter the details of all associated people.  There will already be some pre-filled:"
@@ -866,7 +877,7 @@ class Project(Base):
                 "<li>People associated with the research grant.</li></ul>")
 
     collaborators = relationship('Collaborator', ca_order=next(order_counter), ca_page="setup", ca_title="Collaborators (Organisations, groups or external people)",
-        cascade="all, delete-orphan",
+        cascade="all, delete-orphan", ca_widget=deform.widget.SequenceWidget(min_len=1),
         ca_help="Enter the collaborators fully qualified name:<ul><li>Try to avoid abbreviations.</li><li>If the collaborator is a person, it is preferable to organise an external JCU account and add them in the people section above.</li></ul>",
         ca_description="Other people, groups or organisations who are associated with this project but cannot be added as a person above.",
         ca_herlp="<b>TODO: This should give good definitions and edge cases etc...</b>", ca_missing="")
@@ -875,7 +886,7 @@ class Project(Base):
     brief_description = Column(Text(), ca_order=next(order_counter), ca_page="description",
         ca_placeholder="eg.  TODO: Get a well written brief description for the artificial tree project.",
         ca_widget=deform.widget.TextAreaWidget(rows=6), ca_title="Brief Description",
-        ca_description="<p>A short description (Approx. 6 lines) targeted at a general audience.</p><p>This field may be pre-filled with the grant description (<b>as a starting point</b>).</p>",
+        ca_description="<p>A short description (Approx. 6 lines) targeted at a general audience.</p><p><i>This field may be pre-filled with the grant description (<b>as a starting point</b>).</i></p>",
         ca_help="A short description (Approx. 6 lines) of the research done, why the research was done and the collection and research methods used:" \
                        "<ul><li>Write this description in lay-mans terms targeted for the general population to understand.</li>" \
                        "<li>A short description of the (project level) where and when can also be included.</li>" \
@@ -1022,7 +1033,8 @@ class Project(Base):
                 "<p><i>If you would like to add additional licenses please contact the administrators.</i></p>")
 
     license_name = Column(String(256), ca_order=next(order_counter), ca_title="License Name", ca_placeholder="", ca_missing="", ca_page="metadata",
-        ca_group_start="other_license", ca_group_title="Other", ca_group_help="If you want to use a license not included in the above list you can provide details below.</br></br>"\
+        ca_group_requires_admin=True, ca_group_end="legality", ca_group_start="other_license", ca_group_title="Other",
+        ca_group_help="If you want to use a license not included in the above list you can provide details below.</br></br>"\
                                 "<ul><li>If you are using this field frequently for the same license it would make sense to get your system administrator to add the license to the field above.</li>"\
                                 "<li>If you provide two licenses (one from above, plus this one) only the first will be sent to RDA in the RIF-CS.</li>"\
                                 "<li>Example of another license: http://www.opendefinition.org/licenses</li></ul>", ca_requires_admin=True,)
@@ -1077,7 +1089,7 @@ class Project(Base):
 
     #-----------------------------Method page----------------------------------------------------------
 
-    methods = relationship('Method', ca_title="Data Collection Methods", ca_widget=deform.widget.SequenceWidget(min_len=1), ca_order=next(order_counter), ca_page="methods",
+    methods = relationship('Method', ca_title="Data Collection Methods", ca_widget=deform.widget.SequenceWidget(min_len=0, max_len=sys.maxint, template="method_sequence"), ca_order=next(order_counter), ca_page="methods",
         cascade="all, delete-orphan",
         ca_child_collapsed=False,
         ca_description="Add one method for each type of data collection method (eg. temperature sensors, manually entered field observations using a form or files retrieved by polling a server...)")
@@ -1154,3 +1166,10 @@ class CreatePage(colander.MappingSchema):
                 "<i>Autocomplete from most universities and large organisations, if the person you are trying to select isn't available please organise an external JCU account for them.</i>")
 
 
+method_template = colander.SchemaNode(colander.Integer, title="Select a template to base this method off (Overrides all fields)",
+    widget=deform.widget.TextInputWidget(template="project_template_mapping"),
+    help="<p>Method templates provide pre-configured data collection methods and pre-fill as much information as possible to make this process as quick and easy as possible.</p>"
+            "<ul><li>If you don't want to use any template, select the general category and Blank template."
+            "</li><li>Please contact the administrators to request new templates.</li>",
+    description="<ol><li>First select the category or organisational group on the left hand side.</li>"
+                   "<li>Then select the most relevant template from the list on the right hand side.</li>")

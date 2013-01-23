@@ -1,3 +1,4 @@
+import copy
 from beaker.cache import cache_region
 from jcudc24ingesterapi.authentication import CredentialsAuthentication
 from jcudc24ingesterapi.ingester_platform_api import IngesterPlatformAPI
@@ -7,6 +8,13 @@ from jcudc24provisioning.models.project import Location, LocationOffset, MethodS
 from jcudc24ingesterapi.schemas.data_types import DateTime, FileDataType, Integer, String, Double, Boolean
 
 __author__ = 'Casey Bajema'
+
+
+def model_id_listener(self, attr, var):
+    if attr == "_id":
+        self.provisioning_model.id = var
+#        print "Model id set: " + str(var) + " : " + str(self.provisioning_model)
+
 
 class IngesterAPIWrapper(IngesterPlatformAPI):
     """
@@ -106,21 +114,28 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
         assert hasattr(model, "__tablename__"), "Trying to process a invalid provisioning model"
         assert hasattr(command, "func_name") and hasattr(UnitOfWork, command.func_name), "Trying to process a model with an invalid command"
 
+        new_model = None
+
         if isinstance(model, Project):
-            return self.process_project(model, command)
-        if isinstance(model, Dataset):
-            return self.process_dataset(model, command)
+            new_model = self.process_project(model, command)
+        elif isinstance(model, Dataset):
+            new_model = self.process_dataset(model, command)
         elif isinstance(model, Location):
-            return self.process_location(model, command)
+            new_model = self.process_location(model, command)
         elif isinstance(model, LocationOffset):
-            return self.process_location_offset(model, command)
+            new_model = self.process_location_offset(model, command)
         elif isinstance(model, Region):
-            return self.process_region(model, command)
+            new_model = self.process_region(model, command)
         elif isinstance(model, MethodSchema):
-            return self.process_schema(model, command)
+            new_model = self.process_schema(model, command)
         else:
-            print model
-            raise ValueError("Unknown provisioning interface model")
+            raise ValueError("Unknown provisioning interface model: " + str(model))
+
+        if new_model is not None:
+            new_model.provisioning_model = model
+            new_model.set_listener(model_id_listener)
+
+        return new_model
 
 
     def process_location(self, model, command):
@@ -136,11 +151,8 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
         if model.dam_id is not None:
             new_location.id = model.dam_id
 
-        def test():
-            print "test"
-
         model.dam_id = command(new_location)
-        return model.dam_id
+        return new_location
 
     def process_location_offset(self, model, command):
         assert isinstance(model, LocationOffset), "Invalid location offset: " + str(model)
@@ -165,7 +177,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             region.id = model.dam_id
 
         model.dam_id = command(region)
-        return model
+        return region
 
     def process_schema(self, model, command):
         assert isinstance(model, MethodSchema), "Invalid schema: " + str(model)
@@ -209,7 +221,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             new_schema.id = model.dam_id
 
         model.dam_id = command(new_schema)
-        return model.dam_id
+        return new_schema
 
     def process_project(self, project, command):
         assert isinstance(project, Project),"Trying to add a project with a model of the wrong type."
@@ -224,28 +236,28 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             new_dataset.descripion = dataset.description
 
             first_location_found = False
-            for location in dataset.dataset_location:
+            for location in dataset.dataset_locations:
                 if not first_location_found and location.is_point:
                     first_location_found = True
                     new_dataset.location = location.dam_id
                     if new_dataset.location is None:
-                        new_dataset.location = self.process_location(location, command)
+                        new_dataset.location = self.process_model(location, command).id
                 else:
                     # TODO: Discuss regions when we get here - there is currently only 1 region in a dataset (this will fail if run)
                     if location.dam_location_id is None:
-                        new_dataset.regions.append(self.process_region(location, command))
+                        new_dataset.regions.append(self.process_model(location, command)).id
                     else:
                         new_dataset.regions.append(location.dam_location_id)
 
             if dataset.location_offset is not None:
-                new_dataset.location_offset = self.process_location_offset(dataset.location_offset, command)
+                new_dataset.location_offset = self.process_model(dataset.location_offset, command)
 
             for method in project.methods:
                 if method.id == dataset.method_id:
                     if method.data_type.dam_id is not None:
                         new_dataset.schema = method.data_type.dam_id
                     else:
-                        new_dataset.schema = self.process_schema(method.data_type, command)
+                        new_dataset.schema = self.process_model(method.data_type, command).id
 
             if dataset.form_data_source is not None:
                 data_source = jcudc24ingesterapi.models.data_sources.FormDataSource()
@@ -277,6 +289,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
                 new_dataset.id = dataset.dam_id
 
             dataset.dam_id = command(new_dataset)
+            return new_dataset
 
     def process_dataset(self, model, command):
         assert isinstance(model, Dataset),"Trying to add a project with a model of the wrong type."
@@ -295,23 +308,23 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
                 first_location_found = True
                 new_dataset.location = location.dam_id
                 if new_dataset.location is None:
-                    new_dataset.location = self.process_location(location, command)
+                    new_dataset.location = self.process_model(location, command).id
             else:
                 # TODO: Discuss regions when we get here - there is currently only 1 region in a dataset (this will fail if run)
                 if location.dam_location_id is None:
-                    new_dataset.regions.append(self.process_region(location, command))
+                    new_dataset.regions.append(self.process_model(location, command)).id
                 else:
                     new_dataset.regions.append(location.dam_location_id)
 
         if model.location_offset is not None:
-            new_dataset.location_offset = self.process_location_offset(model.location_offset, command)
+            new_dataset.location_offset = self.process_model(model.location_offset, command).id
 
         for method in model.methods:
             if method.id == model.method_id:
                 if method.data_type.dam_id is not None:
                     new_dataset.schema = method.data_type.dam_id
                 else:
-                    new_dataset.schema = self.process_schema(method.data_type, command)
+                    new_dataset.schema = self.process_model(method.data_type, command).id
 
         if model.form_data_source is not None:
             data_source = jcudc24ingesterapi.models.data_sources.FormDataSource()
@@ -342,7 +355,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             new_dataset.id = model.dam_id
 
         model.dam_id = command(new_dataset)
-        return model.dam_id
+        return new_dataset
 
     def process_data_entry(self, model, command):
         pass # TODO: data_entries

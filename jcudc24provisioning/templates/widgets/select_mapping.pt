@@ -22,7 +22,7 @@
         <li class="section description" tal:condition="field.description">
             <div tal:content="structure field.description"></div>
         </li>
-        asdf${field.__dict__.get('select_title')}
+        ${field.__dict__.get('select_title')}
         <label class="desc" for="${field.oid}">${'select_title' in field.__dict__ and field.__dict__[select_title] or field.title}<span tal:condition="field.required" class="req"
                                                                    id="req-${field.oid}">*</span>
         </label>

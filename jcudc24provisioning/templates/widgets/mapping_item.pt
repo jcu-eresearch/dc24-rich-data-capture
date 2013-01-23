@@ -5,7 +5,6 @@ Modified:
  * Toggleable help
  * Checkboxes go in front of label
 -->
-
 <li class="field${field.error and ' ' + (field.widget.error_class or '')}"
     id="item-${field.oid}"
     tal:omit-tag="field.widget.hidden"

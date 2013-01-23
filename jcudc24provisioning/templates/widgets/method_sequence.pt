@@ -1,0 +1,187 @@
+<!--
+    This template has been modified from sequence.pt specifically for the methods page
+    The intent is to provide template selection and AJAX autocomplete when adding methods.
+-->
+
+<div class="deformSeq"
+     id="${field.oid}"
+     tal:define="rndr field.renderer;
+                 item_tmpl field.widget.item_template;
+                 min_len field.widget.min_len or 0;
+                 max_len field.widget.max_len or 100000;
+                 now_len len(subfields);
+                 prototype field.widget.prototype(field)">
+
+    <div id="${field.oid}-template_panel" class="hidden"
+         style="padding: 10px; background-color: white; border: 1px solid black;">
+
+        <h2>Create New Method</h2>
+        <p>Method templates provide pre-configured data collection methods and pre-fill as much information as possible to make this process as quick and easy as possible.</p>
+        <ul>
+            <li>If you don't want to use any template, select the general category and Blank template.</li>
+            <li>Please contact the administrators to request new templates.</li>
+        </ul>
+        <ol>
+            <li>First select the category or organisational group on the left hand side.</li>
+            <li>Then select the most relevant template from the list on the right hand side.</li>
+        </ol>
+        <div tal:content="structure rndr(field.schema.templates_data.widget.template, field=field.schema.templates_data, cstruct='', parent=field)"></div>
+        <div style="clear: both; position: relative; height: 60px;">
+            <div style="float: right; margin-left: 10px; padding: 10px; color: blue; border: 1px solid #f0f0f0; margin-top: 20px;"
+                 onclick="stopAddMethod(this);">Cancel</div>
+            <div style="float: right; margin-top: 10px; color: blue; padding: 10px; border: 1px solid #f0f0f0;  ; margin-top: 20px;"
+                 onclick="preFillMethod(this);">Create Method</div>
+
+        </div>
+    </div>
+    <!-- sequence -->
+
+    <input type="hidden" name="__start__" value="${field.name}:sequence"
+           class="deformProto"
+           tal:attributes="prototype prototype"/>
+
+    <ul id="seq_items-${field.oid}">
+
+        <div tal:repeat="tup subfields"
+             tal:replace="structure rndr(item_tmpl, field=tup[1], cstruct=tup[0],
+                      parent=field)"/>
+
+    <span class="deformInsertBefore"
+          tal:attributes="min_len min_len; 
+                          max_len max_len; 
+                          now_len now_len"></span>
+
+    </ul>
+
+    <a
+       class="deformSeqAdd"
+       id="${field.oid}-seqAdd"
+       onclick="deform.appendSequenceItem(this); addNewMethod(this);">
+        <small id="${field.oid}-addtext">${add_subitem_text}</small>
+    </a>
+
+    <script type="text/javascript">
+
+
+        deform.addCallback(
+                '${field.oid}',
+                function (oid) {
+                    var oid_node = $('#' + oid);
+
+                    deform.processSequenceButtons(oid_node, ${min_len},
+                            ${max_len}, ${now_len});
+
+
+                    var template_panel = $("#" + oid + "-template_panel");
+                    $("#deform").parent().prepend(template_panel[0]);
+//        template_panel.parent().remove(template_panel);
+                    if ($("#" + oid).find(".deformInsertBefore").prev().length == 0) {
+                        deform.appendSequenceItem($("#" + oid).children()[0]);
+                        addNewMethod($("#" + oid).children()[0]);
+                    }
+                }
+        );
+
+//        addNewMethod($("#${field.oid}").children()[0]);
+        function addNewMethod(add_button) {
+            var oid = add_button.parentNode.id;
+            var template_panel = $("#" + oid + "-template_panel");
+
+//            template_panel.find('ol').after($("#" + oid + "-template_prototype")[0].value);
+//            processJavascript(template_panel[0]);
+//            deform.processCallbacks();
+
+            $("#deform").hide();
+            template_panel.show();
+            $('html, body').animate({
+                scrollTop: template_panel.offset().top - 10
+            }, 0);
+        }
+
+        function stopAddMethod(stop_button) {
+            var oid = stop_button.parentNode.parentNode.id.replace('-template_panel', '');
+            var template_panel = $("#" + oid + '-template_panel');
+            var new_oid = $("#" + oid).find(".deformInsertBefore").prev()[0].id;
+
+//            template_panel.find('ol').after($("#" + oid + "-template_prototype")[0].value);
+//            processJavascript(template_panel[0]);
+            $("#" + new_oid).remove();
+            $("#deform").show();
+            template_panel.hide();
+        }
+
+        function preFillMethod(create_button) {
+            var oid = create_button.parentNode.parentNode.id.replace('-template_panel', '');
+            var new_oid = $("#" + oid).find(".deformInsertBefore").prev()[0].id;
+            var method_id = $(create_button.parentNode.parentNode).find(".selected input")[0].value;
+            $("#" + new_oid + " [name='method:method_template']")[0].value = method_id;
+            var project_id = $("[name='project:id']")[0].value;
+            $("#" + new_oid + " [name='method:project_id']")[0].value = project_id;
+
+
+            $("#deformSave").click();
+
+//            var template_panel = $("#" + oid + "-template_panel");
+        }
+
+//            $.ajax({
+//                url: "/add/" + $("[name='project:id']")[0].value + "/" + method_id,
+//                dataType: "json",
+//                strict: false,
+//                success: function( data ) {
+////                    for (var property in data) {
+////                        if (data[property] === null) {
+////                            continue;
+////                        }
+////
+////                        // If its an HTML field
+////                        var item = $("#" + new_oid + " [name='" + property + "']");
+////                        item.value = data[property];
+////
+////                        if (item.length <= 0) {
+////                            // If its a sequence
+////                            if (data[property] instanceof Array) {
+////                                console.log(property + " : " + data[property]);
+////                                var selector = "#" + oid + " .deformProto[prototype*='name%3D%27" + property.replace(":", "%3A") + "%27']";
+////                                console.log(selector);
+////                                item = $(selector);
+////                                console.log(item.length);
+////                                var add_link = item.parent().find('a')[0];
+////                                console.log(add_link);
+////                                add_link.onclick.apply(add_link);
+////
+////                                item = item.parent().find('.deformInsertBefore').prev()[0];
+////                                console.log(item);
+////                                console.log("array: " + property + " : " + data[property]);
+////
+////                            // If its a mapping item
+////                            } else if (typeof data[property] == 'object') {
+////                                console.log("Object: " + property + " : " + data[property]);
+////                                this.success(data[property]);
+////                                continue;
+////                            } else {
+////                                continue;
+////                            }
+////                        }
+////                    }
+////                    alert('success');
+////                    console.log(data);
+//                    $("#deformSave").click();
+////                    template_panel.hide();
+//                },
+//                error: function(jqXHR, textStatus, errorThrown) {
+//                    console.log(jqXHR);
+//                    alert("Error adding template: " + errorThrown);
+//
+////                    template_panel.hide();
+//                }
+//            });
+//        }
+
+    </script>
+
+    <input type="hidden" name="__end__" value="${field.name}:sequence"/>
+
+    <!-- /sequence -->
+
+</div>

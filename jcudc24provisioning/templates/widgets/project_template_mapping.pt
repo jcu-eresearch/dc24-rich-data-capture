@@ -40,8 +40,9 @@
 
         function select_template(clicked_div) {
             $('#${field.oid}')[0].value = $(clicked_div).find('input')[0].value;
-            $(clicked_div.parentNode).find('div').removeClass('selected');
-            $(clicked_div.parentNode).find('div').addClass('selectable');
+
+            $(clicked_div.parentNode.parentNode).find('div').removeClass('selected');
+            $(clicked_div.parentNode.parentNode).find('div div').addClass('selectable');
             $(clicked_div).addClass('selected');
             $(clicked_div).removeClass('selectable');
         }

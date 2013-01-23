@@ -2,12 +2,14 @@ import ConfigParser
 import copy
 from datetime import datetime, date
 import json
+import random
 from string import split
 import string
 import urllib2
 from sqlalchemy.orm.properties import ColumnProperty, RelationProperty
 from sqlalchemy.orm.util import object_mapper
 import colander
+import deform
 from deform.exception import ValidationFailure
 from deform.form import Form
 from pyramid.url import route_url
@@ -26,7 +28,7 @@ from pyramid.view import view_config, view_defaults
 from colanderalchemy.types import SQLAlchemyMapping
 from jcudc24provisioning.views.views import Layouts
 from pyramid.renderers import get_renderer
-from jcudc24provisioning.models.project import DBSession, ProjectTemplate, Project, CreatePage, Method, Base, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
+from jcudc24provisioning.models.project import DBSession, ProjectTemplate,method_template, Project, CreatePage, Method, Base, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
 from jcudc24provisioning.views.ca_scripts import convert_schema, create_sqlalchemy_model, convert_sqlalchemy_model_to_data,fix_schema_field_name
 from jcudc24provisioning.scripts.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.mint_lookup import MintLookup
@@ -136,21 +138,20 @@ class Workflows(Layouts):
 
 #         self.session.remove()
 
-    def handle_form(self, form, schema):
+    def handle_form(self, form, schema, page_help=None, appstruct=None, display=None):
         # If the form is being saved (there would be 1 item in controls if it is a fresh page with a project id set)
         if len(self.request.POST) > 0:
             self.request.POST['id'] = self.project_id # Make sure the correct project is being saved (eg. user edits nav bar directly)
             controls = self.request.POST.items()
 
             # In either of the below cases get the data as a dict and get the rendered form
-            try:
-                appstruct = form.validate(controls)
-                display = form.render(appstruct)
-            except ValidationFailure, e:
-                appstruct = e.cstruct
-                display = e.render()
-
-            print "appstruct: " + str(appstruct)
+            if appstruct is None or display is None:
+                try:
+                    appstruct = form.validate(controls)
+                    display = form.render(appstruct)
+                except ValidationFailure, e:
+                    appstruct = e.cstruct
+                    display = e.render()
 
             # save the data even if it didn't validate - this allows the user to easily navigate and fill fields out as they get the info.
             self.save_form(appstruct)
@@ -161,7 +162,7 @@ class Workflows(Layouts):
             else:
                 target = self.request.matched_route.name
             if form.use_ajax:
-                return {"page_title": self.find_page_title(self.request.matched_route.name), "form": display, "form_only": form.use_ajax,  'messages' : self.request.session.pop_flash() or ''}
+                return {"page_title": self.find_page_title(self.request.matched_route.name), "form": display, "form_only": form.use_ajax,  'messages' : self.request.session.pop_flash() or '', 'page_help': page_help}
             else:
                 return HTTPFound(self.request.route_url(target, project_id=self.project_id))
 
@@ -174,7 +175,7 @@ class Workflows(Layouts):
             model = self.session.query(Project).filter_by(id=self.project_id).first()
             appstruct = convert_sqlalchemy_model_to_data(model, schema)
 
-        return {"page_title": self.find_page_title(self.request.matched_route.name), "form": form.render(appstruct), "form_only": False, 'messages': self.request.session.pop_flash() or ''}
+        return {"page_title": self.find_page_title(self.request.matched_route.name), "form": form.render(appstruct), "form_only": False, 'messages': self.request.session.pop_flash() or '', 'page_help': page_help}
 
 
     def clone (self, source):
@@ -192,8 +193,9 @@ class Workflows(Layouts):
 
     @view_config(route_name="setup")
     def setup_view(self):
-        schema = CreatePage(description="This project creation wizard helps pre-fill as many fields as possible to make the process as painless as possible!",
-            validator=grant_validator)
+        page_help = "This project creation wizard helps pre-fill as many fields as possible to make the process as painless as possible!"
+
+        schema = CreatePage(validator=grant_validator)
         templates = self.session.query(ProjectTemplate).order_by(ProjectTemplate.category).all()
         categories = []
         for template in templates:
@@ -205,7 +207,8 @@ class Workflows(Layouts):
 
 #        print self.get_grants("a")
 
-        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False, ajax_options=redirect_options)
+        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id),
+            buttons=('Create Project',), use_ajax=False, ajax_options=redirect_options)
 
         controls = self.request.POST.items()
         appstruct = {}
@@ -274,48 +277,64 @@ class Workflows(Layouts):
                 self.request.session.flash('Valid project setup data must be entered before progressing.')
                 return {"page_title": self.find_page_title(self.request.matched_route.name), "form": e.render(), "form_only": False, 'messages': self.request.session.pop_flash() or ''}
 
-        return {"page_title": self.find_page_title(self.request.matched_route.name), "form": form.render(appstruct), "form_only": False, 'messages': self.request.session.pop_flash() or ''}
+        return {"page_title": self.find_page_title(self.request.matched_route.name), "form": form.render(appstruct), "form_only": False, 'messages': self.request.session.pop_flash() or '', 'page_help': page_help}
 
 
     @view_config(route_name="general")
     def general_view(self):
-        print self.request.POST
+        page_help = ""
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description=""), page='setup').bind(request=self.request)
         form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False, ajax_options=redirect_options)
-        return self.handle_form(form, schema)
+        return self.handle_form(form, schema, page_help)
 
 
     @view_config(route_name="description")
     def description_view(self):
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise',
-                ca_description="Fully describe your project to encourage other researchers to reuse your data:"\
-                                       "<ul><li>The entered descriptions will be used for metadata record generation (ReDBox), provide detailed information that is relevant to the project as a whole.</li>"\
-                                       "<li>Focus on what is being researched, why it is being researched and who is doing the research. The research locations and how the research is being conducted will be covered in the <i>Methods</i> and <i>Datasets</i> steps later on.</li></ul>"
-        ), page="description").bind(
+        page_help = "Fully describe your project to encourage other researchers to reuse your data:"\
+                    "<ul><li>The entered descriptions will be used for metadata record generation (ReDBox), " \
+                    "provide detailed information that is relevant to the project as a whole.</li>"\
+                    "<li>Focus on what is being researched, why it is being researched and who is doing the research. " \
+                    "The research locations and how the research is being conducted will be covered in the <i>Methods</i>" \
+                    " and <i>Datasets</i> steps later on.</li></ul>";
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="description").bind(
             request=self.request)
 
         form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False)
-        return self.handle_form(form, schema)
+        return self.handle_form(form, schema, page_help)
 
 
     @view_config(route_name="information")
     def information_view(self):
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="<b>Please fill this section out completely</b> - it's purpose is to provide the majority of information for all generated metadata records so that you don't have to enter the same data more than once:"\
-                                                                                                             "<ul><li>A metadata record (ReDBox) will be created for the entire project using the entered information directly.</li>"\
-                                                                                                             "<li>A metadata record (ReDBox) will be created for each dataset using a combination of the below information and the information entered in the <i>Methods</i> and <i>Datasets</i> steps.</li>"\
-                                                                                                             "<li>Once the project has been submitted and accepted the metadata records will be generated and exported, any further alterations will need to be entered for each record in ReDBox-Mint.</li>"\
-                                                                                                             "<li>If specific datasets require additional metadata that cannot be entered through these forms, you can enter it directly in the ReDBox-Mint records once the project is submitted and accepted (Look under <i>[to be worked out]</i> for a link).</li>"\
-                                                                                                             "</ul>"), page='metadata').bind(request=self.request)
+        page_help ="<b>Please fill this section out completely</b> - it's purpose is to provide the majority of information " \
+                   "for all generated metadata records so that you don't have to enter the same data more than once:"\
+                                   "<ul><li>A metadata record (ReDBox) will be created for the entire project using the" \
+                                   " entered information directly.</li>" \
+                                   "<li>A metadata record (ReDBox) will be created for each dataset using a combination " \
+                                   "of the below information and the information entered in the <i>Methods</i> and " \
+                                   "<i>Datasets</i> steps.</li>"\
+                                   "<li>Once the project has been submitted and accepted the metadata records will be " \
+                                   "generated and exported, any further alterations will need to be entered for each " \
+                                   "record in ReDBox-Mint.</li>"\
+                                   "<li>If specific datasets require additional metadata that cannot be entered through " \
+                                   "these forms, you can enter it directly in the ReDBox-Mint records once the project " \
+                                   "is submitted and accepted (Look under <i>[to be worked out]</i> for a link).</li></ul>"
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page='metadata').bind(request=self.request)
         form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False)
 
-        return self.handle_form(form, schema)
+        return self.handle_form(form, schema, page_help)
 
     def get_template_schemas(self):
         return self.session.query(MethodSchema).filter_by(template_schema=1).all()
 
     @view_config(route_name="methods")
     def methods_view(self):
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="Setup methods the project uses for collecting data (not individual datasets themselves as they will be setup in the next step)."), page="methods").bind(request=self.request)
+        page_help = "<p>Setup methods the project uses for collecting data (not individual datasets themselves as they will " \
+                    "be setup in the next step).</p>" \
+                    "<br /><p>This page sets up:</p>" \
+                    "<ul><li>Ways of collecting data - data sources</li>" \
+                    "<li>What the data actually is - its 'data schema' - what fields there are, field types and associated information.</li>" \
+                    "<li>Any additional information about this data collection methods - websites or attachments</li></ul>"
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="methods").bind(request=self.request)
 
         templates = self.session.query(MethodTemplate).order_by(MethodTemplate.category).all()
         categories = []
@@ -323,20 +342,84 @@ class Workflows(Layouts):
             if not template.category in categories:
                 categories.append(template.category)
 
-        schema.children[3].children[0].children[2].templates_data = templates
-        schema.children[3].children[0].children[2].template_categories = categories
+        for i in range(len(schema.children)):
+            if schema.children[i].name[-len(Project.methods.key):] == Project.methods.key:
+                METHODS_INDEX = i
 
-        # TODO: Better way of getting indexes
-        schema.children[3].children[0].children[5].children[6].template_schemas = self.get_template_schemas()
+                for j in range(len(schema.children[i].children[0].children)):
+                    if schema.children[i].children[0].children[j].name[-len(Method.method_template.key):] == Method.method_template.key:
+                        METHOD_TEMPLATE_INDEX = j
+                        break
+                break
+
+        schema.children[METHODS_INDEX].children[0].children[METHOD_TEMPLATE_INDEX].templates_data = templates
+        schema.children[METHODS_INDEX].children[0].children[METHOD_TEMPLATE_INDEX].template_categories = categories
+        schema.children[METHODS_INDEX].children[0].children[METHOD_TEMPLATE_INDEX].widget=deform.widget.HiddenWidget()
+
+        template_data = method_template#type("dummy_object", (object,), {})
+        template_data.oid = "MethodsTemplate"
+        template_data.schema = type("dummy_object", (object,), {})
+        template_data.schema.templates_data = templates
+        template_data.schema.template_categories = categories
+
+        schema.children[METHODS_INDEX].templates_data = template_data
+
+        for i in range(len(schema.children[METHODS_INDEX].children[0].children)):
+            if schema.children[METHODS_INDEX].children[0].children[i].name[-len(Method.data_type.key):] == Method.data_type.key:
+                DATA_SCHEMA_INDEX = i
+                for j in range(len(schema.children[METHODS_INDEX].children[0].children[i].children)):
+                    if schema.children[METHODS_INDEX].children[0].children[i].children[j].name[-len(MethodSchema.parents.key):] == MethodSchema.parents.key:
+                        METHOD_SCHEMA_PARENTS_INDEX = j
+                        break
+                break
+        schema.children[METHODS_INDEX].children[0].children[DATA_SCHEMA_INDEX].children[METHOD_SCHEMA_PARENTS_INDEX].template_schemas = self.get_template_schemas()
 #        assert False
+
         form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False)
 
-        return self.handle_form(form, schema)
+        appstruct = None
+        display = None
+        controls = self.request.POST.items()
+        if len(controls) > 0:
+            try:
+                appstruct = form.validate(controls)
+                display = form.render(appstruct)
+            except ValidationFailure, e:
+                appstruct = e.cstruct
+                display = e.render()
+
+            print "Post variables: " + str(appstruct)
+
+            old_models = self.session.query(Method).filter_by(project_id=self.project_id).all()
+            for new_method_data in appstruct['project:methods']:
+                if not new_method_data['method:id'] and 'method:method_template' in new_method_data and new_method_data['method:method_template']:
+                    print "NEW:" + str(new_method_data)
+                    template_method = self.session.query(Method).filter_by(id=new_method_data['method:method_template']).first()
+                    if template is None: break
+
+                    new_method_dict = convert_sqlalchemy_model_to_data(self.clone(template_method), schema.children[METHODS_INDEX])
+                    new_method_dict = new_method_dict['method']
+                    del new_method_dict['method:id']
+                    new_method_dict['method:project_id'] = new_method_data['method:project_id']
+                    new_method_dict['method:method_template'] = new_method_data['method:method_template']
+                    new_method_data.update(new_method_dict)
+
+        return self.handle_form(form, schema, page_help, appstruct=appstruct, display=display)
 
     @view_config(route_name="datasets")
     def datasets_view(self):
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description="<p>Add individual datasets that your project will be collecting.  This is the when and where using the selected data collection method (what, why and how).</p><p><i>Such that an iButton sensor that is used to collect temperature at numerous sites would have been setup once within the Methods step and should be set-up in this step for each site it is used at.</i></p>"), page="datasets").bind(request=self.request)
-        dataset_items = schema.children[3].children[0].children
+        page_help = "<p>Add individual datasets that your project will be collecting.  This is the when and where using " \
+                    "the selected data collection method (what, why and how).</p><p><i>Such that an iButton sensor that " \
+                    "is used to collect temperature at numerous sites would have been setup once within the Methods step" \
+                    " and should be set-up in this step for each site it is used at.</i></p>"
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="datasets").bind(request=self.request)
+
+        for i in range(len(schema.children)):
+            if schema.children[i].name[-len(Project.datasets.key):] == Project.datasets.key:
+                DATASETS_INDEX = i
+                break
+
+        dataset_items = schema.children[DATASETS_INDEX].children[0].children
 
 #        if 'id' in self.request.GET:
 #            id = int(self.request.GET['id'])
@@ -347,12 +430,21 @@ class Workflows(Layouts):
             #scoped_session(sessionmaker(bind=db_engine))
         if self.project_id is not None:
             methods = self.session.query(Method).filter_by(project_id=self.project_id).all()
+
+            if len(methods) <= 0:
+                self.request.session.flash('You must configure at least one method before configuring dataset\'s')
+                return HTTPFound(self.request.route_url('methods', project_id=self.project_id))
+
             method_schemas = []
             for method in methods:
                 method_children = convert_schema(SQLAlchemyMapping(Dataset, unknown='raise')).children
 
-                # TODO: Find programatical/more reliable way of finding the index
-                DATA_CONFIG_INDEX = 11
+                DATA_SOURCE_CONFIGURATION_GROUP_NAME = "data_source_configuration"
+                print method_children
+                for i in range(len(method_children)):
+                    if method_children[i].name[-len(DATA_SOURCE_CONFIGURATION_GROUP_NAME):] == DATA_SOURCE_CONFIGURATION_GROUP_NAME:
+                        DATA_CONFIG_INDEX = i
+                        break
 
                 if method.data_source is not None:
                     for data_source in method_children[DATA_CONFIG_INDEX].children:
@@ -375,28 +467,28 @@ class Workflows(Layouts):
         else:
             method_select_schema = SelectMappingSchema(select_title="Method", name="dataset")
 
-        schema.children[3].children = [method_select_schema]
+        schema.children[DATASETS_INDEX].children = [method_select_schema]
 
         form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False)
 
-        return self.handle_form(form, schema)
+        return self.handle_form(form, schema, page_help)
 
 
     @view_config(route_name="submit")
     def submit_view(self):
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise',
-            ca_description="TODO: The submission and approval should both follow a process of:"
-                           "<ol><li>Automated validation</li>"
-                           "<li>User fixes validation errors</li>"
-                           "<li>Reminders/action items for users to complete that can't be auto-validated</li>"
-                           "<li>Final confirmation and approval</li>"
-                           "<li>Recommendations and next steps</li></ol><br />"
-                "<b>Save:</b> Save the project as is, it doesn't need to be fully complete or valid.<br/><br/>"\
-                "<b>Delete:</b> Delete the project, this can only be performed by administrators or before the project has been submitted.<br/><br/>"\
-                "<b>Submit:</b> Submit this project for admin approval. If there are no problems the project data will be used to create ReDBox-Mint records as well as configuring data ingestion into persistent storage<br/><br/>"\
-                "<b>Reopen:</b> Reopen the project for editing, this can only occur when the project has been submitted but not yet accepted (eg. the project may require updates before being approved)<br/><br/>" \
-                "<b>Approve:</b> Approve this project, generate metadata records and setup data ingestion<br/><br/>" \
-                "<b>Disable:</b> Stop data ingestion, this would usually occur once the project has finished."), page="submit").bind(request=self.request)
+        page_help="TODO: The submission and approval should both follow a process of:" \
+                    "<ol><li>Automated validation</li>" \
+                    "<li>User fixes validation errors</li>"  \
+                    "<li>Reminders/action items for users to complete that can't be auto-validated</li>"  \
+                    "<li>Final confirmation and approval</li>"  \
+                    "<li>Recommendations and next steps</li></ol><br />" \
+                    "<b>Save:</b> Save the project as is, it doesn't need to be fully complete or valid.<br/><br/>"\
+                    "<b>Delete:</b> Delete the project, this can only be performed by administrators or before the project has been submitted.<br/><br/>"\
+                    "<b>Submit:</b> Submit this project for admin approval. If there are no problems the project data will be used to create ReDBox-Mint records as well as configuring data ingestion into persistent storage<br/><br/>"\
+                    "<b>Reopen:</b> Reopen the project for editing, this can only occur when the project has been submitted but not yet accepted (eg. the project may require updates before being approved)<br/><br/>"\
+                    "<b>Approve:</b> Approve this project, generate metadata records and setup data ingestion<br/><br/>"\
+                    "<b>Disable:</b> Stop data ingestion, this would usually occur once the project has finished."
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise',), page="submit").bind(request=self.request)
         form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save', 'Delete', 'Submit', 'Reopen', 'Approve', 'Disable'), use_ajax=False)
 
 
@@ -412,4 +504,49 @@ class Workflows(Layouts):
 
             print 'project approved - TODO: Success message'
 
-        return self.handle_form(form, schema)
+        return self.handle_form(form, schema, page_help)
+
+
+
+#    @view_config(renderer="../templates/search_template.pt", route_name="add_method_from_template")
+#    def add_method_from_template(self):
+#        assert 'method_id' in self.request.matchdict, "Error: Trying to add method with invalid template id."
+#        assert 'project_id' in self.request.matchdict, "Error: Trying to add method with invalid project id."
+#        method_id = self.request.matchdict['method_id']
+#        project_id = self.request.matchdict['project_id']
+#
+#        project = self.session.query(Project).filter_by(id=project_id).first()
+#        model = self.session.query(Method).filter_by(id=method_id).first()
+#
+#        if project and model:
+#            # Use the scripts to create the new models
+#            data = convert_sqlalchemy_model_to_data(model, convert_schema(SQLAlchemyMapping(Method, unknown='raise')))
+#            new_model = create_sqlalchemy_model(data, model_class=Method)
+#            del new_model.id
+#            #            new_model = Method()
+#            self.session.add(new_model)
+#            new_model.method_template = model.id
+#            new_model.project_id = project.id
+#            new_model.method_description="alsdjkh"
+#            project.methods.append(new_model)
+#            self.session.flush()
+#            #            print new_model
+#            #            print new_model.__dict__
+#            #            self.session.flush()
+#            #
+#            #            self.session = DBSession
+#            #
+#            #            print "Method ID's: " + str(model.id) + " : " + str(new_model.id)
+#            #
+#            #            print new_model.id
+#            #            id = new_model.id
+#            #            transaction.commit()
+#            #
+#            #            self.session = APISession
+#            #            test_model = self.session.query(Method).filter_by(id=id).all()
+#            #            for test in test_model:
+#            #                print "Test model: " + str(model.__dict__)
+#            return {'values': json.dumps('Method successfully added')}
+#        else:
+#            print "Add method failed: " + str(project) + str(model)
+#            return {'values': json.dumps('Failed to add method')}

@@ -132,7 +132,7 @@ class TestIngesterPlatform(unittest.TestCase):
         dataset_location.dataset_id = dataset1.id
         dataset_location.location = "POINT(132.8763427287297 -24.167471616893767)"
         dataset_location.elevation = 12.6
-        dataset1.dataset_location.append(dataset_location)
+        dataset1.dataset_locations.append(dataset_location)
 
         location_offset = LocationOffset(0, 0, 5)
         dataset1.location_offset = location_offset

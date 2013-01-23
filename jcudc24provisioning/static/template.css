@@ -389,7 +389,7 @@ div.description p, div.help_text p {
     color: #999;
 }
 
-.deform .hidden, .description.first.hidden, li.hidden {
+.deform .hidden, .hidden, .description.first.hidden, li.hidden {
     display: none;
 }
 

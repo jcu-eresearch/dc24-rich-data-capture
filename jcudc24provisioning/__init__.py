@@ -50,9 +50,14 @@ def main(global_config, **settings):
     config.add_route('manage', '/project/{project_id}/manage')              # Manage projecct data, eg. change sample rates, add data values
 
 #    --------------JSON Search views--------------------------------
+    config.add_route('get_model', '/get_model/{object_type}/{id}')              # Manage projecct data, eg. change sample rates, add data values
+    config.add_route('add_method_from_template', '/add/{project_id}/{method_id}')              # Manage projecct data, eg. change sample rates, add data values
+
     config.add_route('get_activities', '/search/activities/{search_terms}')              # Manage projecct data, eg. change sample rates, add data values
     config.add_route('get_parties', '/search/parties/{search_terms}')              # Manage projecct data, eg. change sample rates, add data values
     config.add_route('get_from_identifier', '/search/{identifier:.*}')              # Manage projecct data, eg. change sample rates, add data values
+
+
 
     config.add_static_view('deform_static', 'deform:static', cache_max_age=0)
     config.add_static_view('static', 'static')
