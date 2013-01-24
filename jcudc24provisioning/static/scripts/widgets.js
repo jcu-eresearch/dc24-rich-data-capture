@@ -349,9 +349,21 @@ function setSelectedItem(select_element) {
             break;
         }
     }
+    if (selectedProto == undefined) {
+        return;
+    }
 
-    var newHTML = (typeof selectedProto == 'undefined' ? "" : selectedProto.value);
-    document.getElementById("select_mapping_content-" + select_element.id).innerHTML = newHTML;
+//     var newHTML = (typeof selectedProto == 'undefined' ? "" : selectedProto.value);
+//    alert($(selectedProto).attr('prototype'));
+    $(selectedProto).attr('prototype', encodeURIComponent($(selectedProto).attr('prototype')));
+    var $proto_node = $(selectedProto);
+    var $before_node = $("#select_mapping_content-" + select_element.id).find('.deformInsertBefore');
+    var min_len = parseInt('0');
+    var max_len = parseInt('9999');
+    var now_len = parseInt('0');
+    deform.addSequenceItem($proto_node, $before_node);
+
+//     document.getElementById("select_mapping_content-" + select_element.id).innerHTML = newHTML;
 
 //    var scripts = $("#select_mapping_content-" + select_element.id).find("script");
 //
@@ -362,8 +374,8 @@ function setSelectedItem(select_element) {
 //            $.getScript(scripts[i].src);
 //        }
 //    }
-    processJavascript($("#select_mapping_content-" + select_element.id)[0]);
-    deform.processCallbacks();
+//    processJavascript($("#select_mapping_content-" + select_element.id)[0]);
+//    deform.processCallbacks();
 }
 
 function processJavascript(parentElement) {

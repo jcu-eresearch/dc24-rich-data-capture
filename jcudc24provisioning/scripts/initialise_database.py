@@ -1,12 +1,12 @@
 import random
 import transaction
-from jcudc24provisioning.models.project import MethodSchema,ProjectTemplate, MethodSchemaField, DBSession, Project, MethodTemplate, Method
+from jcudc24provisioning.models.project import Dataset, MethodSchema,ProjectTemplate, MethodSchemaField, DBSession, Project, MethodTemplate, Method
 from jcudc24ingesterapi.schemas.data_types import Double
 
 __author__ = 'Casey Bajema'
 
 
-class InitialiseSchemas(object):
+class InitialiseDatabase(object):
     def __init__(self):
         self.session = DBSession
 #        self.initialise_offset_locations_schema()
@@ -115,12 +115,17 @@ class InitialiseSchemas(object):
         blank_template = self.session.query(MethodTemplate).filter_by(name="Blank Template").first()
         if not blank_template:
             blank_method = Method()
-            blank_method.method_description = "Test description"
+#            blank_method.method_description = "Test description"
             self.session.add(blank_method) # Add an empty project as a blank template
+
+            blank_dataset = Dataset()
+            blank_dataset.title = "Test Title"
+            self.session.add(blank_dataset) # Add an empty project as a blank template
             self.session.flush()
 
             blank_template = MethodTemplate()
             blank_template.template_id = blank_method.id
+            blank_template.dataset_id = blank_dataset.id
             blank_template.category = "General"
             blank_template.name = "Blank Template"
             blank_template.description = "An empty template that allows you to start from scratch (only for advanced " \
@@ -144,6 +149,7 @@ class InitialiseSchemas(object):
                 for i in range(random.randint(2, 10)):
                     template = MethodTemplate()
                     template.template_id = blank_template.id
+                    template.dataset_id = blank_template.dataset_id
                     template.category = name
                     template.name = name + " Placeholder Template " + str(count) + " (Testing Only)"
                     count += 1

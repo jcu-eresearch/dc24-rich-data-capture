@@ -2,10 +2,12 @@ import ConfigParser
 import copy
 from datetime import datetime, date
 import json
+import logging
 import random
 from string import split
 import string
 import urllib2
+import sqlalchemy
 from sqlalchemy.orm.properties import ColumnProperty, RelationProperty
 from sqlalchemy.orm.util import object_mapper
 import colander
@@ -15,26 +17,27 @@ from deform.form import Form
 from pyramid.url import route_url
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
-from pyramid_debugtoolbar.utils import logger
 import time
 import transaction
 from jcudc24ingesterapi.authentication import CredentialsAuthentication
 from jcudc24ingesterapi.ingester_platform_api import IngesterPlatformAPI
 from jcudc24provisioning.models.common_schemas import SelectMappingSchema
 from pyramid.decorator import reify
-from pyramid.httpexceptions import HTTPFound
+from pyramid.httpexceptions import HTTPFound, HTTPNotFound, HTTPClientError
 from pyramid.response import Response
-from pyramid.view import view_config, view_defaults
+from pyramid.view import view_config, view_defaults, render_view_to_response
 from colanderalchemy.types import SQLAlchemyMapping
 from jcudc24provisioning.views.views import Layouts
 from pyramid.renderers import get_renderer
-from jcudc24provisioning.models.project import DBSession, ProjectTemplate,method_template, Project, CreatePage, Method, Base, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
+from jcudc24provisioning.models.project import DBSession, PullDataSource, ProjectTemplate,method_template, Project, CreatePage, Method, Base, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
 from jcudc24provisioning.views.ca_scripts import convert_schema, create_sqlalchemy_model, convert_sqlalchemy_model_to_data,fix_schema_field_name
 from jcudc24provisioning.scripts.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.mint_lookup import MintLookup
 
 
 __author__ = 'Casey Bajema'
+
+logger = logging.getLogger(__name__)
 
 WORKFLOW_STEPS = [
         {'href': 'setup', 'title': 'Setup', 'page_title': 'Setup a New Project', 'hidden': True},
@@ -62,12 +65,13 @@ redirect_options = """
 
 @view_defaults(renderer="../templates/form.pt")
 class Workflows(Layouts):
-    def __init__(self, request):
+    def __init__(self, context, request):
         self.request = request
+        self.context = context
         self.session = DBSession
 
         self.project_id = None
-        if 'project_id' in self.request.matchdict:
+        if self.request.matchdict and 'project_id' in self.request.matchdict:
             self.project_id = self.request.matchdict['project_id']
 
     @reify
@@ -101,7 +105,7 @@ class Workflows(Layouts):
             if menu['href'] == href:
                 return menu['page_title']
 
-        raise ValueError("There is no page title for this href: " + str(href))
+        raise ValueError("There is no page title for this address: " + str(href))
 
 
     @reify
@@ -132,9 +136,15 @@ class Workflows(Layouts):
              else:
                  self.session.merge(model)
 
-         self.session.flush()
-         self.project_id = model.id
-         data['project:id'] = model.id
+         try:
+             self.session.flush()
+             self.project_id = model.id
+             data['project:id'] = model.id
+#             self.request.session.flash("Project saved successfully.", "success")
+         except Exception as e:
+             logger.exception("SQLAlchemy exception while flushing after save: %s" % e)
+             self.request.session.flash("There was an error while saving the project, please try again.", "error")
+             self.request.session.flash("Error: %s" % e, "error")
 
 #         self.session.remove()
 
@@ -162,7 +172,12 @@ class Workflows(Layouts):
             else:
                 target = self.request.matched_route.name
             if form.use_ajax:
-                return {"page_title": self.find_page_title(self.request.matched_route.name), "form": display, "form_only": form.use_ajax,  'messages' : self.request.session.pop_flash() or '', 'page_help': page_help}
+                messages = {
+                    'error_messages': self.request.session.pop_flash("error"),
+                    'success_messages': self.request.session.pop_flash("success"),
+                    'warning_messages': self.request.session.pop_flash("warning")
+                }
+                return {"page_title": self.find_page_title(self.request.matched_route.name), "form": display, "form_only": form.use_ajax,  'messages' : messages or '', 'page_help': page_help}
             else:
                 return HTTPFound(self.request.route_url(target, project_id=self.project_id))
 
@@ -175,7 +190,13 @@ class Workflows(Layouts):
             model = self.session.query(Project).filter_by(id=self.project_id).first()
             appstruct = convert_sqlalchemy_model_to_data(model, schema)
 
-        return {"page_title": self.find_page_title(self.request.matched_route.name), "form": form.render(appstruct), "form_only": False, 'messages': self.request.session.pop_flash() or '', 'page_help': page_help}
+        messages = {
+            'error_messages': self.request.session.pop_flash("error"),
+            'success_messages': self.request.session.pop_flash("success"),
+            'warning_messages': self.request.session.pop_flash("warning")
+        }
+        print "Messages: " + str(messages)
+        return {"page_title": self.find_page_title(self.request.matched_route.name), "form": form.render(appstruct), "form_only": False, 'messages': messages, 'page_help': page_help}
 
 
     def clone (self, source):
@@ -266,18 +287,34 @@ class Workflows(Layouts):
                 # TODO:  Add the current user (known because of login) as a creator for citations
                 # TODO:  Add the current user (known because of login) as the creator of the project
 
-                self.session.add(new_project)
-                self.session.flush()
 
-                self.request.session.flash('New project successfully created.')
+                try:
+                    self.session.add(new_project)
+                    self.session.flush()
+                    self.request.session.flash('New project successfully created.', 'success')
+                except Exception as e:
+                    logger.exception("SQLAlchemy exception while flushing after project creation: %s" % e)
+                    self.request.session.flash("There was an error while creating the project, please try again.", "error")
+                    self.request.session.flash("Error: %s" % e, "error")
+
                 return HTTPFound(self.request.route_url('general', project_id=new_project.id))
 
             except ValidationFailure, e:
                 appstruct = e.cstruct
-                self.request.session.flash('Valid project setup data must be entered before progressing.')
-                return {"page_title": self.find_page_title(self.request.matched_route.name), "form": e.render(), "form_only": False, 'messages': self.request.session.pop_flash() or ''}
+                self.request.session.flash('Valid project setup data must be entered before progressing.', 'error')
+                messages = {
+                    'error_messages': self.request.session.pop_flash("error"),
+                    'success_messages': self.request.session.pop_flash("success"),
+                    'warning_messages': self.request.session.pop_flash("warning")
+                }
+                return {"page_title": self.find_page_title(self.request.matched_route.name), "form": e.render(), "form_only": False, 'messages': messages}
 
-        return {"page_title": self.find_page_title(self.request.matched_route.name), "form": form.render(appstruct), "form_only": False, 'messages': self.request.session.pop_flash() or '', 'page_help': page_help}
+        messages = {
+            'error_messages': self.request.session.pop_flash("error"),
+            'success_messages': self.request.session.pop_flash("success"),
+            'warning_messages': self.request.session.pop_flash("warning")
+        }
+        return {"page_title": self.find_page_title(self.request.matched_route.name), "form": form.render(appstruct), "form_only": False, 'messages': messages, 'page_help': page_help}
 
 
     @view_config(route_name="general")
@@ -408,6 +445,17 @@ class Workflows(Layouts):
 
     @view_config(route_name="datasets")
     def datasets_view(self):
+        def get_all_fields(data_entry_schema):
+            fields = []
+
+            for field in data_entry_schema.parents:
+                fields.extend(get_all_fields(data_entry_schema))
+
+            for field in data_entry_schema.custom_fields:
+                fields.append(field)
+
+            return fields
+
         page_help = "<p>Add individual datasets that your project will be collecting.  This is the when and where using " \
                     "the selected data collection method (what, why and how).</p><p><i>Such that an iButton sensor that " \
                     "is used to collect temperature at numerous sites would have been setup once within the Methods step" \
@@ -432,40 +480,68 @@ class Workflows(Layouts):
             methods = self.session.query(Method).filter_by(project_id=self.project_id).all()
 
             if len(methods) <= 0:
-                self.request.session.flash('You must configure at least one method before configuring dataset\'s')
+                self.request.session.flash('You must configure at least one method before adding dataset\'s', 'warning')
                 return HTTPFound(self.request.route_url('methods', project_id=self.project_id))
 
             method_schemas = []
             for method in methods:
-                method_children = convert_schema(SQLAlchemyMapping(Dataset, unknown='raise')).children
+                dataset_children = convert_schema(SQLAlchemyMapping(Dataset, unknown='raise')).children
 
                 DATA_SOURCE_CONFIGURATION_GROUP_NAME = "data_source_configuration"
-                print method_children
-                for i in range(len(method_children)):
-                    if method_children[i].name[-len(DATA_SOURCE_CONFIGURATION_GROUP_NAME):] == DATA_SOURCE_CONFIGURATION_GROUP_NAME:
+                print dataset_children
+                for i in range(len(dataset_children)):
+                    if dataset_children[i].name[-len(DATA_SOURCE_CONFIGURATION_GROUP_NAME):] == DATA_SOURCE_CONFIGURATION_GROUP_NAME:
                         DATA_CONFIG_INDEX = i
                         break
 
-                if method.data_source is not None:
-                    for data_source in method_children[DATA_CONFIG_INDEX].children:
+                if method.data_source is not None and 'DATA_CONFIG_INDEX' in locals():
+                    for data_source in dataset_children[DATA_CONFIG_INDEX].children:
                         if fix_schema_field_name(data_source.name) == method.data_source:
-                            method_children[DATA_CONFIG_INDEX].children = [data_source]
+                            # Add dynamic data to pull data sources
+                            if fix_schema_field_name(data_source.name) == PullDataSource.__tablename__:
+                                for child in data_source.children:
+                                    if fix_schema_field_name(child.name) == PullDataSource.file_field.key:
+                                        fields = get_all_fields(method.data_type)
+                                        field_values = []
+                                        for i in range(len(fields)):
+                                            if fields[i].type == "file":
+                                                field_values.append((fields[i].id, fields[i].name))
+
+                                        child.widget.values = tuple(field_values)
+
+                            # Set the data source
+                            dataset_children[DATA_CONFIG_INDEX].children = [data_source]
                             break
-                else:
-                    method_children[DATA_CONFIG_INDEX].children = []
-                    method_children[DATA_CONFIG_INDEX].description = "No associated data source - please select a datasource on the Methods page."
+                elif 'DATA_CONFIG_INDEX' in locals():
+                    dataset_children[DATA_CONFIG_INDEX].children = []
+                    dataset_children[DATA_CONFIG_INDEX].description = "No associated data source - please select a datasource on the Methods page."
 
-                for child in method_children:
-                    if fix_schema_field_name(child.name) == 'method_id':
-                        child.missing = method.id
-                        child.default = method.id
-                        break
+                # Get the dataset template if there is one
+                if method.method_template:
+                    template = self.session.query(Dataset).join(MethodTemplate).filter(Dataset.id == MethodTemplate.dataset_id).\
+                    filter(MethodTemplate.id == method.method_template).first()
 
-                method_schemas.append(colander.MappingSchema(*method_children, name=(method.method_name and method.method_name or 'Un-named')))
+                for child in dataset_children:
+#                    if fix_schema_field_name(child.name) == 'method_id':
+##                        child.missing = method.id
+#                        child.default = method.id
+#                    else:
+                        # If there is a template for datasets of this method, set all fields default values accordingly
+                        if template:
+                            name = fix_schema_field_name(child.name)
+                            if name != "id" and hasattr(template, name):
+                                child.default = getattr(template, name, colander.null)
+                            elif name != "id":
+                                logger.warn("Schema has field template doesn't: %s" % name)
 
-            method_select_schema = SelectMappingSchema(*method_schemas, select_title="Method", name="dataset")
+
+                method_schemas.append(colander.MappingSchema(*dataset_children, name=(method.method_name and method.method_name or 'Un-named')))
+
+            method_select_schema = SelectMappingSchema(*method_schemas, name="dataset", collapsed=False,
+                select_title="Select dataset method type", select_description="<i>Changing will overwrite all fields.</i>")
         else:
-            method_select_schema = SelectMappingSchema(select_title="Method", name="dataset")
+            method_select_schema = SelectMappingSchema(select_title="Method", name="dataset" ,collapsed=False)
+
 
         schema.children[DATASETS_INDEX].children = [method_select_schema]
 
@@ -491,20 +567,76 @@ class Workflows(Layouts):
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise',), page="submit").bind(request=self.request)
         form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save', 'Delete', 'Submit', 'Reopen', 'Approve', 'Disable'), use_ajax=False)
 
+#        if 'Approve' in self.request.POST:
+
+        response = self.handle_form(form, schema, page_help)
 
         if 'Approve' in self.request.POST and 'id' in self.request.POST:
-            print self.request.POST
             project = self.session.query(Project).filter_by(id=self.project_id).first()
 
             auth = CredentialsAuthentication("casey", "password")
             ingester_api = IngesterAPIWrapper("http://localhost:8080/api", auth)
 
-            ingester_api.post(project)
-            ingester_api.close()
+            try:
+                ingester_api.post(project)
+                ingester_api.close()
+                logger.info("Project has been added to ingesterplatform successfully: %s", project.id)
+            except Exception as e:
+                logger.exception("Project failed to add to ingesterplatform: %s", project.id)
+                self.request.session.flash("<p>Sorry, the project failed to configure the data storage, please try agiain.", 'error')
+                self.request.session.flash("Error: %s" % e, 'error')
+                return response
 
-            print 'project approved - TODO: Success message'
+            try:
+                # TODO: ReDBox integration
+                logger.info("Project has been added to ReDBox successfully: %s", project.id)
+                raise NotImplementedError("ReDBox integration hasn't been implemented yet.")
+                pass
+            except Exception as e:
+                logger.exception("Project failed to add to ReDBox: %s", project.id)
+                self.request.session.flash("Sorry, the project failed to generate or add metadata records to ReDBox, please try agiain.", 'error')
+                self.request.session.flash("Error: %s" % e, 'error')
+                return response
 
-        return self.handle_form(form, schema, page_help)
+            logger.info("Project has been approved successfully: %s", project.id)
+
+        return response
+
+    @view_config(context=Exception, route_name="workflow_exception")
+    def exception_view(self):
+        # TODO: Update standard exception screen to fit.
+        logger.exception("An exception occurred in global exception view: %s", self.context)
+        if hasattr(self, self.request.matched_route.name + "_view"):
+            try:
+                self.request.session.flash('Sorry, please try again - there was an exception: ' + str(self.context), 'error')
+                self.request.POST.clear()
+                response = getattr(self, str(self.request.matched_route.name) + "_view")()
+                return response
+            except Exception:
+                logger.exception("Exception occurred while trying to display the view without variables: %s", Exception)
+                return {"page_title": self.find_page_title(self.request.matched_route.name), "form": 'Sorry, we are currently experiencing difficulties.  Please contact the administrators: ' + str(self.context), "form_only": False}
+        else:
+            try:
+                return {"page_title": self.find_page_title(self.request.matched_route.name), "form": 'This address is not valid, please don\'t directly edit the address bar: ' + str(self.context), "form_only": False}
+            except:
+                self.request.session.flash('There is no page at the requested address, please don\'t edit the address bar directly.', 'error')
+                if self.request.matchdict and self.request.matchdict['route'] and (self.request.matchdict['route'].split("/")[0]).isnumeric():
+                    project_id = int(self.request.matchdict['route'].split("/")[0])
+                    print 'isnumeric: ' + str(project_id)
+                    return HTTPFound(self.request.route_url('general', project_id=project_id))
+                else:
+                    return HTTPFound(self.request.route_url('setup'))
+
+
+#            return {"page_title": self.context, "form": 'This address is not valid, please don\'t directly edit the address bar: ' + str(self.context), "form_only": False}
+
+    #    @view_config(context=sqlalchemy.orm.exc.SQLAlchemyError, renderer="../templates/exception.pt")
+    @view_config(context=sqlalchemy.exc.SQLAlchemyError, renderer="../templates/exception.pt")
+    def sqlalchemy_exception_view(self):
+        self.session.rollback()
+        logger.exception("A database exception occurred in global exception view: %s", self.context)
+        return {"exception": "%s" % self.context, "message": 'Sorry, we are currently experiencing difficulties.  Please contact the administrators: ' + str(self.context)}
+
 
 
 

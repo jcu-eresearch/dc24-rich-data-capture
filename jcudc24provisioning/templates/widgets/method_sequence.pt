@@ -93,9 +93,9 @@
 
             $("#deform").hide();
             template_panel.show();
-            $('html, body').animate({
-                scrollTop: template_panel.offset().top - 10
-            }, 0);
+//            $('html, body').animate({
+//                scrollTop: template_panel.offset().top - 10
+//            }, 0);
         }
 
         function stopAddMethod(stop_button) {

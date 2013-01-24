@@ -233,7 +233,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             #            new_dataset.processing_script = dataset.custom_processor_script - Moved to datasource
             new_dataset.redbox_uri = None   # TODO: Add redbox link
             new_dataset.enabled = True
-            new_dataset.descripion = dataset.description
+            new_dataset.description = dataset.title
 
             first_location_found = False
             for location in dataset.dataset_locations:

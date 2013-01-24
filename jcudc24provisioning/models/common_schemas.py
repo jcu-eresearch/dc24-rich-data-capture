@@ -41,7 +41,8 @@ def _SelectMappingSchema__new__(cls, *args, **kw):
 
     node.__init__(typ, *args, **kw)
 
-    node.children.insert(0,colander.SchemaNode(colander.String(), name="schema_select", widget = deform.widget.HiddenWidget(), missing="none"))
+    node.children.insert(0,colander.SchemaNode(colander.String(), name="schema_select",
+        widget = deform.widget.HiddenWidget(), missing="none"))
 
     for n in cls.nodes:
         node.add(n)

@@ -2,6 +2,9 @@
     This template has been modified by removing the href from the add link, this stops the page from jumping to the
     top whenever an item is added.
 -->
+<!--If remove stops working update deform.js
+    line 129    var $before_node = $oid_node.children('ul').first().children('.deformInsertBefore').first();
+-->
 
 <div class="deformSeq"
      id="${field.oid}"

@@ -579,8 +579,10 @@ class PullDataSource(Base):
         ca_placeholder="eg. http://example.com.au/folder/",
         ca_description="Provide the url that should be polled for data - files will be ingested that follow the name convention of <i>TODO</i>")
 
-    file_field = Column(String(100), ca_order=next(order_counter),
-            ca_description="<b>TODO: Redevelop into dropdown selection from schema fields that are of type file</b>")
+    # Id of the data_entry schema field used for the datasource file
+    file_field = Column(Integer, ca_order=next(order_counter),
+            ca_widget=deform.widget.SelectWidget(),
+            ca_description="<i>Select the schema field (field within the data type in methods) that the data source will use</i>")
 
 
     # TODO: filename_patterns
@@ -589,12 +591,13 @@ class PullDataSource(Base):
     mime_type=None
 
     start_conditions = Column(String(100),ca_order=next(order_counter), ca_title="Start conditions(TODO)", ca_child_title="todo",
+        ca_widget=deform.widget.HiddenWidget(template="chron_textinput"),
         ca_group_start="sampling", ca_group_title="Data Sampling/Filtering", ca_group_collapsed=False,
         ca_group_help="Provide filtering conditions for the data received, the most common and simplest"\
                       "cases are a sampling rate (eg. once per hour) or a repeating time periods (such as "\
                       "start at 6am, stop at 7am daily) but any filtering can be acheived by adding a custom "\
                       "sampling script below.</br></br>  The sampling script API can be found <a href="">here</a>.")
-    stop_conditions = Column(String(100),ca_order=next(order_counter), ca_title="Stop conditions (TODO)", ca_child_title="todo")
+#    stop_conditions = Column(String(100),ca_order=next(order_counter), ca_title="Stop conditions (TODO)", ca_child_title="todo")
 
     custom_sampling_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
         ca_group_start="custom_sampling", ca_group_title="Custom Data Sampling/Filtering",
@@ -680,7 +683,7 @@ class Dataset(Base):
         )
     dam_id = Column(Integer, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dam_version = Column(String(128), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    project_id = Column(Integer, ForeignKey('project.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter),
+    project_id = Column(Integer, ForeignKey('project.id'),  ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter),
 #        ca_group_start="test_method", ca_group_title="Test Method",
         )
     method_id = Column(Integer, ForeignKey('method.id'), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
@@ -776,18 +779,6 @@ class ProjectTemplate(Base):
     name = Column(String(100),ca_order=next(order_counter), ca_description="Name the template (eg. Artificial tree).")
     description = Column(String(256),ca_order=next(order_counter), ca_description="Provide a short description (<256 chars) of the template for the end user.")
 
-class DatasetTemplate(Base):
-    """
-    Indicate that a dataset is a template that users can pre-populate datasets with.
-
-    This is only intended to be used by method templates
-    """
-    __tablename__ = 'dataset_template'
-    order_counter = itertools.count()
-    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget(), ca_missing=-1)
-    dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    method_template_id = Column(Integer, ForeignKey('method_template.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-
 class MethodTemplate(Base):
     """
     Method templates that can be used to pre-populate a method with as well as datasets created for that method.
@@ -796,11 +787,10 @@ class MethodTemplate(Base):
     order_counter = itertools.count()
     id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget(), ca_missing=-1)
     template_id = Column(Integer, ForeignKey('method.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
     name = Column(String(100),ca_order=next(order_counter), ca_description="Name the template (eg. Artificial tree).")
     description = Column(String(256),ca_order=next(order_counter), ca_description="Provide a short description (<256 chars) of the template for the end user.")
-
-    dataset_templates = relationship('DatasetTemplate', cascade="all, delete-orphan",)
     category = Column(String(100),ca_order=next(order_counter), ca_description="Category of template, this is a flexible way of grouping templates such as DRO, SEMAT or other organisational groupings.")
 
 choices = ['JCU Name 1', 'JCU Name 2', 'JCU Name 3', 'JCU Name 4']
@@ -900,12 +890,6 @@ class Project(Base):
                     "<li>If applicable: the scope; details of entities being studied or recorded; methodologies used.</li>"
                     "<li>Note: Keep the description relevant to all generated records.</li></ul>")
 
-    overall_method_description = Column(Text(), ca_order=next(order_counter), ca_title="Project wide methods description", ca_page="description",
-        ca_widget=deform.widget.TextAreaWidget(rows=5),
-        ca_description="Provide a description for all data input methods used in the project <i>(Refer to the Methods page)</i>.",
-        ca_placeholder="Provide an overview of all the data collection methods used in the project and why those methods were chosen.",
-        ca_help="<p>This will be used as the description for data collection in the project metadata record and will provide users of your data with an overview of what the project is researching.</p>"
-                "<p><i>If you aren't sure what a method is return to this description after completing the Methods page.</i></p>")
 
     #---------------------metadata---------------------
     #-------------Subject--------------------
@@ -1089,6 +1073,13 @@ class Project(Base):
 
     #-----------------------------Method page----------------------------------------------------------
 
+#    overall_method_description = Column(Text(), ca_order=next(order_counter), ca_title="Project wide methods description", ca_page="methods",
+#        ca_widget=deform.widget.TextAreaWidget(rows=5),
+#        ca_description="Provide a description for all data input methods used in the project.",
+#        ca_placeholder="Provide an overview of all the data collection methods used in the project and why those methods were chosen.",
+#        ca_help="<p>This will be used as the description for data collection in the project metadata record and will provide users of your data with an overview of what the project is researching.</p>"
+#                "<p><i>If you aren't sure what a method is return to this description after completing the Methods page.</i></p>")
+
     methods = relationship('Method', ca_title="Data Collection Methods", ca_widget=deform.widget.SequenceWidget(min_len=0, max_len=sys.maxint, template="method_sequence"), ca_order=next(order_counter), ca_page="methods",
         cascade="all, delete-orphan",
         ca_child_collapsed=False,
@@ -1099,7 +1090,8 @@ class Project(Base):
     # ColanderAlchemy schema will not be able to generate the required deform schemas:
     #   * Setup the ColanderAlchemy schema to correctly create the database
     #   * Dynamically alter the generated schema in the view
-    datasets = relationship('Dataset', ca_widget=deform.widget.SequenceWidget(min_len=1), ca_order=next(order_counter), ca_page="datasets",
+    datasets = relationship('Dataset', ca_widget=deform.widget.SequenceWidget(min_len=0), ca_order=next(order_counter), ca_page="datasets",
+#        ca_select_description="<i>Changing the dataset type will overwrite all dataset fields.</i>",
         ca_child_title="Dataset", ca_child_collapsed=False,cascade="all, delete-orphan",)
 
     #-----------------------------------------Submit page---------------------------------------------------

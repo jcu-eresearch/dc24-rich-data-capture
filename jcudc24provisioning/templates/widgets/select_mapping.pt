@@ -1,3 +1,7 @@
+<!--If remove stops working update deform.js
+    line 129    var $before_node = $oid_node.children('ul').first().children('.deformInsertBefore').first();
+-->
+
 <div tal:condition="len(field.children) <= 1" class="workflow_error">
     No methods have been configured.  You need to create a method in the previous step first!
 </div>
@@ -7,9 +11,9 @@
     <!-- select mapping -->
     <legend class="collapsible"
             tal:condition="(field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and field.title"
-            tal:define="symbol (field.schema.__dict__.get('collapsed') == True and '+') or '-'"><span
-            onclick="toggleCollapse(this, '${field.schema.__dict__.get('collapse_group')}');"
-            class="collapse_icon">${symbol}</span> ${field.title} [<a class="expand_all" onclick="expandAll('${field.schema.__dict__.get('collapse_group')}');">Expand All</a>/<a onclick="collapseAll('${field.schema.__dict__.get('collapse_group')}');" class="collapse_all">Collapse All</a>]
+            tal:define="symbol (field.schema.__dict__.get('collapsed') == True and '+') or '-'">
+            <span onclick="toggleCollapse(this.parentNode, '${field.schema.__dict__.get('collapse_group')}');" class="collapse_icon">${symbol}</span> ${field.title}
+        <!--[<a class="expand_all" onclick="expandAll('${field.schema.__dict__.get('collapse_group')}');">Expand All</a>/<a onclick="collapseAll('${field.schema.__dict__.get('collapse_group')}');" class="collapse_all">Collapse All</a>]-->
     </legend>
     <ul tal:attributes="style ('display: ' + str(field.schema.__dict__.get('collapsed') == True and 'none'));
                       class str((field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and 'collapsible_items' or nothing)">
@@ -22,10 +26,15 @@
         <li class="section description" tal:condition="field.description">
             <div tal:content="structure field.description"></div>
         </li>
-        ${field.__dict__.get('select_title')}
-        <label class="desc" for="${field.oid}">${'select_title' in field.__dict__ and field.__dict__[select_title] or field.title}<span tal:condition="field.required" class="req"
-                                                                   id="req-${field.oid}">*</span>
+        <label class="desc" for="${field.oid}">
+            <div tal:replace="structure 'select_title' in field.schema.__dict__ and field.schema.__dict__['select_title'] or field.title" />
+            <span tal:condition="field.required" class="req" id="req-${field.oid}">*</span>
         </label>
+        <li class="description" tal:condition="'select_description' in field.schema.__dict__ ">
+            <div tal:content="structure field.schema.__dict__['select_description']"></div>
+        </li>
+
+
         <span id="select_mapping_options-${field.oid}" style="display: none;"><span tal:repeat="f field.children"
                                                                                     tal:replace="f.oid"/></span>
 
@@ -52,6 +61,8 @@
                 <div tal:define="method_id isinstance(cstruct.get(f.name,null), dict) and cstruct.get(f.name,null) and cstruct.get(f.name,null)['dataset:method_id'] or None"
                      tal:replace="structure (method_id is not None and (str(method_id) == str(cstruct.get('schema_select'))) and rndr(tmpl,field=f,cstruct=cstruct.get(f.name,null))) or nothing" />
             </div>
+            <span class="deformInsertBefore"></span>
+
         </div>
 
         <input type="hidden" name="__end__" value="${field.name}:mapping"/>
@@ -62,7 +73,7 @@
                    tal:repeat="f field.children"
                    tal:attributes="id 'select_item-' + f.oid;
                                   class 'select_mapping_prototype'"
-                   value="${rndr(tmpl,field=f,cstruct=cstruct.get(f.name,null))}"/>
+                   prototype="${rndr(tmpl,field=f,cstruct=cstruct.get(f.name,null))}"/>
         </div>
     </ul>
     <!-- /mapping -->

@@ -10,7 +10,7 @@
                                 <span>${menu.title}</span>
                             </tal:block>
                             <tal:block tal:condition="not menu.current">
-                                <span><input type="submit" form="deform" href="${view.request.matched_route.name}" onclick="document.getElementById('workflow_target').value='${menu.href}';" value="${menu.title}"></input></span>
+                                <span><input name="nav-${menu.href}" type="submit" form="deform" href="${view.request.matched_route.name}" onclick="document.getElementById('workflow_target').value='${menu.href}';" value="${menu.title}"></input></span>
 
                             </tal:block>
                         </li>

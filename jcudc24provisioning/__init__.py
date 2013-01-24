@@ -1,7 +1,9 @@
 #execfile("D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py", dict(__file__="D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py"))
+import logging
 from pkg_resources import declare_namespace
 from . import models
-from scripts.initialise_templates import InitialiseSchemas
+import sys
+from scripts.initialise_database import InitialiseDatabase
 
 declare_namespace('jcudc24provisioning')
 
@@ -14,8 +16,10 @@ from models.project import Project, DBSession, Base
 
 __author__ = 'Casey Bajema'
 
+logger = logging.getLogger(__name__)
 
 def main(global_config, **settings):
+    logging.captureWarnings(True)
 #    execfile("D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py", dict(__file__="D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py"))
 
 #def main():
@@ -49,7 +53,9 @@ def main(global_config, **settings):
     config.add_route('submit', '/project/{project_id}/submit')              # Submit, review and approval
     config.add_route('manage', '/project/{project_id}/manage')              # Manage projecct data, eg. change sample rates, add data values
 
-#    --------------JSON Search views--------------------------------
+    config.add_route('workflow_exception', '/project/{route:.*}')              # Manage projecct data, eg. change sample rates, add data values
+
+    #    --------------JSON Search views--------------------------------
     config.add_route('get_model', '/get_model/{object_type}/{id}')              # Manage projecct data, eg. change sample rates, add data values
     config.add_route('add_method_from_template', '/add/{project_id}/{method_id}')              # Manage projecct data, eg. change sample rates, add data values
 
@@ -57,14 +63,16 @@ def main(global_config, **settings):
     config.add_route('get_parties', '/search/parties/{search_terms}')              # Manage projecct data, eg. change sample rates, add data values
     config.add_route('get_from_identifier', '/search/{identifier:.*}')              # Manage projecct data, eg. change sample rates, add data values
 
-
-
     config.add_static_view('deform_static', 'deform:static', cache_max_age=0)
     config.add_static_view('static', 'static')
 
     config.scan()
 
-    InitialiseSchemas()
+    try:
+        InitialiseDatabase()
+    except Exception:
+        logger.exception("Error initialising database: %s", Exception)
+        sys.exit()
 
     return config.make_wsgi_app()
 

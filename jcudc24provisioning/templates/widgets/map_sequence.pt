@@ -30,8 +30,8 @@
                       parent=field)"/>
 
     <span class="deformInsertBefore"
-          tal:attributes="min_len min_len; 
-                          max_len max_len; 
+          tal:attributes="min_len min_len;
+                          max_len max_len;
                           now_len now_len"></span>
 
 </ul>
@@ -136,5 +136,4 @@ deform.addCallback(
 
 </div>
 
-        
-        
+

@@ -1,0 +1,29 @@
+
+<div id="${field.oid}-cron_selector" style="padding-top: 15px;padding-bottom: 15px; width: 100%; position: relative;
+    clear: both;"></div>
+
+<tal:block define="value cstruct or field.schema.default or nothing">
+    <input type="hidden" name="${field.name}" value="${value}"
+           id="${field.oid}"/>
+</tal:block>
+
+
+<script type="text/javascript">
+    deform.addCallback(
+            '${field.oid}',
+            function (oid) {
+                var timer = window.setInterval(function(){
+                    if ($.fn.cron != undefined) {
+                        window.clearInterval(timer);
+                        var value = $("#" + oid)[0].value;
+                        $('#' + oid + '-cron_selector').cron({
+                                initial: (value ? value : "* * * * *"),
+                                onChange: function() {
+                                    $("#" + oid)[0].value = $(this).cron("value");
+                                }
+                        });
+                    }
+                }, 100);
+            });
+</script>
+
