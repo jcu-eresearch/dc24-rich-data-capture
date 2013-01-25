@@ -4,9 +4,10 @@
         <div class="ui-widget">
             <input type="hidden" value="${default_text}" name="${field.name}" id="${field.oid}"/>
             <input type="text"
-                   tal:attributes="size field.widget.size;"
+                   tal:attributes="size field.widget.size;
+                        class field.widget.css_class"
                    id="${field.oid}-autocomplete"/>
-            <a class="mint-more-info hidden" onclick="$('.more_info_panel').hide(); $(this).siblings('.more_info_panel').show();" style="cursor: pointer; color: blue;">More Info</a>
+            <a class="mint-more-info hidden buttonText" onclick="$('.more_info_panel').not($(this).siblings('.more_info_panel')).hide(); $('.mint-more-info').not($(this)).removeClass('current'); $(this).siblings('.more_info_panel').toggle(); $(this).toggleClass('current');" style="float:none;">More Info</a>
             <div class="more_info_panel hidden"></div>
 
         </div>
@@ -15,17 +16,7 @@
         <style>
             .hidden {display:none;}
 
-            div.more_info_panel div {
-                padding: 5px;
-            }
-            div.more_info_panel {
-                max-width: 500px;
-                padding: 10px;
-                border: 1px solid #b6b6b6;
-                background: #f4f4f4;
-                position: absolute;
-                /*top: 50%; left: 50%*/
-            }
+
 
             .ui-autocomplete {
                 max-height: 300px;
@@ -96,7 +87,7 @@
                     more_info_panel.append(links_panel);
 
                     var onclick = '$("#' + oid + '").siblings(".more_info_panel").hide();';
-                    var close = "<div class='close_button' onclick='" + onclick + "' style='border: 1px solid #f0f0f0; float: right; padding: 5px; margin-top: 20px; cursor: pointer; color: blue;'>Close</div>";
+                    var close = "<div class='close_button buttonText' onclick='" + onclick + "' >Close</div>";
                     more_info_panel.append(close);
                 },
                 error: function(jqXHR, textStatus, errorThrown) {

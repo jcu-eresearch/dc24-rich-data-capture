@@ -31,11 +31,67 @@
     <link rel="stylesheet" href="/resources/demos/style.css" />
 
     <!--Cron widget-->
-    <script type="text/javascript" src="/static/scripts/jquery-cron/gentleSelect/jquery-gentleSelect.js"></script>
-    <script type="text/javascript" src="/static/scripts/jquery-cron/cron/jquery-cron.js"></script>
-    <link rel="stylesheet" type="text/css" href="/static/scripts/jquery-cron/gentleSelect/jquery-gentleSelect.css" />
-    <link rel="stylesheet" type="text/css" href="/static/scripts/jquery-cron/cron/jquery-cron.css"  />
+    <script type="text/javascript" src="/static/jquery-cron/gentleSelect/jquery-gentleSelect.js"></script>
+    <script type="text/javascript" src="/static/jquery-cron/cron/jquery-cron.js"></script>
+    <link rel="stylesheet" type="text/css" href="/static/jquery-cron/gentleSelect/jquery-gentleSelect.css" />
+    <link rel="stylesheet" type="text/css" href="/static/jquery-cron/cron/jquery-cron.css"  />
 
+    <!--Uniform form styling-->
+    <script type="text/javascript" src="/static/uniform/jquery.uniform.js"></script>
+    <link rel="stylesheet" href="/static/uniform/themes/aristo/css/uniform.aristo.css" media="screen" />
+
+    <style type="text/css">
+        .select_style {
+            border: 1px solid red;
+            position: absolute;
+            z-index: 0;
+        }
+    </style>
+
+    <script type="text/javascript">
+        $(window).resize(set_content_size);
+        $(window).ready(set_content_size);
+
+        function set_content_size() {
+//            console.log($("#center").width() - $("#sidebar").width());
+            $("#content").width($("#center").width() - $("#sidebar").width() - 15);
+        }
+
+        $(window).ready(function () {
+            $("input[type=radio], input[type=checkbox]").uniform();
+        });
+
+        $(window).ready(style_select);
+        function style_select() {
+            var before_html = "<div class='select_style'></div>";
+            var select_items = $("select");
+            for (var i=0; i<select_items.length; i++) {
+                var new_element = '<label class="select_wrapper"></label>';
+                $(select_items[i]).after($(new_element));
+            }
+
+            $("select:not(:visible)").next().hide();
+
+        $(function() {
+           $( document ).tooltip({
+            track: true
+           });
+       });
+
+//            $("select").css('display', function(index, value) {
+////                alert($(this).next().css('color'));
+//                alert('display value changed: ' +(value));
+//                (this).next().css('display', value);
+//                alert('color set');
+////                $.uniform.update();
+//           });
+
+//            select_items.before($(before_html));
+//            select_items.onchange(function() {
+//                alert('changed');
+//            });
+        }
+    </script>
 </head>
 <body>
     <script type="text/javascript"></script>
@@ -44,63 +100,53 @@
         <div id="inner_wrapper">
            <div id="header">
                <div id="logo">
-                   <a href="/"><img src="/static/images/logo.bmp" alt="James Cook University logo"/></a>
+                   <a href="www.jcu.edu.au"><img src="/static/images/jcu_logo.gif" alt="James Cook University logo"/></a>
                </div>
+
+               <div id="top_menu">
+                   <div id="help_menu">Help &#x25BC;</div>
+                   <div id="login">Log in</div>
+               </div>
+
                <div id="search">
-                   <form action="search">
-                       <input id="search_input" type="text" name="search" value="Search site" onclick="if (value=='Search site') {value=''; style.color='#000';}" />
-                       <button type="submit">Search</button>
+                   <form action="/search">
+                       <input id="search_input"  type="text" name="search" onblur="if (value=='') {this.value='Search site'; style.color='#999';}" value="Search site" onclick="if (value=='Search site') {value=''; style.color='#000';}" />
+                       <button type="submit" class="buttonText submit">Search</button>
                    </form>
                </div>
                <div id="title">
-                   <img src="/static/images/title.bmp" alt="TDh-DC24: Rich Data Capture" />
+                   <img src="/static/images/tdh_logo.gif" alt="TDH Tropical Data Hub" />
                </div>
 
                 <div id="nav">
-                    <a href="/">Dashboard</a>
-                    <a href="/">Browse Projects</a>
-                    <a href="/">Help</a>
+                    <ul>
+                       <li tal:repeat="page view.menu">
+                           <tal:block tal:condition="page.current">
+                               <a class="current" href="${page.href}" tal:content="structure page.title"></a>
+                           </tal:block>
+                           <tal:block tal:condition="not page.current">
+                               <a href="${page.href}" tal:content="structure page.title"></a>
+                           </tal:block>
+                       </li>
+                    </ul>
+                    <!--<a href="/">Dashboard</a>-->
+                    <!--<a href="/">Browse Projects</a>-->
+                    <!--<a href="/">Help</a>-->
                 </div>
             </div>
 
             <div id="center">
-                <div id="sidebar">
-                    <div metal:define-slot="sidebar"></div>
+                <!--Messages panel-->
+                 <div class="messages" tal:condition="exists:messages">
+                     <!--Panel for each type of message-->
+                     <tal:block tal:repeat="msg_type messages">
+                         <div tal:condition="messages[msg_type]" tal:attributes="class msg_type">
+                             <p tal:repeat="msg messages[msg_type]" tal:content="structure msg"></p>
+                         </div>
+                     </tal:block>
+                 </div>
 
-                    <h3>Global Actions</h3>
-                    <ul id="sidebar_global_options">
-                        <li><a href="/project/setup">Setup new project</a></li>
-                    </ul>
-                </div>
-                <div id="content">
-                    <tal:block tal:condition="exists:view.get_message">
-                        <div id="message" tal:condition="view.get_message">
-                            ${view.get_message}
-                        </div>
-                    </tal:block>
-
-                    <div id="main">
-                        <h1><tal:block tal:condition="exists: page_help">
-                            <span tal:condition="page_help" class="help_icon"
-                                  onclick="$(this.parentNode).siblings('.help_text').first().toggle(200)">?</span></tal:block>
-                            <span tal:condition="exists: page_title" tal:replace="structure page_title" />
-                        </h1>
-                        <tal:block tal:condition="exists: page_help">
-                            <div tal:condition="page_help" class="help_text hidden" tal:content="structure page_help"></div>
-                        </tal:block>
-
-                        <!--Messages panel-->
-                        <div class="messages" tal:condition="exists:messages">
-                            <!--Panel for each type of message-->
-                            <tal:block tal:repeat="msg_type messages">
-                                <div tal:condition="messages[msg_type]" tal:attributes="class msg_type">
-                                    <p tal:repeat="msg messages[msg_type]" tal:content="structure msg"></p>
-                                </div>
-                            </tal:block>
-                        </div>
-                        <div metal:define-slot="content"></div>
-                    </div>
-                </div>
+                <div metal:define-slot="content"></div>
             </div>
             <div id="footer">
                 <a id="ands_logo" href="http://www.ands.org.au/"><img src="/static/images/ands_logo.bmp" alt="Australian National Data Services logo"></a>

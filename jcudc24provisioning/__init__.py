@@ -18,6 +18,7 @@ __author__ = 'Casey Bajema'
 
 logger = logging.getLogger(__name__)
 
+
 def main(global_config, **settings):
     logging.captureWarnings(True)
 #    execfile("D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py", dict(__file__="D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py"))
@@ -39,8 +40,10 @@ def main(global_config, **settings):
 
     config.add_route('dashboard', '/')                                      # Home page/user dashboard
     config.add_route('login', '/login')                                     # Login page
-    config.add_route('search', '/search')                                   # Search and manage projects and data
+    config.add_route('search', '/search_page')                                   # Search and manage projects and data
+    config.add_route('browse', '/project')                                     # administer user permissions + view admin required items
     config.add_route('admin', '/admin')                                     # administer user permissions + view admin required items
+    config.add_route('help', '/help')                                     # administer user permissions + view admin required items
 
 #    ---------------Project/Workflow pages------------------------
     config.add_route('share', '/project/share')                             # Set project permissions
@@ -56,22 +59,24 @@ def main(global_config, **settings):
     config.add_route('workflow_exception', '/project/{route:.*}')              # Manage projecct data, eg. change sample rates, add data values
 
     #    --------------JSON Search views--------------------------------
-    config.add_route('get_model', '/get_model/{object_type}/{id}')              # Manage projecct data, eg. change sample rates, add data values
-    config.add_route('add_method_from_template', '/add/{project_id}/{method_id}')              # Manage projecct data, eg. change sample rates, add data values
+    config.add_route('get_model', '/get_model/{object_type}/{id}', xhr=True)              # Manage projecct data, eg. change sample rates, add data values
+    config.add_route('add_method_from_template', '/add/{project_id}/{method_id}', xhr=True)              # Manage projecct data, eg. change sample rates, add data values
 
-    config.add_route('get_activities', '/search/activities/{search_terms}')              # Manage projecct data, eg. change sample rates, add data values
-    config.add_route('get_parties', '/search/parties/{search_terms}')              # Manage projecct data, eg. change sample rates, add data values
-    config.add_route('get_from_identifier', '/search/{identifier:.*}')              # Manage projecct data, eg. change sample rates, add data values
+    config.add_route('get_activities', '/search/activities/{search_terms}', xhr=True)              # Manage projecct data, eg. change sample rates, add data values
+    config.add_route('get_parties', '/search/parties/{search_terms}', xhr=True)              # Manage projecct data, eg. change sample rates, add data values
+    config.add_route('get_from_identifier', '/search/{identifier:.*}', xhr=True)              # Manage projecct data, eg. change sample rates, add data values
 
+    #    --------------Static resources--------------------------------
     config.add_static_view('deform_static', 'deform:static', cache_max_age=0)
     config.add_static_view('static', 'static')
+
 
     config.scan()
 
     try:
         InitialiseDatabase()
-    except Exception:
-        logger.exception("Error initialising database: %s", Exception)
+    except Exception as e:
+        logger.exception("Error initialising database: %s", e)
         sys.exit()
 
     return config.make_wsgi_app()

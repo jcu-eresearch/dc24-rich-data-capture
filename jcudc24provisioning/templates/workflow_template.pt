@@ -1,35 +1,58 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:metal="http://xml.zope.org/namespaces/metal" xmlns:tal="http://xml.zope.org/namespaces/tal" metal:define-macro="layout" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://xml.zope.org/namespaces/metal ">
     <div metal:use-macro="view.global_template">
         <div metal:fill-slot="content">
-            <div id="workflow">
-                <input id="workflow_target" form="deform" type="hidden" name="target" />
-                <div id="workflow_nav" tal:condition="not view.is_hidden_workflow">
-                    <ul>
-                        <li tal:repeat="menu view.workflow_menu">
-                            <tal:block tal:condition="menu.current">
-                                <span>${menu.title}</span>
-                            </tal:block>
-                            <tal:block tal:condition="not menu.current">
-                                <span><input name="nav-${menu.href}" type="submit" form="deform" href="${view.request.matched_route.name}" onclick="document.getElementById('workflow_target').value='${menu.href}';" value="${menu.title}"></input></span>
 
-                            </tal:block>
-                        </li>
-                    </ul>
-                </div>
-                <div metal:define-slot="workflow-content">
-                </div>
-            </div>
-        </div>
+            <div id="page_title">
+                 <h1><tal:block tal:condition="exists: page_help">
+                     <span tal:condition="page_help" class="help_icon"
+                           onclick="$(this.parentNode).siblings('.help_text').first().toggle(200)">?</span></tal:block>
+                     <span tal:condition="exists: page_title" tal:replace="structure page_title" />
+                 </h1>
+                 <tal:block tal:condition="exists: page_help">
+                     <div tal:condition="page_help" class="help_text hidden" tal:content="structure page_help"></div>
+                 </tal:block>
+             </div>
 
-        <div metal:fill-slot="sidebar">
-            <h3>Project Actions</h3>
-            <ul id="sidebar_contextual_options">
-                <li><a href="/add_data">Add data</a></li>
-                <li><a href="/manage_data">Manage data</a></li>
-                <li><a href="/sharing">Sharing</a></li>
-                <li><a href="/duplicate">Duplicate project</a></li>
-                <li><a  style="cursor: pointer" title="Toggle all descriptions on or off (remove clutter when you know what you are doing)" onclick="hideDescriptions(!document.hide_descriptions);">Toggle Descriptions</a></li>
-            </ul>
+             <div id="sidebar">
+                 <div id="sidebar_contextual_options">
+                     <ul>
+                         <li><a href="/add_data">Add data</a></li>
+                         <li><a href="/manage_data">Manage data</a></li>
+                         <li><a href="/sharing">Sharing</a></li>
+                         <li><a href="/duplicate">Duplicate project</a></li>
+                         <li><a  style="cursor: pointer" title="Toggle all descriptions on or off (remove clutter when you know what you are doing)" onclick="hideDescriptions(!document.hide_descriptions);">Toggle Descriptions</a></li>
+                     </ul>
+                 </div>
+             </div>
+             <div id="content">
+                 <tal:block tal:condition="exists:view.get_message">
+                     <div id="message" tal:condition="view.get_message">
+                         ${view.get_message}
+                     </div>
+                 </tal:block>
+
+                 <div id="main">
+
+
+                     <div id="workflow">
+                         <input id="workflow_target" form="deform" type="hidden" name="target" />
+                         <div id="workflow_nav" tal:condition="not view.is_hidden_workflow">
+                             <ul>
+                                 <li tal:repeat="menu view.workflow_step">
+                                     <tal:block tal:condition="menu.current">
+                                         <input name="nav-${menu.href}" type="submit" form="deform" onclick="False" class="current" value="${menu.title}"></input>
+                                     </tal:block>
+                                     <tal:block tal:condition="not menu.current">
+                                         <input name="nav-${menu.href}" type="submit" form="deform" href="${view.request.matched_route.name}" onclick="document.getElementById('workflow_target').value='${menu.href}';" value="${menu.title}"></input>
+                                     </tal:block>
+                                 </li>
+                             </ul>
+                         </div>
+                         <div metal:define-slot="workflow-content">
+                         </div>
+                     </div>
+                 </div>
+             </div>
         </div>
     </div>
 </html>

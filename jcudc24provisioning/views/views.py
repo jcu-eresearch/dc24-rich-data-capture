@@ -1,5 +1,6 @@
 import ConfigParser
 import logging
+from string import split
 import urllib2
 import sqlalchemy
 from pyramid.httpexceptions import HTTPNotFound, HTTPFound
@@ -10,6 +11,16 @@ from pyramid.renderers import get_renderer
 from pyramid.decorator import reify
 
 logger = logging.getLogger(__name__)
+
+PAGES = [
+        {'route_name': 'dashboard', 'title': 'Dashboard', 'page_title': 'JCU TDH DC24 Dashboard', 'hidden': False},
+        {'route_name': 'browse', 'title': 'Browse Projects', 'page_title': 'Browse Projects & Data'},
+        {'route_name': 'setup', 'title': 'New Project', 'page_title': 'Setup a New Project', 'hidden': False},
+        {'route_name': 'help', 'title': 'Help & Support', 'page_title': 'Associated Information', 'hidden': False},
+        {'route_name': 'search', 'title': 'Search Website', 'page_title': 'Search Website', 'hidden': False},
+        {'route_name': 'admin', 'title': 'Administrator', 'page_title': 'Administrator', 'hidden': False},
+        {'route_name': 'login', 'title': 'Log in', 'page_title': 'Log in', 'hidden': True},
+]
 
 class Layouts(object):
     def __init__(self, context, request):
@@ -43,6 +54,49 @@ class Layouts(object):
 
         return data
 
+    @reify
+    def menu(self):
+        new_menu = PAGES[:]
+
+        introspector = self.request.registry.introspector
+        hidden = []
+        for menu in new_menu:
+            menu['current'] = menu['route_name'] == self.request.matched_route.name
+            request = self.request
+
+            menu_introspector = introspector.get('routes', menu['route_name'])
+            if menu_introspector:
+                menu['href'] = menu_introspector['pattern']
+            else:
+                logger.error("Menu item has an invalid route_name: %s" % menu['route_name'])
+                raise ValueError(("Menu item has an invalid route_name: %s" % menu['route_name']))
+
+            if 'hidden' in menu and menu['hidden'] is True:
+                hidden.append(menu)
+
+        for menu in hidden:
+            new_menu.remove(menu)
+
+        return new_menu
+
+    @reify
+    def is_hidden_menu(self):
+        new_menu = PAGES[:]
+        url = split(self.request.url, "?")[0]
+
+        for menu in new_menu:
+            if url.endswith(menu['href']) and 'hidden' in menu and menu['hidden'] is True:
+                return True
+
+        return False
+
+    def find_page_title(self):
+        for page in PAGES:
+            if page['route_name'] == self.request.matched_route.name:
+                return page['page_title']
+
+        raise ValueError("There is no page title for this address: " + str(href))
+
     @view_config(renderer="../templates/dashboard.pt", route_name="dashboard")
     def dashboard_view(self):
 
@@ -53,7 +107,16 @@ class Layouts(object):
         }
         return {"page_title": "Provisioning Dashboard", 'messages' : messages}
 
+    @view_config(renderer="../templates/dashboard.pt", route_name="search")
+    def search_page_view(self):
+        raise NotImplementedError("Search hasn't been implemented yet!")
 
+        messages = {
+            'error_messages': self.request.session.pop_flash("error"),
+            'success_messages': self.request.session.pop_flash("success"),
+            'warning_messages': self.request.session.pop_flash("warning")
+        }
+        return {"page_title": "Provisioning Dashboard", 'messages' : messages}
 
 
     @view_config(context=Exception, renderer="../templates/exception.pt")

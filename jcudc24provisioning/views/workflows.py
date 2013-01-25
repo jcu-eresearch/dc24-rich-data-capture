@@ -75,7 +75,7 @@ class Workflows(Layouts):
             self.project_id = self.request.matchdict['project_id']
 
     @reify
-    def workflow_menu(self):
+    def workflow_step(self):
         new_menu = WORKFLOW_STEPS[:]
         url = split(self.request.url, "?")[0]
         hidden = []
@@ -100,7 +100,7 @@ class Workflows(Layouts):
 
         return False
 
-    def find_page_title(self, href):
+    def find_workflow_title(self, href):
         for menu in WORKFLOW_STEPS:
             if menu['href'] == href:
                 return menu['page_title']
@@ -145,6 +145,7 @@ class Workflows(Layouts):
              logger.exception("SQLAlchemy exception while flushing after save: %s" % e)
              self.request.session.flash("There was an error while saving the project, please try again.", "error")
              self.request.session.flash("Error: %s" % e, "error")
+             self.session.rollback()
 
 #         self.session.remove()
 
@@ -177,11 +178,11 @@ class Workflows(Layouts):
                     'success_messages': self.request.session.pop_flash("success"),
                     'warning_messages': self.request.session.pop_flash("warning")
                 }
-                return {"page_title": self.find_page_title(self.request.matched_route.name), "form": display, "form_only": form.use_ajax,  'messages' : messages or '', 'page_help': page_help}
+                return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": display, "form_only": form.use_ajax,  'messages' : messages or '', 'page_help': page_help}
             else:
                 return HTTPFound(self.request.route_url(target, project_id=self.project_id))
 
-#            return {"page_title": self.find_page_title(self.request.matched_route.name), "form": display, "form_only": form.use_ajax, 'messages' : self.request.session.pop_flash() or ''}
+#            return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": display, "form_only": form.use_ajax, 'messages' : self.request.session.pop_flash() or ''}
 
         # If the page has just been opened but it is set to a specific project
         appstruct = {}
@@ -196,7 +197,7 @@ class Workflows(Layouts):
             'warning_messages': self.request.session.pop_flash("warning")
         }
         print "Messages: " + str(messages)
-        return {"page_title": self.find_page_title(self.request.matched_route.name), "form": form.render(appstruct), "form_only": False, 'messages': messages, 'page_help': page_help}
+        return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": form.render(appstruct), "form_only": False, 'messages': messages, 'page_help': page_help}
 
 
     def clone (self, source):
@@ -296,6 +297,7 @@ class Workflows(Layouts):
                     logger.exception("SQLAlchemy exception while flushing after project creation: %s" % e)
                     self.request.session.flash("There was an error while creating the project, please try again.", "error")
                     self.request.session.flash("Error: %s" % e, "error")
+                    self.session.rollback()
 
                 return HTTPFound(self.request.route_url('general', project_id=new_project.id))
 
@@ -307,14 +309,14 @@ class Workflows(Layouts):
                     'success_messages': self.request.session.pop_flash("success"),
                     'warning_messages': self.request.session.pop_flash("warning")
                 }
-                return {"page_title": self.find_page_title(self.request.matched_route.name), "form": e.render(), "form_only": False, 'messages': messages}
+                return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": e.render(), "form_only": False, 'messages': messages}
 
         messages = {
             'error_messages': self.request.session.pop_flash("error"),
             'success_messages': self.request.session.pop_flash("success"),
             'warning_messages': self.request.session.pop_flash("warning")
         }
-        return {"page_title": self.find_page_title(self.request.matched_route.name), "form": form.render(appstruct), "form_only": False, 'messages': messages, 'page_help': page_help}
+        return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": form.render(appstruct), "form_only": False, 'messages': messages, 'page_help': page_help}
 
 
     @view_config(route_name="general")
@@ -614,10 +616,10 @@ class Workflows(Layouts):
                 return response
             except Exception:
                 logger.exception("Exception occurred while trying to display the view without variables: %s", Exception)
-                return {"page_title": self.find_page_title(self.request.matched_route.name), "form": 'Sorry, we are currently experiencing difficulties.  Please contact the administrators: ' + str(self.context), "form_only": False}
+                return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": 'Sorry, we are currently experiencing difficulties.  Please contact the administrators: ' + str(self.context), "form_only": False}
         else:
             try:
-                return {"page_title": self.find_page_title(self.request.matched_route.name), "form": 'This address is not valid, please don\'t directly edit the address bar: ' + str(self.context), "form_only": False}
+                return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": 'This address is not valid, please don\'t directly edit the address bar: ' + str(self.context), "form_only": False}
             except:
                 self.request.session.flash('There is no page at the requested address, please don\'t edit the address bar directly.', 'error')
                 if self.request.matchdict and self.request.matchdict['route'] and (self.request.matchdict['route'].split("/")[0]).isnumeric():

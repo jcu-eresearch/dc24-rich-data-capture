@@ -86,7 +86,7 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
                     if child_table_object is not None:
                         is_data_empty = False
                         getattr(model_object, key).append(child_table_object) # Add the modified object
-                    else:
+                    elif current_object is not None:
                         getattr(model_object, key).append(current_object) # Re-add the un-modified object
 
                 for item in old_items:
