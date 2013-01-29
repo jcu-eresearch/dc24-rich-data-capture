@@ -78,6 +78,26 @@
            });
        });
 
+
+        $("#deform").submit(function(){
+                window.onbeforeunload = null;
+            });
+
+        window.onbeforeunload = function (e) {
+            var message = "Are you sure you want to leave this page, all unsaved data will be lost.",
+            e = e || window.event;
+
+            if (e) {
+                e.returnValue = message;
+        }
+//        alert($("form").length);
+
+
+
+            // For Safari
+            return message;
+        };
+
 //            $("select").css('display', function(index, value) {
 ////                alert($(this).next().css('color'));
 //                alert('display value changed: ' +(value));

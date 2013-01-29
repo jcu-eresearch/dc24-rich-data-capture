@@ -82,10 +82,10 @@ label.select_wrapper {
     display: inline-block;
 }
 
-label.select_wrapper::after:hover {
-    color: blue !important;
-    background-color: blue !important;
-}
+/*label.select_wrapper::after:hover {*/
+    /*color: blue !important;*/
+    /*background-color: #0066cc !important;*/
+/*}*/
 
 label.select_wrapper:after {
     content:'<>';
@@ -547,6 +547,7 @@ input[type-file], .deform input[type=file] {
 
 .deform .multi_select_sequence button {
     float: none;
+    margin-top: 0;
 }
 
 .inline_mapping li {
@@ -738,13 +739,13 @@ div.description p, div.help_text p {
 
 
 span.collapse_icon {
-    color: blue;
+    color: #0066cc;
     cursor: pointer;
 }
 
 .collapse_all, .expand_all {
     cursor: pointer;
-    color: blue;
+    color: #0066cc;
     text-decoration: underline;
 }
 
@@ -801,7 +802,9 @@ span.collapse_icon {
 }
 
 
-.help_icon:hover {
+
+
+.help_icon:hover, .help_icon.current {
     border: 1px solid rgba(253, 185, 19, 0.48);
     border-radius: 2em;
     box-shadow: -1px -1px 1px rgb(253, 185, 19), -5px -5px 3px rgba(253, 185, 19, 0.32);

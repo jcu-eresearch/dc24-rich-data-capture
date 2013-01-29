@@ -6,6 +6,17 @@
  * To change this template use File | Settings | File Templates.
  */
 
+// Javascript for help icons/text
+function toggleHelp(help_icon) {
+    var help_text = $(help_icon.parentNode).find('.help_text');
+    if (help_text.length <= 0) {
+        help_text = $(help_icon.parentNode.parentNode).find('.help_text')
+    }
+    help_text.first().toggle(200);
+    $(help_icon).toggleClass("current");
+
+}
+
 // Used as an onclick function for toggling a mapping schema
 function toggleCollapse(fieldset, group) {
     var speed = 200;

@@ -18,7 +18,7 @@ Modified:
     <span tal:condition="'CheckboxWidget' in str(field.widget)" tal:content="structure field.serialize(cstruct)" />
 
     <span class="help_icon"
-          onclick="$(this.parentNode).children('.help_text').first().toggle(200)"
+          onclick="toggleHelp(this);"
           tal:condition="not (field.widget.hidden or field.widget.category == 'structural') and field.schema.__dict__.get('help')">
         ?
     </span>

@@ -86,7 +86,7 @@
                     links_panel += "</ul></div>";
                     more_info_panel.append(links_panel);
 
-                    var onclick = '$("#' + oid + '").siblings(".more_info_panel").hide();';
+                    var onclick = '$("#' + oid + '").siblings(".more_info_panel").hide(); $("#' + oid + '").siblings("a").removeClass("current");';
                     var close = "<div class='close_button buttonText' onclick='" + onclick + "' >Close</div>";
                     more_info_panel.append(close);
                 },

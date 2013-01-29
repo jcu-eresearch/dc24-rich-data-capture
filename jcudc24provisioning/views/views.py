@@ -13,11 +13,11 @@ from pyramid.decorator import reify
 logger = logging.getLogger(__name__)
 
 PAGES = [
-        {'route_name': 'dashboard', 'title': 'Dashboard', 'page_title': 'JCU TDH DC24 Dashboard', 'hidden': False},
-        {'route_name': 'browse', 'title': 'Browse Projects', 'page_title': 'Browse Projects & Data'},
+        {'route_name': 'dashboard', 'title': 'Home', 'page_title': 'JCU TDH DC24 Dashboard', 'hidden': False},
         {'route_name': 'setup', 'title': 'New Project', 'page_title': 'Setup a New Project', 'hidden': False},
+        {'route_name': 'browse', 'title': 'Browse Projects', 'page_title': 'Browse Projects & Data'},
         {'route_name': 'help', 'title': 'Help & Support', 'page_title': 'Associated Information', 'hidden': False},
-        {'route_name': 'search', 'title': 'Search Website', 'page_title': 'Search Website', 'hidden': False},
+        {'route_name': 'search', 'title': 'Search Website', 'page_title': 'Search Website', 'hidden': True},
         {'route_name': 'admin', 'title': 'Administrator', 'page_title': 'Administrator', 'hidden': False},
         {'route_name': 'login', 'title': 'Log in', 'page_title': 'Log in', 'hidden': True},
 ]
