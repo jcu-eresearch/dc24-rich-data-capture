@@ -83,6 +83,14 @@
                 window.onbeforeunload = null;
             });
 
+
+
+        $(function () {
+                if ($("#deform").length <= 0) {
+                    window.onbeforeunload = null;
+                }
+            });
+
         window.onbeforeunload = function (e) {
             var message = "Are you sure you want to leave this page, all unsaved data will be lost.",
             e = e || window.event;
@@ -90,6 +98,8 @@
             if (e) {
                 e.returnValue = message;
         }
+
+
 //        alert($("form").length);
 
 
