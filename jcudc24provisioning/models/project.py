@@ -191,7 +191,11 @@ class Creator(Base):
     person_id = Column(Integer, ForeignKey('person.id'), ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
     project_id = Column(Integer, ForeignKey('project.id'), ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
-    person = relationship('Person', ca_order=next(order_counter), uselist=False, single_parent=True, cascade="all, delete-orphan",)
+    title = Column(String(5), ca_name="dc:biblioGraphicCitation.dc:hasPart.locrel:ctb.0.foaf:title", ca_title="Title", ca_order=next(order_counter), ca_placeholder="eg. Mr, Mrs, Dr",)
+    given_name = Column(String(256), ca_name="dc:biblioGraphicCitation.dc:hasPart.locrel:ctb.0.foaf:givenName", ca_order=next(order_counter), ca_title="Given name")
+    family_name = Column(String(256), ca_name="dc:biblioGraphicCitation.dc:hasPart.locrel:ctb.0.foaf:familyName", ca_order=next(order_counter), ca_title="Family name")
+    email = Column(String(256), ca_order=next(order_counter), ca_missing="", ca_validator=colander.Email())
+
 
 class Keyword(Base):
     order_counter = itertools.count()
@@ -221,9 +225,9 @@ class CitationDate(Base):
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
     project_id = Column(Integer, ForeignKey('project.id'), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
-    dateType = Column(String(100), ca_title="Date type",
+    dateType = Column(String(100), ca_name="sourced from citationDateType.json", ca_title="Date type",
         ca_widget=deform.widget.TextInputWidget(size="40", css_class="full_width"))
-    archivalDate = Column(Date(), ca_title="Date")
+    archivalDate = Column(Date(), ca_name="dc:biblioGraphicCitation.dc:hasPart.dc:date.0.dc:type.skos:prefLabel", ca_title="Date")
 
 
 attachment_types = (("data", "Data file"), ("supporting", "Supporting material"), ("readme", "Readme"))
@@ -234,11 +238,11 @@ class Attachment(Base):
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
     project_id = Column(Integer, ForeignKey('project.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget())
 
-    type = Column(String(100), ca_widget=deform.widget.SelectWidget(values=attachment_types),
+    type = Column(String(100), ca_name="attachment_type", ca_widget=deform.widget.SelectWidget(values=attachment_types),
         ca_validator=colander.OneOf(
             [attachment_types[0][0], attachment_types[1][0], attachment_types[2][0]]),
         ca_title="Attachment type", ca_css_class="inline")
-    attachment = Column(String(512),  ca_widget=upload_widget)
+    attachment = Column(String(512), ca_name="filename",  ca_widget=upload_widget)
 #    ca_params={'widget' : deform.widget.HiddenWidget()}
 
 
@@ -707,13 +711,13 @@ class Dataset(Base):
             ca_placeholder="Provide a textual description of the dataset being collected.",
             ca_help="Provide a dataset specific description for the metadata records.")
 
-    time_period_description = Column(String(256), ca_order=next(order_counter), ca_title="Time Period (description)",
+    time_period_description = Column(String(256), ca_name="dc:coverage.redbox:timePeriod", ca_order=next(order_counter), ca_title="Time Period (description)",
         ca_group_start="coverage", ca_group_collapsed=False, ca_group_title="Dataset Date and Location",
         ca_placeholder="eg. Summers of 1996-2006", ca_missing="",
         ca_help="Provide a textual representation of the time period such as world war 2 or more information on the time within the dates provided.")
-    date_from = Column(Date(), ca_order=next(order_counter), ca_placeholder="", ca_title="Date From",
+    date_from = Column(Date(), ca_name="dc:coverage.vivo:DateTimeInterval.vivo:start", ca_order=next(order_counter), ca_placeholder="", ca_title="Date From",
         ca_help='The date that data will start being collected.', ca_force_required=True)
-    date_to = Column(Date(), ca_order=next(order_counter), ca_title="Date To", ca_page="metadata",
+    date_to = Column(Date(), ca_name="dc:coverage.vivo:DateTimeInterval.vivo:end", ca_order=next(order_counter), ca_title="Date To", ca_page="metadata",
         ca_help='The date that data will stop being collected.', ca_missing=colander.null)
     location_description = Column(String(512), ca_order=next(order_counter), ca_title="Location (description)",
         ca_help="Textual description of the location such as Australian Wet Tropics."
@@ -983,7 +987,7 @@ class Project(Base):
 
     #-------------legal--------------------
     # TODO: Make this into a drop down - still need the list of options though.
-    access_rights = Column(String(256), ca_order=next(order_counter), ca_title="Access Rights", ca_default="Open access", ca_page="metadata",
+    access_rights = Column(String(256), ca_name="access_rights", ca_order=next(order_counter), ca_title="Access Rights", ca_default="Open access", ca_page="metadata",
         ca_group_start="legality", ca_group_collapsed=False, ca_group_title="Licenses & Access Rights",
         ca_help="Information how to access the records data, including access restrictions or embargoes based on privacy, security or other policies. A URI is optional.")
     # TODO: Pre-populate with a url - still waiting on URL to use
@@ -1027,7 +1031,7 @@ class Project(Base):
 
     #-------------citation--------------------
     # Autocomplete from project title
-    title = Column(String(512), ca_order=next(order_counter), ca_placeholder="", ca_missing="", ca_page="metadata",
+    title = Column(String(512), ca_name="dc:biblioGraphicCitation.dc:hasPart.dc:title", ca_order=next(order_counter), ca_placeholder="", ca_missing="", ca_page="metadata",
         ca_group_collapsed=False, ca_group_start='citation', ca_group_title="Citation", ca_group_requires_admin=True,
         ca_group_description="<b>TODO:  Need to work out what these feilds actually mean and refactor/reword."
                              "</b><br/>Provide metadata that should be used for the purposes of citing this record. Providing a "
@@ -1036,17 +1040,17 @@ class Project(Base):
     # Autocomplete from all people
     creators = relationship('Creator', ca_order=next(order_counter), ca_missing=None, ca_page="metadata",cascade="all, delete-orphan",)
     # Dont know?
-    edition = Column(String(256), ca_order=next(order_counter), ca_missing="", ca_page="metadata",)
+    edition = Column(String(256), ca_name="dc:biblioGraphicCitation.dc:hasPart.dc:hasVersion.rdf:PlainLiteral", ca_order=next(order_counter), ca_missing="", ca_page="metadata",)
     # Autocomplete as James Cook University
-    publisher = Column(String(256), ca_order=next(order_counter), ca_page="metadata")
+    publisher = Column(String(256), ca_name="dc:biblioGraphicCitation.dc:hasPart.dc:publisher.rdf:PlainLiteral", ca_order=next(order_counter), ca_page="metadata")
     # Autocomplete as James Cook University
-    place_of_publication = Column(String(512), ca_order=next(order_counter), ca_title="Place of publication", ca_page="metadata")
+    place_of_publication = Column(String(512), ca_name="dc:biblioGraphicCitation.dc:hasPart.vivo:Publisher.vivo:Location", ca_order=next(order_counter), ca_title="Place of publication", ca_page="metadata")
     # Dates of data, eg. data data started being collected
     dates = relationship('CitationDate', ca_order=next(order_counter), ca_title="Date(s)", ca_page="metadata",cascade="all, delete-orphan",)
     # Autocomplete as link to data (CC-DAM)
-    url = Column(String(256), ca_order=next(order_counter), ca_title="URL", ca_page="metadata")
+    url = Column(String(256), ca_name="dc:biblioGraphicCitation.dc:hasPart.bibo:Website.dc:identifier",ca_order=next(order_counter), ca_title="URL", ca_page="metadata")
     # Unknown
-    context = Column(String(512), ca_order=next(order_counter), ca_placeholder="citation context", ca_missing="", ca_page="metadata",
+    context = Column(String(512), ca_name="dc:biblioGraphicCitation.dc:hasPart.skos:scopeNote", ca_order=next(order_counter), ca_placeholder="citation context", ca_missing="", ca_page="metadata",
         ca_group_end='citation')
     #-------------additional_information--------------------
     retention_periods = (
@@ -1090,12 +1094,12 @@ class Project(Base):
     # ColanderAlchemy schema will not be able to generate the required deform schemas:
     #   * Setup the ColanderAlchemy schema to correctly create the database
     #   * Dynamically alter the generated schema in the view
-    datasets = relationship('Dataset', ca_widget=deform.widget.SequenceWidget(min_len=0), ca_order=next(order_counter), ca_page="datasets",
+    datasets = relationship('Dataset', ca_widget=deform.widget.SequenceWidget(min_len=1), ca_order=next(order_counter), ca_page="datasets",
 #        ca_select_description="<i>Changing the dataset type will overwrite all dataset fields.</i>",
         ca_child_title="Dataset", ca_child_collapsed=False,cascade="all, delete-orphan",)
 
     #-----------------------------------------Submit page---------------------------------------------------
-    project_notes = relationship("ProjectNote", ca_order=next(order_counter), ca_page="submit",
+    project_notes = relationship("ProjectNote", ca_title="Project Note",  ca_order=next(order_counter), ca_page="submit",
         cascade="all, delete-orphan",
         ca_help="Project comments that are only relevant to the provisioning system (eg. comments as to why the project was reopened after the creator submitted it).")
 

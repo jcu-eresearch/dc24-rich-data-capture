@@ -57,9 +57,9 @@
             $("#content").width($("#center").width() - $("#sidebar").width() - 15);
         }
 
-        $(window).ready(function () {
-            $("input[type=radio], input[type=checkbox]").uniform();
-        });
+//        $(window).ready(function () {
+//            $("input[type=radio], input[type=checkbox]").uniform();
+//        });
 
         $(window).ready(style_select);
         function style_select() {
