@@ -83,8 +83,6 @@
                 window.onbeforeunload = null;
             });
 
-
-
         $(function () {
                 if ($("#deform").length <= 0) {
                     window.onbeforeunload = null;
@@ -168,6 +166,12 @@
             <div id="center">
                 <!--Messages panel-->
                  <div class="messages" tal:condition="exists:messages">
+                     <noscript>
+                         <div id="no_javascript">
+                             Please enable javascript for full usability.
+                         </div>
+                     </noscript>
+
                      <!--Panel for each type of message-->
                      <tal:block tal:repeat="msg_type messages">
                          <div tal:condition="messages[msg_type]" tal:attributes="class msg_type">

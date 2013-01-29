@@ -538,26 +538,30 @@ class Method(Base):
         ca_description="Extend existing data types wherever possible - only create custom fields or schemas if you cannot find an existing schema.")
 
     data_sources=(
-        ("form_data_source","<b>Web form/manual only:</b> Only use an online form accessible through this interface to manually upload data (Other data sources also include this option)."),
-        ("pull_data_source","<b>Pull from external file system:</b> Setup automatic polling of an external file system from a URL location, when new files of the correct type and naming convention are found they are ingested."),
-        ("push_data_source","<b><i>(Advanced)</i> Push to this website through the API:</b> Use the XMLRPC API to directly push data into persistent storage, on project acceptance you will be emailed your API key and instructions."),
-        ("sos_data_source","<b>Sensor Observation Service:</b> Set-up a sensor that implements the Sensor Observation Service (SOS) to push data into this systems SOS server."),
-        ("dataset_data_source","<b><i>(Advanced)</i> Output from other dataset:</b> Output from other dataset: </b>This allows for advanced/chained processing of data, where the results of another dataset can be further processed and stored as required."),
+        ("form_data_source","Web form/manual only"),
+        ("pull_data_source","Pull from external file system"),
+        ("push_data_source","<i>(Advanced)</i> Push to this website through the API"),
+        ("sos_data_source","Sensor Observation Service"),
+        ("dataset_data_source","<i>(Advanced)</i> Output from other dataset"),
     )
 
     data_source =  Column(String(50), ca_order = next(order_counter), ca_widget=deform.widget.RadioChoiceWidget(values=data_sources),
         ca_title="Data Source (How the data gets transferred into this system)", ca_force_required=True,
-        ca_description="Select how data will be collected or entered into the projects data storage.",
         ca_help="<p>'Web form/manual' is the default and included in all others anyway, 'Output from other dataset' provides advanced "
-                "processing features and the other three methods allow automatic ingestion from compatible sensors or devices.</p>"
+                "processing features and the other three methods allow automatic ingestion from compatible sensors or devices:</p>" \
+                "<ul><li><b>Web form/manual only:</b> Only use an online form accessible through this interface to manually upload data (Other data sources also include this option).</li>" \
+                "<li><b>Pull from external file system:</b> Setup automatic polling of an external file system from a URL location, when new files of the correct type and naming convention are found they are ingested.</li>" \
+                "<li><b><i>(Advanced)</i> Push to this website through the API:</b> Use the XMLRPC API to directly push data into persistent storage, on project acceptance you will be emailed your API key and instructions.</li>" \
+                "<li><b>Sensor Observation Service:</b> Set-up a sensor that implements the Sensor Observation Service (SOS) to push data into this systems SOS server.</li>" \
+                "<li><b><i>(Advanced)</i> Output from other dataset:</b> Output from other dataset: </b>This allows for advanced/chained processing of data, where the results of another dataset can be further processed and stored as required.</li></ul>" \
                 "<p><i>Please refer to the help section or contact the administrators if you need additional information.</i></p>",
         ca_placeholder="Select the easiest method for your project.  If all else fails, manual file uploads will work for all data types.")
 
     method_attachments = relationship('MethodAttachment', ca_order=next(order_counter), ca_missing=colander.null, ca_child_title="Attachment",
         cascade="all, delete-orphan",
         ca_title="Data collection method attachment (Such as datasheets, collection processes, observation forms)",
-        ca_description="Attach information about this method, this is preferred to websites as it is persistent.",
-        ca_help="Example attachments would be sensor datasheets, documentation describing your file/data storage schema or calibration data.")
+        ca_description="Attach information about this method, this is preferred to websites as it is persistent." /
+                       "Example attachments would be sensor datasheets, documentation describing your file/data storage schema or calibration data.")
 
     method_url = relationship("MethodWebsite", ca_order=next(order_counter), ca_missing=colander.null,
         cascade="all, delete-orphan",ca_title="Further information website (Such as manufacturers website or supporting web resources)",

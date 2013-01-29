@@ -1,5 +1,4 @@
 <ul class="deformSet">
-    ${cstruct}
     <input type="hidden" name="__start__" value="${field.name}:rename"/>
     <tal:loop tal:repeat="choice field.widget.values">
       <tal:def tal:define="(value, title) choice">

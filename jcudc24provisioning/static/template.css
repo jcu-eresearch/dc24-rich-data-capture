@@ -49,7 +49,12 @@ h1, h2, h3, h4, h5, h6 {
     cursor: pointer;
 }
 
-input[type=text], input, textarea, select, .select_wrapper, .selector span {
+input[type=text], input, textarea, .select_wrapper, .selector span {
+    padding: 0.5em;
+}
+
+select {
+    line-height: 5em;
     padding: 0.5em;
 }
 
@@ -510,11 +515,8 @@ form.deform, .wizard  {
     min-height: 300px;
 }
 
-, input[type-file]:hover {
 
-}
-
-input[type-file], .deform input[type=file] {
+input[type=file], .deform input[type=file] {
     border: none;
     vertical-align: middle;
     float: none;
@@ -531,7 +533,7 @@ input[type-file], .deform input[type=file] {
 
 .deform button, .deform input[type=submit],.wizard button, .wizard input[type=submit], .deform .deformSave,
 .deform .buttonText, .deform .submit, .buttonText, .submit, button {
-    box-shadow: inset 1px 1px 2px #fff;
+    box-shadow: inset 1px 1px 2px #eee;
     font-size: 0.75em;
     padding: .75em 1em;
     background: none rgb(221, 221, 221);
@@ -768,7 +770,7 @@ span.collapse_icon {
 .messages {
 }
 
-.error_messages {
+.error_messages, #no_javascript {
     background: rgba(255, 0, 0, 0.19);
     border: 1px solid black;
     margin-bottom: 10px;
@@ -802,8 +804,6 @@ span.collapse_icon {
 }
 
 
-
-
 .help_icon:hover, .help_icon.current {
     border: 1px solid rgba(253, 185, 19, 0.48);
     border-radius: 2em;
@@ -831,7 +831,6 @@ div.more_info_panel {
     color: #0066CC;
     font-weight: bold;
     text-shadow: -1px -1px 2px rgba(0, 0, 0, 0.47), -4px -4px 3px rgba(0, 0, 0, 0), -3px -3px 4px rgba(0, 102, 204, 0), -4px -4px 5px rgba(0, 40, 204, 0);
-    padding: 0em 0.4em;
     text-align: center;
     vertical-align: middle;
     display: inline-block;
@@ -839,6 +838,7 @@ div.more_info_panel {
     /*position: relative;*/
     margin-bottom: 0.1em;
     font-size: 1.3em;
+    padding: 0.1em 0.4em;
 }
 
 
@@ -857,9 +857,16 @@ div.more_info_panel {
     font-weight: normal;
 }
 
+#ui-datepicker-div, .ui-datepicker {
+    z-index: 999999999999999999  !important;
+}
+
+#ui-datepicker-div a.ui-state-default:hover {
+    font-weight: normal !important;
+}
+
 .ui-datepicker-calendar .ui-state-default {
     border: 1px solid rgb(253, 185, 19) !important;
-    z-index: 999999999999999999;
     display: block;
     position: relative;
 }
