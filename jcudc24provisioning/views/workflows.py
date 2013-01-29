@@ -29,7 +29,7 @@ from pyramid.view import view_config, view_defaults, render_view_to_response
 from colanderalchemy.types import SQLAlchemyMapping
 from jcudc24provisioning.views.views import Layouts
 from pyramid.renderers import get_renderer
-from jcudc24provisioning.models.project import DBSession, PullDataSource, ProjectTemplate,method_template, Project, CreatePage, Method, Base, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
+from jcudc24provisioning.models.project import DBSession, PullDataSource,Metadata, ProjectTemplate,method_template, Project, CreatePage, Method, Base, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
 from jcudc24provisioning.views.ca_scripts import convert_schema, create_sqlalchemy_model, convert_sqlalchemy_model_to_data,fix_schema_field_name
 from jcudc24provisioning.scripts.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.mint_lookup import MintLookup
@@ -249,6 +249,9 @@ class Workflows(Layouts):
                         new_project = self.clone(template)
                         new_project.id = None
 
+                if not new_project.information:
+                    new_info = Metadata()
+                    new_project.information = new_info
 
                 new_parties = []
                 if 'data_manager' in appstruct:
@@ -264,12 +267,12 @@ class Workflows(Layouts):
                     new_parties.append(project_lead)
 
                 if 'activity' in appstruct:
-                    new_project.activity = appstruct['activity']
+                    new_project.information.activity = appstruct['activity']
                     activity_results = MintLookup(None).get_from_identifier(appstruct['activity'])
 
                     if activity_results is not None:
-                        new_project.brief_description = activity_results['dc:description']
-                        new_project.project_title = activity_results['dc:title']
+                        new_project.information.brief_description = activity_results['dc:description']
+                        new_project.information.project_title = activity_results['dc:title']
 
                         for contributor in activity_results['result-metadata']['all']['dc_contributor']:
                             if str(contributor).strip() != appstruct['data_manager'].split("/")[-1].strip():
@@ -278,12 +281,12 @@ class Workflows(Layouts):
                                 new_parties.append(new_party)
 
                         if activity_results['result-metadata']['all']['dc_date'][0]:
-                            new_project.date_from = date(int(activity_results['result-metadata']['all']['dc_date'][0]), 1, 1)
+                            new_project.information.date_from = date(int(activity_results['result-metadata']['all']['dc_date'][0]), 1, 1)
 
                         if activity_results['result-metadata']['all']['dc_date_end'][0]:
-                            new_project.date_to = date(int(activity_results['result-metadata']['all']['dc_date_end'][0]), 1, 1)
+                            new_project.information.date_to = date(int(activity_results['result-metadata']['all']['dc_date_end'][0]), 1, 1)
 
-                new_project.parties = new_parties
+                new_project.information.parties = new_parties
 
                 # TODO:  Add the current user (known because of login) as a creator for citations
                 # TODO:  Add the current user (known because of login) as the creator of the project

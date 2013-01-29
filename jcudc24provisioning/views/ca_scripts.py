@@ -233,6 +233,9 @@ def remove_nodes_not_on_page(schema, page):
     children_to_remove = []
 
     for child in schema.children:
+        if len(child.children) > 0:
+            remove_nodes_not_on_page(child, page)
+
         if hasattr(child, 'page') and child.page != page:
             children_to_remove.append(child)
 

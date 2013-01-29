@@ -62,15 +62,28 @@
 //        });
 
         $(window).ready(style_select);
+
+        // Extend the addSequenceItem function to update the looks of all select elements when added.
+        $(function() {
+            deform.oldAddSequenceItem = deform.addSequenceItem;
+            deform.addSequenceItem = function (protonode, before) {
+                var result = deform.oldAddSequenceItem(protonode, before);
+                style_select();
+                return result;
+            };
+        });
+
         function style_select() {
             var before_html = "<div class='select_style'></div>";
-            var select_items = $("select");
+            var select_items = $("select").not(".styled");
             for (var i=0; i<select_items.length; i++) {
                 var new_element = '<label class="select_wrapper"></label>';
                 $(select_items[i]).after($(new_element));
+                $(select_items[i]).addClass('styled');
             }
 
             $("select:not(:visible)").next().hide();
+        }
 
         $(function() {
            $( document ).tooltip({
@@ -79,15 +92,11 @@
        });
 
 
-        $("#deform").submit(function(){
-                window.onbeforeunload = null;
-            });
-
         $(function () {
-                if ($("#deform").length <= 0) {
-                    window.onbeforeunload = null;
-                }
-            });
+            if ($("#deform").length <= 0) {
+                window.onbeforeunload = null;
+            }
+        });
 
         window.onbeforeunload = function (e) {
             var message = "Are you sure you want to leave this page, all unsaved data will be lost.",
@@ -95,7 +104,16 @@
 
             if (e) {
                 e.returnValue = message;
-        }
+            }
+            return message;
+        };
+        $(function() {
+            $("#deform").submit(function(){
+                window.onbeforeunload = null;
+            });
+        });
+
+
 
 
 //        alert($("form").length);
@@ -103,8 +121,6 @@
 
 
             // For Safari
-            return message;
-        };
 
 //            $("select").css('display', function(index, value) {
 ////                alert($(this).next().css('color'));
@@ -118,7 +134,7 @@
 //            select_items.onchange(function() {
 //                alert('changed');
 //            });
-        }
+
     </script>
 </head>
 <body>
