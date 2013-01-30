@@ -173,11 +173,11 @@ class Party(Base):
 #    person_id = Column(Integer, ForeignKey('person.id'), ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
     metadata_id = Column(Integer, ForeignKey('metadata.id'), ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
-    party_relationship = Column(String(100), ca_order=next(order_counter), ca_title="This project is",
+    party_relationship = Column(String(100), ca_name="dc:creator.foaf:Person.0.jcu:relationshipType", ca_order=next(order_counter), ca_title="This project is",
         ca_widget=deform.widget.SelectWidget(values=relationship_types),
         ca_validator=OneOfDict(relationship_types[1:]),)
 
-    identifier = Column(String(100), ca_order=next(order_counter), ca_title="Persistent Identifier", ca_force_required=True,
+    identifier = Column(String(100), ca_name="dc:creator.foaf:Person.0.dc:identifier", ca_order=next(order_counter), ca_title="Persistent Identifier", ca_force_required=True,
         ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/parties/', template="mint_autocomplete_input", size="70"))
 #    person = relationship('Person', ca_order=next(order_counter), uselist=False)
 
@@ -201,7 +201,7 @@ class Keyword(Base):
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
     metadata_id = Column(Integer, ForeignKey('metadata.id'), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
-    keyword = Column(String(512), )
+    keyword = Column(String(512), ca_name="dc:subject.vivo:keyword.0.rdf:PlainLiteral")
 
 
 class Collaborator(Base):
@@ -211,7 +211,7 @@ class Collaborator(Base):
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
     metadata_id = Column(Integer, ForeignKey('metadata.id'), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
-    collaborator = Column(String(256), ca_title="Collaborator",
+    collaborator = Column(String(256), ca_title="Collaborator", ca_name="dc:contributor.locrel:clb.0.foaf:Agent",
         ca_placeholder="eg. CSIRO, University of X, Prof. Jim Bloggs, etc.")
 
 
@@ -240,6 +240,8 @@ class Attachment(Base):
             [attachment_types[0][0], attachment_types[1][0], attachment_types[2][0]]),
         ca_title="Attachment type", ca_css_class="inline")
     attachment = Column(String(512), ca_name="filename",  ca_widget=upload_widget)
+
+    note = Column(Text(), ca_name="notes")
 #    ca_params={'widget' : deform.widget.HiddenWidget()}
 
 
@@ -814,6 +816,20 @@ class UntouchedFields(Base):
 
     field_name = Column(String(100))
 
+
+class MetadataNote(Base):
+    order_counter = itertools.count()
+
+    __tablename__ = 'metadata_note'
+
+    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget(), ca_missing=-1)
+    metadata_id = Column(Integer, ForeignKey('metadata.id'), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+
+    note = Column(Text(), ca_order=next(order_counter),
+            ca_placeholder="eg. TODO",
+            ca_widget=deform.widget.TextAreaWidget(rows=3), ca_title="Note",)
+
+
 class Metadata(Base):
     order_counter = itertools.count()
 
@@ -823,9 +839,12 @@ class Metadata(Base):
     project_id = Column(Integer, ForeignKey('project.id'), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dataset_id = Column(Integer, ForeignKey('dataset.id'), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
+    redbox_identifier = Column(String(256), ca_name="", ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    ccdam_identifier = Column(String(256), ca_name="", ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+
     #--------------Setup--------------------
-    project_title = Column(String(512), ca_order=next(order_counter), ca_widget=deform.widget.TextInputWidget(css_class="full_width"), ca_page="setup", ca_force_required=True,
-        #                ca_group_start="test", ca_group_description="test description", ca_group_collapsed=False,
+    project_title = Column(String(512), ca_order=next(order_counter), ca_name="dc:title",
+        ca_widget=deform.widget.TextInputWidget(css_class="full_width"), ca_page="setup", ca_force_required=True,
         ca_placeholder="eg. Temperature deviation across rainforest canopy elevations",
         ca_title="Project Title",
         ca_help="<p>A descriptive title that will make the generated records easy to search:</P>"\
@@ -881,7 +900,7 @@ class Metadata(Base):
         ca_herlp="<b>TODO: This should give good definitions and edge cases etc...</b>", ca_missing="")
 
     #---------------------description---------------------
-    brief_description = Column(Text(), ca_order=next(order_counter), ca_page="description",
+    brief_description = Column(Text(), ca_order=next(order_counter), ca_page="description", ca_force_required=True,
         ca_placeholder="eg.  TODO: Get a well written brief description for the artificial tree project.",
         ca_widget=deform.widget.TextAreaWidget(rows=6), ca_title="Brief Description",
         ca_description="<p>A short description (Approx. 6 lines) targeted at a general audience.</p><p><i>This field may be pre-filled with the grant description (<b>as a starting point</b>).</i></p>",
@@ -889,7 +908,7 @@ class Metadata(Base):
                 "<ul><li>Write this description in lay-mans terms targeted for the general population to understand.</li>"\
                 "<li>A short description of the (project level) where and when can also be included.</li>"\
                 "<li>Note: Keep the description relevant to all generated records.</li></ul>")
-    full_description = Column(Text(), ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(rows=20), ca_page="description",
+    full_description = Column(Text(), ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(rows=20), ca_page="description", ca_force_required=True,
         ca_title="Full Description", ca_placeholder="eg.  TODO: Get a well written full description for the artificial tree project.",
         ca_description="Full description (Approx. 10-20 lines) targeted at researchers and scientists",
         ca_help="A full description (Approx. 10-20 lines) of the research done, why the research was done and the collection and research methods used:"\
@@ -898,6 +917,9 @@ class Metadata(Base):
                 "<li>If applicable: the scope; details of entities being studied or recorded; methodologies used.</li>"
                 "<li>Note: Keep the description relevant to all generated records.</li></ul>")
 
+    notes = relationship('MetadataNote', ca_title="Note(s)", ca_order=next(order_counter), ca_child_title="Note",
+           cascade="all, delete-orphan", ca_widget=deform.widget.SequenceWidget(min_len=1), ca_missing="", ca_page="description",
+            ca_help="Optional additional note(s) about this record.")
 
     #---------------------metadata---------------------
     #-------------Subject--------------------
@@ -908,7 +930,7 @@ class Metadata(Base):
         ca_group_description="",
         ca_help="Enter keywords that users are likely to search on when looking for this projects data.")
 
-    fieldOfResearch = relationship('FieldOfResearch', ca_order=next(order_counter), ca_title="Fields of Research", ca_page="metadata",
+    fieldOfResearch = relationship('FieldOfResearch', ca_name="dc:subject.anzsrc:for.0.rdf:resource", ca_order=next(order_counter), ca_title="Fields of Research", ca_page="metadata",
         cascade="all, delete-orphan",
         ca_force_required=True,
         ca_widget=deform.widget.SequenceWidget(template='multi_select_sequence'),
@@ -918,7 +940,7 @@ class Metadata(Base):
     #    colander.SchemaNode(colander.String(), title="Fields of Research",
     #        placeholder="To be redeveloped similar to ReDBox", description="Select relevant FOR code/s. ")
     #
-    socioEconomicObjective = relationship('SocioEconomicObjective', ca_order=next(order_counter), ca_title="Socio-Economic Objectives", ca_page="metadata",
+    socioEconomicObjective = relationship('SocioEconomicObjective', ca_name="dc:subject.anzsrc:seo.0.rdf:resource", ca_order=next(order_counter), ca_title="Socio-Economic Objectives", ca_page="metadata",
         cascade="all, delete-orphan",
         ca_widget=deform.widget.SequenceWidget(template='multi_select_sequence'),
         ca_child_title="Socio-Economic Objective",
@@ -930,17 +952,17 @@ class Metadata(Base):
     #        ca_description="Select one or more of the 4 themes, or \'Not aligned to a University theme\'.", required=True)
 
     #-------Research themese---------------------
-    ecosystems_conservation_climate = Column(Boolean(), ca_order=next(order_counter), ca_widget=deform.widget.CheckboxWidget(), ca_page="metadata",
+    ecosystems_conservation_climate = Column(Boolean(), ca_name="jcu:research.themes.tropicalEcoSystems", ca_order=next(order_counter), ca_widget=deform.widget.CheckboxWidget(css_class="normal_font"), ca_page="metadata",
         ca_title='Tropical Ecosystems, Conservation and Climate Change',
         ca_group_start="research_themes", ca_group_title="Research Themes",ca_group_validator=research_theme_validator,
         ca_group_force_required=True,
         #        ca_group_description="Select one or more of the 4 themes, or \'Not aligned to a University theme\'.",
         ca_group_required=True,)
-    industries_economies = Column(Boolean(), ca_order=next(order_counter),ca_widget=deform.widget.CheckboxWidget(), ca_page="metadata",
+    industries_economies = Column(Boolean(), ca_name="jcu:research.themes.industriesEconomies", ca_order=next(order_counter),ca_widget=deform.widget.CheckboxWidget(css_class="normal_font"), ca_page="metadata",
         ca_title='Industries and Economies in the Tropics')
-    peoples_societies = Column(Boolean(), ca_order=next(order_counter), ca_widget=deform.widget.CheckboxWidget(), ca_page="metadata",
+    peoples_societies = Column(Boolean(), ca_name="jcu:research.themes.peopleSocieties", ca_order=next(order_counter), ca_widget=deform.widget.CheckboxWidget(css_class="normal_font"), ca_page="metadata",
         ca_title='Peoples and Societies in the Tropics')
-    health_medicine_biosecurity = Column(Boolean(), ca_order=next(order_counter), ca_widget=deform.widget.CheckboxWidget(), ca_page="metadata",
+    health_medicine_biosecurity = Column(Boolean(), ca_name="jcu:research.themes.tropicalHealth", ca_order=next(order_counter), ca_widget=deform.widget.CheckboxWidget(css_class="normal_font"), ca_page="metadata",
         ca_title='Tropical Health, Medicine and Biosecurity',
         #    not_aligned = Column(Boolean(), ca_order=next(order_counter), ca_widget=deform.widget.CheckboxWidget(), ca_page="metadata",
         #        ca_title='Not aligned to a University theme',
@@ -955,7 +977,7 @@ class Metadata(Base):
         ('pure_basic', 'Pure basic research'),
         ('pure_strategic', 'Strategic basic research'))
 
-    typeOfResearch = Column(String(50), ca_order=next(order_counter), ca_page="metadata",
+    typeOfResearch = Column(String(50), ca_name="dc:subject.anzsrc:toa.rdf:resource", ca_order=next(order_counter), ca_page="metadata",
         ca_group_end="subject",
         ca_widget=deform.widget.RadioChoiceWidget(values=researchTypes),
         ca_validator=OneOfDict(researchTypes[1:]),
@@ -991,19 +1013,19 @@ class Metadata(Base):
 
     #-------------legal--------------------
     # TODO: Make this into a drop down - still need the list of options though.
-    access_rights = Column(String(256), ca_name="access_rights", ca_order=next(order_counter), ca_title="Access Rights", ca_default="Open access", ca_page="metadata",
+    access_rights = Column(String(256), ca_name="dc:accessRights.skos:prefLabel", ca_order=next(order_counter), ca_title="Access Rights", ca_default="Open access", ca_page="metadata",
         ca_group_start="legality", ca_group_collapsed=False, ca_group_title="Licenses & Access Rights",
         ca_help="Information how to access the records data, including access restrictions or embargoes based on privacy, security or other policies. A URI is optional.")
     # TODO: Pre-populate with a url - still waiting on URL to use
-    access_rights_url = Column(String(256), ca_order=next(order_counter), ca_title="URL", ca_missing="", ca_page="metadata",
+    access_rights_url = Column(String(256), ca_order=next(order_counter), ca_name="dc:accessRights.dc:identifier", ca_title="URL", ca_missing="", ca_page="metadata",
         ca_requires_admin=True)
 
-    rights = Column(String(256), ca_order=next(order_counter), ca_missing="", ca_title="Usage Rights", ca_page="metadata",
+    rights = Column(String(256), ca_order=next(order_counter), ca_name="dc:accessRights.dc:RightsStatement.skos:prefLabel", ca_missing="", ca_title="Usage Rights", ca_page="metadata",
         ca_requires_admin=True,
         ca_placeholder=" eg. Made available under the Public Domain Dedication and License v1.0",
         ca_help="Information about rights held over the collection such as copyright, licences and other intellectual property rights.  A URI is optional.",
         ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
-    rights_url = Column(String(256), ca_order=next(order_counter), ca_title="URL", ca_missing="", ca_page="metadata",ca_requires_admin=True,)
+    rights_url = Column(String(256), ca_name="dc:accessRights.dc:RightsStatement.dc:identifier", ca_order=next(order_counter), ca_title="URL", ca_missing="", ca_page="metadata",ca_requires_admin=True,)
     #    TODO: Link to external sources
 
     licenses = (
@@ -1017,20 +1039,20 @@ class Metadata(Base):
         ('restricted_license', 'Restricted License'),
         ('other', 'Other'),
         )
-    license = Column(String(256), ca_order=next(order_counter), ca_title="License", ca_placeholder="creative_commons_by", ca_page="metadata",
+    license = Column(String(256), ca_name="dc:license.dc:identifier", ca_order=next(order_counter), ca_title="License", ca_placeholder="creative_commons_by", ca_page="metadata",
         ca_default="creative_commons_by", ca_force_required=True,
         ca_widget=deform.widget.SelectWidget(values=licenses, template="select_with_other"),
         ca_help="<p>This list contains data licences that this server has been configured with. For more information about "
                 "Creative Commons licences please <a href=\'http://creativecommons.org.au/learn-more/licences\' alt=\'licenses\'>see here</a>.</p>"
                 "<p><i>If you would like to add additional licenses please contact the administrators.</i></p>")
 
-    license_name = Column(String(256), ca_order=next(order_counter), ca_title="License Name", ca_placeholder="", ca_missing="", ca_page="metadata",
+    license_name = Column(String(256), ca_name="dc:license.rdf:Alt.skos:prefLabel", ca_order=next(order_counter), ca_title="License Name", ca_placeholder="", ca_missing="", ca_page="metadata",
         ca_group_requires_admin=True, ca_group_end="legality", ca_group_start="other_license", ca_group_title="Other",
         ca_group_help="If you want to use a license not included in the above list you can provide details below.</br></br>"\
                       "<ul><li>If you are using this field frequently for the same license it would make sense to get your system administrator to add the license to the field above.</li>"\
                       "<li>If you provide two licenses (one from above, plus this one) only the first will be sent to RDA in the RIF-CS.</li>"\
                       "<li>Example of another license: http://www.opendefinition.org/licenses</li></ul>", ca_requires_admin=True,)
-    license_url = Column(String(256), ca_order=next(order_counter), ca_title="License URL", ca_placeholder="", ca_missing="", ca_page="metadata",
+    license_url = Column(String(256), ca_name="dc:license.rdf:Alt.dc:identifier", ca_order=next(order_counter), ca_title="License URL", ca_placeholder="", ca_missing="", ca_page="metadata",
         ca_requires_admin=True, ca_group_end="legality")
 
     #-------------citation--------------------
@@ -1060,7 +1082,7 @@ class Metadata(Base):
     retention_periods = (
         ("indefinite", "Indefinite"), ("1", "1 Year"), ("5", "5 Years"), ("7", "7 Years"), ("10", "10 Years"),
         ("15", "15 Years"))
-    retention_period = Column(String(50), ca_order=next(order_counter), ca_title="Retention period", ca_page="metadata",
+    retention_period = Column(String(50), ca_name="redbox:retentionPeriod", ca_order=next(order_counter), ca_title="Retention period", ca_page="metadata",
         #        ca_group_start="additional_information", ca_group_collapsed=False, ca_group_title="Additional Information",
         ca_widget=deform.widget.SelectWidget(values=retention_periods),
         ca_help="Record the period of time that the data must be kept in line with institutional or funding body policies.")
@@ -1073,12 +1095,13 @@ class Metadata(Base):
         ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"), ca_child_title="Related Publication",
         ca_help="Please provide details on any publications that are related to this project including their title and URL with an optional note.")
 
-    related_publications = relationship('RelatedWebsite', ca_order=next(order_counter), ca_title="Related Websites", ca_page="metadata",
+    related_websites = relationship('RelatedWebsite', ca_order=next(order_counter), ca_title="Related Websites", ca_page="metadata",
         cascade="all, delete-orphan",
         ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"), ca_child_title="Related Website",
         ca_help="Please provide details on any websites that are related to this project including their title and URL with an optional note.")
 
-    attachments = relationship('Attachment', ca_order=next(order_counter), ca_missing=None, ca_page="metadata", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
+    attachments = relationship('Attachment', ca_order=next(order_counter),
+        ca_missing=None, ca_page="metadata", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
         cascade="all, delete-orphan",
         ca_help="Optionally provide additional information as attachments.")
 #    notes = relationship('Note', ca_order=next(order_counter), ca_description="Enter administrative notes as required.", ca_missing=None, ca_page="metadata",
@@ -1091,7 +1114,10 @@ class Project(Base):
     __tablename__ = 'project'
 
     id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget(), ca_missing=-1)
+
     project_creator = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+    project_creator = Column(Date, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+
     template_only = Column(Boolean, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 
     information = relationship('Metadata', ca_title="", ca_order=next(order_counter),
@@ -1122,6 +1148,10 @@ class Project(Base):
         ca_child_title="Dataset", ca_child_collapsed=False,cascade="all, delete-orphan",)
 
     #-----------------------------------------Submit page---------------------------------------------------
+
+    validated = Column(Boolean, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(template="submit_validation"), default=False,
+        ca_group_start="validation", ca_group_end="validation", ca_group_title="Validation", ca_group_collapsed=False)
+
     project_notes = relationship("ProjectNote", ca_title="Project Note",  ca_order=next(order_counter), ca_page="submit",
         cascade="all, delete-orphan",
         ca_help="Project comments that are only relevant to the provisioning system (eg. comments as to why the project was reopened after the creator submitted it).")

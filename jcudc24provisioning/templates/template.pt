@@ -61,29 +61,34 @@
 //            $("input[type=radio], input[type=checkbox]").uniform();
 //        });
 
-        $(window).ready(style_select);
-
-        // Extend the addSequenceItem function to update the looks of all select elements when added.
-        $(function() {
-            deform.oldAddSequenceItem = deform.addSequenceItem;
-            deform.addSequenceItem = function (protonode, before) {
-                var result = deform.oldAddSequenceItem(protonode, before);
-                style_select();
-                return result;
-            };
-        });
-
-        function style_select() {
-            var before_html = "<div class='select_style'></div>";
-            var select_items = $("select").not(".styled");
-            for (var i=0; i<select_items.length; i++) {
-                var new_element = '<label class="select_wrapper"></label>';
-                $(select_items[i]).after($(new_element));
-                $(select_items[i]).addClass('styled');
-            }
-
-            $("select:not(:visible)").next().hide();
-        }
+//        $(window).ready(style_select);
+//
+//        // Extend the addSequenceItem function to update the looks of all select elements when added.
+//        $(function() {
+//            deform.oldAddSequenceItem = deform.addSequenceItem;
+//            deform.addSequenceItem = function (protonode, before) {
+//                var result = deform.oldAddSequenceItem(protonode, before);
+//                style_select();
+//                return result;
+//            };
+//        });
+//
+//        function style_select() {
+//            if(typeof document.body.style.maxHeight !== "undefined"){ /* filter out <= IE6 */
+//                var select_items = $("select").not(".styled");
+//                for (var i=0; i < select_items.length; i++) {
+////                    var new_element = '<label class="select_wrapper"></label>';
+//                    var onclick = "$(this).prev().change();";
+//                    var new_element = '<div class="select_wrappera" onclick=' + onclick + ' >asdf</div>';
+////                    alert(new_element);
+//                    $(select_items[i]).after($(new_element));
+//
+//                    $(select_items[i]).addClass('styled');
+//                }
+//
+//                $("select:not(:visible)").next().hide();
+//            }
+//        }
 
         $(function() {
            $( document ).tooltip({

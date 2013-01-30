@@ -53,9 +53,26 @@ input[type=text], input, textarea, .select_wrapper, .selector span {
     padding: 0.5em;
 }
 
+.deform .normal_font + label {
+    font-weight: normal !important;
+}
+
+
+
+:focus, input:focus, textarea:focus, .deform input:focus {
+    outline-color: #F7931E;
+    border: 1px solid rgba(247, 147, 30, 1);
+    box-shadow: 0 0 3px rgba(247, 147, 30, 0.6);
+}
+
 select {
-    line-height: 5em;
+    line-height: 2em;
     padding: 0.5em;
+    outline: none;
+}
+
+input[type=radio], input[type=checkbox] {
+    margin-right: 1em !important;
 }
 
 input[type=text], .deform input, .deform textarea, select, input, textarea, select {
@@ -63,7 +80,7 @@ input[type=text], .deform input, .deform textarea, select, input, textarea, sele
     border: 1px solid rgba(247, 147, 30, 0.5);
 }
 
-input[type=text]:hover, input:hover, .deform textarea:hover, textarea:hover {
+input[type=text]:hover, input:hover, .deform textarea:hover, textarea:hover,  input:focus, select:focus, textarea:focus {
     background: none #fff;
     border: 1px solid rgba(247, 147, 30, 1);
     box-shadow: 0 0 3px rgba(247, 147, 30, 0.6);
