@@ -278,7 +278,7 @@ def group_nodes(node):
             group_params = {}
 
             for param in child.__dict__.copy():
-                if param[:6] == 'group_':
+                if param[:6] == 'group_' and not param == 'group_end':
                     group_params[param[6:]] = child.__dict__.pop(param)
 
             child.__dict__["group_start"] = group # Need to re-add the group_start attribute for the logic below.

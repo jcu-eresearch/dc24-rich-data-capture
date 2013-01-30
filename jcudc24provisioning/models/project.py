@@ -29,7 +29,7 @@ from jcudc24provisioning.views.mint_lookup import MintLookup
 
 config = ConfigParser.SafeConfigParser()
 config.read('../../development.ini')
-db_engine = create_engine(config.get("app:main", "sqlalchemy.url"), echo=True)
+db_engine = create_engine(config.get("app:main", "sqlalchemy.url"), echo=True, pool_recycle=3600, connect_args={'reconnect':True})
 #db_engine.connect()
 #DBSession = scoped_session(sessionmaker(bind=db_engine))
 DBSession = scoped_session(sessionmaker(bind=db_engine, extension=ZopeTransactionExtension()))
@@ -1150,7 +1150,7 @@ class Project(Base):
     #-----------------------------------------Submit page---------------------------------------------------
 
     validated = Column(Boolean, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(template="submit_validation"), default=False,
-        ca_group_start="validation", ca_group_end="validation", ca_group_title="Validation", ca_group_collapsed=False)
+        ca_group_start="validation", ca_group_end="validation", ca_group_title="Validation", ca_group_collapsed=False, ca_page="submit",)
 
     project_notes = relationship("ProjectNote", ca_title="Project Note",  ca_order=next(order_counter), ca_page="submit",
         cascade="all, delete-orphan",
