@@ -559,8 +559,8 @@ class Method(Base):
 
     method_attachments = relationship('MethodAttachment', ca_order=next(order_counter), ca_missing=colander.null, ca_child_title="Attachment",
         cascade="all, delete-orphan",
-        ca_title="Data collection method attachment (Such as datasheets, collection processes, observation forms)",
-        ca_description="Attach information about this method, this is preferred to websites as it is persistent." \
+        ca_title="Attachment (Such as datasheets, collection processes, observation forms)",
+        ca_help="Attach information about this method, this is preferred to websites as it is persistent.  " \
                        "Example attachments would be sensor datasheets, documentation describing your file/data storage schema or calibration data.")
 
     method_url = relationship("MethodWebsite", ca_order=next(order_counter), ca_missing=colander.null,
