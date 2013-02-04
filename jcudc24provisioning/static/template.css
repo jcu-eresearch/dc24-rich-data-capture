@@ -796,7 +796,7 @@ span.collapse_icon {
 
 .error_messages, #no_javascript {
     background: rgba(255, 0, 0, 0.19);
-    border: 1px solid black;
+    border: 1px solid #ffcc00;
     margin-bottom: 10px;
     padding-left: 10px;
     padding-right: 10px;
@@ -807,7 +807,7 @@ span.collapse_icon {
 
 .success_messages {
     background: rgba(0, 255, 0, 0.19);
-    border: 1px solid black;
+    border: 1px solid #ffcc00;
     margin-bottom: 10px;
     padding-left: 10px;
     padding-right: 10px;
@@ -818,7 +818,7 @@ span.collapse_icon {
 
 .warning_messages {
     background: rgba(255, 128, 0, 0.19);
-    border: 1px solid black;
+    border: 1px solid #ffcc00;
     margin-bottom: 10px;
     padding-left: 10px;
     padding-right: 10px;
@@ -870,6 +870,54 @@ div.more_info_panel {
     font-weight: bold;
     font-style: italic;
     color: #3c3c3c;
+}
+
+.deform .cron-block li {
+    clear: none;
+}
+
+.deform .gentleselect-label {
+    border-color: rgb(253, 185, 19);
+    border-width: 1px;
+    background-color: #fff;
+    padding: 0.5em 1.5em;
+}
+
+/*.deform .deformMappingFieldset legend {*/
+    /*text-align: middle;*/
+/*}*/
+
+/*.deform .deformMappingFieldset, .deform .deformMappingFieldset:hover {*/
+    /*border: 1px solid #FDB913;*/
+    /*border-radius: 5px;*/
+    /*border-left: 0px;*/
+    /*border-right: 0px;*/
+/*}*/
+
+.wizard .dataset_select {
+    background: #fff;
+    margin: 1em;
+    padding: 1em 1.4em 1em 1.4em;
+    border: 1px solid rgb(255, 204, 0) !important;
+    border-radius: 4px;
+}
+
+.wizard .dataset_select div {
+    width: 98%;
+    padding: 10px !important;
+    border-radius: 2px;
+    border: 1px solid transparent;
+}
+.wizard .dataset_select div:hover {
+    border-color: rgb(255, 204, 0);
+}
+.wizard .dataset_select div.selected {
+    border-color: rgb(233, 79, 53);
+}
+
+.wizard .dataset_select div * {
+    padding: 0;
+    margin: 0;
 }
 
 /*--------------jquery tabs selector-------------------------*/

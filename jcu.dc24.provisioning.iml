@@ -12,6 +12,7 @@
     <orderEntry type="library" name="site-packages" level="project" />
     <orderEntry type="library" name="site-packages (classes)" level="project" />
     <orderEntry type="library" name="venv" level="project" />
+    <orderEntry type="library" scope="TEST" name="test-site-packages" level="project" />
   </component>
 </module>
 

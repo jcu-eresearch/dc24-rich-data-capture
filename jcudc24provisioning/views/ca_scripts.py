@@ -154,6 +154,7 @@ def convert_sqlalchemy_model_to_data(model, schema):
             if not ':' in node.name:
                 data['schema_select'] = str(getattr(model, 'method_id', None))
 
+
             data[node.name] = node_data
 
     return data
@@ -183,7 +184,7 @@ def remove_admin_fields(schema, user_rights):
     denied_nodes = []
     for node in schema.children:
         if hasattr(node, 'requires_admin') and node.requires_admin:
-            print "Removed node: " + str(node)
+#            print "Removed node: " + str(node)
             denied_nodes.append(node)
         else:
             if len(node.children) > 0:

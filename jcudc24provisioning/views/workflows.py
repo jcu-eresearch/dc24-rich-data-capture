@@ -1,4 +1,5 @@
 import ConfigParser
+import cgi
 import copy
 from datetime import datetime, date
 import json
@@ -150,6 +151,18 @@ class Workflows(Layouts):
 #         self.session.remove()
 
     def handle_form(self, form, schema, page_help=None, appstruct=None, display=None):
+#        if self.project_id:
+#            #  Create a fully validated form and add as data for validation display(s)
+#            schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise',)).bind(request=self.request)
+#            form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save', 'Delete', 'Submit', 'Reopen', 'Approve', 'Disable'), use_ajax=False)
+#            model = self.session.query(Project).filter_by(id=self.project_id).first()
+#            data = convert_sqlalchemy_model_to_data(model, schema)
+#            try:
+#                appstruct = form.validate(data)
+#            except ValidationFailure, e:
+#                appstruct = e.cstruct
+#                test = 2
+
         # If the form is being saved (there would be 1 item in controls if it is a fresh page with a project id set)
         if len(self.request.POST) > 0:
             self.request.POST['id'] = self.project_id # Make sure the correct project is being saved (eg. user edits nav bar directly)
@@ -406,6 +419,7 @@ class Workflows(Layouts):
 
         schema.children[METHODS_INDEX].templates_data = template_data
 
+        # Find the METHOD_SCHEMA_PARENTS_INDEX:
         for i in range(len(schema.children[METHODS_INDEX].children[0].children)):
             if schema.children[METHODS_INDEX].children[0].children[i].name[-len(Method.data_type.key):] == Method.data_type.key:
                 DATA_SCHEMA_INDEX = i
@@ -430,17 +444,17 @@ class Workflows(Layouts):
                 appstruct = e.cstruct
                 display = e.render()
 
-            print "Post variables: " + str(appstruct)
+#            print "Post variables: " + str(appstruct)
 
-            old_models = self.session.query(Method).filter_by(project_id=self.project_id).all()
+#            old_models = self.session.query(Method).filter_by(project_id=self.project_id).all()
             for new_method_data in appstruct['project:methods']:
                 if not new_method_data['method:id'] and 'method:method_template' in new_method_data and new_method_data['method:method_template']:
-                    print "NEW:" + str(new_method_data)
                     template_method = self.session.query(Method).filter_by(id=new_method_data['method:method_template']).first()
-                    if template is None: break
+                    if template is None:
+                        continue
 
-                    new_method_dict = convert_sqlalchemy_model_to_data(self.clone(template_method), schema.children[METHODS_INDEX])
-                    new_method_dict = new_method_dict['method']
+                    new_method_dict = convert_sqlalchemy_model_to_data(self.clone(template_method), schema.children[METHODS_INDEX].children[0])
+#                    new_method_dict = new_method_dict['method']
                     del new_method_dict['method:id']
                     new_method_dict['method:project_id'] = new_method_data['method:project_id']
                     new_method_dict['method:method_template'] = new_method_data['method:method_template']
@@ -448,16 +462,22 @@ class Workflows(Layouts):
 
         return self.handle_form(form, schema, page_help, appstruct=appstruct, display=display)
 
+
     @view_config(route_name="datasets")
     def datasets_view(self):
-        def get_all_fields(data_entry_schema):
+        # Helper method for recursively retrieving all fields in a schema
+        def get_file_fields(data_entry_schema):
+            if data_entry_schema is None:
+                return []
+
             fields = []
 
             for field in data_entry_schema.parents:
-                fields.extend(get_all_fields(data_entry_schema))
+                fields.extend(get_file_fields(field))
 
             for field in data_entry_schema.custom_fields:
-                fields.append(field)
+                if field.type == 'file':
+                    fields.append((field.id, field.name))
 
             return fields
 
@@ -467,20 +487,12 @@ class Workflows(Layouts):
                     " and should be set-up in this step for each site it is used at.</i></p>"
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="datasets").bind(request=self.request)
 
+        # Get the index of datasets
         for i in range(len(schema.children)):
             if schema.children[i].name[-len(Project.datasets.key):] == Project.datasets.key:
                 DATASETS_INDEX = i
                 break
 
-        dataset_items = schema.children[DATASETS_INDEX].children[0].children
-
-#        if 'id' in self.request.GET:
-#            id = int(self.request.GET['id'])
-#            config = ConfigParser.SafeConfigParser()
-#            config.read('../../development.ini')
-#            db_engine = create_engine(config.get("app:main", "sqlalchemy.url"), echo=True)
-
-            #scoped_session(sessionmaker(bind=db_engine))
         if self.project_id is not None:
             methods = self.session.query(Method).filter_by(project_id=self.project_id).all()
 
@@ -488,71 +500,118 @@ class Workflows(Layouts):
                 self.request.session.flash('You must configure at least one method before adding dataset\'s', 'warning')
                 return HTTPFound(self.request.route_url('methods', project_id=self.project_id))
 
-            method_schemas = []
-            for method in methods:
-                dataset_children = convert_schema(SQLAlchemyMapping(Dataset, unknown='raise')).children
+#            # Add dataset template data to each method if it exists
+#            for method in methods:
+#                method.template = self.session.query(Dataset).join(MethodTemplate).filter(Dataset.id == MethodTemplate.dataset_id).\
+#                    filter(MethodTemplate.id == method.method_template).first()
 
-                DATA_SOURCE_CONFIGURATION_GROUP_NAME = "data_source_configuration"
-                print dataset_children
-                for i in range(len(dataset_children)):
-                    if dataset_children[i].name[-len(DATA_SOURCE_CONFIGURATION_GROUP_NAME):] == DATA_SOURCE_CONFIGURATION_GROUP_NAME:
-                        DATA_CONFIG_INDEX = i
-                        break
+            # Add method data to the field for information to create new templates.
+            schema.children[DATASETS_INDEX].children[0].methods = methods
+            schema.children[DATASETS_INDEX].children[0].widget.get_file_fields = get_file_fields
 
-                if method.data_source is not None and 'DATA_CONFIG_INDEX' in locals():
-                    for data_source in dataset_children[DATA_CONFIG_INDEX].children:
-                        if fix_schema_field_name(data_source.name) == method.data_source:
-                            # Add dynamic data to pull data sources
-                            if fix_schema_field_name(data_source.name) == PullDataSource.__tablename__:
-                                for child in data_source.children:
-                                    if fix_schema_field_name(child.name) == PullDataSource.file_field.key:
-                                        fields = get_all_fields(method.data_type)
-                                        field_values = []
-                                        for i in range(len(fields)):
-                                            if fields[i].type == "file":
-                                                field_values.append((fields[i].id, fields[i].name))
+            schema.bind()
 
-                                        child.widget.values = tuple(field_values)
-
-                            # Set the data source
-                            dataset_children[DATA_CONFIG_INDEX].children = [data_source]
-                            break
-                elif 'DATA_CONFIG_INDEX' in locals():
-                    dataset_children[DATA_CONFIG_INDEX].children = []
-                    dataset_children[DATA_CONFIG_INDEX].description = "No associated data source - please select a datasource on the Methods page."
-
-                # Get the dataset template if there is one
-                if method.method_template:
-                    template = self.session.query(Dataset).join(MethodTemplate).filter(Dataset.id == MethodTemplate.dataset_id).\
-                    filter(MethodTemplate.id == method.method_template).first()
-
-                for child in dataset_children:
+#            method_schemas = []
+#            for method in methods:
+#                dataset_children = convert_schema(SQLAlchemyMapping(Dataset, unknown='raise')).children
+#
+#                DATA_SOURCE_CONFIGURATION_GROUP_NAME = "data_source_configuration"
+#                # Find the DATA_CONFIG_INDEX
+#                for i in range(len(dataset_children)):
+#                    if dataset_children[i].name[-len(DATA_SOURCE_CONFIGURATION_GROUP_NAME):] == DATA_SOURCE_CONFIGURATION_GROUP_NAME:
+#                        DATA_CONFIG_INDEX = i
+#                        break
+#
+#                # Selectively show only the selected data source per method.
+#                if method.data_source is not None and 'DATA_CONFIG_INDEX' in locals():
+#                    for data_source in dataset_children[DATA_CONFIG_INDEX].children:
+#                        if fix_schema_field_name(data_source.name) == method.data_source:
+#                            # Add dynamic data to pull data sources
+#                            if fix_schema_field_name(data_source.name) == PullDataSource.__tablename__:
+#                                for child in data_source.children:
+#                                    if fix_schema_field_name(child.name) == PullDataSource.file_field.key:
+#                                        fields = get_all_fields(method.data_type)
+#                                        field_values = []
+#                                        for i in range(len(fields)):
+#                                            if fields[i].type == "file":
+#                                                field_values.append((fields[i].id, fields[i].name))
+#
+#                                        child.widget.values = tuple(field_values)
+#
+#                            # Set the data source
+#                            dataset_children[DATA_CONFIG_INDEX].children = [data_source]
+#                            break
+#                elif 'DATA_CONFIG_INDEX' in locals():
+#                    dataset_children[DATA_CONFIG_INDEX].children = []
+#                    dataset_children[DATA_CONFIG_INDEX].description = "No associated data source - please select a datasource on the Methods page."
+#
+#                # Get the dataset template if there is one
+#                if method.method_template:
+#                    template = self.session.query(Dataset).join(MethodTemplate).filter(Dataset.id == MethodTemplate.dataset_id).\
+#                        filter(MethodTemplate.id == method.method_template).first()
+#
+#                # Set all field defaults based on the template.
+#                for child in dataset_children:
 #                    if fix_schema_field_name(child.name) == 'method_id':
 ##                        child.missing = method.id
 #                        child.default = method.id
-#                    else:
-                        # If there is a template for datasets of this method, set all fields default values accordingly
-                        if template:
-                            name = fix_schema_field_name(child.name)
-                            if name != "id" and hasattr(template, name):
-                                child.default = getattr(template, name, colander.null)
-                            elif name != "id":
-                                logger.warn("Schema has field template doesn't: %s" % name)
+##                    else:
+#                        # If there is a template for datasets of this method, set all fields default values accordingly
+#                    elif template:
+#                        name = fix_schema_field_name(child.name)
+#                        if name != "id" and hasattr(template, name):
+#                            child.default = getattr(template, name, colander.null)
+#                        elif name != "id":
+#                            logger.warn("Schema has field template doesn't: %s" % name)
+#
+#
+#                method_schemas.append(colander.MappingSchema(*dataset_children, name=(method.method_name and method.method_name or 'Un-named')))
+#
+#            method_select_schema = SelectMappingSchema(*method_schemas, name="dataset", collapsed=False,
+#                select_title="Select dataset method type", select_description="<i>Changing will overwrite all fields.</i>")
+#
+#
+#
+#        else:
+#            method_select_schema = SelectMappingSchema(select_title="Method", name="dataset" ,collapsed=False)
+#
+#        schema.children[DATASETS_INDEX].children = [method_select_schema]
 
 
-                method_schemas.append(colander.MappingSchema(*dataset_children, name=(method.method_name and method.method_name or 'Un-named')))
-
-            method_select_schema = SelectMappingSchema(*method_schemas, name="dataset", collapsed=False,
-                select_title="Select dataset method type", select_description="<i>Changing will overwrite all fields.</i>")
-        else:
-            method_select_schema = SelectMappingSchema(select_title="Method", name="dataset" ,collapsed=False)
-
-
-        schema.children[DATASETS_INDEX].children = [method_select_schema]
 
         form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False)
 
-        return self.handle_form(form, schema, page_help)
+        appstruct = None
+        display = None
+        controls = self.request.POST.items()
+        if len(controls) > 0:
+            try:
+                appstruct = form.validate(controls)
+                display = form.render(appstruct)
+            except ValidationFailure, e:
+                appstruct = e.cstruct
+                display = e.render()
+
+#            print "Post variables: " + str(appstruct)
+
+#            old_models = self.session.query(Method).filter_by(project_id=self.project_id).all()
+            for new_dataset_data in appstruct['project:datasets']:
+                if not new_dataset_data['dataset:id'] and 'dataset:method_id' in new_dataset_data and new_dataset_data['dataset:method_id']:
+                    method = self.session.query(Method).filter_by(id=new_dataset_data['dataset:method_id']).first()
+                    template_dataset = self.session.query(Dataset).join(MethodTemplate).filter(Dataset.id == MethodTemplate.dataset_id).\
+                                            filter(MethodTemplate.id == method.method_template).first()
+                    if template_dataset is None:
+                        continue
+
+                    new_dataset_dict = convert_sqlalchemy_model_to_data(self.clone(template_dataset), schema.children[DATASETS_INDEX].children[0])
+#                    new_method_dict = new_method_dict['method']
+                    del new_dataset_dict['dataset:id']
+                    new_dataset_dict['datase:project_id'] = new_dataset_data['dataset:project_id']
+                    new_dataset_dict['dataset:method_id'] = new_dataset_data['dataset:method_id']
+                    new_dataset_data.update(new_dataset_dict)
+
+
+        return self.handle_form(form, schema, page_help, appstruct=appstruct, display=display)
 
 
     @view_config(route_name="submit")
@@ -571,8 +630,6 @@ class Workflows(Layouts):
                     "<b>Disable:</b> Stop data ingestion, this would usually occur once the project has finished."
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise',), page="submit").bind(request=self.request)
         form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save', 'Delete', 'Submit', 'Reopen', 'Approve', 'Disable'), use_ajax=False)
-
-#        if 'Approve' in self.request.POST:
 
         response = self.handle_form(form, schema, page_help)
 
@@ -613,16 +670,16 @@ class Workflows(Layouts):
         logger.exception("An exception occurred in global exception view: %s", self.context)
         if hasattr(self, self.request.matched_route.name + "_view"):
             try:
-                self.request.session.flash('Sorry, please try again - there was an exception: ' + str(self.context), 'error')
+                self.request.session.flash('Sorry, please try again - there was an exception: ' + cgi.escape(str(self.context)), 'error')
                 self.request.POST.clear()
                 response = getattr(self, str(self.request.matched_route.name) + "_view")()
                 return response
             except Exception:
                 logger.exception("Exception occurred while trying to display the view without variables: %s", Exception)
-                return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": 'Sorry, we are currently experiencing difficulties.  Please contact the administrators: ' + str(self.context), "form_only": False}
+                return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": 'Sorry, we are currently experiencing difficulties.  Please contact the administrators: ' + cgi.escape(str(self.context)), "form_only": False}
         else:
             try:
-                return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": 'This address is not valid, please don\'t directly edit the address bar: ' + str(self.context), "form_only": False}
+                return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": 'This address is not valid, please don\'t directly edit the address bar: ' + cgi.escape(str(self.context)), "form_only": False}
             except:
                 self.request.session.flash('There is no page at the requested address, please don\'t edit the address bar directly.', 'error')
                 if self.request.matchdict and self.request.matchdict['route'] and (self.request.matchdict['route'].split("/")[0]).isnumeric():
@@ -640,7 +697,7 @@ class Workflows(Layouts):
     def sqlalchemy_exception_view(self):
         self.session.rollback()
         logger.exception("A database exception occurred in global exception view: %s", self.context)
-        return {"exception": "%s" % self.context, "message": 'Sorry, we are currently experiencing difficulties.  Please contact the administrators: ' + str(self.context)}
+        return {"exception": "%s" % self.context, "message": 'Sorry, we are currently experiencing difficulties.  Please contact the administrators: ' + cgi.escape(str(self.context))}
 
 
 

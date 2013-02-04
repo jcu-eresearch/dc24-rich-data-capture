@@ -4,7 +4,7 @@ from jcudc24ingesterapi.authentication import CredentialsAuthentication
 from jcudc24ingesterapi.ingester_platform_api import IngesterPlatformAPI
 from jcudc24ingesterapi.ingester_platform_api import UnitOfWork
 import jcudc24ingesterapi
-from jcudc24provisioning.models.project import Location, LocationOffset, MethodSchema, Base, Project, Region, Dataset
+from jcudc24provisioning.models.project import Location, LocationOffset, MethodSchema, Base, Project, Region, Dataset, DBSession, Method, MethodSchemaField
 from jcudc24ingesterapi.schemas.data_types import DateTime, FileDataType, Integer, String, Double, Boolean
 
 __author__ = 'Casey Bajema'
@@ -12,7 +12,7 @@ __author__ = 'Casey Bajema'
 
 def model_id_listener(self, attr, var):
     if attr == "_id":
-        self.provisioning_model.id = var
+        self.provisioning_model.dam_id = var
 #        print "Model id set: " + str(var) + " : " + str(self.provisioning_model)
 
 
@@ -32,6 +32,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             Call parent constructor, but also add cacheing of the connection
         """
         super(IngesterAPIWrapper, self).__init__(service_url, auth)
+        self.session = DBSession
 
     def post(self, model, recursive=False):
         """
@@ -46,7 +47,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
         """
         if hasattr(model, "__tablename__"):
             work = self.createUnitOfWork()
-            self.process_model(model, work.post)
+            self.process_model(model, work.post, work)
             work.commit()
             return model
         else:
@@ -65,7 +66,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
         """
         if hasattr(model, "__tablename__"):
             work = self.createUnitOfWork()
-            self.process_model(model, work.insert)
+            self.process_model(model, work.insert, work)
             work.commit()
             return model
         else:
@@ -83,7 +84,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
         """
         if hasattr(model, "__tablename__"):
             work = self.createUnitOfWork()
-            self.process_model(model, work.update)
+            self.process_model(model, work.update, work)
             work.commit()
             return model
         else:
@@ -102,7 +103,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
 
         if hasattr(model, "__tablename__"):
             work = self.createUnitOfWork()
-            self.process_model(model, work.delete)
+            self.process_model(model, work.delete, work)
             work.commit()
             return model
         else:
@@ -110,35 +111,40 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
 
     #---------------Provisioning interface specific functions for processing the models-------------
     # TODO: Update all processing to add listeners to the ingesterapi models to propagate the id changes to the provisioning interface models (on commit)
-    def process_model(self, model, command):
+    def process_model(self, model, command, work):
         assert hasattr(model, "__tablename__"), "Trying to process a invalid provisioning model"
         assert hasattr(command, "func_name") and hasattr(UnitOfWork, command.func_name), "Trying to process a model with an invalid command"
 
         new_model = None
 
         if isinstance(model, Project):
-            new_model = self.process_project(model, command)
+            new_model = self.process_project(model, command, work)
         elif isinstance(model, Dataset):
-            new_model = self.process_dataset(model, command)
+            new_model = self.process_dataset(model, command, work)
         elif isinstance(model, Location):
-            new_model = self.process_location(model, command)
+            new_model = self.process_location(model, command, work)
         elif isinstance(model, LocationOffset):
-            new_model = self.process_location_offset(model, command)
+            new_model = self.process_location_offset(model, command, work)
         elif isinstance(model, Region):
-            new_model = self.process_region(model, command)
+            new_model = self.process_region(model, command, work)
         elif isinstance(model, MethodSchema):
-            new_model = self.process_schema(model, command)
+            new_model = self.process_schema(model, command, work)
         else:
             raise ValueError("Unknown provisioning interface model: " + str(model))
 
-        if new_model is not None:
-            new_model.provisioning_model = model
-            new_model.set_listener(model_id_listener)
+#        if new_model is not None:
+#            if isinstance(new_model, list):
+#                for a_model in new_model:
+#                    a_model.provisioning_model = model
+#                    a_model.set_listener(model_id_listener)
+#            else:
+#                new_model.provisioning_model = model
+#                new_model.set_listener(model_id_listener)
 
         return new_model
 
 
-    def process_location(self, model, command):
+    def process_location(self, model, command, work):
         assert isinstance(model, Location), "Invalid location: " + str(model)
         assert model.location[:5] == "POINT", "Provided location is not a point (only points can be used for dataset or data_entry locations).  Value: " + model.location
 
@@ -149,12 +155,14 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             elevation = model.elevation
         )
         if model.dam_id is not None:
-            new_location.id = model.dam_id
+            new_location.id = int(model.dam_id)
 
         model.dam_id = command(new_location)
+        new_location.provisioning_model = model
+        new_location.set_listener(model_id_listener)
         return new_location
 
-    def process_location_offset(self, model, command):
+    def process_location_offset(self, model, command, work):
         assert isinstance(model, LocationOffset), "Invalid location offset: " + str(model)
 
         new_location_offset = jcudc24ingesterapi.models.locations.LocationOffset(
@@ -164,7 +172,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
         )
         return new_location_offset
 
-    def process_region(self, model, command):
+    def process_region(self, model, command, work):
         assert isinstance(model, Location), "Invalid location: " + str(model)
         assert not model.location[:5] == "POINT", "Provided location is a point (It doesn't make sense for a region to be a single point).  Value: " + model.location
 
@@ -174,12 +182,14 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
         )
 
         if model.dam_id is not None:
-            region.id = model.dam_id
+            region.id = int(model.dam_id)
 
         model.dam_id = command(region)
+        region.provisioning_model = model
+        region.set_listener(model_id_listener)
         return region
 
-    def process_schema(self, model, command):
+    def process_schema(self, model, command, work):
         assert isinstance(model, MethodSchema), "Invalid schema: " + str(model)
 
         if True: # TODO: If the data entries don't need offsets
@@ -190,7 +200,11 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
         # Set the schema parents/extends
         extends = []
         for parent in model.parents:
-            extends.append(parent.dam_schema_id)
+            if parent.dam_id is not None and parent.dam_id >= 0:
+                extends.append(parent.dam_id)
+            else:
+                new_parent = self.process_schema(parent, work.post, work)
+                extends.append(new_parent.id)
 
         new_schema.extends = extends
 
@@ -218,125 +232,73 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
 
 
         if model.dam_id is not None:
-            new_schema.id = model.dam_id
+            new_schema.id = int(model.dam_id)
 
         model.dam_id = command(new_schema)
+        new_schema.provisioning_model = model
+        new_schema.set_listener(model_id_listener)
         return new_schema
 
-    def process_project(self, project, command):
+    def process_project(self, project, command, work):
         assert isinstance(project, Project),"Trying to add a project with a model of the wrong type."
 
+        datasets = []
+
         for dataset in project.datasets:
-            new_dataset = jcudc24ingesterapi.models.dataset.Dataset()
+            new_dataset = self.process_dataset(dataset, command, work)
+            datasets.append(new_dataset)
 
-            new_dataset.id = dataset.dam_id  # This will be None if it is new (Should always be the case)
-            #            new_dataset.processing_script = dataset.custom_processor_script - Moved to datasource
-            new_dataset.redbox_uri = None   # TODO: Add redbox link
-            new_dataset.enabled = True
-            new_dataset.description = dataset.title
+        return datasets
 
-            first_location_found = False
-            for location in dataset.dataset_locations:
-                if not first_location_found and location.is_point:
-                    first_location_found = True
-                    new_dataset.location = location.dam_id
-                    if new_dataset.location is None:
-                        new_dataset.location = self.process_model(location, command).id
-                else:
-                    # TODO: Discuss regions when we get here - there is currently only 1 region in a dataset (this will fail if run)
-                    if location.dam_location_id is None:
-                        new_dataset.regions.append(self.process_model(location, command)).id
-                    else:
-                        new_dataset.regions.append(location.dam_location_id)
-
-            if dataset.location_offset is not None:
-                new_dataset.location_offset = self.process_model(dataset.location_offset, command)
-
-            for method in project.methods:
-                if method.id == dataset.method_id:
-                    if method.data_type.dam_id is not None:
-                        new_dataset.schema = method.data_type.dam_id
-                    else:
-                        new_dataset.schema = self.process_model(method.data_type, command).id
-
-            if dataset.form_data_source is not None:
-                data_source = jcudc24ingesterapi.models.data_sources.FormDataSource()
-                # TODO: Update datasource configuration
-            if dataset.pull_data_source is not None:
-                data_source = jcudc24ingesterapi.models.data_sources.PullDataSource(
-                    dataset.pull_data_source.uri,
-                    dataset.pull_data_source.file_field,
-                    dataset.pull_data_source.filename_pattern,
-                    dataset.pull_data_source.mime_type,
-                    dataset.custom_processor_script,
-                    dataset.pull_data_source.custom_sampling_script,
-
-                )
-            if dataset.push_data_source is not None:
-                data_source = jcudc24ingesterapi.models.data_sources.PushDataSource()
-                # TODO: Update datasource configuration
-            if dataset.sos_data_source is not None:
-                data_source = jcudc24ingesterapi.models.data_sources.SOSDataSource()
-                # TODO: Update datasource configuration
-            if dataset.dataset_data_source is not None:
-                data_source = jcudc24ingesterapi.models.data_sources.DatasetDataSource()
-                # TODO: Update datasource configuration
-
-            new_dataset.data_source = data_source
-
-
-            if dataset.dam_id is not None:
-                new_dataset.id = dataset.dam_id
-
-            dataset.dam_id = command(new_dataset)
-            return new_dataset
-
-    def process_dataset(self, model, command):
+    def process_dataset(self, model, command, work):
         assert isinstance(model, Dataset),"Trying to add a project with a model of the wrong type."
 
         new_dataset = jcudc24ingesterapi.models.dataset.Dataset()
 
-        new_dataset.id = model.dam_id  # This will be None if it is new (Should always be the case)
+        if model.dam_id is not None:
+            new_dataset.id = int(model.dam_id)  # This will be None if it is new (Should always be the case)
         #            new_dataset.processing_script = dataset.custom_processor_script - Moved to datasource
         new_dataset.redbox_uri = None   # TODO: Add redbox link
         new_dataset.enabled = True
         new_dataset.descripion = model.description
 
         first_location_found = False
-        for location in model.dataset_location:
-            if not first_location_found and location.is_point:
+        for location in model.dataset_locations:
+            if not first_location_found and location.is_point():
                 first_location_found = True
-                new_dataset.location = location.dam_id
-                if new_dataset.location is None:
-                    new_dataset.location = self.process_model(location, command).id
-            else:
-                # TODO: Discuss regions when we get here - there is currently only 1 region in a dataset (this will fail if run)
-                if location.dam_location_id is None:
-                    new_dataset.regions.append(self.process_model(location, command)).id
+                if location.dam_id is not None and location.dam_id >= 0:
+                    new_dataset.location = int(location.dam_id)
                 else:
-                    new_dataset.regions.append(location.dam_location_id)
+                    new_dataset.location = self.process_model(location, command, work).id
+            else:
+                pass # TODO: Discuss regions when we get here - there is currently only 1 region in a dataset (this will fail if run)
+#                if location.dam_id is None:
+#                    new_dataset.regions.append(self.process_model(location, command)).id
+#                else:
+#                    new_dataset.regions.append(location.dam_location_id)
 
         if model.location_offset is not None:
-            new_dataset.location_offset = self.process_model(model.location_offset, command).id
+            new_dataset.location_offset = self.process_model(model.location_offset, command, work)
 
-        for method in model.methods:
-            if method.id == model.method_id:
-                if method.data_type.dam_id is not None:
-                    new_dataset.schema = method.data_type.dam_id
-                else:
-                    new_dataset.schema = self.process_model(method.data_type, command).id
+        method = self.session.query(Method).filter_by(id=model.method_id).first()
+        if method is not None:
+            if method.data_type.dam_id is not None and method.data_type.dam_id >= 0:
+                new_dataset.schema = int(method.data_type.dam_id)
+            else:
+                new_dataset.schema = self.process_model(method.data_type, command, work).id
 
+        data_source_field = self.session.query(MethodSchemaField).filter_by(id=model.pull_data_source.file_field).first()
         if model.form_data_source is not None:
             data_source = jcudc24ingesterapi.models.data_sources.FormDataSource()
             # TODO: Update datasource configuration
         if model.pull_data_source is not None:
             data_source = jcudc24ingesterapi.models.data_sources.PullDataSource(
-                model.pull_data_source.uri,
-                model.pull_data_source.file_field,
-                model.pull_data_source.filename_pattern,
-                model.pull_data_source.mime_type,
-                model.custom_processor_script,
-                model.pull_data_source.custom_sampling_script,
+                url=model.pull_data_source.uri,
+                field=data_source_field.name,
+                pattern=model.pull_data_source.filename_pattern,
+                mime_type=model.pull_data_source.mime_type,
+                processing_script=model.pull_data_source.custom_processor_script,
+                sampling=model.pull_data_source.custom_sampling_script,
             )
         if model.push_data_source is not None:
             data_source = jcudc24ingesterapi.models.data_sources.PushDataSource()
@@ -350,17 +312,22 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
 
         new_dataset.data_source = data_source
 
+        if model.redbox_uri is not None:
+            new_dataset.redbox_uri = model.redbox_uri
+
 
         if model.dam_id is not None:
-            new_dataset.id = model.dam_id
+            new_dataset.id = int(model.dam_id)
 
         model.dam_id = command(new_dataset)
+        new_dataset.provisioning_model = model
+        new_dataset.set_listener(model_id_listener)
         return new_dataset
 
-    def process_data_entry(self, model, command):
+    def process_data_entry(self, model, command, work):
         pass # TODO: data_entries
 
-    def process_metadata(self, model, command):
+    def process_metadata(self, model, command, work):
         pass # TODO: metadata
 
 

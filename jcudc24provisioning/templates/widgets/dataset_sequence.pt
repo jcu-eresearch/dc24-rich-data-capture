@@ -2,7 +2,6 @@
     This template has been modified from sequence.pt specifically for the methods page
     The intent is to provide template selection and AJAX autocomplete when adding methods.
 -->
-
 <div class="deformSeq"
      id="${field.oid}"
      tal:define="rndr field.renderer;
@@ -12,23 +11,29 @@
                  now_len len(subfields);
                  prototype field.widget.prototype(field)">
 
-    <div id="${field.oid}-template_panel" class="wizard hidden">
 
-        <h2>Create New Method</h2>
-        <p>Method templates provide pre-configured data collection methods and pre-fill as much information as possible to make this process as quick and easy as possible.</p>
-        <ul>
-            <li>If you don't want to use any template, select the general category and Blank template.</li>
-            <li>Please contact the administrators to request new templates.</li>
-        </ul>
+    <div id="${field.oid}-template_panel" class="wizard hidden">
+        <h2>Create New Dataset</h2>
+        <p>Select the method that this dataset is for, this will pre-fill the dataset with the correct data schema (how the data is stored), data source as well as any data setup within the method template.</p>
+        <p>If you don't want to use any of the available methods, go back to the previous <i>Methods</i> step and make the changes you require.</p>
         <ol>
-            <li>First select the category or organisational group on the left hand side.</li>
-            <li>Then select the most relevant template from the list on the right hand side.</li>
+            <li>Select the method that this dataset should be based off.</li>
+            <li>Click the Create Dataset button.</li>
         </ol>
-        <div tal:content="structure rndr(field.schema.templates_data.widget.template, field=field.schema.templates_data, cstruct='', parent=field)"></div>
+
+        <div class="dataset_select">
+            <div onclick="$(this).siblings().removeClass('selected'); $(this).addClass('selected');"
+                 tal:repeat="method field.schema.children[0].methods">
+                <h3>${method.method_name}</h3>
+                <p tal:content="method.method_description"></p>
+                <input class="method_id" type="hidden" value="${method.id}" />
+            </div>
+        </div>
+
+
         <div style="clear: both; position: relative; height: 60px;">
             <div class="button_text submit" onclick="stopAddMethod(this);">Cancel</div>
-            <div class="button_text submit" onclick="preFillMethod(this);">Create Method</div>
-
+            <div class="button_text submit" onclick="preFillMethod(this);">Create Dataset</div>
         </div>
     </div>
     <!-- sequence -->
@@ -110,10 +115,10 @@
         function preFillMethod(create_button) {
             var oid = create_button.parentNode.parentNode.id.replace('-template_panel', '');
             var new_oid = $("#" + oid).children("ul").first().children(".deformInsertBefore").prev()[0].id;
-            var method_id = $(create_button.parentNode.parentNode).find(".selected input")[0].value;
-            $("#" + new_oid + " [name='method:method_template']")[0].value = method_id;
+            var method_id = $(create_button.parentNode.parentNode).find(".selected input.method_id")[0].value;
+            $("#" + new_oid + " [name='dataset:method_id']")[0].value = method_id;
             var project_id = $("[name='project:id']")[0].value;
-            $("#" + new_oid + " [name='method:project_id']")[0].value = project_id;
+            $("#" + new_oid + " [name='dataset:project_id']")[0].value = project_id;
 
 
             $("#deformSave").click();

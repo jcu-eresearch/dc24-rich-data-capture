@@ -69,7 +69,7 @@ class Layouts(object):
                 menu['href'] = menu_introspector['pattern']
             else:
                 logger.error("Menu item has an invalid route_name: %s" % menu['route_name'])
-                raise ValueError(("Menu item has an invalid route_name: %s" % menu['route_name']))
+                raise ValueError("Menu item has an invalid route_name: %s" % menu['route_name'])
 
             if 'hidden' in menu and menu['hidden'] is True:
                 hidden.append(menu)
@@ -95,7 +95,7 @@ class Layouts(object):
             if page['route_name'] == self.request.matched_route.name:
                 return page['page_title']
 
-        raise ValueError("There is no page title for this address: " + str(href))
+        raise ValueError("There is no page title for this address: " + str(self.request.url))
 
     @view_config(renderer="../templates/dashboard.pt", route_name="dashboard")
     def dashboard_view(self):
@@ -105,7 +105,7 @@ class Layouts(object):
             'success_messages': self.request.session.pop_flash("success"),
             'warning_messages': self.request.session.pop_flash("warning")
         }
-        return {"page_title": "Provisioning Dashboard", 'messages' : messages}
+        return {"page_title": "Provisioning Dashboard", 'messages': messages}
 
     @view_config(renderer="../templates/dashboard.pt", route_name="search")
     def search_page_view(self):
@@ -116,7 +116,7 @@ class Layouts(object):
             'success_messages': self.request.session.pop_flash("success"),
             'warning_messages': self.request.session.pop_flash("warning")
         }
-        return {"page_title": "Provisioning Dashboard", 'messages' : messages}
+        return {"page_title": "Provisioning Dashboard", 'messages': messages}
 
 
     @view_config(context=Exception, renderer="../templates/exception.pt")

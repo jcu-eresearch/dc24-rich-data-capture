@@ -29,7 +29,7 @@ from jcudc24provisioning.views.mint_lookup import MintLookup
 
 config = ConfigParser.SafeConfigParser()
 config.read('../../development.ini')
-db_engine = create_engine(config.get("app:main", "sqlalchemy.url"), echo=True, pool_recycle=3600, connect_args={'reconnect':True})
+db_engine = create_engine(config.get("app:main", "sqlalchemy.url"), pool_recycle=3600, echo=False,) #connect_args={'reconnect':True})
 #db_engine.connect()
 #DBSession = scoped_session(sessionmaker(bind=db_engine))
 DBSession = scoped_session(sessionmaker(bind=db_engine, extension=ZopeTransactionExtension()))
@@ -594,16 +594,16 @@ class PullDataSource(Base):
 
 
     # TODO: filename_patterns
-    filename_pattern=None
+    filename_pattern=Column(String(100),ca_order=next(order_counter), ca_title="Filename Pattern (Regex)",
+            ca_group_help="Provide a filename pattern (Regex) that identifies which files should be ingested.")
     # TODO: file mime_types
-    mime_type=None
+    mime_type=Column(String(100),ca_order=next(order_counter), ca_title="File MIME Type",
+                ca_group_help="Provide a file MIME type that identifies the file content type.")
 
-    start_conditions = Column(String(100),ca_order=next(order_counter), ca_title="Start conditions(TODO)", ca_child_title="todo",
-        ca_widget=deform.widget.HiddenWidget(template="chron_textinput"),
+    cron_sampling = Column(String(100),ca_order=next(order_counter), ca_title="Cron Based Sampling (When data is collected)",
         ca_group_start="sampling", ca_group_title="Data Sampling/Filtering", ca_group_collapsed=False,
-        ca_group_help="Provide filtering conditions for the data received, the most common and simplest"\
-                      "cases are a sampling rate (eg. once per hour) or a repeating time periods (such as "\
-                      "start at 6am, stop at 7am daily) but any filtering can be acheived by adding a custom "\
+        ca_widget=deform.widget.TextInputWidget(template="chron_textinput"),
+        ca_help="Provide repetitive filtering condition for retreiving data using the selectors below.  If you require something more advanced any filtering can be achieved by adding a custom "\
                       "sampling script below.</br></br>  The sampling script API can be found <a href="">here</a>.")
 #    stop_conditions = Column(String(100),ca_order=next(order_counter), ca_title="Stop conditions (TODO)", ca_child_title="todo")
 
@@ -618,6 +618,18 @@ class PullDataSource(Base):
         ca_description="Upload a custom Python script to "\
                        "sample the data in some way.  The sampling script API can be found "\
                        "<a title=\"Python sampling script API\"href=\"\">here</a>.")
+
+    custom_processor_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
+        ca_group_start="processing", ca_group_collapsed=False, ca_group_title="Custom Data Processing",
+        ca_placeholder="eg. Extract he humidity and temperature values from the raw data file received in another dataset.",
+        ca_title="Describe custom processing needs", ca_missing="", ca_description="Describe your processing "\
+                    "requirements and what your uploaded script does (or what you will need help with).")
+
+    custom_processor_script = Column(String(256),ca_order=next(order_counter), ca_title="Upload custom processing script", ca_missing = colander.null,
+        ca_group_end="method",
+        ca_description="Upload a custom Python script to "\
+            "process the data in some way.  The processing script API can be found "\
+            "<a title=\"Python processing script API\"href=\"\">here</a>.")
 
 
 class PushDataSource(Base):
@@ -719,10 +731,10 @@ class Dataset(Base):
         ca_group_start="coverage", ca_group_collapsed=False, ca_group_title="Dataset Date and Location",
         ca_placeholder="eg. Summers of 1996-2006", ca_missing="",
         ca_help="Provide a textual representation of the time period such as world war 2 or more information on the time within the dates provided.")
-    date_from = Column(Date(), ca_name="dc:coverage.vivo:DateTimeInterval.vivo:start", ca_order=next(order_counter), ca_placeholder="", ca_title="Date From",
-        ca_help='The date that data will start being collected.', ca_force_required=True)
-    date_to = Column(Date(), ca_name="dc:coverage.vivo:DateTimeInterval.vivo:end", ca_order=next(order_counter), ca_title="Date To", ca_page="metadata",
-        ca_help='The date that data will stop being collected.', ca_missing=colander.null)
+    date_from = Column(Date(), ca_name="dc:coverage.vivo:DateTimeInterval.vivo:start", ca_order=next(order_counter), ca_placeholder="", ca_title="Date data started/will start being collected",
+        ca_help="The date that data started being collected.  Note that this is the actual data date not the finding date, recording date or other date.  For example, an old letter may be found in 2013 but it was actually written in 1900 - the date to use is 1900.", ca_force_required=True)
+    date_to = Column(Date(), ca_name="dc:coverage.vivo:DateTimeInterval.vivo:end", ca_order=next(order_counter), ca_title="Date data stopped/will stop being collected", ca_page="metadata",
+        ca_help='The date that data will stop being collected.  Note that this is the actual data date not the finding date, recording date or other date.  For example, an old letter may be found in 2013 but it was actually written in 1900 - the date to use is 1900.', ca_missing=colander.null)
     location_description = Column(String(512), ca_order=next(order_counter), ca_title="Location (description)",
         ca_help="Textual description of the location such as Australian Wet Tropics."
         , ca_missing="", ca_placeholder="eg. Australian Wet Tropics or Great Barrier Reef")
@@ -733,32 +745,16 @@ class Dataset(Base):
         ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
         ca_missing="", ca_help="<p>Use the drawing tools on the map and/or edit the text representations below.</p><p>Locations are represented using <a href='http://en.wikipedia.org/wiki/Well-known_text#Geometric_Objects'>Well-known Text (WKT) markup</a> in the WGS 84 coordinate system (coordinate system used by GPS).</p>")
 
-
     location_offset = relationship('LocationOffset', uselist=False, ca_order=next(order_counter), ca_title="Location Offset (optional)",
         cascade="all, delete-orphan",
         ca_group_end="coverage", ca_widget=deform.widget.MappingWidget(template="inline_mapping", show_label=True),
         ca_missing=colander.null, ca_help="Use an offset from the current location where the current location is the project location if valid, else the dataset location (eg. such as the artificial tree location is known so use z offsets for datasets).")
 
-    form_data_source = relationship("FormDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",
-        ca_group_start="data_source_configuration", ca_group_collapsed=False, ca_group_widget=deform.widget.MappingWidget(template="data_source_config_mapping"),
-        ca_group_help="<b>TODO: Specialised template/widget to display the data source configuration correctly</b><br/><br/>Configure how this dataset will ingest data.")
-    pull_data_source = relationship("PullDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",)
-    push_data_source = relationship("PushDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",)
-    sos_data_source = relationship("SOSDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",)
-    dataset_data_source = relationship("DatasetDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",
-        ca_group_end="data_source_configuration")
-
-    custom_processor_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
-        ca_group_start="processing", ca_group_collapsed=False, ca_group_title="Custom Data Processing",
-        ca_placeholder="eg. Extract he humidity and temperature values from the raw data file received in another dataset.",
-        ca_title="Describe custom processing needs", ca_missing="", ca_description="Describe your processing "\
-                    "requirements and what your uploaded script does (or what you will need help with).")
-
-    custom_processor_script = Column(String(256),ca_order=next(order_counter), ca_title="Upload custom processing script", ca_missing = colander.null,
-        ca_group_end="method",
-        ca_description="Upload a custom Python script to "\
-            "process the data in some way.  The processing script API can be found "\
-            "<a title=\"Python processing script API\"href=\"\">here</a>.")
+    form_data_source = relationship("FormDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",ca_collapsed=False)
+    pull_data_source = relationship("PullDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",ca_collapsed=False)
+    push_data_source = relationship("PushDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",ca_collapsed=False,)
+    sos_data_source = relationship("SOSDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",ca_collapsed=False,)
+    dataset_data_source = relationship("DatasetDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",ca_collapsed=False,)
 
 
 class ProjectNote(Base):
@@ -997,10 +993,10 @@ class Metadata(Base):
         ca_group_start="coverage", ca_group_collapsed=False, ca_group_title="Project Date and Location",
         ca_placeholder="eg. Summers of 1996-2006", ca_missing="",
         ca_help="Provide a textual representation of the time period such as 'world war 2' or more information on the time within the dates provided.")
-    date_from = Column(Date(), ca_order=next(order_counter), ca_placeholder="", ca_title="Date From", ca_page="metadata", ca_force_required=True,
-        ca_help='The date that data will start being collected - if you would like to be more specific add the details in the description field above')
-    date_to = Column(Date(), ca_order=next(order_counter), ca_title="Date To", ca_page="metadata",
-        ca_help='The date that data will stop being collected - if you would like to be more specific add the details in the description field above', ca_missing=colander.null)
+    date_from = Column(Date(), ca_name="dc:coverage.vivo:DateTimeInterval.vivo:start", ca_order=next(order_counter), ca_placeholder="", ca_title="Date data started/will start being collected", ca_page="metadata",
+        ca_help="The date that data started being collected.  Note that this is the actual data date not the finding date, recording date or other date.  For example, an old letter may be found in 2013 but it was actually written in 1900 - the date to use is 1900.", ca_force_required=True)
+    date_to = Column(Date(), ca_name="dc:coverage.vivo:DateTimeInterval.vivo:end", ca_order=next(order_counter), ca_title="Date data stopped/will stop being collected", ca_page="metadata",
+        ca_help='The date that data will stop being collected.  Note that this is the actual data date not the finding date, recording date or other date.  For example, an old letter may be found in 2013 but it was actually written in 1900 - the date to use is 1900.', ca_missing=colander.null)
     location_description = Column(String(512), ca_order=next(order_counter), ca_title="Location (description)", ca_page="metadata",
         ca_help="Textual description of the region covered such as Australian Wet Tropics."
         , ca_missing="", ca_placeholder="eg. Australian Wet Tropics or Great Barrier Reef")
@@ -1029,17 +1025,26 @@ class Metadata(Base):
     #    TODO: Link to external sources
 
     licenses = (
-        ('none', 'No License'),
-        ('creative_commons_by', 'Creative Commons - Attribution alone (by)'),
-        ('creative_commons_bync', 'Creative Commons - Attribution + Noncommercial (by-nc)'),
-        ('creative_commons_bynd', 'Creative Commons - Attribution + NoDerivatives (by-nd)'),
-        ('creative_commons_bysa', 'Creative Commons - Attribution + ShareAlike (by-sa)'),
-        ('creative_commons_byncnd', 'Creative Commons - Attribution + Noncommercial + NoDerivatives (by-nc-nd)'),
-        ('creative_commons_byncsa', 'Creative Commons - Attribution + Noncommercial + ShareAlike (by-nc-sa)'),
-        ('restricted_license', 'Restricted License'),
-        ('other', 'Other'),
+        ("http://creativecommons.org/licenses/by-nc-nd/3.0/au", "CC BY-NC-ND: Attribution-Noncommercial-No Derivatives 3.0 AU"),
+        ("http://creativecommons.org/licenses/by-nc-sa/3.0/au", "CC BY-NC-SA: Attribution-Noncommercial-Share Alike 3.0 AU"),
+        ("http://creativecommons.org/licenses/by-nc/3.0/au", "CC BY-NC: Attribution-Noncommercial 3.0 AU"),
+        ("http://creativecommons.org/licenses/by-nd/3.0/au", "CC BY-ND: Attribution-No Derivative Works 3.0 AU"),
+        ("http://creativecommons.org/licenses/by-sa/3.0/au", "CC BY-SA: Attribution-Share Alike 3.0 AU"),
+        ("http://creativecommons.org/licenses/by/3.0/au", "CC BY: Attribution 3.0 AU"),
+        ("http://opendatacommons.org/licenses/by/1.0/", "ODC-By - Attribution License 1.0"),
+        ("http://opendatacommons.org/licenses/odbl/1.0/", "ODC-ODbL - Attribution Share-Alike for data/databases 1.0"),
+        ("http://opendatacommons.org/licenses/pddl/1.0/", "PDDL - Public Domain Dedication and License 1.0"),
+#        ('none', 'No License'),
+#        ('creative_commons_by', 'Creative Commons - Attribution alone (by)'),
+#        ('creative_commons_bync', 'Creative Commons - Attribution + Noncommercial (by-nc)'),
+#        ('creative_commons_bynd', 'Creative Commons - Attribution + NoDerivatives (by-nd)'),
+#        ('creative_commons_bysa', 'Creative Commons - Attribution + ShareAlike (by-sa)'),
+#        ('creative_commons_byncnd', 'Creative Commons - Attribution + Noncommercial + NoDerivatives (by-nc-nd)'),
+#        ('creative_commons_byncsa', 'Creative Commons - Attribution + Noncommercial + ShareAlike (by-nc-sa)'),
+#        ('restricted_license', 'Restricted License'),
+#        ('other', 'Other'),
         )
-    license = Column(String(256), ca_name="dc:license.dc:identifier", ca_order=next(order_counter), ca_title="License", ca_placeholder="creative_commons_by", ca_page="metadata",
+    license = Column(String(256), ca_name="dc:license.dc:identifier", ca_order=next(order_counter), ca_title="License", ca_page="metadata",
         ca_default="creative_commons_by", ca_force_required=True,
         ca_widget=deform.widget.SelectWidget(values=licenses, template="select_with_other"),
         ca_help="<p>This list contains data licences that this server has been configured with. For more information about "
@@ -1143,8 +1148,8 @@ class Project(Base):
     # ColanderAlchemy schema will not be able to generate the required deform schemas:
     #   * Setup the ColanderAlchemy schema to correctly create the database
     #   * Dynamically alter the generated schema in the view
-    datasets = relationship('Dataset', ca_widget=deform.widget.SequenceWidget(min_len=1), ca_order=next(order_counter), ca_page="datasets",
-#        ca_select_description="<i>Changing the dataset type will overwrite all dataset fields.</i>",
+    datasets = relationship('Dataset', ca_widget=deform.widget.SequenceWidget(min_len=0, template="dataset_sequence"), ca_order=next(order_counter), ca_page="datasets",
+        ca_child_widget=deform.widget.MappingWidget(template="dataset_mapping"),
         ca_child_title="Dataset", ca_child_collapsed=False,cascade="all, delete-orphan",)
 
     #-----------------------------------------Submit page---------------------------------------------------
@@ -1215,10 +1220,11 @@ class CreatePage(colander.MappingSchema):
                 "<i>Autocomplete from most universities and large organisations, if the person you are trying to select isn't available please organise an external JCU account for them.</i>")
 
 
-method_template = colander.SchemaNode(colander.Integer, title="Select a template to base this method off (Overrides all fields)",
+method_template = colander.SchemaNode(colander.Integer, title="Select a template to base this method off",
     widget=deform.widget.TextInputWidget(template="project_template_mapping"),
     help="<p>Method templates provide pre-configured data collection methods and pre-fill as much information as possible to make this process as quick and easy as possible.</p>"
             "<ul><li>If you don't want to use any template, select the general category and Blank template."
             "</li><li>Please contact the administrators to request new templates.</li>",
     description="<ol><li>First select the category or organisational group on the left hand side.</li>"
                    "<li>Then select the most relevant template from the list on the right hand side.</li>")
+

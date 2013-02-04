@@ -1,15 +1,43 @@
+# This line is needed to activate the virtualenv for running the tests in Intellij IDEA - update to your own virtualenv location.
+import transaction
+
+execfile("D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py", dict(__file__="D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py"))
 
 import unittest
+from deform import Form
+from colanderalchemy import SQLAlchemyMapping
 from jcudc24ingesterapi.authentication import CredentialsAuthentication
-from jcudc24provisioning.models.project import Project, Location, LocationOffset, Method, Dataset, Keyword, FieldOfResearch, MethodSchema, MethodSchemaField, PullDataSource
+from jcudc24provisioning.models.project import Project, Location, LocationOffset, Method, Dataset, Keyword, FieldOfResearch, MethodSchema, MethodSchemaField, PullDataSource, Metadata, DBSession
 from jcudc24provisioning.scripts.ingesterapi_wrapper import IngesterAPIWrapper
+from jcudc24provisioning.views.ca_scripts import convert_schema, convert_sqlalchemy_model_to_data, create_sqlalchemy_model
+
+
+class TestModelConversion(unittest.TestCase):
+    def test_conversion_equality(self):
+        session = DBSession
+        PROJECT_ID = 2
+
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise',))
+        form = Form(schema, action='test', project_id=PROJECT_ID, buttons=('Save', 'Delete', 'Submit', 'Reopen', 'Approve', 'Disable'), use_ajax=False)
+        model = session.query(Project).filter_by(id=2).first()
+        data = convert_sqlalchemy_model_to_data(model, schema)
+        new_model = create_sqlalchemy_model(data, Project)
+
+        public_props = (name for name in dir(object) if not name.startswith('_'))
+        for name in public_props:
+            print name
+            assert model.getattr(name) == new_model.getattr(name), "Converted models don't equal: %s, %s" % model.getattr(name) % new_model.getattr(name)
+
+        print "Successfully read model, converted to data, converted back to model and the models are the same."
 
 
 class TestIngesterPlatform(unittest.TestCase):
     def setUp(self):
+        self.session = DBSession
+        self.auth = CredentialsAuthentication("casey", "password")
+        self.ingester_api = IngesterAPIWrapper("http://localhost:8080/api", self.auth)
 
         self.project = Project()
-        self.project.id = 1
 #        self.project.description = "This is a test description for the DC24 provisioning interface"
 #        self.project.no_activity = True
 #        self.project.project_title = "This is a test title for the test DC24 project"
@@ -43,24 +71,23 @@ class TestIngesterPlatform(unittest.TestCase):
 #        self.project.location_description = "Test location description"
 
         test_location = Location()
-        test_location.id = 1
-        test_location.project_id = self.project.id
         test_location.location = "POINT(135.8763427287297 -24.167471616893767)"
         test_location.elevation = 12.3
 
-        self.project.locations.append(test_location)
-        self.project.retention_period = "5"
-        self.project.national_significance = False
+        self.project.information = Metadata()
+        self.project.information.locations.append(test_location)
+        self.project.information.retention_period = "5"
+        self.project.metadata.national_significance = False
 
         method1 = Method()
-        method1.id = 0
-        method1.project_id = self.project.id
         method1.method_name = "Artificial tree sensor"
         method1.method_description = "A custom developed sensor consisting of a calibrated temperature sensor and a humidity sensor (which also has an uncalibrated temperature sensor within it)"
+
         method1.data_type = MethodSchema()
-        method1.data_type.id=0
-        method1.data_type.method_id = method1.id
         method1.data_type.name = "Test Schema"
+
+        self.session.add(method1)
+        self.session.flush()
 
 # The data entry location offset functionality has been changed
 #        offset_schema = MethodSchema()
@@ -93,25 +120,22 @@ class TestIngesterPlatform(unittest.TestCase):
 #        method1.data_type.parents.append(offset_schema)
 
         custom_field = MethodSchemaField()
-        custom_field.id = 3
-        custom_field.method_schema_id = method1.data_type.id
         custom_field.name = "Distance"
-        custom_field.type = "decimal"
-        custom_field.units = "m"
+        custom_field.type = "file"
+        custom_field.units = "text/cvs"
         method1.data_type.custom_fields.append(custom_field)
         self.project.methods.append(method1)
 
         dataset1 = Dataset()
-        dataset1.id = 0
         dataset1.method_id = method1.id
-        dataset1.project_id = self.project.id
         dataset1.disabled = False
         dataset1.description = "Test dataset"
+        dataset1.schema = method1.data_type
 
         data_source = PullDataSource()
-        data_source.id = 0
-        data_source.dataset_id = dataset1.id
         data_source.uri = "http://test.com.au"
+        data_source.mime_type = custom_field.units
+
         dataset1.pull_data_source = data_source
 
         dataset1.time_period_description = "Test dataset time description"
@@ -128,8 +152,6 @@ class TestIngesterPlatform(unittest.TestCase):
         # TODO: For locations in project: add as region to location
 
         dataset_location = Location()
-        dataset_location.id = 1
-        dataset_location.dataset_id = dataset1.id
         dataset_location.location = "POINT(132.8763427287297 -24.167471616893767)"
         dataset_location.elevation = 12.6
         dataset1.dataset_locations.append(dataset_location)
@@ -139,11 +161,12 @@ class TestIngesterPlatform(unittest.TestCase):
 
         self.project.datasets.append(dataset1)
 
-        self.auth = CredentialsAuthentication("casey", "password")
-        self.ingester_api = IngesterAPIWrapper("http://localhost:8080/api", self.auth)
+        self.session.add(self.project)
+        self.session.flush()
 
     def test_ingest_project(self):
         self.ingester_api.post(self.project)
+        transaction.commit()
         pass
 
     def tearDown(self):
