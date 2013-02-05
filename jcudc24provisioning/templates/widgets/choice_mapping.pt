@@ -1,3 +1,5 @@
+<!--Based on mapping.pt, altered to supply mapping_id to items.-->
+
 <fieldset id="mapping-${field.oid}" i18n:domain="deform"
           tal:attributes="class 'deformMappingFieldset ' + str((field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and ('collapsible-'+str(field.schema.__dict__.get('collapse_group')) or nothing))">
     <!-- mapping -->  <!--<legend 1tal:condition="field.schema.__dict__.get('collapsed')"><span class="collapse_icon">+ </span>${field.title}</legend>-->
@@ -27,33 +29,11 @@
         </li>
         <input type="hidden" name="__start__" value="${field.name}:mapping"/>
 
-        <tal:block
+        <div
                 tal:define="rndr field.renderer;
                    tmpl field.widget.item_template"
-                tal:repeat="f field.children">
-            <div tal:condition="not 'data_source' in f.name" tal:replace="structure rndr(tmpl,field=f,cstruct=cstruct.get(f.name,null))" />
-            <tal:block repeat="method field.schema.methods" tal:condition="'data_source' in f.name">
-                <!--If this is the correct data source-->
-                <tal:block tal:condition="str(method.id)==str(cstruct.get(field.schema.children[4].name,null))">
-                    <!--If the method doesn't have any datasource setup-->
-                    <tal:block tal:condition="not hasattr(method, 'no_data_source') and method.data_source is None or str(method.data_source) == ''">
-                         <div tal:define="dummy setattr(method, 'no_data_source', True)">
-                             <legend>Data Source Configuration</legend>
-                             <p class="error">There is no data source configured for this datasets' method, please go to the <i>Method</i> step and select a data source.</p>
-                         </div>
-                    </tal:block>
-
-                    <tal:block tal:condition="str(method.data_source) in f.name" >
-
-                        <!--If this is a pull_data_source-->
-                        <tal:block tal:condition="'pull_data_source' in f.name">
-                            <tal:block tal:define="test setattr(f.schema.children[3].widget, 'values',field.schema.widget.get_file_fields(method.data_type)) "></tal:block>
-                        </tal:block>
-                        <div tal:replace="structure rndr(tmpl,field=f,cstruct=cstruct.get(f.name,null))" />
-                    </tal:block>
-                </tal:block>
-            </tal:block>
-        </tal:block>
+                tal:repeat="f field.children"
+                tal:replace="structure rndr(tmpl,field=f,cstruct=cstruct.get(f.name,null), mapping_id=field.oid)"/>
         <input type="hidden" name="__end__" value="${field.name}:mapping"/>
     </ul>
     <!-- /mapping -->

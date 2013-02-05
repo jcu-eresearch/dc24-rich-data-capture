@@ -1,7 +1,7 @@
 # This line is needed to activate the virtualenv for running the tests in Intellij IDEA - update to your own virtualenv location.
 import transaction
 
-execfile("D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py", dict(__file__="D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py"))
+#execfile("D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py", dict(__file__="D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py"))
 
 import unittest
 from deform import Form

@@ -350,7 +350,7 @@ class Workflows(Layouts):
                     "provide detailed information that is relevant to the project as a whole.</li>"\
                     "<li>Focus on what is being researched, why it is being researched and who is doing the research. " \
                     "The research locations and how the research is being conducted will be covered in the <i>Methods</i>" \
-                    " and <i>Datasets</i> steps later on.</li></ul>";
+                    " and <i>Datasets</i> steps later on.</li></ul>"
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="description").bind(
             request=self.request)
 

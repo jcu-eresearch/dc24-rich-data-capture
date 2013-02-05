@@ -576,6 +576,7 @@ class FormDataSource(Base):
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
+
 class PullDataSource(Base):
     order_counter = itertools.count()
 
@@ -600,18 +601,29 @@ class PullDataSource(Base):
     mime_type=Column(String(100),ca_order=next(order_counter), ca_title="File MIME Type",
                 ca_group_help="Provide a file MIME type that identifies the file content type.")
 
-    cron_sampling = Column(String(100),ca_order=next(order_counter), ca_title="Cron Based Sampling (When data is collected)",
+    selected_sampling = Column(String(64), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter),
         ca_group_start="sampling", ca_group_title="Data Sampling/Filtering", ca_group_collapsed=False,
+        ca_group_widget=deform.widget.MappingWidget(item_template="choice_mapping_item", template="choice_mapping"),
+        ca_group_missing=colander.null)
+
+    periodic_sampling = Column(String(100),ca_order=next(order_counter), ca_title="Periodic Sampling (Collect data every X minutes)",
+        ca_help="Provide the number of minutes between checks for new data.  If you require something more advanced any filtering can be achieved by adding a custom "\
+                "sampling script below.</br></br>  The sampling script API can be found <a href="">here</a>.")
+
+    cron_sampling = Column(String(100),ca_order=next(order_counter), ca_title="Cron Based Sampling (When data is collected)",
         ca_widget=deform.widget.TextInputWidget(template="chron_textinput"),
-        ca_help="Provide repetitive filtering condition for retreiving data using the selectors below.  If you require something more advanced any filtering can be achieved by adding a custom "\
-                      "sampling script below.</br></br>  The sampling script API can be found <a href="">here</a>.")
-#    stop_conditions = Column(String(100),ca_order=next(order_counter), ca_title="Stop conditions (TODO)", ca_child_title="todo")
+        ca_help="<p>Provide repetitive filtering condition for retrieving data using the selectors below.</p>" \
+                "<p>If you require something more advanced you can provide your own cron string or any filtering can be achieved by adding a custom "\
+                "sampling script below.</p><p>The sampling script API can be found <a href="">here</a></p>.")
+
+
+    #    stop_conditions = Column(String(100),ca_order=next(order_counter), ca_title="Stop conditions (TODO)", ca_child_title="todo")
 
     custom_sampling_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
         ca_group_start="custom_sampling", ca_group_title="Custom Data Sampling/Filtering",
-        ca_placeholder="eg. Only ingest the firt data value of evry hour.",
-        ca_title="Describe custom sampling needs", ca_missing="", ca_description="Describe your sampling "\
-                                                                                 "requirements and what your uploaded script does, or what you will need help with.")
+        ca_placeholder="eg. Only ingest the first data value of every hour.",
+        ca_title="Describe custom sampling needs", ca_missing="",
+        ca_description="Describe your sampling requirements and what your uploaded script does, or what you will need help with.")
 
     custom_sampling_script = Column(String(256),ca_order=next(order_counter), ca_title="Upload custom sampling script", ca_missing = colander.null,
         ca_group_end="sampling",
@@ -752,8 +764,8 @@ class Dataset(Base):
 
     form_data_source = relationship("FormDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",ca_collapsed=False)
     pull_data_source = relationship("PullDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",ca_collapsed=False)
-    push_data_source = relationship("PushDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",ca_collapsed=False,)
     sos_data_source = relationship("SOSDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",ca_collapsed=False,)
+    push_data_source = relationship("PushDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",ca_collapsed=False,)
     dataset_data_source = relationship("DatasetDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",ca_collapsed=False,)
 
 
@@ -1121,7 +1133,7 @@ class Project(Base):
     id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget(), ca_missing=-1)
 
     project_creator = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
-    project_creator = Column(Date, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+    creation_date = Column(Date, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 
     template_only = Column(Boolean, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 

@@ -9,7 +9,7 @@
                  min_len field.widget.min_len or 0;
                  max_len field.widget.max_len or 100000;
                  now_len len(subfields);
-                 prototype field.widget.prototype(field)">
+                 prototype field.widget.prototype(field)" xmlns="http://www.w3.org/1999/html">
 
 
     <div id="${field.oid}-template_panel" class="wizard hidden">
@@ -24,8 +24,10 @@
         <div class="dataset_select">
             <div onclick="$(this).siblings().removeClass('selected'); $(this).addClass('selected');"
                  tal:repeat="method field.schema.children[0].methods">
-                <h3>${method.method_name}</h3>
-                <p tal:content="method.method_description"></p>
+                <h3 tal:condition="method.method_name">${method.method_name}</h3>
+                <h3 tal:condition="not method.method_name"><i>Un-named method</i></h3>
+                <p tal:condition="method.method_description" tal:content="structure method.method_description"></p>
+                <p tal:condition="not method.method_description"><i>No description has been provided for this method.</i></p>
                 <input class="method_id" type="hidden" value="${method.id}" />
             </div>
         </div>

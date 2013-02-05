@@ -1,0 +1,140 @@
+<!--
+Modified:
+ * Structural titles
+ * Structural descriptions
+ * Toggleable help
+ * Checkboxes go in front of label
+
+Extends mapping_item to provide selection of 1 item only, other items have their fields removed.
+
+This template is specifically developed for data source selection, it could be made generic though.
+* Relies on selected_sampling hidden field for saving the selection state
+
+-->
+<li class="field${field.error and ' ' + (field.widget.error_class or '')}"
+    id="item-${field.oid}"
+    tal:omit-tag="field.widget.hidden"
+    i18n:domain="deform"
+    tal:attributes="title field.schema.default or '';
+                    select_name field.schema.name"
+        onclick="choice_selected(this, false);">
+
+    <span class="structural_title_content" style="display:none;"
+          tal:condition="field.schema.__dict__.get('placeholder')"
+          tal:content="structure field.schema.__dict__.get('placeholder')"></span>
+
+    <span id="${field.oid}-content" tal:condition="'CheckboxWidget' in str(field.widget) and not field.widget.hidden" style="display: block;">
+    </span>
+
+
+    <input tal:condition="not field.widget.hidden" type="hidden" id="${field.oid}-prototype" tal:attributes="prototype field.serialize(cstruct)" />
+
+    <input tal:condition="not field.widget.hidden" id="select-${field.oid}" name="select-${mapping_id}" type="radio"
+            onchange="choice_selected(this.parentNode, true);"
+            style="vertical-align: top;"/>
+
+    <div style="display: inline-block;">
+            <span class="help_icon"
+              onclick="toggleHelp(this);"
+              tal:condition="not (field.widget.hidden or field.widget.category == 'structural') and field.schema.__dict__.get('help')">
+               ?
+            </span>
+
+        <!-- mapping_item -->
+        <label tal:condition="not field.widget.hidden"
+               tal:attributes="field_type field.widget.template"
+               style="display: inline;"
+               class="desc"
+               for="${field.oid}">
+            ${field.title}<span tal:condition="field.required and not field.widget.category == 'structural'" class="req" id="req-${field.oid}">*</span>
+        </label>
+
+
+        <div id="help-${field.oid}" tal:condition="field.schema.__dict__.get('help') and not (field.widget.hidden)"
+             class="help_text hidden"
+             tal:content="structure field.schema.__dict__.get('help')">
+        </div>
+
+        <div id="desc-${field.oid}" tal:condition="field.description and not (field.widget.hidden)"
+             class="description"
+             tal:content="structure field.description">
+        </div>
+
+        <span tal:condition="field.widget.hidden" tal:replace="structure field.serialize(cstruct)" />
+
+        <span id="${field.oid}-content" tal:condition="not 'CheckboxWidget' in str(field.widget) and not field.widget.hidden" style="display: block;">
+        </span>
+
+        <p tal:condition="field.error and not field.widget.hidden and not field.typ.__class__.__name__=='Mapping'"
+           tal:define="errstr 'error-%s' % field.oid"
+           tal:repeat="msg field.error.messages()"
+           tal:attributes="id repeat.msg.index==0 and errstr or
+       ('%s-%s' % (errstr, repeat.msg.index))"
+           class="${field.widget.error_class}"
+           i18n:translate="">${msg}</p>
+    </div>
+
+    <script type="text/javascript">
+        deform.addCallback(
+                '${field.oid}',
+                function (oid) {
+                    var list_item = $("#item-" + oid);
+                    if (list_item.children(".structural_title_content").length > 0) {
+                        var structural_element = list_item.children(".structural_title_content")[0];
+                        var title_text = structural_element.innerHTML;
+                        list_item[0].title = title_text;
+                    }
+
+                    var select_element = $("#" + oid);
+                    if (select_element.is("[name*='selected_sampling']") && select_element[0].value) {
+                        choice_selected(select_element.parent().siblings("[select_name='" + select_element[0].value + "']")[0], false, true);
+                    }
+                });
+
+        function choice_selected(list_item, is_onchange, is_loading) {
+            var oid = list_item.id.replace("item-", "");
+            var radio_element = $(list_item).children('input[type=radio]').first();
+            var selected_element = $(list_item).siblings().find("[name*='selected_sampling']").first();
+            selected_element[0].value = $(list_item).attr('select_name');
+            if (!radio_element.attr('checked') || is_onchange) {
+                radio_element.attr('checked', 'checked');
+                var prototype = $("#" + oid + "-prototype").attr('prototype');
+
+                var content_element = $('#' + oid + '-content')[0];
+                content_element.innerHTML = prototype;
+                if ($(content_element).children().first().is("fieldset")) {
+                    $(content_element).children().first().children("legend").remove();
+                }
+
+                process_callbacks_when_ready(content_element);
+                content_element.processed = true;
+            }
+            var other_radios = $("[name='" + radio_element[0].name + "']").not("#select-" + oid);
+            for (var i=0; i<other_radios.length; i++) {
+                set_prototype(other_radios[i].id.replace("select-", ""));
+            }
+        }
+
+        function process_callbacks_when_ready(content_element) {
+            if (deform.callbacks.length > 0) {
+                window.setTimeout(process_callbacks_when_ready, 200, content_element);
+            } else {
+                processJavascript(content_element);
+                deform.processCallbacks();
+            }
+        }
+
+        function set_prototype(oid) {
+            var content_element = $('#' + oid + '-content')[0];
+            if (content_element.innerHTML) {
+//                $("#" + oid + "-prototype").attr('prototype', content_element.innerHTML);
+//                alert(content_element.innerHTML);
+                content_element.innerHTML = '';
+            }
+        }
+    </script>
+
+    <!-- /mapping_item -->
+</li>
+
+

@@ -1,14 +1,17 @@
 import copy
+import logging
 from beaker.cache import cache_region
 from jcudc24ingesterapi.authentication import CredentialsAuthentication
 from jcudc24ingesterapi.ingester_platform_api import IngesterPlatformAPI
 from jcudc24ingesterapi.ingester_platform_api import UnitOfWork
 import jcudc24ingesterapi
-from jcudc24provisioning.models.project import Location, LocationOffset, MethodSchema, Base, Project, Region, Dataset, DBSession, Method, MethodSchemaField
+from jcudc24provisioning.models.project import Location, LocationOffset, MethodSchema, Base, Project, Region, Dataset, DBSession, Method, MethodSchemaField, PullDataSource
 from jcudc24ingesterapi.schemas.data_types import DateTime, FileDataType, Integer, String, Double, Boolean
+from models.sampling import PeriodicSampling
 
 __author__ = 'Casey Bajema'
 
+logger = logging.getLogger(__name__)
 
 def model_id_listener(self, attr, var):
     if attr == "_id":
@@ -262,24 +265,29 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
         new_dataset.enabled = True
         new_dataset.descripion = model.description
 
+        # Add the location
         first_location_found = False
         for location in model.dataset_locations:
             if not first_location_found and location.is_point():
                 first_location_found = True
                 if location.dam_id is not None and location.dam_id >= 0:
                     new_dataset.location = int(location.dam_id)
+#                    print "pervious location used: %s" + str(new_dataset.location)
                 else:
                     new_dataset.location = self.process_model(location, command, work).id
+#                    print "new location added: %s" + str(new_dataset.location)
             else:
-                pass # TODO: Discuss regions when we get here - there is currently only 1 region in a dataset (this will fail if run)
+                pass # TODO: Discuss regions when we get there - there is currently only 1 region in a dataset (this will fail if run)
 #                if location.dam_id is None:
 #                    new_dataset.regions.append(self.process_model(location, command)).id
 #                else:
 #                    new_dataset.regions.append(location.dam_location_id)
 
+        # Add the location offset if it is set
         if model.location_offset is not None:
             new_dataset.location_offset = self.process_model(model.location_offset, command, work)
 
+        # Add the data_entry schema to the dataset
         method = self.session.query(Method).filter_by(id=model.method_id).first()
         if method is not None:
             if method.data_type.dam_id is not None and method.data_type.dam_id >= 0:
@@ -287,19 +295,45 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             else:
                 new_dataset.schema = self.process_model(method.data_type, command, work).id
 
-        data_source_field = self.session.query(MethodSchemaField).filter_by(id=model.pull_data_source.file_field).first()
+        # Add the data source configuration
         if model.form_data_source is not None:
             data_source = jcudc24ingesterapi.models.data_sources.FormDataSource()
             # TODO: Update datasource configuration
         if model.pull_data_source is not None:
-            data_source = jcudc24ingesterapi.models.data_sources.PullDataSource(
-                url=model.pull_data_source.uri,
-                field=data_source_field.name,
-                pattern=model.pull_data_source.filename_pattern,
-                mime_type=model.pull_data_source.mime_type,
-                processing_script=model.pull_data_source.custom_processor_script,
-                sampling=model.pull_data_source.custom_sampling_script,
-            )
+            # Create the sampling
+            sampling_object = None
+            if PullDataSource.periodic_sampling.key in model.pull_data_source.selected_sampling:
+                try:
+                    sampling_object = jcudc24ingesterapi.models.sampling.PeriodicSampling(int(model.pull_data_source.periodic_sampling))
+                except TypeError:
+                    logger.exception("Trying to create a periodic sampler with invalid rate: %s", model.pull_data_source.periodic_sampling)
+                    return None
+            elif PullDataSource.cron_sampling.key in model.pull_data_source.selected_sampling:
+                raise NotImplementedError("Cron sampling hasn't been implemented yet")
+
+            elif PullDataSource.custom_sampling_desc.ca_group_start in model.pull_data_source.selected_sampling:
+                try:
+                    sampling_object = jcudc24ingesterapi.models.sampling.CustomSampling(model.pull_data_source.custom_sampling_script)
+                except TypeError:
+                    logger.exception("Trying to create a custom sampler with invalid script handle: %s", model.pull_data_source.custom_sampling_script)
+                    return None
+            print "SAMPLIING OBJECT: %s" % sampling_object
+
+            # Create the data source
+            try:
+                data_source_field = self.session.query(MethodSchemaField).filter_by(id=model.pull_data_source.file_field).first()
+                data_source = jcudc24ingesterapi.models.data_sources.PullDataSource(
+                    url=model.pull_data_source.uri,
+                    field=data_source_field.name,
+                    pattern=model.pull_data_source.filename_pattern,
+                    mime_type=model.pull_data_source.mime_type,
+                    processing_script=model.pull_data_source.custom_processor_script,
+                    sampling=sampling_object,
+                )
+            except TypeError:
+                logger.exception("Trying to create an ingester data source with invalid parameters")
+                return None
+
         if model.push_data_source is not None:
             data_source = jcudc24ingesterapi.models.data_sources.PushDataSource()
             # TODO: Update datasource configuration
