@@ -5,7 +5,7 @@ from jcudc24ingesterapi.authentication import CredentialsAuthentication
 from jcudc24ingesterapi.ingester_platform_api import IngesterPlatformAPI
 from jcudc24ingesterapi.ingester_platform_api import UnitOfWork
 import jcudc24ingesterapi
-from jcudc24provisioning.models.project import Location, LocationOffset, MethodSchema, Base, Project, Region, Dataset, DBSession, Method, MethodSchemaField, PullDataSource
+from jcudc24provisioning.models.project import Location, LocationOffset, MethodSchema, Base, Project, Region, Dataset, DBSession, Method, MethodSchemaField, PullDataSource,FormDataSource, PushDataSource, DatasetDataSource, SOSDataSource
 from jcudc24ingesterapi.schemas.data_types import DateTime, FileDataType, Integer, String, Double, Boolean
 from models.sampling import PeriodicSampling
 
@@ -289,17 +289,26 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
 
         # Add the data_entry schema to the dataset
         method = self.session.query(Method).filter_by(id=model.method_id).first()
-        if method is not None:
-            if method.data_type.dam_id is not None and method.data_type.dam_id >= 0:
-                new_dataset.schema = int(method.data_type.dam_id)
-            else:
-                new_dataset.schema = self.process_model(method.data_type, command, work).id
+        if method is None:
+            raise ValueError("Trying to provision a dataset that has no associated method.  Try deleting and re-creating the dataset.")
+
+        if method.data_type.dam_id is not None and method.data_type.dam_id >= 0:
+            new_dataset.schema = int(method.data_type.dam_id)
+        else:
+            new_dataset.schema = self.process_model(method.data_type, command, work).id
 
         # Add the data source configuration
-        if model.form_data_source is not None:
+        if method.data_source is None:
+            raise ValueError("Trying to provision a dataset with an undefined data source type.  Go back to the methods step and select the data source, then configure the data source in the datasets step.")
+
+        if method.data_source == FormDataSource.__tablename__:
+            if model.form_data_source is None:
+                raise ValueError("Trying to provision a dataset with no data source.  Go back to the dataset step and configure the data source.")
             data_source = jcudc24ingesterapi.models.data_sources.FormDataSource()
             # TODO: Update datasource configuration
-        if model.pull_data_source is not None:
+        if method.data_source == PullDataSource.__tablename__:
+            if model.pull_data_source is None:
+                raise ValueError("Trying to provision a dataset with no data source.  Go back to the dataset step and configure the data source.")
 
             # Create the sampling
             sampling_object = None
@@ -339,13 +348,19 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
                 logger.exception("Trying to create an ingester data source with invalid parameters")
                 return None
 
-        if model.push_data_source is not None:
+        if method.data_source == PushDataSource.__tablename__:
+            if model.push_data_source is None:
+                raise ValueError("Trying to provision a dataset with no data source.  Go back to the dataset step and configure the data source.")
             data_source = jcudc24ingesterapi.models.data_sources.PushDataSource()
             # TODO: Update datasource configuration
-        if model.sos_data_source is not None:
+        if method.data_source == SOSDataSource.__tablename__:
+            if model.sos_data_source is None:
+                raise ValueError("Trying to provision a dataset with no data source.  Go back to the dataset step and configure the data source.")
             data_source = jcudc24ingesterapi.models.data_sources.SOSDataSource()
             # TODO: Update datasource configuration
-        if model.dataset_data_source is not None:
+        if method.data_source == DatasetDataSource.__tablename__:
+            if model.dataset_data_source is None:
+                raise ValueError("Trying to provision a dataset with no data source.  Go back to the dataset step and configure the data source.")
             data_source = jcudc24ingesterapi.models.data_sources.DatasetDataSource()
             # TODO: Update datasource configuration
 

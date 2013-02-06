@@ -505,70 +505,6 @@ class MethodSchema(Base):
         ca_description="Provide details of the schema field and how it should be displayed.",
         ca_help="TODO:  This needs to be displayed better - I'm thinking a custom template that has a sidebar for options and the fields are displayed 1 per line.  All fields will be shown here (including fields from parent/extended schemas selected above).")
 
-
-class Method(Base):
-    order_counter = itertools.count()
-
-    __tablename__ = 'method'
-    project_id = Column(Integer, ForeignKey('project.id'), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
-    id = Column(Integer, ca_order=next(order_counter), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-
-
-    method_template = Column(Integer, ca_order=next(order_counter), ca_title="Select a template to base this method off (Overrides all fields)",
-        ca_widget=deform.widget.TextInputWidget(template="project_template_mapping"),
-        ca_help="<p>Method templates provide pre-configured data collection methods and pre-fill as much information as possible to make this process as quick and easy as possible.</p>"
-             "<ul><li>If you don't want to use any template, select the general category and Blank template."
-             "</li><li>Please contact the administrators to request new templates.</li>",
-        ca_description="<ol><li>First select the category or organisational group on the left hand side.</li>"
-                    "<li>Then select the most relevant template from the list on the right hand side.</li>")
-
-    method_name = Column(String(256), ca_order=next(order_counter),
-            ca_placeholder="Searchable identifier for this input method (eg. Invertebrate observations)",
-            ca_description="Descriptive, human readable name for this data collection method.  The name is used for selecting this method in the <i>Datasets</i> step.")
-    method_description = Column(Text(), ca_order=next(order_counter), ca_title="Description", ca_widget=deform.widget.TextAreaWidget(),
-        ca_description="Provide a description of this method, this should include what, why and how the data is being collected but <b>Don\'t enter where or when</b> as this information is relevant to the dataset, not the method.",
-        ca_placeholder="Enter specific details for this method, users of your data will need to know how reliable your data is and how it was collected.")
-
-    data_type = relationship("MethodSchema", ca_order=next(order_counter), uselist=False, ca_widget=MethodSchemaWidget(),
-        cascade="all, delete-orphan",ca_title="Type of data being collected",
-        ca_collapsed=False,
-        ca_help="The type of data that is being collected - <b>Please extend the provided schemas where possible only use the custom fields for additional information</b> (eg. specific calibration data).</br></br>" \
-                    "Extending the provided schemas allows your data to be found in a generic search (eg. if you use the temperature schema then users will find your data " \
-                    "when searching for temperatures, but if you make the schema using custom fields (even if it is the same), then it won't show up in the temperature search results).",
-        ca_description="Extend existing data types wherever possible - only create custom fields or schemas if you cannot find an existing schema.")
-
-    data_sources=(
-        ("form_data_source","Web form/manual only"),
-        ("pull_data_source","Pull from external file system"),
-        ("push_data_source","<i>(Advanced)</i> Push to this website through the API"),
-        ("sos_data_source","Sensor Observation Service"),
-        ("dataset_data_source","<i>(Advanced)</i> Output from other dataset"),
-    )
-
-    data_source =  Column(String(50), ca_order = next(order_counter), ca_widget=deform.widget.RadioChoiceWidget(values=data_sources),
-        ca_title="Data Source (How the data gets transferred into this system)", ca_force_required=True,
-        ca_help="<p>'Web form/manual' is the default and included in all others anyway, 'Output from other dataset' provides advanced "
-                "processing features and the other three methods allow automatic ingestion from compatible sensors or devices:</p>" \
-                "<ul><li><b>Web form/manual only:</b> Only use an online form accessible through this interface to manually upload data (Other data sources also include this option).</li>" \
-                "<li><b>Pull from external file system:</b> Setup automatic polling of an external file system from a URL location, when new files of the correct type and naming convention are found they are ingested.</li>" \
-                "<li><b><i>(Advanced)</i> Push to this website through the API:</b> Use the XMLRPC API to directly push data into persistent storage, on project acceptance you will be emailed your API key and instructions.</li>" \
-                "<li><b>Sensor Observation Service:</b> Set-up a sensor that implements the Sensor Observation Service (SOS) to push data into this systems SOS server.</li>" \
-                "<li><b><i>(Advanced)</i> Output from other dataset:</b> Output from other dataset: </b>This allows for advanced/chained processing of data, where the results of another dataset can be further processed and stored as required.</li></ul>" \
-                "<p><i>Please refer to the help section or contact the administrators if you need additional information.</i></p>",
-        ca_placeholder="Select the easiest method for your project.  If all else fails, manual file uploads will work for all data types.")
-
-    method_attachments = relationship('MethodAttachment', ca_order=next(order_counter), ca_missing=colander.null, ca_child_title="Attachment",
-        cascade="all, delete-orphan",
-        ca_title="Attachment (Such as datasheets, collection processes, observation forms)",
-        ca_help="Attach information about this method, this is preferred to websites as it is persistent.  " \
-                       "Example attachments would be sensor datasheets, documentation describing your file/data storage schema or calibration data.")
-
-    method_url = relationship("MethodWebsite", ca_order=next(order_counter), ca_missing=colander.null,
-        cascade="all, delete-orphan",ca_title="Further information website (Such as manufacturers website or supporting web resources)",
-        ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"), ca_child_title="Website",
-        ca_help="If there are web addresses that can provide more information on your data collection method, add them here.  Examples may include manufacturers of your equipment or an article on the calibration methods used.")
-
-
 class FormDataSource(Base):
     order_counter = itertools.count()
 
@@ -705,6 +641,69 @@ class DatasetDataSource(Base):
     dataset_data_source_id = Column(Text(), ca_title="Dataset", ca_order=next(order_counter), ca_widget=deform.widget.SelectWidget(),
         ca_placeholder="eg. 2",
         ca_description="The dataset to retrieve processed data from.")
+
+class Method(Base):
+    order_counter = itertools.count()
+
+    __tablename__ = 'method'
+    project_id = Column(Integer, ForeignKey('project.id'), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+    id = Column(Integer, ca_order=next(order_counter), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+
+
+    method_template = Column(Integer, ca_order=next(order_counter), ca_title="Select a template to base this method off (Overrides all fields)",
+        ca_widget=deform.widget.TextInputWidget(template="project_template_mapping"),
+        ca_help="<p>Method templates provide pre-configured data collection methods and pre-fill as much information as possible to make this process as quick and easy as possible.</p>"
+             "<ul><li>If you don't want to use any template, select the general category and Blank template."
+             "</li><li>Please contact the administrators to request new templates.</li>",
+        ca_description="<ol><li>First select the category or organisational group on the left hand side.</li>"
+                    "<li>Then select the most relevant template from the list on the right hand side.</li>")
+
+    method_name = Column(String(256), ca_order=next(order_counter),
+            ca_placeholder="Searchable identifier for this input method (eg. Invertebrate observations)",
+            ca_description="Descriptive, human readable name for this data collection method.  The name is used for selecting this method in the <i>Datasets</i> step.")
+    method_description = Column(Text(), ca_order=next(order_counter), ca_title="Description", ca_widget=deform.widget.TextAreaWidget(),
+        ca_description="Provide a description of this method, this should include what, why and how the data is being collected but <b>Don\'t enter where or when</b> as this information is relevant to the dataset, not the method.",
+        ca_placeholder="Enter specific details for this method, users of your data will need to know how reliable your data is and how it was collected.")
+
+    data_type = relationship("MethodSchema", ca_order=next(order_counter), uselist=False, ca_widget=MethodSchemaWidget(),
+        cascade="all, delete-orphan",ca_title="Type of data being collected",
+        ca_collapsed=False,
+        ca_help="The type of data that is being collected - <b>Please extend the provided schemas where possible only use the custom fields for additional information</b> (eg. specific calibration data).</br></br>" \
+                    "Extending the provided schemas allows your data to be found in a generic search (eg. if you use the temperature schema then users will find your data " \
+                    "when searching for temperatures, but if you make the schema using custom fields (even if it is the same), then it won't show up in the temperature search results).",
+        ca_description="Extend existing data types wherever possible - only create custom fields or schemas if you cannot find an existing schema.")
+
+    data_sources=(
+        (FormDataSource.__tablename__,"Web form/manual only"),
+        (PullDataSource.__tablename__,"Pull from external file system"),
+        (PushDataSource.__tablename__,"<i>(Advanced)</i> Push to this website through the API"),
+        (SOSDataSource.__tablename__,"Sensor Observation Service"),
+        (DatasetDataSource.__tablename__,"<i>(Advanced)</i> Output from other dataset"),
+    )
+
+    data_source =  Column(String(50), ca_order = next(order_counter), ca_widget=deform.widget.RadioChoiceWidget(values=data_sources),
+        ca_title="Data Source (How the data gets transferred into this system)", ca_force_required=True,
+        ca_help="<p>'Web form/manual' is the default and included in all others anyway, 'Output from other dataset' provides advanced "
+                "processing features and the other three methods allow automatic ingestion from compatible sensors or devices:</p>" \
+                "<ul><li><b>Web form/manual only:</b> Only use an online form accessible through this interface to manually upload data (Other data sources also include this option).</li>" \
+                "<li><b>Pull from external file system:</b> Setup automatic polling of an external file system from a URL location, when new files of the correct type and naming convention are found they are ingested.</li>" \
+                "<li><b><i>(Advanced)</i> Push to this website through the API:</b> Use the XMLRPC API to directly push data into persistent storage, on project acceptance you will be emailed your API key and instructions.</li>" \
+                "<li><b>Sensor Observation Service:</b> Set-up a sensor that implements the Sensor Observation Service (SOS) to push data into this systems SOS server.</li>" \
+                "<li><b><i>(Advanced)</i> Output from other dataset:</b> Output from other dataset: </b>This allows for advanced/chained processing of data, where the results of another dataset can be further processed and stored as required.</li></ul>" \
+                "<p><i>Please refer to the help section or contact the administrators if you need additional information.</i></p>",
+        ca_placeholder="Select the easiest method for your project.  If all else fails, manual file uploads will work for all data types.")
+
+    method_attachments = relationship('MethodAttachment', ca_order=next(order_counter), ca_missing=colander.null, ca_child_title="Attachment",
+        cascade="all, delete-orphan",
+        ca_title="Attachment (Such as datasheets, collection processes, observation forms)",
+        ca_help="Attach information about this method, this is preferred to websites as it is persistent.  " \
+                       "Example attachments would be sensor datasheets, documentation describing your file/data storage schema or calibration data.")
+
+    method_url = relationship("MethodWebsite", ca_order=next(order_counter), ca_missing=colander.null,
+        cascade="all, delete-orphan",ca_title="Further information website (Such as manufacturers website or supporting web resources)",
+        ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"), ca_child_title="Website",
+        ca_help="If there are web addresses that can provide more information on your data collection method, add them here.  Examples may include manufacturers of your equipment or an article on the calibration methods used.")
+
 
 class Dataset(Base):
     order_counter = itertools.count()

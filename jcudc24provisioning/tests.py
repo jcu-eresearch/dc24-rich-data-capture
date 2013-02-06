@@ -83,9 +83,13 @@ class TestIngesterPlatform(unittest.TestCase):
         method1 = Method()
         method1.method_name = "Artificial tree sensor"
         method1.method_description = "A custom developed sensor consisting of a calibrated temperature sensor and a humidity sensor (which also has an uncalibrated temperature sensor within it)"
+        method1.data_source = PullDataSource.__tablename__
+
+        temperature_schema = self.session.query(MethodSchema).filter_by(id=1).first()
 
         method1.data_type = MethodSchema()
         method1.data_type.name = "Test Schema"
+        method1.data_type.parents.append(temperature_schema) # This is the default template schema that is setup on first run within scripts\initialise_database.py
 
 
 # The data entry location offset functionality has been changed
