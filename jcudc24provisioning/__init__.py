@@ -1,4 +1,6 @@
 # This line is only required for activiting the virtualenv within the IntelliJ IDE
+from zope.sqlalchemy import ZopeTransactionExtension
+
 execfile("D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py", dict(__file__="D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py"))
 import logging
 from pkg_resources import declare_namespace
@@ -28,7 +30,7 @@ def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
     engine = engine_from_config(settings, 'sqlalchemy.')
-    DBSession.configure(bind=engine)
+    DBSession.configure(bind=engine, extension=ZopeTransactionExtension())
     Base.metadata.create_all(engine)
 
     deform_templates = resource_filename('deform', 'templates')

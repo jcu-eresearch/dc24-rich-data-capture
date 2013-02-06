@@ -30,7 +30,7 @@ from pyramid.view import view_config, view_defaults, render_view_to_response
 from colanderalchemy.types import SQLAlchemyMapping
 from jcudc24provisioning.views.views import Layouts
 from pyramid.renderers import get_renderer
-from jcudc24provisioning.models.project import DBSession, PullDataSource,Metadata, ProjectTemplate,method_template, Project, CreatePage, Method, Base, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
+from jcudc24provisioning.models.project import DBSession, PullDataSource,Metadata, ProjectTemplate,method_template,DatasetDataSource, Project, CreatePage, Method, Base, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
 from jcudc24provisioning.views.ca_scripts import convert_schema, create_sqlalchemy_model, convert_sqlalchemy_model_to_data,fix_schema_field_name
 from jcudc24provisioning.scripts.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.mint_lookup import MintLookup
@@ -209,7 +209,6 @@ class Workflows(Layouts):
             'success_messages': self.request.session.pop_flash("success"),
             'warning_messages': self.request.session.pop_flash("warning")
         }
-        print "Messages: " + str(messages)
         return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": form.render(appstruct), "form_only": False, 'messages': messages, 'page_help': page_help}
 
 
@@ -485,12 +484,24 @@ class Workflows(Layouts):
                     "the selected data collection method (what, why and how).</p><p><i>Such that an iButton sensor that " \
                     "is used to collect temperature at numerous sites would have been setup once within the Methods step" \
                     " and should be set-up in this step for each site it is used at.</i></p>"
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="datasets").bind(request=self.request)
+
+        datasets = self.session.query(Dataset).filter_by(project_id=self.project_id).all()
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="datasets").bind(request=self.request, datasets=datasets)
 
         # Get the index of datasets
         for i in range(len(schema.children)):
             if schema.children[i].name[-len(Project.datasets.key):] == Project.datasets.key:
                 DATASETS_INDEX = i
+                break
+        # Find the DATASET_DATA_SOURCE_INDEX
+        for i in range(len(schema.children[DATASETS_INDEX].children[0].children)):
+            if schema.children[DATASETS_INDEX].children[0].children[i].name[-len(Dataset.dataset_data_source.key):] == Dataset.dataset_data_source.key:
+                DATASET_DATA_SOURCE_INDEX = i
+                break
+        # Find teh DATASET_DATA_SOURCE_ID_INDEX
+        for i in range(len(schema.children[DATASETS_INDEX].children[0].children[DATASET_DATA_SOURCE_INDEX].children)):
+            if schema.children[DATASETS_INDEX].children[0].children[DATASET_DATA_SOURCE_INDEX].children[i].name[-len(DatasetDataSource.dataset_data_source_id.key):] == DatasetDataSource.dataset_data_source_id.key:
+                DATASET_DATA_SOURCE_ID_INDEX = i
                 break
 
         if self.project_id is not None:
@@ -509,7 +520,7 @@ class Workflows(Layouts):
             schema.children[DATASETS_INDEX].children[0].methods = methods
             schema.children[DATASETS_INDEX].children[0].widget.get_file_fields = get_file_fields
 
-            schema.bind()
+
 
 #            method_schemas = []
 #            for method in methods:
@@ -581,6 +592,7 @@ class Workflows(Layouts):
 
         form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False)
 
+        # If a new dataset was added through the wizard - Update the appstruct with that datasets' template's data
         appstruct = None
         display = None
         controls = self.request.POST.items()

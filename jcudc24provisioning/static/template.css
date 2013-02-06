@@ -959,6 +959,40 @@ div.more_info_panel {
     font-weight: normal;
 }
 
+/*  Deform error styles  */
+.deform .errorLi {
+    background: rgba(255, 0, 0, 0.19);
+    border-width: 1px medium;
+    border: solid 1px rgb(233, 79, 53);;
+    border-radius: 2px;
+    width: 100%;
+    padding-left: 0;
+    padding-right: 0;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.deform .errorLi h3 {
+    margin: 0px;
+    font-weight: bold;
+    color: rgb(233, 79, 53);
+    background: none;
+}
+
+.deform .errorLi p {
+    color: #000;
+}
+
+.deform p.error {
+    background: rgba(255, 0, 0, 0.19);
+    border-color: rgb(233, 79, 53);
+    color: rgb(233, 79, 53);
+    font-size: 0.9em !important;
+}
+
+.deform li.error label.desc, .deform p.error, .deform h3.errorMsgLbl {
+    color: rgb(233, 79, 53);
+}
 
 /*.ui-tabs-anchor {border: 1px solid blue; !important;}*/
 .ui-widget-content {border-color: #FFCC00 !important;}

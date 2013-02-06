@@ -1,0 +1,28 @@
+<!--Custom select that removes the option that has the same id as the dataset this select is in-->
+
+<tal:block>
+    <select name="${field.name}"
+            id="${field.oid}"
+            tal:attributes="size field.widget.size"
+            tal:attributes="class field.widget.css_class">
+     <option tal:repeat="(value, name) values"
+             tal:attributes="selected value == cstruct and 'selected';
+                             class field.widget.css_class"
+             value="${value}">${name}</option>
+    </select>
+
+    <script type="text/javascript">
+        deform.addCallback(
+            '${field.oid}',
+            function (oid) {
+                <!--Find and remove this dataset from the select options - If this template is used for something other than a dataset it will fail gracefully leaving all dataset options.-->
+                fieldset_elements = $("#" + oid).parents("fieldset");
+                for (var i=0; i< fieldset_elements.length; i++) {
+                    if ($(fieldset_elements[i]).find("[name='dataset:id']").length == 1) {
+                        var id = $(fieldset_elements[i]).find("[name='dataset:id']")[0].value;
+                        $("#" + oid).children("[value='"+id+"']").remove();
+                    }
+                }
+            });
+    </script>
+</tal:block>

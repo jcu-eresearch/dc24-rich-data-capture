@@ -7,7 +7,7 @@ from jcudc24ingesterapi.ingester_platform_api import UnitOfWork
 import jcudc24ingesterapi
 from jcudc24provisioning.models.project import Location, LocationOffset, MethodSchema, Base, Project, Region, Dataset, DBSession, Method, MethodSchemaField, PullDataSource,FormDataSource, PushDataSource, DatasetDataSource, SOSDataSource
 from jcudc24ingesterapi.schemas.data_types import DateTime, FileDataType, Integer, String, Double, Boolean
-from models.sampling import PeriodicSampling
+from jcudc24ingesterapi.models.sampling import PeriodicSampling
 
 __author__ = 'Casey Bajema'
 
@@ -345,7 +345,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
                     sampling=sampling_object,
                 )
             except TypeError:
-                logger.exception("Trying to create an ingester data source with invalid parameters")
+                logger.exception("Trying to create an ingester pull data source with invalid parameters")
                 return None
 
         if method.data_source == PushDataSource.__tablename__:
@@ -361,8 +361,15 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
         if method.data_source == DatasetDataSource.__tablename__:
             if model.dataset_data_source is None:
                 raise ValueError("Trying to provision a dataset with no data source.  Go back to the dataset step and configure the data source.")
-            data_source = jcudc24ingesterapi.models.data_sources.DatasetDataSource()
-            # TODO: Update datasource configuration
+            try:
+                data_source = jcudc24ingesterapi.models.data_sources.DatasetDataSource(
+                    model.dataset_data_source.dataset_data_source_id,
+                    model.dataset_data_source.custom_processor_script
+                )
+            except TypeError:
+                logger.exception("Trying to create an ingester dataset data source with invalid parameters")
+                return None
+
 
         new_dataset.data_source = data_source
 

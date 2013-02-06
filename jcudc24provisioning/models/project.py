@@ -29,11 +29,11 @@ from jcudc24provisioning.views.mint_lookup import MintLookup
 
 config = ConfigParser.SafeConfigParser()
 config.read('../../development.ini')
-db_engine = create_engine(config.get("app:main", "sqlalchemy.url"), pool_recycle=3600, echo=False,) #connect_args={'reconnect':True})
+db_engine = create_engine(config.get("app:main", "sqlalchemy.url"), connect_args={'pool_recycle': 3600, 'echo': False},) #connect_args={'reconnect':True})
 #db_engine.connect()
 #DBSession = scoped_session(sessionmaker(bind=db_engine))
 DBSession = scoped_session(sessionmaker(bind=db_engine, extension=ZopeTransactionExtension()))
-APISession = scoped_session(sessionmaker(bind=db_engine))
+
 Base = declarative_base()
 
 def research_theme_validator(form, value):
@@ -630,6 +630,16 @@ class SOSDataSource(Base):
                        "<a title=\"Python sampling script API\"href=\"\">here</a>.")
 
 
+@colander.deferred
+def dataset_select_widget(node, kw):
+    if 'datasets' in kw:
+        datasets = kw['datasets']
+        dataset_values = []
+        for dataset in datasets:
+            dataset_values.append((dataset.id, dataset.title))
+        return deform.widget.SelectWidget(values=dataset_values, template="source_dataset_select")
+
+
 class DatasetDataSource(Base):
     order_counter = itertools.count()
 
@@ -638,9 +648,20 @@ class DatasetDataSource(Base):
     dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
     # TODO: Selection of datasets
-    dataset_data_source_id = Column(Text(), ca_title="Dataset", ca_order=next(order_counter), ca_widget=deform.widget.SelectWidget(),
-        ca_placeholder="eg. 2",
-        ca_description="The dataset to retrieve processed data from.")
+    dataset_data_source_id = Column(Text(), ca_title="Source Dataset", ca_order=next(order_counter), ca_widget=dataset_select_widget,
+        ca_description="The dataset to retrieve processed data from.  If there are no items to select from - there must be other datasets already setup!")
+
+    custom_processor_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
+#        ca_group_start="processing", ca_group_collapsed=False, ca_group_title="Custom Data Processing",
+        ca_placeholder="eg. Extract he humidity and temperature values from the raw data file received in another dataset.",
+        ca_title="Describe custom processing needs", ca_missing="", ca_description="Describe your processing "\
+                    "requirements and what your uploaded script does (or what you will need help with).")
+
+    custom_processor_script = Column(String(256),ca_order=next(order_counter), ca_title="Upload custom processing script", ca_missing = colander.null,
+#        ca_group_end="method",
+        ca_description="Upload a custom Python script to "\
+            "process the data in some way.  The processing script API can be found "\
+            "<a title=\"Python processing script API\"href=\"\">here</a>.")
 
 class Method(Base):
     order_counter = itertools.count()
@@ -676,8 +697,8 @@ class Method(Base):
     data_sources=(
         (FormDataSource.__tablename__,"Web form/manual only"),
         (PullDataSource.__tablename__,"Pull from external file system"),
-        (PushDataSource.__tablename__,"<i>(Advanced)</i> Push to this website through the API"),
         (SOSDataSource.__tablename__,"Sensor Observation Service"),
+        (PushDataSource.__tablename__,"<i>(Advanced)</i> Push to this website through the API"),
         (DatasetDataSource.__tablename__,"<i>(Advanced)</i> Output from other dataset"),
     )
 
@@ -765,7 +786,7 @@ class Dataset(Base):
     pull_data_source = relationship("PullDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",ca_collapsed=False)
     sos_data_source = relationship("SOSDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",ca_collapsed=False,)
     push_data_source = relationship("PushDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",ca_collapsed=False,)
-    dataset_data_source = relationship("DatasetDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",ca_collapsed=False,)
+    dataset_data_source = relationship("DatasetDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",ca_collapsed=False)
 
 
 class ProjectNote(Base):
@@ -1180,7 +1201,7 @@ def grant_validator(form, value):
     mint = MintLookup(None)
 
     print value
-    if value['no_activity'] is False and len(value['activity']) <= 0:
+    if value['no_activity'] is False and value['activity'] == colander.null:
         exc['activity'] = "'There is no associated research grant' must be selected if a research grant isn't provided."
         error = True
     elif value['no_activity'] is False:
