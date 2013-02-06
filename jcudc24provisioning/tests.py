@@ -6,6 +6,7 @@ import transaction
 import unittest
 from deform import Form
 from colanderalchemy import SQLAlchemyMapping
+import jcudc24ingesterapi
 from jcudc24ingesterapi.authentication import CredentialsAuthentication
 from jcudc24provisioning.models.project import Project, Location, LocationOffset, Method, Dataset, Keyword, FieldOfResearch, MethodSchema, MethodSchemaField, PullDataSource, Metadata, DBSession
 from jcudc24provisioning.scripts.ingesterapi_wrapper import IngesterAPIWrapper
@@ -86,8 +87,6 @@ class TestIngesterPlatform(unittest.TestCase):
         method1.data_type = MethodSchema()
         method1.data_type.name = "Test Schema"
 
-        self.session.add(method1)
-        self.session.flush()
 
 # The data entry location offset functionality has been changed
 #        offset_schema = MethodSchema()
@@ -126,6 +125,9 @@ class TestIngesterPlatform(unittest.TestCase):
         method1.data_type.custom_fields.append(custom_field)
         self.project.methods.append(method1)
 
+        self.session.add(method1)
+        self.session.flush()
+
         dataset1 = Dataset()
         dataset1.method_id = method1.id
         dataset1.disabled = False
@@ -133,8 +135,11 @@ class TestIngesterPlatform(unittest.TestCase):
         dataset1.schema = method1.data_type
 
         data_source = PullDataSource()
-        data_source.uri = "http://test.com.au"
+        data_source.uri = "http://localhost/test_ingestion"
         data_source.mime_type = custom_field.units
+        data_source.selected_sampling = PullDataSource.periodic_sampling.key
+        data_source.file_field = custom_field.id
+        data_source.periodic_sampling = 1
 
         dataset1.pull_data_source = data_source
 

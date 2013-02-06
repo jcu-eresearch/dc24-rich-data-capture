@@ -300,22 +300,27 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             data_source = jcudc24ingesterapi.models.data_sources.FormDataSource()
             # TODO: Update datasource configuration
         if model.pull_data_source is not None:
+
             # Create the sampling
             sampling_object = None
             if PullDataSource.periodic_sampling.key in model.pull_data_source.selected_sampling:
                 try:
                     sampling_object = jcudc24ingesterapi.models.sampling.PeriodicSampling(int(model.pull_data_source.periodic_sampling))
                 except TypeError:
-                    logger.exception("Trying to create a periodic sampler with invalid rate: %s", model.pull_data_source.periodic_sampling)
+                    logger.exception("Trying to create a periodic sampler with invalid rate: %s" % model.pull_data_source.periodic_sampling)
                     return None
             elif PullDataSource.cron_sampling.key in model.pull_data_source.selected_sampling:
-                raise NotImplementedError("Cron sampling hasn't been implemented yet")
+                try:
+                    sampling_object = jcudc24ingesterapi.models.sampling.CronSampling(str(model.pull_data_source.cron_sampling))
+                except TypeError:
+                    logger.exception("Trying to create a cron sampler with an invalid cron string: %s" % model.pull_data_source.cron_sampling)
+                    return None
 
             elif PullDataSource.custom_sampling_desc.ca_group_start in model.pull_data_source.selected_sampling:
                 try:
                     sampling_object = jcudc24ingesterapi.models.sampling.CustomSampling(model.pull_data_source.custom_sampling_script)
                 except TypeError:
-                    logger.exception("Trying to create a custom sampler with invalid script handle: %s", model.pull_data_source.custom_sampling_script)
+                    logger.exception("Trying to create a custom sampler with invalid script handle: %s" % model.pull_data_source.custom_sampling_script)
                     return None
             print "SAMPLIING OBJECT: %s" % sampling_object
 
