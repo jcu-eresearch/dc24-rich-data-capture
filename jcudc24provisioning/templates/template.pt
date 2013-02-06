@@ -50,7 +50,6 @@
 
     <script type="text/javascript">
         $(window).resize(set_content_size);
-        $(window).ready(set_content_size);
 
         function set_content_size() {
 //            console.log($("#center").width() - $("#sidebar").width());
@@ -217,6 +216,7 @@
     <script type="text/javascript">
         deform.load();
         deform.processCallbacks();
+        set_content_size();
     </script>
 </body>
 </html>

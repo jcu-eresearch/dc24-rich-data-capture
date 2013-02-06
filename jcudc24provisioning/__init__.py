@@ -1,7 +1,7 @@
 # This line is only required for activiting the virtualenv within the IntelliJ IDE
-from zope.sqlalchemy import ZopeTransactionExtension
-
 execfile("D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py", dict(__file__="D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py"))
+
+from zope.sqlalchemy import ZopeTransactionExtension
 import logging
 from pkg_resources import declare_namespace
 from . import models

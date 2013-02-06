@@ -51,6 +51,14 @@ WORKFLOW_STEPS = [
         {'href': 'manage', 'title': 'Manage', 'page_title': 'Manage Project Data', 'hidden': True},
 ]
 
+WORKFLOW_ACTIONS = [
+        {'href': 'logs', 'title': 'View Logs', 'page_title': 'Ingester Logs', },
+        {'href': 'add_data', 'title': 'Add Data', 'page_title': 'Add Data'},
+        {'href': 'manage_data', 'title': 'Manage Data', 'page_title': 'Manage Data'},
+        {'href': 'permissions', 'title': 'Sharing', 'page_title': 'Sharing & Permissions'},
+        {'href': 'duplicate', 'title': 'Duplicate Project', 'page_title': 'Duplicate Project'},
+]
+
 redirect_options = """
         {success:
                   function (rText, sText, xhr, form) {
@@ -91,18 +99,32 @@ class Workflows(Layouts):
         return new_menu
 
     @reify
+    def workflow_action(self):
+        new_menu = WORKFLOW_ACTIONS[:]
+        url = split(self.request.url, "?")[0]
+        hidden = []
+        for menu in new_menu:
+            menu['current'] = url.endswith(menu['href'])
+            if 'hidden' in menu and menu['hidden'] is True:
+                hidden.append(menu)
+
+        for menu in hidden:
+            new_menu.remove(menu)
+
+        return new_menu
+
+    @reify
     def is_hidden_workflow(self):
-        new_menu = WORKFLOW_STEPS[:]
         url = split(self.request.url, "?")[0]
 
-        for menu in new_menu:
+        for menu in WORKFLOW_STEPS + WORKFLOW_ACTIONS:
             if url.endswith(menu['href']) and 'hidden' in menu and menu['hidden'] is True:
                 return True
 
         return False
 
     def find_workflow_title(self, href):
-        for menu in WORKFLOW_STEPS:
+        for menu in WORKFLOW_STEPS + WORKFLOW_ACTIONS:
             if menu['href'] == href:
                 return menu['page_title']
 

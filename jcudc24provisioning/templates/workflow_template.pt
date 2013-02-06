@@ -15,14 +15,28 @@
 
              <div id="sidebar">
                  <div id="sidebar_contextual_options">
-                     <ul>
-                         <li><a href="/logs">View Logs</a></li>
-                         <li><a href="/add_data">Add data</a></li>
-                         <li><a href="/manage_data">Manage data</a></li>
-                         <li><a href="/sharing">Sharing</a></li>
-                         <li><a href="/duplicate">Duplicate project</a></li>
-                         <li><a  style="cursor: pointer" title="Toggle all descriptions on or off (remove clutter when you know what you are doing)" onclick="hideDescriptions(!document.hide_descriptions);">Toggle Descriptions</a></li>
-                     </ul>
+                     <tal:block tal:condition="not view.is_hidden_workflow">
+                          <ul>
+                              <li tal:repeat="menu view.workflow_action">
+                                  <tal:block tal:condition="menu.current">
+                                      <a class="current" value="${menu.title}">${menu.title}</a>
+                                  </tal:block>
+                                  <tal:block tal:condition="not menu.current">
+                                      <a onclick="document.getElementById('workflow_target').value='${menu.href}'; $('#deform').submit();">${menu.title}</a>
+                                  </tal:block>
+                              </li>
+                          </ul>
+                      </tal:block>
+
+
+                     <!--<ul>-->
+                         <!--<li><a href="/logs">View Logs</a></li>-->
+                         <!--<li><a href="/add_data">Add data</a></li>-->
+                         <!--<li><a href="/manage_data">Manage data</a></li>-->
+                         <!--<li><a href="/sharing">Sharing</a></li>-->
+                         <!--<li><a href="/duplicate">Duplicate project</a></li>-->
+                         <!--<li><a  style="cursor: pointer" title="Toggle all descriptions on or off (remove clutter when you know what you are doing)" onclick="hideDescriptions(!document.hide_descriptions);">Toggle Descriptions</a></li>-->
+                     <!--</ul>-->
                  </div>
              </div>
              <div id="content">
