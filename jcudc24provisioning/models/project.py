@@ -1265,8 +1265,9 @@ class IngesterLogsFiltering(colander.MappingSchema):
     log_levels=(("ALL","Show All"),
                 ("ERROR","Errors"),
                 ("INFO", "Informational"),
-                ("WARNING", "Warnings"),
-                ("DEBUG", "Debugging"),)
+#                ("WARNING", "Warnings"),
+#                ("DEBUG", "Debugging"),
+)
     start_date = colander.SchemaNode(colander.Date(),missing=colander.null)
     end_date = colander.SchemaNode(colander.Date(),missing=colander.null)
     level = colander.SchemaNode(colander.String(),widget=deform.widget.SelectWidget(values=log_levels,

@@ -740,6 +740,7 @@ class Workflows(Layouts):
             else:
                 try:
                     dataset.logs = self.ingester_api.getIngesterEvents(dataset.dam_id)
+#                    print dataset.logs
 #                    print range(len(dataset.logs)).reverse()
                     for i in reversed(range(len(dataset.logs))):
 #                        print "Level filter: " + str(dataset.logs[i]['level']) + " : " + str(self.request.POST['level'])
