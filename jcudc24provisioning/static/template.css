@@ -342,8 +342,10 @@ body {
 #center {
     clear: both;
     position: relative;
-    width: 100%;
+
+    margin-left: 15px;
 }
+
 
 #sidebar {
     /*display: inline-block;*/
@@ -357,7 +359,6 @@ body {
     /*padding: 20px 1%;*/
     /*left: 5px;*/
     top: 60px;
-    margin-left: 5px;
     margin-right: 0px;
     padding-top: 0;
     display: inline-block;
@@ -393,13 +394,12 @@ body {
     position: relative;
     bottom: 1px;
     left: 0px;
-    margin-left: 10px;
     margin-bottom: -1px;
     z-index: 1;
     cursor: pointer;
 }
 
-#sidebar #sidebar_contextual_options ul li a:hover {
+#sidebar #sidebar_contextual_options ul li a:hover, #sidebar #sidebar_contextual_options ul li a.current {
     border-color: #ffcc00;
     border-right: 0px white solid;
     border-style: solid;
@@ -410,10 +410,13 @@ body {
     z-index: 10;
 }
 
+#sidebar #sidebar_contextual_options ul li a.current {
+    border-color: rgb(247, 147, 30);
+}
+
 #sidebar_contextual_options{
     padding: 0px;
     margin: 0px;
-    margin-left: 10px;
     z-index: 0;
 }
 
@@ -424,11 +427,44 @@ body {
     margin-top: 0px;
 }
 
+.content_container {
+    border: 1px solid rgb(233, 79, 53);
+    border-radius: 0.5em;
+    padding: 10px;
+}
+.content_container.collapsed:hover {
+    border-color: rgb(247, 147, 30);
+}
+.content_container.collapsed {
+    padding: 0;
+    padding-left: 10px;
+    border-color: #FDB913;
+}
+.content_container h3, .content_container p {
+    margin: 0;
+    padding: 0;
+}
+.content_container p.level-INFO {
+    color: green;
+}
+.content_container p.level-ERROR, .content_container p.level-FATAL {
+    color: red;
+}
+.content_container p.level-WARNING, .content_container p.level-FATAL {
+    color: orange;
+}
+.content_container p.level-DEBUG {
+    color: black;
+}
+
 #sidebar #sidebar_contextual_options ul li {
     display: block;
     list-style-type: none;
 }
 
+#exception_content {
+    padding: 20px;
+}
 
 #content {
     width: 100%;
@@ -528,8 +564,8 @@ div#main {
 
 form.deform, .wizard  {
     border: 1px ridge rgb(253, 185, 19);
-    background-color: #f8f8f8;
     border-radius: 0.5em 0.5em 0.5em 0.5em;
+    background-color: #f8f8f8;
 
     box-shadow: inset 0px 0px 2px #fff;
 
@@ -703,7 +739,10 @@ div#footer {
     margin-bottom: 10px;
 }
 
-.help_text {
+.deform li.help_text {
+    clear: both;
+    float: none;
+    display: none;
     /*border: 2px solid #e6ffe6;*/
 }
 
@@ -792,6 +831,7 @@ span.collapse_icon {
 }
 
 .messages {
+    margin-left: -15px;
 }
 
 .error_messages, #no_javascript {
@@ -1012,7 +1052,7 @@ div.more_info_panel {
 .ui-tabs-vertical .ui-tabs-nav li {clear: left; width: 100%; border-bottom-width: 1px !important; border-right-width: 0 !important; margin: 0 -1px .2% 0; }
 .ui-tabs-vertical .ui-tabs-nav li a {display:block; width: 85%;}
 .ui-tabs-vertical .ui-tabs-nav li.ui-tabs-active { padding-bottom: 0; padding-right: .1%; border-right-width: 1px; border-right-width: 1px; font-weight: bold;}
-.ui-tabs-vertical .ui-tabs-panel { padding: 1%; display: block; min-width: 200px; margin-left: 200px; }
+.ui-tabs-vertical .ui-tabs-panel { padding: 1%; display: block; min-width: 200px; margin-left: 220px; }
 
 .ui-tabs-panel div {
     border-radius: 2px;

@@ -30,7 +30,7 @@ from pyramid.view import view_config, view_defaults, render_view_to_response
 from colanderalchemy.types import SQLAlchemyMapping
 from jcudc24provisioning.views.views import Layouts
 from pyramid.renderers import get_renderer
-from jcudc24provisioning.models.project import DBSession, PullDataSource,Metadata, ProjectTemplate,method_template,DatasetDataSource, Project, CreatePage, Method, Base, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
+from jcudc24provisioning.models.project import DBSession, PullDataSource,Metadata, IngesterLogs, ProjectTemplate,method_template,DatasetDataSource, Project, CreatePage, Method, Base, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
 from jcudc24provisioning.views.ca_scripts import convert_schema, create_sqlalchemy_model, convert_sqlalchemy_model_to_data,fix_schema_field_name
 from jcudc24provisioning.scripts.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.mint_lookup import MintLookup
@@ -41,7 +41,7 @@ __author__ = 'Casey Bajema'
 logger = logging.getLogger(__name__)
 
 WORKFLOW_STEPS = [
-        {'href': 'setup', 'title': 'Setup', 'page_title': 'Setup a New Project', 'hidden': True},
+        {'href': 'create', 'title': 'Create', 'page_title': 'Create a New Project', 'hidden': True},
         {'href': 'general', 'title': 'Details', 'page_title': 'General Details'},
         {'href': 'description', 'title': 'Description', 'page_title': 'Description'},
         {'href': 'information', 'title': 'Information', 'page_title': 'Associated Information'},
@@ -52,7 +52,8 @@ WORKFLOW_STEPS = [
 ]
 
 WORKFLOW_ACTIONS = [
-        {'href': 'logs', 'title': 'View Logs', 'page_title': 'Ingester Logs', },
+        {'href': 'general', 'title': 'Configuration', 'page_title': 'General Details'},
+        {'href': 'logs', 'title': 'View Logs', 'page_title': 'Ingester Event Logs', },
         {'href': 'add_data', 'title': 'Add Data', 'page_title': 'Add Data'},
         {'href': 'manage_data', 'title': 'Manage Data', 'page_title': 'Manage Data'},
         {'href': 'permissions', 'title': 'Sharing', 'page_title': 'Sharing & Permissions'},
@@ -83,8 +84,32 @@ class Workflows(Layouts):
         if self.request.matchdict and 'project_id' in self.request.matchdict:
             self.project_id = self.request.matchdict['project_id']
 
+    @property
+    def auth(self):
+        if '_auth' not in locals():
+            self._auth = CredentialsAuthentication("casey", "password")
+        return self._auth
+
+    @property
+    def ingester_api(self):
+        if '_ingester_api' not in locals():
+            self._ingester_api = IngesterAPIWrapper("http://localhost:8080/api", self.auth)
+        return self._ingester_api
+
+
+
+# --------------------MENU METHODS-------------------------------------------
+    def find_current_page(self):
+        for menu in WORKFLOW_STEPS + WORKFLOW_ACTIONS:
+            if self.request.url.endswith(menu['href']):
+                return menu
+
     @reify
     def workflow_step(self):
+#        print "find_current_page: %s" % self.find_current_page() not in WORKFLOW_STEPS
+        if self.find_current_page() not in WORKFLOW_STEPS:
+            return []
+
         new_menu = WORKFLOW_STEPS[:]
         url = split(self.request.url, "?")[0]
         hidden = []
@@ -104,7 +129,7 @@ class Workflows(Layouts):
         url = split(self.request.url, "?")[0]
         hidden = []
         for menu in new_menu:
-            menu['current'] = url.endswith(menu['href'])
+            menu['current'] = url.endswith(menu['href']) or self.find_current_page() in WORKFLOW_STEPS and menu['href'] == 'general'
             if 'hidden' in menu and menu['hidden'] is True:
                 hidden.append(menu)
 
@@ -131,6 +156,7 @@ class Workflows(Layouts):
         raise ValueError("There is no page title for this address: " + str(href))
 
 
+
     @reify
     def workflow_template(self):
         renderer = get_renderer("../templates/workflow_template.pt")
@@ -140,8 +166,10 @@ class Workflows(Layouts):
     def isDelete(self):
         return 'Delete' in self.request.POST
 
+
+# --------------------WORKFLOW STEP METHODS-------------------------------------------
     def save_form(self, data):
-         model = self.session.query(Project).filter_by(id=data['project:id']).first()
+         model = self.session.query(Project).filter_by(id=self.project_id).first()
 
          if model is None or not isinstance(model, Project):
              if self.project_id is None:
@@ -150,7 +178,7 @@ class Workflows(Layouts):
                  if model is not None:
                      self.session.add(model)
              else:
-                 raise ValueError("No project found for the given project id(" + self.project_id + "), please do not directly edit the address bar")
+                 raise ValueError("No project found for the given project id(" + self.project_id + "), please do not directly edit the address bar.")
 
          else:
              # Update the model with all fields in the data
@@ -186,7 +214,7 @@ class Workflows(Layouts):
 #                test = 2
 
         # If the form is being saved (there would be 1 item in controls if it is a fresh page with a project id set)
-        if len(self.request.POST) > 0:
+        if len(self.request.POST) > 1:
             self.request.POST['id'] = self.project_id # Make sure the correct project is being saved (eg. user edits nav bar directly)
             controls = self.request.POST.items()
 
@@ -247,8 +275,9 @@ class Workflows(Layouts):
 
 
 
-    @view_config(route_name="setup")
-    def setup_view(self):
+# --------------------WORKFLOW STEP VIEWS-------------------------------------------
+    @view_config(route_name="create")
+    def create_view(self):
         page_help = "This project creation wizard helps pre-fill as many fields as possible to make the process as painless as possible!"
 
         schema = CreatePage(validator=grant_validator)
@@ -670,12 +699,9 @@ class Workflows(Layouts):
         if 'Approve' in self.request.POST and 'id' in self.request.POST:
             project = self.session.query(Project).filter_by(id=self.project_id).first()
 
-            auth = CredentialsAuthentication("casey", "password")
-            ingester_api = IngesterAPIWrapper("http://localhost:8080/api", auth)
-
             try:
-                ingester_api.post(project)
-                ingester_api.close()
+                self.ingester_api.post(project)
+                self.ingester_api.close()
                 logger.info("Project has been added to ingesterplatform successfully: %s", project.id)
             except Exception as e:
                 logger.exception("Project failed to add to ingesterplatform: %s", project.id)
@@ -698,9 +724,122 @@ class Workflows(Layouts):
 
         return response
 
+# --------------------WORKFLOW ACTION/SIDEBAR VIEWS-------------------------------------------
+    @view_config(route_name="logs")
+    def logs_view(self):
+#        print "POST VARS" + str(self.request.POST) + " " + str(self.project_id)
+        page_help="View ingester event logs for project datasets."
+        schema = IngesterLogs()
+        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Refresh',), use_ajax=False)
+
+        datasets = self.session.query(Dataset).filter_by(project_id=self.project_id).order_by(Dataset.title).all()
+
+        for dataset in datasets:
+            if dataset.dam_id is None:
+                dataset.logs_error = ["Ingester hasn't been activated yet: %s" % dataset.title]
+            else:
+                try:
+                    dataset.logs = self.ingester_api.getIngesterEvents(dataset.dam_id)
+#                    print range(len(dataset.logs)).reverse()
+                    for i in reversed(range(len(dataset.logs))):
+#                        print "Level filter: " + str(dataset.logs[i]['level']) + " : " + str(self.request.POST['level'])
+                        if 'level' in self.request.POST and str(self.request.POST['level']) != "ALL" and str(dataset.logs[i]['level']) != str(self.request.POST['level']):
+                            del dataset.logs[i]
+                            continue
+#                        print "data: %s" % dataset.logs[i]['timestamp'].partition('T')[0]
+                        try:
+                            log_date = datetime.strptime(str(dataset.logs[i]['timestamp']).partition('T')[0], '%Y-%m-%d').date()
+                        except Exception as e:
+                            logger.exception("Log date wasn't parsable: %s" % e)
+                            continue
+
+                        if 'start_date' in self.request.POST and self.request.POST['start_date']:
+                            start_date = datetime.strptime(self.request.POST['start_date'].partition('T')[0], '%Y-%m-%d').date()
+                            if log_date < start_date:
+                                del dataset.logs[i]
+                                continue
+
+                        if 'end_date' in self.request.POST and self.request.POST['end_date']:
+                            end_date = datetime.strptime(self.request.POST['end_date'].partition('T')[0], '%Y-%m-%d').date()
+                            if log_date > end_date:
+                                del dataset.logs[i]
+                                continue
+
+
+
+                except Exception as e:
+                    logger.exception("Exception getting logs: %s", e)
+                    dataset.logs_error = "Error occurred: %s" % e
+
+        schema.children[1].datasets = datasets
+
+        if 'target' in self.request.POST and self.request.POST['target']:
+            target = self.request.POST['target']
+            return HTTPFound(self.request.route_url(target, project_id=self.project_id))
+
+        appstruct = {}
+        if self.request.POST.items() > 0:
+            try:
+                appstruct = form.validate(self.request.POST.items())
+                display = form.render(appstruct)
+            except ValidationFailure, e:
+                appstruct = e.cstruct
+                display = e.render()
+
+        messages = {
+            'error_messages': self.request.session.pop_flash("error"),
+            'success_messages': self.request.session.pop_flash("success"),
+            'warning_messages': self.request.session.pop_flash("warning")
+        }
+        return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": display, "form_only": False, 'messages': messages, 'page_help': page_help}
+
+    @view_config(route_name="add_data")
+    def add_data_view(self):
+        raise NotImplementedError("This page hasn't been implemented yet.")
+
+        page_help=""
+        schema = IngesterLogs()
+        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Refresh',), use_ajax=False)
+
+
+        return self.handle_form(form, schema, page_help)
+
+    @view_config(route_name="manage_data")
+    def manage_data_view(self):
+        raise NotImplementedError("This page hasn't been implemented yet.")
+
+        page_help=""
+        schema = IngesterLogs()
+        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Refresh',), use_ajax=False)
+
+
+        return self.handle_form(form, schema, page_help)
+
+    @view_config(route_name="permissions")
+    def permissions_view(self):
+        raise NotImplementedError("This page hasn't been implemented yet.")
+
+        page_help=""
+        schema = IngesterLogs()
+        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Refresh',), use_ajax=False)
+
+
+        return self.handle_form(form, schema, page_help)
+
+    @view_config(route_name="duplicate")
+    def duplicate_view(self):
+        raise NotImplementedError("This page hasn't been implemented yet.")
+
+        page_help=""
+        schema = IngesterLogs()
+        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Refresh',), use_ajax=False)
+
+
+        return self.handle_form(form, schema, page_help)
+
+    # --------------------WORKFLOW EXCEPTION VIEWS-------------------------------------------
     @view_config(context=Exception, route_name="workflow_exception")
     def exception_view(self):
-        # TODO: Update standard exception screen to fit.
         logger.exception("An exception occurred in global exception view: %s", self.context)
         if hasattr(self, self.request.matched_route.name + "_view"):
             try:
@@ -710,10 +849,20 @@ class Workflows(Layouts):
                 return response
             except Exception:
                 logger.exception("Exception occurred while trying to display the view without variables: %s", Exception)
-                return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": 'Sorry, we are currently experiencing difficulties.  Please contact the administrators: ' + cgi.escape(str(self.context)), "form_only": False}
+                messages = {
+                    'error_messages': ['Sorry, we are currently experiencing difficulties: ' % self.context],
+                    'success_messages': [],
+                    'warning_messages': []
+                }
+                return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": '', "messages": messages, "form_only": False}
         else:
             try:
-                return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": 'This address is not valid, please don\'t directly edit the address bar: ' + cgi.escape(str(self.context)), "form_only": False}
+                messages = {
+                    'error_messages': ['Sorry, we are currently experiencing difficulties: ' % self.context],
+                    'success_messages': [],
+                    'warning_messages': []
+                }
+                return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": 'This address is not valid, please don\'t directly edit the address bar: ' + cgi.escape(str(self.context)), "form_only": False, "messages": messages}
             except:
                 self.request.session.flash('There is no page at the requested address, please don\'t edit the address bar directly.', 'error')
                 if self.request.matchdict and self.request.matchdict['route'] and (self.request.matchdict['route'].split("/")[0]).isnumeric():
@@ -721,7 +870,7 @@ class Workflows(Layouts):
                     print 'isnumeric: ' + str(project_id)
                     return HTTPFound(self.request.route_url('general', project_id=project_id))
                 else:
-                    return HTTPFound(self.request.route_url('setup'))
+                    return HTTPFound(self.request.route_url('create'))
 
 
 #            return {"page_title": self.context, "form": 'This address is not valid, please don\'t directly edit the address bar: ' + str(self.context), "form_only": False}
@@ -731,7 +880,22 @@ class Workflows(Layouts):
     def sqlalchemy_exception_view(self):
         self.session.rollback()
         logger.exception("A database exception occurred in global exception view: %s", self.context)
-        return {"exception": "%s" % self.context, "message": 'Sorry, we are currently experiencing difficulties.  Please contact the administrators: ' + cgi.escape(str(self.context))}
+
+        messages = {
+            'error_messages': ['Sorry, we are currently experiencing difficulties.'],
+            'success_messages': [],
+            'warning_messages': []
+        }
+        if 'MySQL server has gone away' in self.context:
+            try:
+#                self.request.session.flash('Sorry, please try again - there was an exception: ' + cgi.escape(str(self.context)), 'error')
+                self.request.POST.clear()
+                response = getattr(self, str(self.request.matched_route.name) + "_view")()
+                return response
+            except Exception:
+                pass
+
+        return {"exception": "%s" % self.context, "messages": messages}
 
 
 

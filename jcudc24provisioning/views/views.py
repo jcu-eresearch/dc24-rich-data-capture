@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 PAGES = [
         {'route_name': 'dashboard', 'title': 'Home', 'page_title': 'JCU TDH DC24 Dashboard', 'hidden': False},
-        {'route_name': 'setup', 'title': 'New Project', 'page_title': 'Setup a New Project', 'hidden': False},
+        {'route_name': 'create', 'title': 'New Project', 'page_title': 'Setup a New Project', 'hidden': False},
         {'route_name': 'browse', 'title': 'Browse Projects', 'page_title': 'Browse Projects & Data'},
         {'route_name': 'help', 'title': 'Help & Support', 'page_title': 'Associated Information', 'hidden': False},
         {'route_name': 'search', 'title': 'Search Website', 'page_title': 'Search Website', 'hidden': True},
@@ -132,7 +132,12 @@ class Layouts(object):
 #                return response
 #            except Exception:
 #            logger.exception("Exception occurred in standard view: %s", self.context)
-        return {"exception": "%s" % self.context, "message": 'Sorry, we are currently experiencing difficulties.  Please contact the administrators: ' + str(self.context)}
+        messages = {
+            'error_messages': ['Sorry, we are currently experiencing difficulties.'],
+            'success_messages': [],
+            'warning_messages': []
+        }
+        return {"exception": "%s" % self.context, "messages": messages}
 #        else:
 #            self.request.session.flash('There is no page at the requested address, please don\'t edit the address bar directly.', 'error')
 #            return HTTPFound(self.request.route_url('dashboard'))

@@ -335,14 +335,16 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
 
             # Create the data source
             try:
+                print "URI: %s" % model.pull_data_source.uri
                 data_source_field = self.session.query(MethodSchemaField).filter_by(id=model.pull_data_source.file_field).first()
                 data_source = jcudc24ingesterapi.models.data_sources.PullDataSource(
                     url=model.pull_data_source.uri,
                     field=data_source_field.name,
-                    pattern=model.pull_data_source.filename_pattern,
-                    mime_type=model.pull_data_source.mime_type,
+#                    pattern=model.pull_data_source.filename_pattern,
+#                    mime_type=model.pull_data_source.mime_type,
                     processing_script=model.pull_data_source.custom_processor_script,
                     sampling=sampling_object,
+                    recursive=True
                 )
             except TypeError:
                 logger.exception("Trying to create an ingester pull data source with invalid parameters")

@@ -184,8 +184,8 @@
             </div>
 
             <div id="center">
-                <!--Messages panel-->
                  <div class="messages" tal:condition="exists:messages">
+                     <!--Messages panel-->
                      <noscript>
                          <div id="no_javascript">
                              Please enable javascript for full usability.

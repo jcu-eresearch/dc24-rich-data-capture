@@ -1260,3 +1260,22 @@ method_template = colander.SchemaNode(colander.Integer, title="Select a template
     description="<ol><li>First select the category or organisational group on the left hand side.</li>"
                    "<li>Then select the most relevant template from the list on the right hand side.</li>")
 
+
+class IngesterLogsFiltering(colander.MappingSchema):
+    log_levels=(("ALL","Show All"),
+                ("ERROR","Errors"),
+                ("INFO", "Informational"),
+                ("WARNING", "Warnings"),
+                ("DEBUG", "Debugging"),)
+    start_date = colander.SchemaNode(colander.Date(),missing=colander.null)
+    end_date = colander.SchemaNode(colander.Date(),missing=colander.null)
+    level = colander.SchemaNode(colander.String(),widget=deform.widget.SelectWidget(values=log_levels,
+        multiple=False),missing=colander.null)
+
+class IngesterLogs(colander.MappingSchema):
+    filtering = IngesterLogsFiltering(widget=deform.widget.MappingWidget(template="inline_mapping", show_label=True),
+        title="Filter Logs",
+        help='Filter the ingester event logs based on level (multple seletion) as well as date start, end or range.',
+        missing=colander.null)
+    logs = colander.SchemaNode(colander.String(), title="", widget=deform.widget.HiddenWidget(template="ingester_logs"),
+        help="TODO: Provide information on what logs mean",missing=colander.null)

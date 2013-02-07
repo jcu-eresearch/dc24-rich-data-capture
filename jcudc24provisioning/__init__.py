@@ -1,5 +1,5 @@
 # This line is only required for activiting the virtualenv within the IntelliJ IDE
-execfile("D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py", dict(__file__="D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py"))
+#execfile("D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py", dict(__file__="D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py"))
 
 from zope.sqlalchemy import ZopeTransactionExtension
 import logging
@@ -50,7 +50,7 @@ def main(global_config, **settings):
 
 #    ---------------Project/Workflow pages------------------------
     config.add_route('share', '/project/share')                             # Set project permissions
-    config.add_route('setup', '/project/setup')              # Project creation wizard - templates, pre-fill etc.
+    config.add_route('create', '/project/create')              # Project creation wizard - templates, pre-fill etc.
     config.add_route('general', '/project/{project_id}/general')              # Project creation wizard - templates, pre-fill etc.
     config.add_route('description', '/project/{project_id}/description')    # descriptions
     config.add_route('information', '/project/{project_id}/information')    # metadata or associated information
@@ -59,9 +59,18 @@ def main(global_config, **settings):
     config.add_route('submit', '/project/{project_id}/submit')              # Submit, review and approval
     config.add_route('manage', '/project/{project_id}/manage')              # Manage projecct data, eg. change sample rates, add data values
 
-    config.add_route('workflow_exception', '/project/{route:.*}')              # Manage projecct data, eg. change sample rates, add data values
 
-    #    --------------JSON Search views--------------------------------
+    # Project action pages
+    config.add_route('logs', '/project/{project_id}/logs')                  # Manage projecct data, eg. change sample rates, add data values
+    config.add_route('add_data', '/project/{project_id}/add_data')          # Manage projecct data, eg. change sample rates, add data values
+    config.add_route('manage_data', '/project/{project_id}/manage_data')    # Manage projecct data, eg. change sample rates, add data values
+    config.add_route('permissions', '/project/{project_id}/permissions')    # Manage projecct data, eg. change sample rates, add data values
+    config.add_route('duplicate', '/project/{project_id}/duplicate')        # Manage projecct data, eg. change sample rates, add data values
+
+    # Exception handler
+    config.add_route('workflow_exception', '/project/{route:.*}')           # Manage projecct data, eg. change sample rates, add data values
+
+#    --------------JSON Search views--------------------------------
     config.add_route('get_model', '/get_model/{object_type}/{id}', xhr=True)              # Manage projecct data, eg. change sample rates, add data values
     config.add_route('add_method_from_template', '/add/{project_id}/{method_id}', xhr=True)              # Manage projecct data, eg. change sample rates, add data values
 
