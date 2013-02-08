@@ -451,17 +451,17 @@ class MethodSchemaField(Base):
     order_counter = itertools.count()
 
     __tablename__ = 'method_schema_field'
-    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     method_schema_id = Column(Integer, ForeignKey('method_schema.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
     type = Column(String(100), ca_title="Field Type",
         ca_widget=deform.widget.SelectWidget(values=field_types),
         ca_description="",
-        ca_placeholder="Type of field that should be shown.")
+        ca_placeholder="Type of field that should be shown.",ca_force_required=True)
 
-    units = Column(String(256), ca_placeholder="eg. mm", ca_widget=deform.widget.TextInputWidget(css_class="custom_field_units"))
+    units = Column(String(256), ca_placeholder="eg. mm", ca_widget=deform.widget.TextInputWidget(css_class="custom_field_units"),ca_force_required=True)
 
-    name = Column(String(256), ca_title="Name", ca_placeholder="eg. Temperature", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_name"))
+    name = Column(String(256), ca_title="Name", ca_placeholder="eg. Temperature", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_name"),ca_force_required=True)
     description = Column(Text(), ca_title="Description", ca_placeholder="eg. Calibrated temperature reading", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_description"))
     placeholder = Column(String(256), ca_title="Example", ca_placeholder="eg. 26.3", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_example"))
     default = Column(String(256), ca_title="Default Value", ca_placeholder="Use appropriately where the user will usually enter the same value.", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_default"))
@@ -531,11 +531,10 @@ class PullDataSource(Base):
 
 
     # TODO: filename_patterns
-    filename_pattern=Column(String(100),ca_order=next(order_counter), ca_title="Filename Pattern (Regex)",
-            ca_group_help="Provide a filename pattern (Regex) that identifies which files should be ingested.")
-    # TODO: file mime_types
-    mime_type=Column(String(100),ca_order=next(order_counter), ca_title="File MIME Type",
-                ca_group_help="Provide a file MIME type that identifies the file content type.")
+    filename_pattern=Column(String(100),ca_order=next(order_counter), ca_title="Filename Pattern (Regex)",)
+#            ca_group_help="Provide a filename pattern (Regex) that identifies which files should be ingested.")
+#     mime_type=Column(String(100),ca_order=next(order_counter), ca_title="File MIME Type",
+#                ca_group_help="Provide a file MIME type that identifies the file content type.")
 
     selected_sampling = Column(String(64), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter),
         ca_group_start="sampling", ca_group_title="Data Sampling/Filtering", ca_group_collapsed=False,
@@ -561,7 +560,8 @@ class PullDataSource(Base):
         ca_title="Describe custom sampling needs", ca_missing="",
         ca_description="Describe your sampling requirements and what your uploaded script does, or what you will need help with.")
 
-    custom_sampling_script = Column(String(256),ca_order=next(order_counter), ca_title="Upload custom sampling script", ca_missing = colander.null,
+    custom_sampling_script = Column(String(256),ca_order=next(order_counter),ca_widget=upload_widget,
+        ca_title="Upload custom sampling script", ca_missing = colander.null,
         ca_group_end="sampling",
         ca_description="Upload a custom Python script to "\
                        "sample the data in some way.  The sampling script API can be found "\
@@ -573,7 +573,12 @@ class PullDataSource(Base):
         ca_title="Describe custom processing needs", ca_missing="", ca_description="Describe your processing "\
                     "requirements and what your uploaded script does (or what you will need help with).")
 
-    custom_processor_script = Column(String(256),ca_order=next(order_counter), ca_title="Upload custom processing script", ca_missing = colander.null,
+    custom_processing_parameters = Column(String(512),ca_order=next(order_counter),
+            ca_description="Comma separated list of parameters.",
+            ca_help="Parameters are added via python string formatting syntax, simply add %s or %(<i>name</i>)s wherever you want a parameter inserted (parameters must either be added in the correct order or be named).")
+
+    custom_processor_script = Column(String(256),ca_order=next(order_counter),ca_widget=upload_widget,
+        ca_title="Upload custom processing script", ca_missing = colander.null,
         ca_group_end="method",
         ca_description="Upload a custom Python script to "\
             "process the data in some way.  The processing script API can be found "\
@@ -623,7 +628,8 @@ class SOSDataSource(Base):
         ca_title="Describe custom sampling needs", ca_missing="", ca_description="Describe your sampling "\
                                                                                  "requirements and what your uploaded script does, or what you will need help with.")
 
-    custom_sampling_script = Column(String(256),ca_order=next(order_counter), ca_title="Upload custom sampling script", ca_missing = colander.null,
+    custom_sampling_script = Column(String(256),ca_order=next(order_counter), ca_widget=upload_widget,
+        ca_title="Upload custom sampling script", ca_missing = colander.null,
         ca_group_end="sampling",
         ca_description="Upload a custom Python script to "\
                        "sample the data in some way.  The sampling script API can be found "\
@@ -657,8 +663,12 @@ class DatasetDataSource(Base):
         ca_title="Describe custom processing needs", ca_missing="", ca_description="Describe your processing "\
                     "requirements and what your uploaded script does (or what you will need help with).")
 
-    custom_processor_script = Column(String(256),ca_order=next(order_counter), ca_title="Upload custom processing script", ca_missing = colander.null,
-#        ca_group_end="method",
+    custom_processing_parameters = Column(String(512),ca_order=next(order_counter),
+            ca_description="Comma separated list of parameters.",
+            ca_help="Parameters are added via python string formatting syntax, simply add %s or %(<i>name</i>)s wherever you want a parameter inserted (parameters must either be added in the correct order or be named).")
+
+    custom_processor_script = Column(String(512),ca_order=next(order_counter),ca_widget=upload_widget,
+        ca_title="Upload custom processing script", ca_missing = colander.null,
         ca_description="Upload a custom Python script to "\
             "process the data in some way.  The processing script API can be found "\
             "<a title=\"Python processing script API\"href=\"\">here</a>.")
@@ -1041,9 +1051,10 @@ class Metadata(Base):
 
     #-------------legal--------------------
     # TODO: Make this into a drop down - still need the list of options though.
-    access_rights = Column(String(256), ca_name="dc:accessRights.skos:prefLabel", ca_order=next(order_counter), ca_title="Access Rights", ca_default="Open access", ca_page="metadata",
+    access_rights = Column(String(256), ca_name="dc:accessRights.skos:prefLabel", ca_order=next(order_counter), ca_title="Access Rights", ca_page="metadata",
+        ca_widget=deform.widget.SelectWidget(values=(("open", "Open Access"),)),
         ca_group_start="legality", ca_group_collapsed=False, ca_group_title="Licenses & Access Rights",
-        ca_help="Information how to access the records data, including access restrictions or embargoes based on privacy, security or other policies. A URI is optional.")
+        ca_help="Information how to access the records data, including access restrictions or embargoes based on privacy, security or other policies. A URI is optional.<br/>TODO: Update the list of access rights.")
     # TODO: Pre-populate with a url - still waiting on URL to use
     access_rights_url = Column(String(256), ca_order=next(order_counter), ca_name="dc:accessRights.dc:identifier", ca_title="URL", ca_missing="", ca_page="metadata",
         ca_requires_admin=True)
@@ -1144,6 +1155,8 @@ class Metadata(Base):
 #    notes = relationship('Note', ca_order=next(order_counter), ca_description="Enter administrative notes as required.", ca_missing=None, ca_page="metadata",
 #        ca_group_end="additional_information")
 
+class ProjectStates(object):
+    OPEN, SUBMITTED, APPROVED, ACTIVE, DISABLED = range(5)
 
 class Project(Base):
     order_counter = itertools.count()
@@ -1151,6 +1164,7 @@ class Project(Base):
     __tablename__ = 'project'
 
     id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget(), ca_missing=-1)
+    state = Column(Integer, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(), ca_missing=ProjectStates.OPEN)
 
     project_creator = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
     creation_date = Column(Date, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())

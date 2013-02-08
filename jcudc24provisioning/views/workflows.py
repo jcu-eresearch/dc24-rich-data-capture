@@ -25,12 +25,12 @@ from jcudc24ingesterapi.ingester_platform_api import IngesterPlatformAPI
 from jcudc24provisioning.models.common_schemas import SelectMappingSchema
 from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPFound, HTTPNotFound, HTTPClientError
-from pyramid.response import Response
+from pyramid.response import Response, FileResponse
 from pyramid.view import view_config, view_defaults, render_view_to_response
 from colanderalchemy.types import SQLAlchemyMapping
 from jcudc24provisioning.views.views import Layouts
 from pyramid.renderers import get_renderer
-from jcudc24provisioning.models.project import DBSession, PullDataSource,Metadata, IngesterLogs, ProjectTemplate,method_template,DatasetDataSource, Project, CreatePage, Method, Base, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
+from jcudc24provisioning.models.project import DBSession, PullDataSource,Metadata, IngesterLogs, Location, ProjectTemplate,method_template,DatasetDataSource, Project, CreatePage, Method, Base, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
 from jcudc24provisioning.views.ca_scripts import convert_schema, create_sqlalchemy_model, convert_sqlalchemy_model_to_data,fix_schema_field_name
 from jcudc24provisioning.scripts.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.mint_lookup import MintLookup
@@ -48,7 +48,7 @@ WORKFLOW_STEPS = [
         {'href': 'methods', 'title': 'Methods', 'page_title': 'Data Collection Methods'},
         {'href': 'datasets', 'title': 'Datasets', 'page_title': 'Datasets (Collections of Data)'},
         {'href': 'submit', 'title': 'Submit', 'page_title': 'Submit & Approval'},
-        {'href': 'manage', 'title': 'Manage', 'page_title': 'Manage Project Data', 'hidden': True},
+        {'href': 'template', 'title': 'Template', 'page_title': 'Template Details', 'hidden': True},
 ]
 
 WORKFLOW_ACTIONS = [
@@ -58,6 +58,7 @@ WORKFLOW_ACTIONS = [
         {'href': 'manage_data', 'title': 'Manage Data', 'page_title': 'Manage Data'},
         {'href': 'permissions', 'title': 'Sharing', 'page_title': 'Sharing & Permissions'},
         {'href': 'duplicate', 'title': 'Duplicate Project', 'page_title': 'Duplicate Project'},
+        {'href': 'create_template', 'title': 'Make into Template', 'page_title': 'Create Project Template'},
 ]
 
 redirect_options = """
@@ -389,7 +390,11 @@ class Workflows(Layouts):
     def general_view(self):
         page_help = ""
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description=""), page='setup').bind(request=self.request)
-        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False, ajax_options=redirect_options)
+        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', ), use_ajax=False, ajax_options=redirect_options)
+
+        if 'Next' in self.request.POST:
+            self.request.POST['target'] = 'description'
+
         return self.handle_form(form, schema, page_help)
 
 
@@ -404,7 +409,16 @@ class Workflows(Layouts):
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="description").bind(
             request=self.request)
 
-        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False)
+
+        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
+
+        if 'Next' in self.request.POST:
+            self.request.POST['target'] = 'information'
+
+        if 'Previous' in self.request.POST:
+            self.request.POST['target'] = 'general'
+
+
         return self.handle_form(form, schema, page_help)
 
 
@@ -424,7 +438,13 @@ class Workflows(Layouts):
                                    "these forms, you can enter it directly in the ReDBox-Mint records once the project " \
                                    "is submitted and accepted (Look under <i>[to be worked out]</i> for a link).</li></ul>"
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page='metadata').bind(request=self.request)
-        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False)
+        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
+
+        if 'Next' in self.request.POST:
+            self.request.POST['target'] = 'methods'
+
+        if 'Previous' in self.request.POST:
+            self.request.POST['target'] = 'description'
 
         return self.handle_form(form, schema, page_help)
 
@@ -481,7 +501,13 @@ class Workflows(Layouts):
         schema.children[METHODS_INDEX].children[0].children[DATA_SCHEMA_INDEX].children[METHOD_SCHEMA_PARENTS_INDEX].template_schemas = self.get_template_schemas()
 #        assert False
 
-        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False)
+        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
+
+        if 'Next' in self.request.POST:
+            self.request.POST['target'] = 'datasets'
+
+        if 'Previous' in self.request.POST:
+            self.request.POST['target'] = 'information'
 
         appstruct = None
         display = None
@@ -641,7 +667,13 @@ class Workflows(Layouts):
 
 
 
-        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False)
+        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
+
+        if 'Next' in self.request.POST:
+            self.request.POST['target'] = 'submit'
+
+        if 'Previous' in self.request.POST:
+            self.request.POST['target'] = 'methods'
 
         # If a new dataset was added through the wizard - Update the appstruct with that datasets' template's data
         appstruct = None
@@ -659,6 +691,7 @@ class Workflows(Layouts):
 
 #            old_models = self.session.query(Method).filter_by(project_id=self.project_id).all()
             for new_dataset_data in appstruct['project:datasets']:
+                # If this is a newly created dataset
                 if not new_dataset_data['dataset:id'] and 'dataset:method_id' in new_dataset_data and new_dataset_data['dataset:method_id']:
                     method = self.session.query(Method).filter_by(id=new_dataset_data['dataset:method_id']).first()
                     template_dataset = self.session.query(Dataset).join(MethodTemplate).filter(Dataset.id == MethodTemplate.dataset_id).\
@@ -666,7 +699,21 @@ class Workflows(Layouts):
                     if template_dataset is None:
                         continue
 
-                    new_dataset_dict = convert_sqlalchemy_model_to_data(self.clone(template_dataset), schema.children[DATASETS_INDEX].children[0])
+                    template_clone = self.clone(template_dataset)
+
+                    # Pre-fill with first project point location
+                    project_locations = self.session.query(Location).join(Metadata).filter(Metadata.id==Location.metadata_id).filter_by(project_id=self.project_id).all()
+                    for location in project_locations:
+                        if location.is_point():
+                            location_clone = self.clone(location)
+                            location_clone.metadata_id = None
+                            template_clone.dataset_locations.append(location_clone)
+                            break
+
+                    # Copy all data from the template
+                    new_dataset_dict = convert_sqlalchemy_model_to_data(template_clone, schema.children[DATASETS_INDEX].children[0])
+
+
 #                    new_method_dict = new_method_dict['method']
                     del new_dataset_dict['dataset:id']
                     new_dataset_dict['datase:project_id'] = new_dataset_data['dataset:project_id']
@@ -725,6 +772,16 @@ class Workflows(Layouts):
         return response
 
 # --------------------WORKFLOW ACTION/SIDEBAR VIEWS-------------------------------------------
+    @view_config(route_name="dataset_logs")
+    def dataset_logs_view(self):
+        dataset_id = int(self.request.matchdict['dataset_id'])
+        logs = self.ingester_api.getIngesterEvents(dataset_id)
+
+        content = ''.join(["%s - %s - %s - %s - %s - %s.\n" % (log['id'], log['dataset_id'], log['timestamp'], log['class'], log['level'], log['message'].strip()) for log in logs])
+        res = Response(content_type="text")
+        res.body = content
+        return res
+
     @view_config(route_name="logs")
     def logs_view(self):
 #        print "POST VARS" + str(self.request.POST) + " " + str(self.project_id)
@@ -765,8 +822,6 @@ class Workflows(Layouts):
                             if log_date > end_date:
                                 del dataset.logs[i]
                                 continue
-
-
 
                 except Exception as e:
                     logger.exception("Exception getting logs: %s", e)

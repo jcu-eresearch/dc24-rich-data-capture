@@ -2,6 +2,7 @@
 from collections import OrderedDict
 import colander
 import deform
+import os
 
 __author__ = 'Casey Bajema'
 
@@ -43,8 +44,22 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
 
         if hasattr(model_object, key):
             # Test if this is a file widget that needs to be converted to text (there is probably a more elegant way to do this)
-            if isinstance(value, dict) and 'fp' in value and 'filename' in value and 'mimetype' in value and 'preview_url' in value:
-                value = value['preview_url']
+            if isinstance(value, dict) and 'filename' in value and 'uid' in value and 'preview_url' in value:
+                file_data = value['preview_url'][1][value['uid']]
+                file_path = os.path.join(value['preview_url'][0], file_data['randid'])
+#                value = str(value)
+                value = str({'uid': value['uid'], 'filename': value['filename'], 'filepath': file_path})
+                if not hasattr(model_class._sa_class_manager[key], '_parententity'):
+                    ca_registry = model_class._sa_class_manager[key].comparator.mapper.columns._data[key]._ca_registry
+                else:
+                    ca_registry = model_class._sa_class_manager[key]._parententity.columns._data[key]._ca_registry
+
+                if ('default' not in ca_registry or not value == ca_registry['default']) and str(value) != str(getattr(model_object, key, None)):
+                    setattr(model_object, key, value)
+                    is_data_empty = False
+                continue
+
+
 
             if value is colander.null or value is None or value == 'None':
                 continue
@@ -99,6 +114,8 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
                 if getattr(model_object, key, None) is not None:
                     current_object = getattr(model_object, key, None)
 
+#                if not hasattr(model_object._sa_class_manager[key].property, 'mapper'):
+#                    test = 2
                 child_table_object = create_sqlalchemy_model(value, model_class=model_object._sa_class_manager[key].property.mapper.class_, model_object=current_object)
 
                 if child_table_object is not None:

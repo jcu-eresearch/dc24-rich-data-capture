@@ -1,13 +1,11 @@
 <div class="deformFileupload">
-
     <input type="hidden" name="__start__" value="${field.name}:mapping"/>
 
     <div class="deformReplaces" tal:condition="cstruct.get('uid')">
 
         <input type="hidden" name="uid" value="${cstruct['uid']}"
                id="${field.oid}-uid"/>
-    <span tal:content="cstruct.get('filename')"
-          id="${field.oid}-filename"/>
+    <span id="${field.oid}-filename"><span class="deformClosebutton" onclick="parentNode.innerHTML=''; $(${field.oid}-uid).remove();"></span> ${cstruct.get('filename')}</span>
 
     </div>
     <input type="file"

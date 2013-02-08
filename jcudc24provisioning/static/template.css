@@ -428,9 +428,11 @@ body {
 }
 
 .content_container {
-    border: 1px solid rgb(233, 79, 53);
-    border-radius: 0.5em;
+    border: 1px solid #FDB913;
+    /*border-radius: 0.5em;*/
     padding: 10px;
+    margin-top: -1px;
+    background-color: white;
 }
 .content_container.collapsed:hover {
     border-color: rgb(247, 147, 30);
@@ -438,7 +440,7 @@ body {
 .content_container.collapsed {
     padding: 0;
     padding-left: 10px;
-    border-color: #FDB913;
+    background-color: transparent;
 }
 .content_container h3, .content_container p {
     margin: 0;
