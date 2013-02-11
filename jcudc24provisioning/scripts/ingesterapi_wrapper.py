@@ -164,7 +164,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
         model.dam_id = command(new_location)
         new_location.provisioning_model = model
         new_location.set_listener(model_id_listener)
-        return new_location
+        return new_location.id
 
     def process_location_offset(self, model, command, work):
         assert isinstance(model, LocationOffset), "Invalid location offset: " + str(model)
@@ -271,8 +271,8 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
                 try:
                     new_dataset.location = self.process_model(location, command, work)
                 except Exception as e:
-                    logger.exception("Failed to add/update location: %s for dataset: %s" % (location, model.title))
-                    raise ValueError("Failed to add/update location: %s for dataset: %s, error: %s" % (location, model.title, e))
+                    logger.exception("Failed to add/update location: %s for dataset: %s" % (location.name, model.title))
+                    raise ValueError("Failed to add/update location: %s for dataset: %s, error: %s" % (location.name, model.title, e))
             else:
                 pass # TODO: Discuss regions when we get there - there is currently only 1 region in a dataset (this will fail if run)
 

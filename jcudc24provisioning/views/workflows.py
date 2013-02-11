@@ -85,16 +85,21 @@ class Workflows(Layouts):
         if self.request.matchdict and 'project_id' in self.request.matchdict:
             self.project_id = self.request.matchdict['project_id']
 
+        self.config = ConfigParser.SafeConfigParser()
+        self.config.read('../../development.ini')
+
     @property
     def auth(self):
         if '_auth' not in locals():
-            self._auth = CredentialsAuthentication("casey", "password")
+            self._auth = CredentialsAuthentication(self.config.get("app:main", "ingesterapi.username"), self.config.get("app:main", "ingesterapi.password"))
+            auth = self._auth
         return self._auth
 
     @property
     def ingester_api(self):
         if '_ingester_api' not in locals():
-            self._ingester_api = IngesterAPIWrapper("http://localhost:8080/api", self.auth)
+            self._ingester_api = IngesterAPIWrapper(self.config.get("app:main", "ingesterapi.url"), self.auth)
+            api = self._ingester_api
         return self._ingester_api
 
 

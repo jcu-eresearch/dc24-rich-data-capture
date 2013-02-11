@@ -1,4 +1,5 @@
 # This line is needed to activate the virtualenv for running the tests in Intellij IDEA - update to your own virtualenv location.
+import ConfigParser
 import transaction
 
 #execfile("D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py", dict(__file__="D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py"))
@@ -35,8 +36,12 @@ class TestModelConversion(unittest.TestCase):
 class TestIngesterPlatform(unittest.TestCase):
     def setUp(self):
         self.session = DBSession
-        self.auth = CredentialsAuthentication("casey", "password")
-        self.ingester_api = IngesterAPIWrapper("http://localhost:8080/api", self.auth)
+
+
+        self.config = ConfigParser.SafeConfigParser()
+        self.config.read('../../development.ini')
+        self.auth = CredentialsAuthentication(self.config.get("app:main", "ingesterapi.username"), self.config.get("app:main", "ingesterapi.password"))
+        self.ingester_api = IngesterAPIWrapper(self.config.get("app:main", "ingesterapi.url"), self.auth)
 
         self.project = Project()
 #        self.project.description = "This is a test description for the DC24 provisioning interface"
