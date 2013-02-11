@@ -5,7 +5,7 @@
 
         <input type="hidden" name="uid" value="${cstruct['uid']}"
                id="${field.oid}-uid"/>
-    <span id="${field.oid}-filename"><span class="deformClosebutton" onclick="$('#${field.oid}-uid')[0].value=''; $(parentNode).remove(); "></span> ${cstruct.get('filename')}</span>
+        <span id="${field.oid}-filename"><span class="deformClosebutton" onclick="$('#${field.oid}-uid')[0].value=''; $(parentNode).remove(); "></span> ${cstruct.get('filename')}</span>
 
     </div>
     <input type="file"
