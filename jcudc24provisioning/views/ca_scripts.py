@@ -46,7 +46,6 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
             # Test if this is a file widget that needs to be converted to text (there is probably a more elegant way to do this)
             #   -> preview_url will be there if selected with widget, filepath will be there if re-saving data from database
             if (isinstance(value, dict) and 'filename' in value and 'uid' in value):
-
                 if 'preview_url' in value:
                     file_data = value['preview_url'][1][value['uid']]
                     file_path = os.path.join(value['preview_url'][0], file_data['randid'])
@@ -68,6 +67,7 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
             elif isinstance(getattr(model_object, key), str) and 'filepath' in getattr(model_object, key) and 'filename' in getattr(model_object, key) and 'uid' in getattr(model_object, key):
                 setattr(model_object, key, None)
                 is_data_empty = False
+                continue
 
             if value is colander.null or value is None or value == 'None':
                 continue
