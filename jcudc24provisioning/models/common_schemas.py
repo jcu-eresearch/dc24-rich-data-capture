@@ -107,7 +107,18 @@ def file_upload_serialize(self, field, cstruct, readonly=False):
         cstruct = {}
     if cstruct:
         if isinstance(cstruct, unicode):
-            cstruct = ast.literal_eval(cstruct)
+            cstruct_items = cstruct.split(",")
+            new_cstruct = {}
+            for item in cstruct_items:
+                if 'preview_url' in item:
+                    continue
+
+                if 'filename' in item and not 'filename' in new_cstruct:
+                    new_cstruct['filename'] = item.split(":")[1].strip().replace("u'", "").replace('\'', "").replace("}", "")
+                if 'uid' in item and not 'uid' in new_cstruct:
+                    new_cstruct['uid'] = item.split(":")[1].strip()[2:-2].replace("u'", "").replace('\'', "").replace("}", "")
+
+            cstruct = new_cstruct
         uid = cstruct['uid']
         if not uid in self.tmpstore:
             self.tmpstore[uid] = cstruct
