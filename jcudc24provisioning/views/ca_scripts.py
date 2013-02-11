@@ -51,8 +51,10 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
                     file_path = os.path.join(value['preview_url'][0], file_data['randid'])
     #                value = str(value)
                     value = str({'uid': value['uid'], 'filename': value['filename'], 'filepath': file_path})
-                elif 'filepath' in value:
-                    value = str(value)
+#                elif 'filepath' in value:
+#                    value = str(value)
+                else:     # TODO: Fix this!
+                    continue
                 if not hasattr(model_class._sa_class_manager[key], '_parententity'):
                     ca_registry = model_class._sa_class_manager[key].comparator.mapper.columns._data[key]._ca_registry
                 else:
