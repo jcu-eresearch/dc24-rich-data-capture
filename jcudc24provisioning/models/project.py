@@ -2,6 +2,7 @@ import ConfigParser
 from collections import OrderedDict
 import itertools
 import sys
+from jcudc24provisioning import global_settings
 import colander
 from sqlalchemy.dialects.mysql.base import DOUBLE
 from sqlalchemy.engine import create_engine
@@ -51,7 +52,10 @@ def research_theme_validator(form, value):
 
 #@cache_region('long_term')
 def getFORCodes():
-    FOR_CODES_FILE = "for_codes.csv"
+    if global_settings is None:
+        return []
+
+    FOR_CODES_FILE = global_settings.get("app:main", "provisioning.for_codes")
 
     for_codes_file = open(FOR_CODES_FILE).read()
     data = OrderedDict()
@@ -90,7 +94,10 @@ def getFORCodes():
 
 #@cache_region('long_term')
 def getSEOCodes():
-    SEO_CODES_FILE = "seo_codes.csv"
+    if global_settings is None:
+        return []
+
+    SEO_CODES_FILE = global_settings.get("app:main", "provisioning.seo_codes")
 
     seo_codes_file = open(SEO_CODES_FILE).read()
     data = OrderedDict()
@@ -135,7 +142,7 @@ class FieldOfResearch(Base):
     metadata_id = Column(Integer, ForeignKey('metadata.id'),ca_order=next(order_counter),  nullable=False, ca_widget=deform.widget.HiddenWidget())
 
     field_of_research = Column(String(50), ca_order=next(order_counter), ca_title="Field Of Research", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
-    ca_data=getFORCodes())
+        ca_data=getFORCodes())
 
 
 class SocioEconomicObjective(Base):

@@ -1,17 +1,16 @@
+global_settings = None
+
 import jcudc24provisioning
 from deform.form import Form
 from pyramid.config import Configurator
 from pkg_resources import resource_filename
 from pyramid_beaker import session_factory_from_settings, set_cache_regions_from_settings
-from sqlalchemy.engine import engine_from_config
-from models.project import Project, DBSession, Base
 
 from zope.sqlalchemy import ZopeTransactionExtension
 import logging
 from pkg_resources import declare_namespace
 from . import models
 import sys
-from scripts.initialise_database import InitialiseDatabase
 import scripts.initializedb
 
 logger = logging.getLogger(__name__)
@@ -28,14 +27,15 @@ declare_namespace('jcudc24provisioning')
 __author__ = 'Casey Bajema'
 
 
-
 def main(global_config, **settings):
+    """ This function returns a Pyramid WSGI application.
+    """
+
     logging.captureWarnings(True)
 #    execfile("D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py", dict(__file__="D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py"))
 
+    global_settings = settings
 #def main():
-    """ This function returns a Pyramid WSGI application.
-    """
     jcudc24provisioning.scripts.initializedb.initialise_all_db(settings)
 
     deform_templates = resource_filename('deform', 'templates')

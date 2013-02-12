@@ -15,7 +15,7 @@ requires = [
     'zope.sqlalchemy',
     'waitress',
     'deform',
-    'colander',
+    'colander >= 1.0a1',
     'pyramid_deform',
     "pyramid_beaker",
     "mysql-python",
