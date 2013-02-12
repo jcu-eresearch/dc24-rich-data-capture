@@ -1,6 +1,7 @@
 import ConfigParser
 from collections import OrderedDict
 import itertools
+import logging
 import sys
 import colander
 from sqlalchemy.dialects.mysql.base import DOUBLE
@@ -34,6 +35,9 @@ from jcudc24provisioning.views.mint_lookup import MintLookup
 #DBSession = scoped_session(sessionmaker(bind=db_engine))
 DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
 Base = declarative_base()
+global_settings = None
+
+logger = logging.getLogger(__name__)
 
 def research_theme_validator(form, value):
     error = True
@@ -50,8 +54,9 @@ def research_theme_validator(form, value):
         raise exc
 
 #@cache_region('long_term')
-def getFORCodes():
-    FOR_CODES_FILE = "for_codes.csv"
+@colander.deferred
+def getFORCodes(node, kw):
+    FOR_CODES_FILE = global_settings.get("provisioning.for_codes")
 
     for_codes_file = open(FOR_CODES_FILE).read()
     data = OrderedDict()
@@ -89,8 +94,9 @@ def getFORCodes():
 
 
 #@cache_region('long_term')
-def getSEOCodes():
-    SEO_CODES_FILE = "seo_codes.csv"
+@colander.deferred
+def getSEOCodes(node, kw):
+    SEO_CODES_FILE = global_settings.get("provisioning.seo_codes")
 
     seo_codes_file = open(SEO_CODES_FILE).read()
     data = OrderedDict()
@@ -135,7 +141,7 @@ class FieldOfResearch(Base):
     metadata_id = Column(Integer, ForeignKey('metadata.id'),ca_order=next(order_counter),  nullable=False, ca_widget=deform.widget.HiddenWidget())
 
     field_of_research = Column(String(50), ca_order=next(order_counter), ca_title="Field Of Research", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
-    ca_data=getFORCodes())
+        ca_data=getFORCodes)
 
 
 class SocioEconomicObjective(Base):
@@ -146,7 +152,7 @@ class SocioEconomicObjective(Base):
     metadata_id = Column(Integer, ForeignKey('metadata.id'), ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
     socio_economic_objective = Column(String(50), ca_order=next(order_counter), ca_title="Socio-Economic Objective", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
-    ca_data=getSEOCodes())
+    ca_data=getSEOCodes)
 
 class Person(Base):
     order_counter = itertools.count()
