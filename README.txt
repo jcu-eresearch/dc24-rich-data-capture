@@ -3,19 +3,33 @@ jcu.dc24.provisioning README
 
 Getting Started
 ---------------
+Either of these methods will work, buildout is provided for integration with ingesterapi and ingesterplatform for JCU's development environment:
 
-!This needs to be updated!
+With buildout:
+1. Install python 2.7
+2. Install easy_install + easy_install virtualenv
+3. Setup git so that it is runnable from the command line - On windows:
+	- Install msysgit 
+	- Add to path variable as <installdir>\cmd
+	- Install tortiosegit 
+	- Ensure git works from the command line, cross your fingers..., if all else fails use a git-bash command prompt.
+4. Create venv from python 2.7 (<python27>/Scripts/virtualenv --no-site-packages <location>)
+5. Make sure the virtual env is configured with a valid c compiler - On windows this will probably involve:
+	- Install mingw
+	- Add <installdir>/bin and <installdir>/mingw32/bin to path
+	- Add [build] compiler=mingw32 to venv/lib/distutils/distutils.cfg
+	- Delete all -mno-cygwin within c:/python27/libs/distutils/cygwincompiler.py
+6. Activate created virtual env
+7. Checkout this git branch 
+8. <venv>/python ./bootstrap.py - Use the fully qualified path - activate is buggy...
+9. <venv>/python ./bin/buildout-script.py - Use the fully qualified path - activate is buggy...
 
-- cd <directory containing this file>
 
-- $venv/bin/python setup.py develop
-
-- $venv/bin/initialize_jcu.dc24.provisioning_db development.ini
-
-- $venv/bin/pserve ../../development.ini (development.ini is contained in an external repository to seperate the code from the run configurations - use its location on your system)
-
-- Configure the development.ini/production.ini pyramid_deform.tempdir to the desired temp folder
-- Setup a cron job or equivalent to remove old files (eg. daily).
+Without buildout:
+1. Update the development.ini example with your configurations, areas that must be configured are shown as <something>
+2. cd <directory containing this file>
+3. $venv/bin/python setup.py develop
+4. $venv/bin/pserve ../../development.ini 
 
 Note: Windows uses scripts instead of bin
 
