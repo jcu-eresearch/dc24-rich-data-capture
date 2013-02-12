@@ -11,7 +11,7 @@ from colanderalchemy import SQLAlchemyMapping
 import jcudc24ingesterapi
 from jcudc24ingesterapi.authentication import CredentialsAuthentication
 from jcudc24provisioning.models.project import Project, Location, Base, LocationOffset, Method, Dataset, Keyword, FieldOfResearch, MethodSchema, MethodSchemaField, PullDataSource, Metadata, DBSession
-from jcudc24provisioning.scripts.ingesterapi_wrapper import IngesterAPIWrapper
+from jcudc24provisioning.models.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.ca_scripts import convert_schema, convert_sqlalchemy_model_to_data, create_sqlalchemy_model
 
 

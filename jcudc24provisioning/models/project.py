@@ -56,6 +56,7 @@ def research_theme_validator(form, value):
 #@cache_region('long_term')
 @colander.deferred
 def getFORCodes(node, kw):
+	assert False, global_settings.get("provisioning.for_codes")
     FOR_CODES_FILE = global_settings.get("provisioning.for_codes")
 
     for_codes_file = open(FOR_CODES_FILE).read()
