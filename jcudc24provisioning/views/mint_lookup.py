@@ -15,10 +15,10 @@ class MintLookup(object):
         self.request = request
 
         # Read the Fields of research from Mint and store it into a variable for the template to read
-        config = ConfigParser.ConfigParser()
-        if 'defaults.cfg' in config.read('defaults.cfg'):
+        config = self.request.registry.settings
+        if 'mint.location' in config:
             try:
-                self.mint_url = config.get('mint', 'location')
+                self.mint_url = config.get('mint.location')
             except ConfigParser.NoSectionError or ConfigParser.NoOptionError:
                 raise ValueError("Invalid Mint server configuration in defaults.cfg")
         else:
