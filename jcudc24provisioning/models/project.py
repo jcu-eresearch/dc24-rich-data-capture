@@ -35,7 +35,6 @@ from jcudc24provisioning.views.mint_lookup import MintLookup
 #DBSession = scoped_session(sessionmaker(bind=db_engine))
 DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
 Base = declarative_base()
-global_settings = None
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +55,7 @@ def research_theme_validator(form, value):
 #@cache_region('long_term')
 @colander.deferred
 def getFORCodes(node, kw):
-    FOR_CODES_FILE = global_settings.get("provisioning.for_codes")
+    FOR_CODES_FILE = kw['settings'].get("provisioning.for_codes", {})
 
     for_codes_file = open(FOR_CODES_FILE).read()
     data = OrderedDict()
@@ -96,7 +95,7 @@ def getFORCodes(node, kw):
 #@cache_region('long_term')
 @colander.deferred
 def getSEOCodes(node, kw):
-    SEO_CODES_FILE = global_settings.get("provisioning.seo_codes")
+    SEO_CODES_FILE = kw['settings'].get("provisioning.seo_codes", {})
 
     seo_codes_file = open(SEO_CODES_FILE).read()
     data = OrderedDict()
@@ -183,7 +182,7 @@ class Party(Base):
         ca_validator=OneOfDict(relationship_types[1:]),)
 
     identifier = Column(String(100), ca_name="dc:creator.foaf:Person.0.dc:identifier", ca_order=next(order_counter), ca_title="Persistent Identifier", ca_force_required=True,
-        ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/parties/', template="mint_autocomplete_input", size="70"))
+        ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/parties/', template="mint_autocomplete_input", size="70", delay=10))
 #    person = relationship('Person', ca_order=next(order_counter), uselist=False)
 
 class Creator(Base):
@@ -905,7 +904,7 @@ class Metadata(Base):
     activity = Column(String(256), ca_order=next(order_counter), ca_title="Research Grant", ca_page="setup",
         ca_missing="", ca_force_required=True,
         ca_help="Enter the associated research grant associated with this record (this field will autocomplete).",
-        ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/activities/', template="mint_autocomplete_input"))
+        ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/activities/', template="mint_autocomplete_input", delay=10))
 
     #    services = Column(String(256), ca_title="Services - Remove this?", ca_order=next(order_counter), ca_placeholder="Autocomplete - Mint/Mint DB", ca_page="setup",
     #            ca_help="Indicate any related Services to this Collection. A lookup works against Mint, or you can enter known information about remote Services."
@@ -1253,7 +1252,7 @@ class CreatePage(colander.MappingSchema):
         missing=colander.null, required=False,
         help="Enter title of the research grant associated with this record (Autocomplete).  The grant will be looked up for additional information that can be pre-filled.",
         description="Select 'There is no associated research grant' above if your project isn't associated with a research grant.",
-        widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/activities/', template="mint_autocomplete_input"))
+        widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/activities/', template="mint_autocomplete_input", delay=10))
 
     #    services = Column(String(256), ca_title="Services - Remove this?", ca_order=next(order_counter), ca_placeholder="Autocomplete - Mint/Mint DB", ca_page="setup",
     #            ca_help="Indicate any related Services to this Collection. A lookup works against Mint, or you can enter known information about remote Services."
@@ -1262,11 +1261,11 @@ class CreatePage(colander.MappingSchema):
 
 
     data_manager = colander.SchemaNode(colander.String(), title="Data Manager (Primary contact)",
-        widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/parties/', template="mint_autocomplete_input"),
+        widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/parties/', template="mint_autocomplete_input", delay=10),
         help="Primary contact for the project, this should be the person in charge of the data and actively working on the project.<br /><br />"\
                 "<i>Autocomplete from most universities and large organisations, if the person you are trying to select isn't available please organise an external JCU account for them.</i>")
     project_lead = colander.SchemaNode(colander.String(), title="Project Lead (Supervisor)",
-        widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/parties/', template="mint_autocomplete_input"),
+        widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/parties/', template="mint_autocomplete_input", delay=10),
         help="Head supervisor of the project that should be contacted when the data manager is unavailable.<br /><br />"\
                 "<i>Autocomplete from most universities and large organisations, if the person you are trying to select isn't available please organise an external JCU account for them.</i>")
 

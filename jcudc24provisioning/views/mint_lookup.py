@@ -30,7 +30,7 @@ class MintLookup(object):
         search_terms = self.request.matchdict['search_terms']
 
         if self.mint_url:
-            url_template = self.mint_url + "Activities/opensearch/lookup?count=999&searchTerms=%(search)s"
+            url_template = self.mint_url + "Activities/opensearch/lookup?count=30&searchTerms=%(search)s"
 
             data = urllib2.urlopen(url_template % dict(search=urllib.quote_plus(search_terms)))
             result_object = json.loads(data.read(), strict=False)
@@ -53,7 +53,7 @@ class MintLookup(object):
         search_terms = self.request.matchdict['search_terms']
 
         if self.mint_url:
-            url_template = self.mint_url + "Parties_People/opensearch/lookup?count=999&searchTerms=%(search)s"
+            url_template = self.mint_url + "Parties_People/opensearch/lookup?count=30&searchTerms=%(search)s"
 
             data = urllib2.urlopen(url_template % dict(search=urllib.quote_plus(search_terms)))
             result_object = json.loads(data.read(), strict=False)
@@ -85,7 +85,7 @@ class MintLookup(object):
             return None
 
         if self.mint_url:
-            url_template = self.mint_url + "default/opensearch/lookup?count=999&searchTerms=dc_identifier:%(search)s"
+            url_template = self.mint_url + "default/opensearch/lookup?count=1&searchTerms=dc_identifier:%(search)s"
 
             data = urllib2.urlopen(url_template % dict(search=urllib.quote_plus(identifier)))
             result_object = json.loads(data.read(), strict=False)

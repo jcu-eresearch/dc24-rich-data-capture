@@ -80,25 +80,23 @@ class Workflows(Layouts):
         self.request = request
         self.context = context
         self.session = DBSession
+        self.config = request.registry.settings
 
         self.project_id = None
         if self.request.matchdict and 'project_id' in self.request.matchdict:
             self.project_id = self.request.matchdict['project_id']
 
-        self.config = ConfigParser.SafeConfigParser()
-        self.config.read('../../development.ini')
-
     @property
     def auth(self):
         if '_auth' not in locals():
-            self._auth = CredentialsAuthentication(self.config.get("app:main", "ingesterapi.username"), self.config.get("app:main", "ingesterapi.password"))
+            self._auth = CredentialsAuthentication(self.config["ingesterapi.username"], self.config["ingesterapi.password"])
             auth = self._auth
         return self._auth
 
     @property
     def ingester_api(self):
         if '_ingester_api' not in locals():
-            self._ingester_api = IngesterAPIWrapper(self.config.get("app:main", "ingesterapi.url"), self.auth)
+            self._ingester_api = IngesterAPIWrapper(self.config["ingesterapi.url"], self.auth)
             api = self._ingester_api
         return self._ingester_api
 
@@ -442,7 +440,7 @@ class Workflows(Layouts):
                                    "<li>If specific datasets require additional metadata that cannot be entered through " \
                                    "these forms, you can enter it directly in the ReDBox-Mint records once the project " \
                                    "is submitted and accepted (Look under <i>[to be worked out]</i> for a link).</li></ul>"
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page='metadata').bind(request=self.request)
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page='metadata').bind(request=self.request, settings=self.config)
         form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
 
         if 'Next' in self.request.POST:

@@ -16,13 +16,13 @@ from pkg_resources import declare_namespace
 from . import models
 import sys
 import scripts.initializedb
-from models.project import global_settings
 
 
 
 declare_namespace('jcudc24provisioning')
 
 __author__ = 'Casey Bajema'
+
 
 
 def main(global_config, **settings):
@@ -32,7 +32,6 @@ def main(global_config, **settings):
     logging.captureWarnings(True)
 #    execfile("D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py", dict(__file__="D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py"))
 
-    models.project.global_settings = settings
 #def main():
     scripts.initializedb.initialise_all_db(settings)
 
