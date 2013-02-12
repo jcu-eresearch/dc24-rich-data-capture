@@ -1,4 +1,6 @@
 # This line is needed to activate the virtualenv for running the tests in Intellij IDEA - update to your own virtualenv location.
+import ConfigParser
+from sqlalchemy.engine import engine_from_config
 import transaction
 
 #execfile("D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py", dict(__file__="D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py"))
@@ -8,7 +10,7 @@ from deform import Form
 from colanderalchemy import SQLAlchemyMapping
 import jcudc24ingesterapi
 from jcudc24ingesterapi.authentication import CredentialsAuthentication
-from jcudc24provisioning.models.project import Project, Location, LocationOffset, Method, Dataset, Keyword, FieldOfResearch, MethodSchema, MethodSchemaField, PullDataSource, Metadata, DBSession
+from jcudc24provisioning.models.project import Project, Location, Base, LocationOffset, Method, Dataset, Keyword, FieldOfResearch, MethodSchema, MethodSchemaField, PullDataSource, Metadata, DBSession
 from jcudc24provisioning.scripts.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.ca_scripts import convert_schema, convert_sqlalchemy_model_to_data, create_sqlalchemy_model
 
@@ -34,6 +36,11 @@ class TestModelConversion(unittest.TestCase):
 
 class TestIngesterPlatform(unittest.TestCase):
     def setUp(self):
+        settings = ConfigParser.SafeConfigParser()
+        settings.read('../../development.ini')
+        engine = engine_from_config(settings, 'sqlalchemy.')
+        DBSession.configure(bind=engine)
+        Base.metadata.create_all(engine)
         self.session = DBSession
         self.auth = CredentialsAuthentication("casey", "password")
         self.ingester_api = IngesterAPIWrapper("http://localhost:8080/api", self.auth)

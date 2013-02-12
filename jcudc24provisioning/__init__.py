@@ -1,15 +1,4 @@
-# This line is only required for activiting the virtualenv within the IntelliJ IDE
-#execfile("D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py", dict(__file__="D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py"))
-
-from zope.sqlalchemy import ZopeTransactionExtension
-import logging
-from pkg_resources import declare_namespace
-from . import models
-import sys
-from scripts.initialise_database import InitialiseDatabase
-
-declare_namespace('jcudc24provisioning')
-
+import jcudc24provisioning
 from deform.form import Form
 from pyramid.config import Configurator
 from pkg_resources import resource_filename
@@ -17,9 +6,27 @@ from pyramid_beaker import session_factory_from_settings, set_cache_regions_from
 from sqlalchemy.engine import engine_from_config
 from models.project import Project, DBSession, Base
 
-__author__ = 'Casey Bajema'
+from zope.sqlalchemy import ZopeTransactionExtension
+import logging
+from pkg_resources import declare_namespace
+from . import models
+import sys
+from scripts.initialise_database import InitialiseDatabase
+import scripts.initializedb
 
 logger = logging.getLogger(__name__)
+
+# This line is only required for activiting the virtualenv within the IntelliJ IDE
+try:
+    execfile("D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py", dict(__file__="D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py"))
+except Exception as e:
+    logger.exception("Virtual env activation failed, please update the activate_this.py address in the base __init__ if developing on a windows machine.")
+
+
+declare_namespace('jcudc24provisioning')
+
+__author__ = 'Casey Bajema'
+
 
 
 def main(global_config, **settings):
@@ -29,9 +36,7 @@ def main(global_config, **settings):
 #def main():
     """ This function returns a Pyramid WSGI application.
     """
-    engine = engine_from_config(settings, 'sqlalchemy.')
-    DBSession.configure(bind=engine, extension=ZopeTransactionExtension())
-    Base.metadata.create_all(engine)
+    jcudc24provisioning.scripts.initializedb.initialise_all_db(settings)
 
     deform_templates = resource_filename('deform', 'templates')
     search_path = (resource_filename('jcudc24provisioning', 'templates/widgets'),resource_filename('jcudc24provisioning', 'templates/widgets/readonly'), deform_templates)
@@ -85,11 +90,11 @@ def main(global_config, **settings):
 
     config.scan()
 
-    try:
-        InitialiseDatabase()
-    except Exception as e:
-        logger.exception("Error initialising database: %s", e)
-        sys.exit()
+#    try:
+#        InitialiseDatabase()
+#    except Exception as e:
+#        logger.exception("Error initialising database: %s", e)
+#        sys.exit()
 
     return config.make_wsgi_app()
 

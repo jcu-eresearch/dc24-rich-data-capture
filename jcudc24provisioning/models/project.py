@@ -27,13 +27,12 @@ from sqlalchemy.orm import (
 from jcudc24provisioning.views.deform_widgets import MethodSchemaWidget, ConditionalCheckboxMapping
 from jcudc24provisioning.views.mint_lookup import MintLookup
 
-config = ConfigParser.SafeConfigParser()
-config.read('../../development.ini')
-db_engine = create_engine(config.get("app:main", "sqlalchemy.url"), connect_args={'pool_recycle': 3600, 'echo': False},) #connect_args={'reconnect':True})
+#config = ConfigParser.SafeConfigParser()
+#config.read('../../development.ini')
+#db_engine = create_engine(config.get("app:main", "sqlalchemy.url"), connect_args={'pool_recycle': 3600, 'echo': False},) #connect_args={'reconnect':True})
 #db_engine.connect()
 #DBSession = scoped_session(sessionmaker(bind=db_engine))
-DBSession = scoped_session(sessionmaker(bind=db_engine, extension=ZopeTransactionExtension()))
-
+DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
 Base = declarative_base()
 
 def research_theme_validator(form, value):
@@ -1123,9 +1122,9 @@ class Metadata(Base):
         #        ca_group_start="additional_information", ca_group_collapsed=False, ca_group_title="Additional Information",
         ca_widget=deform.widget.SelectWidget(values=retention_periods),
         ca_help="Record the period of time that the data must be kept in line with institutional or funding body policies.")
-    national_significance = Column(Boolean(), ca_order=next(order_counter), ca_title="Is the data nationally significant?", ca_page="metadata",
-        ca_widget=deform.widget.RadioChoiceWidget(values=(("true", "Yes"), ("false", "No"))),
-        ca_help="Do you know or believe that this projects data may be Nationally Significant?")
+#    national_significance = Column(Boolean(), ca_order=next(order_counter), ca_title="Is the data nationally significant?", ca_page="metadata",
+#        ca_widget=deform.widget.RadioChoiceWidget(values=(("true", "Yes"), ("false", "No"))),
+#        ca_help="Do you know or believe that this projects data may be Nationally Significant?")
 
     related_publications = relationship('RelatedPublication', ca_order=next(order_counter), ca_title="Related Publications", ca_page="metadata",
         cascade="all, delete-orphan",
