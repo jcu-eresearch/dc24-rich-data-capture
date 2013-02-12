@@ -1,3 +1,4 @@
+import ast
 import types
 from jcudc24provisioning.views.deform_widgets import SelectMappingWidget, ConditionalCheckboxMapping
 from beaker.cache import cache_region
@@ -95,18 +96,44 @@ class MapRegionSchema(colander.SequenceSchema):
 #        if not "widget" in kw: kw["widget"] = deform.widget.SequenceWidget(template='map_sequence')
 #        colander.SchemaNode.__init__(self, typ, *children, **kw)
 
-def preview_url(self, uid):
-    if uid in self.tempstore:
-        return self.tempdir + self.tempstore[uid]['randid']
+# Return the tempstore data so we can get the actual data later - the FileUploadWidget in deform makes it real difficult by setting the preview_url before adding the data...
+def preview_url(self, name):
+    file_data = self.tempstore
+    return (self.tempdir, file_data)
 
-    return None
+# Customise the serialize method of FileUploadWidget to parse the string from DB into dict
+def file_upload_serialize(self, field, cstruct, readonly=False):
+    if cstruct in (deform.widget.null, None):
+        cstruct = {}
+    if cstruct:
+        if isinstance(cstruct, unicode):
+            cstruct_items = cstruct.split(",")
+            new_cstruct = {}
+            for item in cstruct_items:
+                if 'preview_url' in item:
+                    continue
+
+                if 'filename' in item and not 'filename' in new_cstruct:
+                    new_cstruct['filename'] = item.split(":")[1].strip().replace("u'", "").replace('\'', "").replace("}", "")
+                if 'uid' in item and not 'uid' in new_cstruct:
+                    new_cstruct['uid'] = item.split(":")[1].strip()[2:-2].replace("u'", "").replace('\'', "").replace("}", "")
+
+            cstruct = new_cstruct
+        uid = cstruct['uid']
+        if not uid in self.tmpstore:
+            self.tmpstore[uid] = cstruct
+
+    template = readonly and self.readonly_template or self.template
+    return field.renderer(template, field=field, cstruct=cstruct)
 
 @colander.deferred
 def upload_widget(node, kw):
     request = kw['request']
     tmp_store = SessionFileUploadTempStore(request)
     tmp_store.preview_url = types.MethodType(preview_url, tmp_store)
-    return deform.widget.FileUploadWidget(tmp_store)
+    widget = deform.widget.FileUploadWidget(tmp_store)
+    widget.serialize = types.MethodType(file_upload_serialize, widget)
+    return widget
 
 
 class Attachment(colander.SchemaNode):

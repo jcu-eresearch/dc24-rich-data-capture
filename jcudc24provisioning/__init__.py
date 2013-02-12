@@ -66,22 +66,23 @@ def main(global_config, **settings):
 
 
     # Project action pages
-    config.add_route('logs', '/project/{project_id}/logs')                  # Manage projecct data, eg. change sample rates, add data values
-    config.add_route('add_data', '/project/{project_id}/add_data')          # Manage projecct data, eg. change sample rates, add data values
-    config.add_route('manage_data', '/project/{project_id}/manage_data')    # Manage projecct data, eg. change sample rates, add data values
-    config.add_route('permissions', '/project/{project_id}/permissions')    # Manage projecct data, eg. change sample rates, add data values
-    config.add_route('duplicate', '/project/{project_id}/duplicate')        # Manage projecct data, eg. change sample rates, add data values
+    config.add_route('dataset_logs', '/project/{project_id}/logs/dataset_{dataset_id}_logs.txt')
+    config.add_route('logs', '/project/{project_id}/logs')
+    config.add_route('add_data', '/project/{project_id}/add_data')
+    config.add_route('manage_data', '/project/{project_id}/manage_data')
+    config.add_route('permissions', '/project/{project_id}/permissions')
+    config.add_route('duplicate', '/project/{project_id}/duplicate')
 
     # Exception handler
-    config.add_route('workflow_exception', '/project/{route:.*}')           # Manage projecct data, eg. change sample rates, add data values
+    config.add_route('workflow_exception', '/project/{route:.*}')
 
 #    --------------JSON Search views--------------------------------
-    config.add_route('get_model', '/get_model/{object_type}/{id}', xhr=True)              # Manage projecct data, eg. change sample rates, add data values
-    config.add_route('add_method_from_template', '/add/{project_id}/{method_id}', xhr=True)              # Manage projecct data, eg. change sample rates, add data values
+    config.add_route('get_model', '/get_model/{object_type}/{id}', xhr=True)
+    config.add_route('add_method_from_template', '/add/{project_id}/{method_id}', xhr=True)
 
-    config.add_route('get_activities', '/search/activities/{search_terms}', xhr=True)              # Manage projecct data, eg. change sample rates, add data values
-    config.add_route('get_parties', '/search/parties/{search_terms}', xhr=True)              # Manage projecct data, eg. change sample rates, add data values
-    config.add_route('get_from_identifier', '/search/{identifier:.*}', xhr=True)              # Manage projecct data, eg. change sample rates, add data values
+    config.add_route('get_activities', '/search/activities/{search_terms}', xhr=True)
+    config.add_route('get_parties', '/search/parties/{search_terms}', xhr=True)
+    config.add_route('get_from_identifier', '/search/{identifier:.*}', xhr=True)
 
     #    --------------Static resources--------------------------------
     config.add_static_view('deform_static', 'deform:static', cache_max_age=0)

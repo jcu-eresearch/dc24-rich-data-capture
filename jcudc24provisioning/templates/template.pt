@@ -195,7 +195,7 @@
                      <!--Panel for each type of message-->
                      <tal:block tal:repeat="msg_type messages">
                          <div tal:condition="messages[msg_type]" tal:attributes="class msg_type">
-                             <p tal:repeat="msg messages[msg_type]" tal:content="structure msg"></p>
+                             <p tal:repeat="msg messages[msg_type]" tal:content="msg"></p>
                          </div>
                      </tal:block>
                  </div>
