@@ -28,7 +28,7 @@ class MetadataSchema(SelectMappingSchema):
     quality = QualityMetadataSchema()
 
 class AddMetadataSequence(colander.SequenceSchema):
-    metadata = MetadataSchema(collapsed=False, collapse_group="metadata", collapse_legend="metadata")
+    information = MetadataSchema(collapsed=False, collapse_group="metadata", collapse_legend="metadata")
 
 class AddMetadataTypeSequence(colander.SequenceSchema):
     metadata_type = colander.SchemaNode(colander.String(), placeholder="TODO", missing="",
@@ -44,7 +44,7 @@ class SelectedObjectsSchema(colander.MappingSchema):
 
 class AddMetadataSchema(colander.MappingSchema):
     selected_objects = SelectedObjectsSchema(description="Selected objects")
-    metadata = AddMetadataSequence()
+    information = AddMetadataSequence()
     add_metadata_type = AddMetadataTypeSequence(description="Add new types of metadata that can be added to the selected objects.")
 
 class AddMetadataView(Workflows):

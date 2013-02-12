@@ -20,7 +20,7 @@ class SelectIndividualMethodsSchema(ConditionalCheckboxSchema):
 
 class AddUserSequence(colander.MappingSchema):
      general_information = colander.SchemaNode(colander.Boolean())
-     metadata = colander.SchemaNode(colander.Boolean())
+     information = colander.SchemaNode(colander.Boolean())
      methods = SelectIndividualMethodsSchema()
      datasets = SelectIndividualMethodsSchema()
 
