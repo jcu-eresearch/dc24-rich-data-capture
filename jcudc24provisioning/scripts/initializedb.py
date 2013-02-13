@@ -3,7 +3,7 @@ import sys
 import transaction
 
 import random
-from jcudc24provisioning.models.project import Base, Dataset, MethodSchema,ProjectTemplate, MethodSchemaField, DBSession, Project, MethodTemplate, Method
+from jcudc24provisioning.models.project import Base, Dataset, MethodSchema,ProjectTemplate, MethodSchemaField, DBSession, Project, MethodTemplate, Method, PullDataSource, DatasetDataSource
 from jcudc24ingesterapi.schemas.data_types import Double
 
 from sqlalchemy import engine_from_config
@@ -104,7 +104,7 @@ def initialise_project_templates(session):
 
         blank_template = ProjectTemplate()
         blank_template.template_id = blank_project.id
-        blank_template.category = "General"
+        blank_template.category = "Blank (No auto-fill)"
         blank_template.name = "Blank Template"
         blank_template.description = "An empty template that allows you to start from scratch (only for advanced "\
                                      "users or if no other template is relevent)."
@@ -151,11 +151,76 @@ def initialise_method_templates(session):
         blank_template = MethodTemplate()
         blank_template.template_id = blank_method.id
         blank_template.dataset_id = blank_dataset.id
-        blank_template.category = "General"
+        blank_template.category = "Blank (No pre-fill)"
         blank_template.name = "Blank Template"
         blank_template.description = "An empty template that allows you to start from scratch (only for advanced "\
                                      "users or if no other template is relevent)."
         session.add(blank_template) # Add an empty project as a blank template
+
+    tree_template = session.query(MethodTemplate).filter_by(name="Artificial Tree").first()
+    if not tree_template:
+        tree_method = Method()
+        tree_method.method_name = "Artificial Sensor Tree"
+        tree_method.method_description = "Collection method for ingesting aggregated tree sensor data from an external file server."
+        tree_method.data_source = PullDataSource.__tablename__
+
+        tree_schema = MethodSchema()
+        tree_schema.name = "ArtificialTree"
+        tree_data_field = MethodSchemaField()
+        tree_data_field.type = "file"
+        tree_data_field.units = "text"
+        tree_data_field.name = "TreeData"
+        tree_data_field.description = "Aggregated data of all sensors for an artificial tree."
+        tree_schema.custom_fields = [tree_data_field]
+        tree_method.data_type = tree_schema
+        #            blank_method.method_description = "Test description"
+        session.add(tree_method) # Add an empty project as a blank template
+
+        tree_dataset = Dataset()
+        tree_dataset.title = "Raw Artificial Tree Data"
+        tree_datasource = PullDataSource()
+        tree_datasource.uri = "http://emu.hpc.jcu.edu.au/tree/split/"
+        tree_datasource.filename_pattern = "\\.*\\"
+        tree_datasource.selected_sampling = PullDataSource.periodic_sampling.key
+        tree_datasource.periodic_sampling = "60000"
+        tree_dataset.pull_data_source = tree_datasource
+        session.add(tree_dataset) # Add an empty project as a blank template
+        session.flush()
+
+        tree_template = MethodTemplate()
+        tree_template.template_id = tree_method.id
+        tree_template.dataset_id = tree_dataset.id
+        tree_template.category = "Artificial Tree"
+        tree_template.name = "Artificial Tree"
+        tree_template.description = "Template for setting up ingestion from an artificial tree."
+        session.add(tree_template) # Add an empty project as a blank template
+
+    sensor_template = session.query(MethodTemplate).filter_by(name="Artificial Tree Sensor").first()
+    if not sensor_template:
+        sensor_method = Method()
+        sensor_method.method_name = "Artificial Tree Sensor"
+        sensor_method.method_description = "Filter and index one sensor station from the aggregated artificial tree data."
+        sensor_method.data_source = DatasetDataSource.__tablename__
+
+        sensor_method.data_type = session.query(MethodSchema).filter_by(name="Temperature").first()
+        #            blank_method.method_description = "Test description"
+        session.add(sensor_method) # Add an empty project as a blank template
+
+        sensor_dataset = Dataset()
+        sensor_dataset.title = "Artificial Tree Sensor"
+        sensor_datasource = DatasetDataSource()
+        sensor_datasource.custom_processing_parameters = "28180E08030000BE"
+        sensor_dataset.dataset_data_source = sensor_datasource
+        session.add(sensor_dataset) # Add an empty project as a blank template
+        session.flush()
+
+        sensor_template = MethodTemplate()
+        sensor_template.template_id = sensor_method.id
+        sensor_template.dataset_id = sensor_dataset.id
+        sensor_template.category = "Artificial Tree"
+        sensor_template.name = "Artificial Tree Sensor"
+        sensor_template.description = "Templates setting up post-processing and indexing of one artificial tree sensor from the aggregated artificial tree data."
+        session.add(sensor_template) # Add an empty project as a blank template
 
 
     placeholder_template_names = [

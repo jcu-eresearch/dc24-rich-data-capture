@@ -1,3 +1,7 @@
+import jcudc24provisioning
+
+global global_settings
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -16,7 +20,6 @@ from pkg_resources import declare_namespace
 from . import models
 import sys
 import scripts.initializedb
-from models.project import global_settings
 
 
 
@@ -28,11 +31,11 @@ __author__ = 'Casey Bajema'
 def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
+    jcudc24provisioning.global_settings = settings
 
     logging.captureWarnings(True)
 #    execfile("D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py", dict(__file__="D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py"))
 
-    models.project.global_settings = settings
 #def main():
     scripts.initializedb.initialise_all_db(settings)
 

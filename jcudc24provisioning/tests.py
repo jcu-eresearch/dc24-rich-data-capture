@@ -36,16 +36,14 @@ class TestModelConversion(unittest.TestCase):
 
 class TestIngesterPlatform(unittest.TestCase):
     def setUp(self):
-        settings = ConfigParser.SafeConfigParser()
-        settings.read('../../development.ini')
+        self.config = ConfigParser.SafeConfigParser()
+        self.config.read('../../development.ini')
+        settings = self.config._sections["app:main"]
         engine = engine_from_config(settings, 'sqlalchemy.')
         DBSession.configure(bind=engine)
         Base.metadata.create_all(engine)
         self.session = DBSession
 
-
-        self.config = ConfigParser.SafeConfigParser()
-        self.config.read('../../development.ini')
         self.auth = CredentialsAuthentication(self.config.get("app:main", "ingesterapi.username"), self.config.get("app:main", "ingesterapi.password"))
         self.ingester_api = IngesterAPIWrapper(self.config.get("app:main", "ingesterapi.url"), self.auth)
 
@@ -186,12 +184,23 @@ class TestIngesterPlatform(unittest.TestCase):
 
     def test_ingest_project(self):
         self.ingester_api.post(self.project)
+        assert self.project.datasets[0].dam_id >= 0, "Project id listener didn't update project dam_id"
+        assert self.project.datasets[0].dataset_locations[0].dam_id >= 0, "Project id listener didn't update project dam_id"
+        assert self.project.methods[0].data_type.dam_id >= 0, "Project id listener didn't update project dam_id"
         transaction.commit()
         pass
 
+
+    def test_listeners(self):
+        test_location = Location()
+        
+        self.ingester_api.post(test_location)
+
+        self.assertGreater(test_location.dam_id, 0, "Not a valid ID")
+
     def tearDown(self):
+        self.ingester_api.reset()
         self.ingester_api.close()
-        pass
 
 if __name__ == '__main__':
     unittest.main()

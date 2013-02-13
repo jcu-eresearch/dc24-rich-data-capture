@@ -17,7 +17,7 @@ from deform.exception import ValidationFailure
 from deform.form import Form
 from pyramid.url import route_url
 from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.orm import scoped_session, sessionmaker, RelationshipProperty
 import time
 import transaction
 from jcudc24ingesterapi.authentication import CredentialsAuthentication
@@ -80,25 +80,23 @@ class Workflows(Layouts):
         self.request = request
         self.context = context
         self.session = DBSession
+        self.config = request.registry.settings
 
         self.project_id = None
         if self.request.matchdict and 'project_id' in self.request.matchdict:
             self.project_id = self.request.matchdict['project_id']
 
-        self.config = ConfigParser.SafeConfigParser()
-        self.config.read('../../development.ini')
-
     @property
     def auth(self):
         if '_auth' not in locals():
-            self._auth = CredentialsAuthentication(self.config.get("app:main", "ingesterapi.username"), self.config.get("app:main", "ingesterapi.password"))
+            self._auth = CredentialsAuthentication(self.config["ingesterapi.username"], self.config["ingesterapi.password"])
             auth = self._auth
         return self._auth
 
     @property
     def ingester_api(self):
         if '_ingester_api' not in locals():
-            self._ingester_api = IngesterAPIWrapper(self.config.get("app:main", "ingesterapi.url"), self.auth)
+            self._ingester_api = IngesterAPIWrapper(self.config["ingesterapi.url"], self.auth)
             api = self._ingester_api
         return self._ingester_api
 
@@ -272,10 +270,22 @@ class Workflows(Layouts):
         """
         Clone a database model
         """
+        if source is None:
+            return None
+
         new_object = type(source)()
         for prop in object_mapper(source).iterate_properties:
-            if (isinstance(prop, ColumnProperty) or isinstance(prop, RelationProperty) and prop.secondary):
+            if (isinstance(prop, ColumnProperty) or isinstance(prop, RelationshipProperty) and prop.secondary is not None) and not prop.key == "id":
                 setattr(new_object, prop.key, getattr(source, prop.key))
+            elif isinstance(prop, RelationshipProperty):
+                if isinstance(getattr(source, prop.key), list):
+                    items = []
+                    for item in getattr(source, prop.key):
+                        items.append(self.clone(item))
+                    setattr(new_object, prop.key, items)
+                else:
+                    setattr(new_object, prop.key, self.clone(getattr(source, prop.key)))
+
 
         return new_object
 
@@ -442,7 +452,7 @@ class Workflows(Layouts):
                                    "<li>If specific datasets require additional metadata that cannot be entered through " \
                                    "these forms, you can enter it directly in the ReDBox-Mint records once the project " \
                                    "is submitted and accepted (Look under <i>[to be worked out]</i> for a link).</li></ul>"
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page='metadata').bind(request=self.request)
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page='metadata').bind(request=self.request, settings=self.config)
         form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
 
         if 'Next' in self.request.POST:
@@ -721,7 +731,7 @@ class Workflows(Layouts):
 
 #                    new_method_dict = new_method_dict['method']
                     del new_dataset_dict['dataset:id']
-                    new_dataset_dict['datase:project_id'] = new_dataset_data['dataset:project_id']
+                    new_dataset_dict['dataset:project_id'] = new_dataset_data['dataset:project_id']
                     new_dataset_dict['dataset:method_id'] = new_dataset_data['dataset:method_id']
                     new_dataset_data.update(new_dataset_dict)
 

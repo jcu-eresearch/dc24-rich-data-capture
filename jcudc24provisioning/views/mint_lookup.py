@@ -3,6 +3,8 @@ import json
 import urllib
 import urllib2
 import colander
+import sys
+import jcudc24provisioning
 from pyramid.view import view_config, view_defaults
 from pyramid_debugtoolbar.utils import logger
 
@@ -15,10 +17,11 @@ class MintLookup(object):
         self.request = request
 
         # Read the Fields of research from Mint and store it into a variable for the template to read
-        config = ConfigParser.ConfigParser()
-        if 'defaults.cfg' in config.read('defaults.cfg'):
+#        config = sys.argv
+        config = jcudc24provisioning.global_settings
+        if 'mint.location' in config:
             try:
-                self.mint_url = config.get('mint', 'location')
+                self.mint_url = config.get('mint.location')
             except ConfigParser.NoSectionError or ConfigParser.NoOptionError:
                 raise ValueError("Invalid Mint server configuration in defaults.cfg")
         else:
@@ -30,7 +33,7 @@ class MintLookup(object):
         search_terms = self.request.matchdict['search_terms']
 
         if self.mint_url:
-            url_template = self.mint_url + "Activities/opensearch/lookup?count=999&searchTerms=%(search)s"
+            url_template = self.mint_url + "Activities/opensearch/lookup?count=30&searchTerms=%(search)s"
 
             data = urllib2.urlopen(url_template % dict(search=urllib.quote_plus(search_terms)))
             result_object = json.loads(data.read(), strict=False)
@@ -53,7 +56,7 @@ class MintLookup(object):
         search_terms = self.request.matchdict['search_terms']
 
         if self.mint_url:
-            url_template = self.mint_url + "Parties_People/opensearch/lookup?count=999&searchTerms=%(search)s"
+            url_template = self.mint_url + "Parties_People/opensearch/lookup?count=30&searchTerms=%(search)s"
 
             data = urllib2.urlopen(url_template % dict(search=urllib.quote_plus(search_terms)))
             result_object = json.loads(data.read(), strict=False)
@@ -85,7 +88,7 @@ class MintLookup(object):
             return None
 
         if self.mint_url:
-            url_template = self.mint_url + "default/opensearch/lookup?count=999&searchTerms=dc_identifier:%(search)s"
+            url_template = self.mint_url + "default/opensearch/lookup?count=1&searchTerms=dc_identifier:%(search)s"
 
             data = urllib2.urlopen(url_template % dict(search=urllib.quote_plus(identifier)))
             result_object = json.loads(data.read(), strict=False)

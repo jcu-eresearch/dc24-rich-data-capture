@@ -15,6 +15,7 @@
 
              <div id="sidebar">
                  <div id="sidebar_contextual_options">
+                     <h3>Contextual Options</h3>
                      <tal:block tal:condition="not view.is_hidden_workflow">
                           <ul>
                               <li tal:repeat="menu view.workflow_action">
