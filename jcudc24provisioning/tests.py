@@ -189,9 +189,17 @@ class TestIngesterPlatform(unittest.TestCase):
         transaction.commit()
         pass
 
+
+    def test_listeners(self):
+        test_location = Location()
+        
+        self.ingester_api.post(test_location)
+
+        self.assertGreater(test_location.dam_id, 0, "Not a valid ID")
+
     def tearDown(self):
+        self.ingester_api.reset()
         self.ingester_api.close()
-        pass
 
 if __name__ == '__main__':
     unittest.main()
