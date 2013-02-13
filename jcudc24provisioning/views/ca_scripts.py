@@ -48,7 +48,7 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
             ca_registry = None
             if hasattr(model_class._sa_class_manager[key].comparator, 'mapper') and key in model_class._sa_class_manager[key].comparator.mapper.columns._data:
                 ca_registry = model_class._sa_class_manager[key].comparator.mapper.columns._data[key]._ca_registry
-            elif key in model_class._sa_class_manager[key]._parententity.columns._data:
+            elif hasattr(model_class._sa_class_manager[key], '_parententity') and key in model_class._sa_class_manager[key]._parententity.columns._data:
                 ca_registry = model_class._sa_class_manager[key]._parententity.columns._data[key]._ca_registry
 
             if ca_registry is not None:
