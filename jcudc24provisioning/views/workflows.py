@@ -17,7 +17,7 @@ from deform.exception import ValidationFailure
 from deform.form import Form
 from pyramid.url import route_url
 from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.orm import scoped_session, sessionmaker, RelationshipProperty
 import time
 import transaction
 from jcudc24ingesterapi.authentication import CredentialsAuthentication
@@ -270,10 +270,22 @@ class Workflows(Layouts):
         """
         Clone a database model
         """
+        if source is None:
+            return None
+
         new_object = type(source)()
         for prop in object_mapper(source).iterate_properties:
-            if (isinstance(prop, ColumnProperty) or isinstance(prop, RelationProperty) and prop.secondary):
+            if (isinstance(prop, ColumnProperty) or isinstance(prop, RelationshipProperty) and prop.secondary is not None) and not prop.key == "id":
                 setattr(new_object, prop.key, getattr(source, prop.key))
+            elif isinstance(prop, RelationshipProperty):
+                if isinstance(getattr(source, prop.key), list):
+                    items = []
+                    for item in getattr(source, prop.key):
+                        items.append(self.clone(item))
+                    setattr(new_object, prop.key, items)
+                else:
+                    setattr(new_object, prop.key, self.clone(getattr(source, prop.key)))
+
 
         return new_object
 
@@ -719,7 +731,7 @@ class Workflows(Layouts):
 
 #                    new_method_dict = new_method_dict['method']
                     del new_dataset_dict['dataset:id']
-                    new_dataset_dict['datase:project_id'] = new_dataset_data['dataset:project_id']
+                    new_dataset_dict['dataset:project_id'] = new_dataset_data['dataset:project_id']
                     new_dataset_dict['dataset:method_id'] = new_dataset_data['dataset:method_id']
                     new_dataset_data.update(new_dataset_dict)
 

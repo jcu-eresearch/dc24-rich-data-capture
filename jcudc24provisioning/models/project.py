@@ -139,7 +139,7 @@ class FieldOfResearch(Base):
     id = Column(Integer, primary_key=True, ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
     metadata_id = Column(Integer, ForeignKey('metadata.id'),ca_order=next(order_counter),  nullable=False, ca_widget=deform.widget.HiddenWidget())
 
-    field_of_research = Column(String(50), ca_order=next(order_counter), ca_title="Field Of Research", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
+    field_of_research = Column(String(50), ca_order=next(order_counter), ca_title="Field Of Research", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput", max_len=3),
         ca_data=getFORCodes)
 
 
@@ -150,7 +150,7 @@ class SocioEconomicObjective(Base):
     id = Column(Integer, primary_key=True, ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
     metadata_id = Column(Integer, ForeignKey('metadata.id'), ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
-    socio_economic_objective = Column(String(50), ca_order=next(order_counter), ca_title="Socio-Economic Objective", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
+    socio_economic_objective = Column(String(50), ca_order=next(order_counter), ca_title="Socio-Economic Objective", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput", max_len=3),
     ca_data=getSEOCodes)
 
 class Person(Base):
@@ -243,7 +243,7 @@ class Attachment(Base):
         ca_validator=colander.OneOf(
             [attachment_types[0][0], attachment_types[1][0], attachment_types[2][0]]),
         ca_title="Attachment type", ca_css_class="inline")
-    attachment = Column(String(512), ca_name="filename",  ca_widget=upload_widget)
+    attachment = Column(String(512), ca_name="filename",  ca_widget=upload_widget, ca_type = deform.FileData(), ca_missing=colander.null)
 
     note = Column(Text(), ca_name="notes")
 #    ca_params={'widget' : deform.widget.HiddenWidget()}
@@ -564,8 +564,8 @@ class PullDataSource(Base):
         ca_title="Describe custom sampling needs", ca_missing="",
         ca_description="Describe your sampling requirements and what your uploaded script does, or what you will need help with.")
 
-    custom_sampling_script = Column(String(256),ca_order=next(order_counter),ca_widget=upload_widget,
-        ca_title="Upload custom sampling script", ca_missing = colander.null,
+    custom_sampling_script = Column(String(512), ca_type = deform.FileData(), ca_missing=colander.null ,ca_order=next(order_counter),ca_widget=upload_widget,
+        ca_title="Upload custom sampling script",
         ca_group_end="sampling",
         ca_description="Upload a custom Python script to "\
                        "sample the data in some way.  The sampling script API can be found "\
@@ -581,8 +581,9 @@ class PullDataSource(Base):
             ca_description="Comma separated list of parameters.",
             ca_help="Parameters are added via python string formatting syntax, simply add %s or %(<i>name</i>)s wherever you want a parameter inserted (parameters must either be added in the correct order or be named).")
 
-    custom_processor_script = Column(String(256),ca_order=next(order_counter),ca_widget=upload_widget,
-        ca_title="Upload custom processing script", ca_missing = colander.null,
+
+    custom_processor_script = Column(String(512), ca_type = deform.FileData(), ca_missing=colander.null ,ca_order=next(order_counter),ca_widget=upload_widget,
+        ca_title="Upload custom processing script",
         ca_group_end="method",
         ca_description="Upload a custom Python script to "\
             "process the data in some way.  The processing script API can be found "\
@@ -671,8 +672,8 @@ class DatasetDataSource(Base):
             ca_description="Comma separated list of parameters.",
             ca_help="Parameters are added via python string formatting syntax, simply add %s or %(<i>name</i>)s wherever you want a parameter inserted (parameters must either be added in the correct order or be named).")
 
-    custom_processor_script = Column(String(512),ca_order=next(order_counter),ca_widget=upload_widget,
-        ca_title="Upload custom processing script", ca_missing = colander.null,
+    custom_processor_script = Column(String(512), ca_type = deform.FileData(), ca_missing=colander.null ,ca_order=next(order_counter),ca_widget=upload_widget,
+        ca_title="Upload custom processing script",
         ca_description="Upload a custom Python script to "\
             "process the data in some way.  The processing script API can be found "\
             "<a title=\"Python processing script API\"href=\"\">here</a>.")
@@ -738,6 +739,10 @@ class Method(Base):
         cascade="all, delete-orphan",ca_title="Further information website (Such as manufacturers website or supporting web resources)",
         ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"), ca_child_title="Website",
         ca_help="If there are web addresses that can provide more information on your data collection method, add them here.  Examples may include manufacturers of your equipment or an article on the calibration methods used.")
+
+    datasets = relationship("Dataset", ca_order=next(order_counter), ca_missing=colander.null,
+        cascade="all, delete-orphan", ca_widget=deform.widget.HiddenWidget())
+
 
 
 class Dataset(Base):
@@ -822,7 +827,7 @@ class ProjectTemplate(Base):
     order_counter = itertools.count()
 
     __tablename__ = 'project_template'
-    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget(), ca_missing=-1)
+    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget())
     order_counter = itertools.count()
     template_id = Column(Integer, ForeignKey('project.id'), nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     category = Column(String(100),ca_order=next(order_counter), ca_description="Category of template, this is a flexible way of grouping templates such as DRO, SEMAT or other organisational groupings.")
@@ -835,7 +840,7 @@ class MethodTemplate(Base):
     """
     __tablename__ = 'method_template'
     order_counter = itertools.count()
-    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget(), ca_missing=-1)
+    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget())
     template_id = Column(Integer, ForeignKey('method.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
@@ -848,7 +853,7 @@ choices = ['JCU Name 1', 'JCU Name 2', 'JCU Name 3', 'JCU Name 4']
 class UntouchedFields(Base):
     __tablename__ = 'untouched_fields'
     order_counter = itertools.count()
-    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget(), ca_missing=-1)
+    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget())
 
     project_id = Column(Integer, ForeignKey('project.id'), nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
@@ -864,7 +869,7 @@ class MetadataNote(Base):
 
     __tablename__ = 'metadata_note'
 
-    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget(), ca_missing=-1)
+    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget())
     metadata_id = Column(Integer, ForeignKey('metadata.id'), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
     note = Column(Text(), ca_order=next(order_counter),
@@ -877,7 +882,7 @@ class Metadata(Base):
 
     __tablename__ = 'metadata'
 
-    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget(), ca_missing=-1)
+    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget())
     project_id = Column(Integer, ForeignKey('project.id'), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dataset_id = Column(Integer, ForeignKey('dataset.id'), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
@@ -1167,7 +1172,7 @@ class Project(Base):
 
     __tablename__ = 'project'
 
-    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget(), ca_missing=-1)
+    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget())
     state = Column(Integer, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(), ca_missing=ProjectStates.OPEN)
 
     project_creator = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())

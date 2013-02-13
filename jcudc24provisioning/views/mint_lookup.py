@@ -3,6 +3,8 @@ import json
 import urllib
 import urllib2
 import colander
+import sys
+import jcudc24provisioning
 from pyramid.view import view_config, view_defaults
 from pyramid_debugtoolbar.utils import logger
 
@@ -15,7 +17,8 @@ class MintLookup(object):
         self.request = request
 
         # Read the Fields of research from Mint and store it into a variable for the template to read
-        config = self.request.registry.settings
+#        config = sys.argv
+        config = jcudc24provisioning.global_settings
         if 'mint.location' in config:
             try:
                 self.mint_url = config.get('mint.location')

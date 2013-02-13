@@ -286,7 +286,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             raise ValueError("Trying to provision a dataset that has no associated method.  Try deleting and re-creating the dataset.")
 
         try:
-            new_dataset.schema = self.process_model(method.data_type, command, work)
+            new_dataset.schema = int(self.process_model(method.data_type, command, work))
         except Exception as e:
             logger.exception("Failed to add/update data schema for method: %s" % (method.method_name))
             raise ValueError("Failed to add/update data schema for method: %s, Error: %s" % (method.method_name, e))
@@ -345,7 +345,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
 
                 if model.pull_data_source.custom_processor_script is not None:
                     try:
-                        script_path = ast.literal_eval(model.dataset_data_source.custom_processor_script)['filepath']
+                        script_path = model.dataset_data_source.custom_processor_script
                         with open(script_path) as f:
                             script = f.read()
                             if model.pull_data_source.custom_processing_parameters is not None:
@@ -390,7 +390,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
                 )
                 if model.dataset_data_source.custom_processor_script is not None:
                     try:
-                        script_path = ast.literal_eval(model.dataset_data_source.custom_processor_script)['filepath']
+                        script_path = model.dataset_data_source.custom_processor_script
                         with open(script_path) as f:
                             script = f.read()
                             if model.dataset_data_source.custom_processing_parameters is not None:

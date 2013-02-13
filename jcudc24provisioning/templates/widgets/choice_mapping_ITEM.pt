@@ -87,7 +87,7 @@ This template is specifically developed for data source selection, it could be m
 
                     var select_element = $("#" + oid);
                     if (select_element.is("[name*='selected_sampling']") && select_element[0].value) {
-                        choice_selected(select_element.parent().siblings("[select_name='" + select_element[0].value + "']")[0], false, true);
+                        choice_selected(select_element.parent().siblings("[select_name*='" + select_element[0].value + "']")[0], false, true);
                     }
                 });
 

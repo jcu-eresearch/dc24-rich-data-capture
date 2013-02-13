@@ -1,10 +1,12 @@
-
+import ast
 from collections import OrderedDict
 import colander
 import deform
 import os
 
 __author__ = 'Casey Bajema'
+
+# TODO: It may be possible to update these scripts to work better using for prop in object_mapper(source).iterate_properties:
 
 #def embed_child_objects(schema):
 #    """
@@ -43,33 +45,59 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
             create_sqlalchemy_model(value, model_class=model_class, model_object=model_object)
 
         if hasattr(model_object, key):
-            # Test if this is a file widget that needs to be converted to text (there is probably a more elegant way to do this)
-            #   -> preview_url will be there if selected with widget, filepath will be there if re-saving data from database
-            if (isinstance(value, dict) and 'filename' in value and 'uid' in value):
-                if 'preview_url' in value:
-                    file_data = value['preview_url'][1][value['uid']]
-                    file_path = os.path.join(value['preview_url'][0], file_data['randid'])
-    #                value = str(value)
-                    value = str({'uid': value['uid'], 'filename': value['filename'], 'filepath': file_path})
-#                elif 'filepath' in value:
-#                    value = str(value)
-                else:     # TODO: Fix this!
-                    continue
-                if not hasattr(model_class._sa_class_manager[key], '_parententity'):
-                    ca_registry = model_class._sa_class_manager[key].comparator.mapper.columns._data[key]._ca_registry
-                else:
-                    ca_registry = model_class._sa_class_manager[key]._parententity.columns._data[key]._ca_registry
+            ca_registry = None
+            if hasattr(model_class._sa_class_manager[key].comparator, 'mapper') and key in model_class._sa_class_manager[key].comparator.mapper.columns._data:
+                ca_registry = model_class._sa_class_manager[key].comparator.mapper.columns._data[key]._ca_registry
+            elif key in model_class._sa_class_manager[key]._parententity.columns._data:
+                ca_registry = model_class._sa_class_manager[key]._parententity.columns._data[key]._ca_registry
 
-                if ('default' not in ca_registry or not value == ca_registry['default']) and str(value) != str(getattr(model_object, key, None)):
+            if ca_registry is not None:
+                if 'type' in ca_registry and isinstance(ca_registry['type'], deform.FileData):
+                    # If this is a new file
+                    if isinstance(value, dict) and 'preview_url' in value:
+                        value = str(value['preview_url'])
+
+                    # If this is an already selected and uploaded file
+                    elif isinstance(value, dict) and 'fp' in value:
+                        value = str(value['fp'].name)
+
+                    # File was previously uploaded and the user just removed it
+                    else:
+                        value = None
                     setattr(model_object, key, value)
                     is_data_empty = False
-                continue
+                    continue
 
-            # Allow deleting of pre-uploaded files.
-            elif isinstance(getattr(model_object, key), str) and 'filepath' in getattr(model_object, key) and 'filename' in getattr(model_object, key) and 'uid' in getattr(model_object, key):
-                setattr(model_object, key, None)
-                is_data_empty = False
-                continue
+#            # Test if this is a file widget that needs to be converted to text (there is probably a more elegant way to do this)
+#            #   -> preview_url will be there if selected with widget, filepath will be there if re-saving data from database
+#            if (isinstance(value, dict) and 'filename' in value and 'uid' in value):
+#                if 'preview_url' in value:
+##                    file_data = value['preview_url'][1][value['uid']]
+##                    file_path = os.path.join(value['preview_url'][0], file_data['randid'])
+#    #                value = str(value)
+##                    value = str({'uid': value['uid'], 'filename': value['filename'], 'filepath': file_path})
+#                    value = str(value['preview_url'])
+##                elif 'filepath' in value:
+##                    value = str(value)
+#                else:     # TODO: Fix this!
+#                    continue
+#
+#
+#                if ('default' not in ca_registry or not value == ca_registry['default']) and str(value) != str(getattr(model_object, key, None)):
+#                    setattr(model_object, key, value)
+#                    is_data_empty = False
+#                continue
+#
+#            # Allow deleting of pre-uploaded files.
+#            elif isinstance(getattr(model_object, key), str) and 'filepath' in getattr(model_object, key) and 'filename' in getattr(model_object, key) and 'uid' in getattr(model_object, key):
+#                setattr(model_object, key, None)
+#                is_data_empty = False
+#                continue
+#            elif isinstance(getattr(model_object, key), str) and 'filename' in getattr(model_object, key) and 'uid' in getattr(model_object, key):
+#                ast.literal_eval(value)
+#                test = 'test'
+
+
 
             if value is colander.null or value is None or value == 'None':
                 continue
@@ -169,9 +197,21 @@ def convert_sqlalchemy_model_to_data(model, schema):
                     node_list.append(convert_sqlalchemy_model_to_data(item,  node.children[0]))
 
                 data[node.name] = node_list
+            elif isinstance(node.typ, deform.FileData):
+                tempstore = node.widget.tmpstore.tempstore
+                data[node.name] = node.default
+                if value is not None:
+                    randid = value.split("/")[-1]
+                    for file_uid in tempstore:
+                        if 'randid' in tempstore[file_uid] and (tempstore[file_uid]['randid']) == str(randid):
+                            data[node.name] = tempstore[file_uid]
+                            break
+
             elif len(node.children):
                 data[node.name] = convert_sqlalchemy_model_to_data(value,  node)
 
+            elif value is None:
+                data[node.name] = node.default
             else:
                 data[node.name] = value
         elif len(node.children) > 0:

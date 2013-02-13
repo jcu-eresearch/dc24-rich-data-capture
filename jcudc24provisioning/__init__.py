@@ -1,3 +1,7 @@
+import jcudc24provisioning
+
+global global_settings
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -24,10 +28,10 @@ declare_namespace('jcudc24provisioning')
 __author__ = 'Casey Bajema'
 
 
-
 def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
+    jcudc24provisioning.global_settings = settings
 
     logging.captureWarnings(True)
 #    execfile("D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py", dict(__file__="D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py"))
