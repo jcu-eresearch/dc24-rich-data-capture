@@ -135,7 +135,7 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
 #                                print "Current Object: " + str(current_object)
                                 break
 
-                    child_table_object = create_sqlalchemy_model(item, model_class=model_object._sa_class_manager[key].property.mapper.class_, model_object=current_object)
+                    child_table_object = create_sqlalchemy_model(item, model_class=model_object._sa_instance_state.class_, model_object=current_object)
 
                     if child_table_object is not None:
                         is_data_empty = False
