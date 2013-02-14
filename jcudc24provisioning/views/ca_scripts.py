@@ -4,6 +4,9 @@ import colander
 import deform
 import os
 
+import logging
+logger = logging.getLogger(__name__)
+
 __author__ = 'Casey Bajema'
 
 # TODO: It may be possible to update these scripts to work better using for prop in object_mapper(source).iterate_properties:
@@ -46,10 +49,11 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
 
         if hasattr(model_object, key):
             ca_registry = None
-            if hasattr(model_class._sa_class_manager[key].comparator, 'mapper') and key in model_class._sa_class_manager[key].comparator.mapper.columns._data:
-                ca_registry = model_class._sa_class_manager[key].comparator.mapper.columns._data[key]._ca_registry
-            elif hasattr(model_class._sa_class_manager[key], '_parententity') and key in model_class._sa_class_manager[key]._parententity.columns._data:
-                ca_registry = model_class._sa_class_manager[key]._parententity.columns._data[key]._ca_registry
+            if key in model_class._sa_class_manager:
+                if hasattr(model_class._sa_class_manager[key].comparator, 'mapper') and key in model_class._sa_class_manager[key].comparator.mapper.columns._data:
+                    ca_registry = model_class._sa_class_manager[key].comparator.mapper.columns._data[key]._ca_registry
+                elif hasattr(model_class._sa_class_manager[key], '_parententity') and key in model_class._sa_class_manager[key]._parententity.columns._data:
+                    ca_registry = model_class._sa_class_manager[key]._parententity.columns._data[key]._ca_registry
 
             if ca_registry is not None:
                 if 'type' in ca_registry and isinstance(ca_registry['type'], deform.FileData):
@@ -135,7 +139,6 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
                                 break
 
                     child_table_object = create_sqlalchemy_model(item, model_class=model_object._sa_class_manager[key].property.mapper.class_, model_object=current_object)
-
                     if child_table_object is not None:
                         is_data_empty = False
                         getattr(model_object, key).append(child_table_object) # Add the modified object
@@ -166,13 +169,18 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
                     value = 1
 
                 # TODO: Need a more reliable way of doing this, these seem to change version to version.
-                if not hasattr(model_class._sa_class_manager[key], '_parententity'):
-                    ca_registry = model_class._sa_class_manager[key].comparator.mapper.columns._data[key]._ca_registry
-                else:
-                    ca_registry = model_class._sa_class_manager[key]._parententity.columns._data[key]._ca_registry
-                if ('default' not in ca_registry or not value == ca_registry['default']) and str(value) != str(getattr(model_object, key, None)):
-                    setattr(model_object, key, value)
-                    is_data_empty = False
+                try:
+                    if key in model_class._sa_class_manager:
+                        if not hasattr(model_class._sa_class_manager[key], '_parententity') and key in model_class._sa_class_manager[key].comparator.mapper.columns._data:
+                            ca_registry = model_class._sa_class_manager[key].comparator.mapper.columns._data[key]._ca_registry
+                        elif hasattr(model_class._sa_class_manager[key], "_parententity"):
+                            ca_registry = model_class._sa_class_manager[key]._parententity.columns._data[key]._ca_registry
+                        if ('default' not in ca_registry or not value == ca_registry['default']) and str(value) != str(getattr(model_object, key, None)):
+                            setattr(model_object, key, value)
+                            is_data_empty = False
+                except Exception as e:
+                    logger.exception("Failed to set model attribute: %s" % key)
+                    continue
 
     if is_data_empty:
         return None
