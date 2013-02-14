@@ -261,7 +261,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
         #            new_dataset.processing_script = dataset.custom_processor_script - Moved to datasource
         new_dataset.redbox_uri = None   # TODO: Add redbox link
         new_dataset.enabled = True
-        new_dataset.descripion = model.description
+        new_dataset.description = model.title
 
         # Add the location
         first_location_found = False
@@ -269,7 +269,10 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             if not first_location_found and location.is_point():
                 first_location_found = True
                 try:
-                    new_dataset.location = self.process_model(location, command, work)
+                    if location.dam_id is None:
+                        new_dataset.location = self.process_model(location, command, work)
+                    else:
+                        new_dataset.location = int(location.dam_id)
                 except Exception as e:
                     logger.exception("Failed to add/update location: %s for dataset: %s" % (location.name, model.title))
                     raise ValueError("Failed to add/update location: %s for dataset: %s, error: %s" % (location.name, model.title, e))
@@ -286,7 +289,10 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             raise ValueError("Trying to provision a dataset that has no associated method.  Try deleting and re-creating the dataset.")
 
         try:
-            new_dataset.schema = int(self.process_model(method.data_type, command, work))
+            if method.data_type.dam_id is None:
+                new_dataset.schema = int(self.process_model(method.data_type, command, work))
+            else:
+                new_dataset.schema = int(method.data_type.dam_id)
         except Exception as e:
             logger.exception("Failed to add/update data schema for method: %s" % (method.method_name))
             raise ValueError("Failed to add/update data schema for method: %s, Error: %s" % (method.method_name, e))
@@ -380,7 +386,10 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
                     raise ValueError("The selected source dataset doesn't exist.  Go back to the datasets step and fix %s." % model.title)
 
                 try:
-                    source_dataset_id = self.process_dataset(observed_dataset, work.post, work)
+                    if observed_dataset.dam_id is None:
+                        source_dataset_id = self.process_dataset(observed_dataset, work.post, work)
+                    else:
+                        source_dataset_id = observed_dataset.dam_id
                 except Exception as e:
                     logger.exception("Failed to add/update source dataset to dam: %s, Error: %s for dataset: %s" % (observed_dataset.title, e, model.title))
                     raise ValueError("Failed to add/update source dataset to dam: %s, Error: %s for dataset: %s" % (observed_dataset.title, e, model.title))
