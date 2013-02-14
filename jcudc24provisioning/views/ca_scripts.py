@@ -167,14 +167,18 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
                     value = 1
 
                 # TODO: Need a more reliable way of doing this, these seem to change version to version.
-                if key in model_class._sa_class_manager:
-                    if not hasattr(model_class._sa_class_manager[key], '_parententity') and key in model_class._sa_class_manager[key].comparator.mapper.columns._data:
-                        ca_registry = model_class._sa_class_manager[key].comparator.mapper.columns._data[key]._ca_registry
-                    elif hasattr(model_class._sa_class_manager[key], "_parententity"):
-                        ca_registry = model_class._sa_class_manager[key]._parententity.columns._data[key]._ca_registry
-                    if ('default' not in ca_registry or not value == ca_registry['default']) and str(value) != str(getattr(model_object, key, None)):
-                        setattr(model_object, key, value)
-                        is_data_empty = False
+                try:
+                    if key in model_class._sa_class_manager:
+                        if not hasattr(model_class._sa_class_manager[key], '_parententity') and key in model_class._sa_class_manager[key].comparator.mapper.columns._data:
+                            ca_registry = model_class._sa_class_manager[key].comparator.mapper.columns._data[key]._ca_registry
+                        elif hasattr(model_class._sa_class_manager[key], "_parententity"):
+                            ca_registry = model_class._sa_class_manager[key]._parententity.columns._data[key]._ca_registry
+                        if ('default' not in ca_registry or not value == ca_registry['default']) and str(value) != str(getattr(model_object, key, None)):
+                            setattr(model_object, key, value)
+                            is_data_empty = False
+                except Exception as e:
+                    logger.exception("Failed to set model attribute: %s" % key)
+                    continue
 
     if is_data_empty:
         return None

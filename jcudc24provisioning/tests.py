@@ -81,6 +81,7 @@ class TestIngesterPlatform(unittest.TestCase):
 #        self.project.location_description = "Test location description"
 
         test_location = Location()
+        test_location.name = "Test Location"
         test_location.location = "POINT(135.8763427287297 -24.167471616893767)"
         test_location.elevation = 12.3
 
@@ -170,6 +171,7 @@ class TestIngesterPlatform(unittest.TestCase):
         # TODO: For locations in project: add as region to location
 
         dataset_location = Location()
+        dataset_location.name = "Test Dataset Location"
         dataset_location.location = "POINT(132.8763427287297 -24.167471616893767)"
         dataset_location.elevation = 12.6
         dataset1.dataset_locations.append(dataset_location)
