@@ -86,6 +86,11 @@ class Workflows(Layouts):
         if self.request.matchdict and 'project_id' in self.request.matchdict:
             self.project_id = self.request.matchdict['project_id']
 
+        # Get all project data, validate it and provide information for displaying workflow validation state.
+        project = self.session.query(Project).filter_by(id==self.project_id).first()
+        if project is not None:
+            pass # TODO: Validate the project and set it to self for all workflow steps to use.
+
     @property
     def auth(self):
         if '_auth' not in locals():

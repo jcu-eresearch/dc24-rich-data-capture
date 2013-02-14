@@ -951,14 +951,14 @@ class Metadata(Base):
         ca_placeholder="eg.  TODO: Get a well written brief description for the artificial tree project.",
         ca_widget=deform.widget.TextAreaWidget(rows=6), ca_title="Brief Description",
         ca_description="<p>A short description (Approx. 6 lines) targeted at a general audience.</p><p><i>This field may be pre-filled with the grant description (<b>as a starting point</b>).</i></p>",
-        ca_help="A short description (Approx. 6 lines) of the research done, why the research was done and the collection and research methods used:"\
+        ca_help="A short description of the research done, why the research was done and the collection and research methods used:"\
                 "<ul><li>Write this description in lay-mans terms targeted for the general population to understand.</li>"\
                 "<li>A short description of the (project level) where and when can also be included.</li>"\
                 "<li>Note: Keep the description relevant to all generated records.</li></ul>")
     full_description = Column(Text(), ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(rows=20), ca_page="description", ca_force_required=True,
         ca_title="Full Description", ca_placeholder="eg.  TODO: Get a well written full description for the artificial tree project.",
         ca_description="Full description (Approx. 10-20 lines) targeted at researchers and scientists",
-        ca_help="A full description (Approx. 10-20 lines) of the research done, why the research was done and the collection and research methods used:"\
+        ca_help="A full description of the research done, why the research was done and the collection and research methods used:"\
                 "<ul><li>Write this description targeted for other researchers  to understand (include the technicalities).</li>"\
                 "<li>Information about the research dataset/collection, registry/repository, catalogue or index, including its characteristics and features, eg. This dataset contains observational data, calibration files and catalogue information collected from the Mount Stromlo Observatory Facility.</li>"\
                 "<li>If applicable: the scope; details of entities being studied or recorded; methodologies used.</li>"
