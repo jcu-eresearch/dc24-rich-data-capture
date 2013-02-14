@@ -46,10 +46,11 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
 
         if hasattr(model_object, key):
             ca_registry = None
-            if hasattr(model_class._sa_class_manager[key].comparator, 'mapper') and key in model_class._sa_class_manager[key].comparator.mapper.columns._data:
-                ca_registry = model_class._sa_class_manager[key].comparator.mapper.columns._data[key]._ca_registry
-            elif hasattr(model_class._sa_class_manager[key], '_parententity') and key in model_class._sa_class_manager[key]._parententity.columns._data:
-                ca_registry = model_class._sa_class_manager[key]._parententity.columns._data[key]._ca_registry
+            if key in model_class._sa_class_manager:
+                if hasattr(model_class._sa_class_manager[key].comparator, 'mapper') and key in model_class._sa_class_manager[key].comparator.mapper.columns._data:
+                    ca_registry = model_class._sa_class_manager[key].comparator.mapper.columns._data[key]._ca_registry
+                elif hasattr(model_class._sa_class_manager[key], '_parententity') and key in model_class._sa_class_manager[key]._parententity.columns._data:
+                    ca_registry = model_class._sa_class_manager[key]._parententity.columns._data[key]._ca_registry
 
             if ca_registry is not None:
                 if 'type' in ca_registry and isinstance(ca_registry['type'], deform.FileData):
