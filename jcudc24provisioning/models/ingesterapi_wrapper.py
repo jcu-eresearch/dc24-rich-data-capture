@@ -195,7 +195,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
 
     def process_schema(self, model, command, work):
         assert isinstance(model, MethodSchema), "Invalid schema: " + str(model)
-        if model.dam_id is not None and model.dam_id >= 0:
+        if model.dam_id is not None:# and model.dam_id >= 0:
             # Schema's cannot be changed TODO: Update this to test if shema has changed, if it has - add a new schema
             return model.dam_id
 
@@ -207,7 +207,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
         # Set the schema parents/extends
         new_schema.extends = []
         for parent in model.parents:
-            if parent.dam_id is not None and parent.dam_id >= 0:
+            if parent.dam_id is not None:# and parent.dam_id >= 0:
                 new_schema.extends.append(int(parent.dam_id))
             else:
                 new_parent = self.process_schema(parent, work.post, work)

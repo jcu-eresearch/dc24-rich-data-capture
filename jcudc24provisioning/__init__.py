@@ -1,4 +1,4 @@
-import jcudc24provisioning
+
 
 global global_settings
 
@@ -7,10 +7,12 @@ logger = logging.getLogger(__name__)
 
 # This line is only required for activiting the virtualenv within the IntelliJ IDE
 try:
-    execfile("D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py", dict(__file__="D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py"))
+#    execfile("D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py", dict(__file__="D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py"))
+    execfile("../../venv/Scripts/activate_this.py", dict(__file__="../../venv/Scripts/activate_this.py"))
 except Exception as e:
     logger.exception("Virtual env activation failed, please update the activate_this.py address in the base __init__ if developing on a windows machine.")
 
+import jcudc24provisioning
 from deform.form import Form
 from pyramid.config import Configurator
 from pkg_resources import resource_filename
