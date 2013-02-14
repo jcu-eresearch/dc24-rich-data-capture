@@ -4,6 +4,9 @@ import colander
 import deform
 import os
 
+import logging
+logger = logging.getLogger(__name__)
+
 __author__ = 'Casey Bajema'
 
 # TODO: It may be possible to update these scripts to work better using for prop in object_mapper(source).iterate_properties:
