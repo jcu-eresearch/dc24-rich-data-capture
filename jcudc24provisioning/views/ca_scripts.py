@@ -62,7 +62,7 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
                         value = str(value['preview_url'])
 
                     # If this is an already selected and uploaded file
-                    elif isinstance(value, dict) and 'fp' in value:
+                    elif isinstance(value, dict) and 'fp' in value and hasattr(value['fp'], 'name'):
                         value = str(value['fp'].name)
 
                     # File was previously uploaded and the user just removed it

@@ -35,6 +35,8 @@
         <small id="${field.oid}-addtext">${add_subitem_text}</small>
     </button>
 
+    <div class="max_error">Cannot add more items, maximum of ${max_len}.</div>
+
     <input type="hidden" name="__start__" value="${field.name}:sequence"
            class="deformProto"
            tal:attributes="prototype prototype"/>

@@ -150,7 +150,7 @@ class SocioEconomicObjective(Base):
     id = Column(Integer, primary_key=True, ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
     metadata_id = Column(Integer, ForeignKey('metadata.id'), ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
-    socio_economic_objective = Column(String(50), ca_order=next(order_counter), ca_title="Socio-Economic Objective", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput", max_len=3),
+    socio_economic_objective = Column(String(50), ca_order=next(order_counter), ca_title="Socio-Economic Objective", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
     ca_data=getSEOCodes)
 
 class Person(Base):
@@ -762,33 +762,33 @@ class Dataset(Base):
     disabled = Column(Boolean,ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
     redbox_uri = Column(String(256), ca_name="dc:relation.vivo:Dataset.0.dc:identifier",ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 
-    title = Column(Text(), ca_name="dc:relation.vivo:Dataset.0.dc:title", ca_order=next(order_counter),
-        ca_placeholder="Provide a textual description of the dataset being collected.",
-        ca_help="Provide a dataset specific title for the metadata records.", ca_force_required=True)
+    title = Column(Text(), ca_name="dc:relation.vivo:Dataset.0.dc:title", ca_title="Dataset Name", ca_order=next(order_counter),
+        ca_placeholder="Provide a textual description of this dataset.",
+        ca_help="Provide a dataset specific name that is easily identifiable within this system.", ca_force_required=True)
 
     publish_dataset = Column(Boolean, ca_title="Publish Dataset to ReDBox", ca_default=True, ca_order=next(order_counter),
-#        ca_widget=ConditionalCheckboxMapping(),
+        ca_widget=deform.widget.CheckboxWidget(template="checked_conditional_input", inverted=True),
         ca_help="Publish a metadata record to ReDBox for this dataset - leave this selected unless the data isn't relevant to anyone else (eg. Raw data where other users " \
                        "will only search for the processed data).")
 
     publish_date = Column(Date(), ca_order=next(order_counter), ca_title="Date to make ReDBox record publicly available",
         ca_help='The date that data will start being collected.', ca_force_required=True)
 
-    description = Column(Text(),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(rows=6),
-            ca_placeholder="Provide a textual description of the dataset being collected.",
-            ca_help="Provide a dataset specific description for the metadata records.")
-
-    time_period_description = Column(String(256), ca_name="dc:coverage.redbox:timePeriod", ca_order=next(order_counter), ca_title="Time Period (description)",
-        ca_group_start="coverage", ca_group_collapsed=False, ca_group_title="Dataset Date and Location",
-        ca_placeholder="eg. Summers of 1996-2006", ca_missing="",
-        ca_help="Provide a textual representation of the time period such as world war 2 or more information on the time within the dates provided.")
-    date_from = Column(Date(), ca_name="dc:coverage.vivo:DateTimeInterval.vivo:start", ca_order=next(order_counter), ca_placeholder="", ca_title="Date data started/will start being collected",
-        ca_help="The date that data started being collected.  Note that this is the actual data date not the finding date, recording date or other date.  For example, an old letter may be found in 2013 but it was actually written in 1900 - the date to use is 1900.", ca_force_required=True)
-    date_to = Column(Date(), ca_name="dc:coverage.vivo:DateTimeInterval.vivo:end", ca_order=next(order_counter), ca_title="Date data stopped/will stop being collected", ca_page="metadata",
-        ca_help='The date that data will stop being collected.  Note that this is the actual data date not the finding date, recording date or other date.  For example, an old letter may be found in 2013 but it was actually written in 1900 - the date to use is 1900.', ca_missing=colander.null)
-    location_description = Column(String(512), ca_order=next(order_counter), ca_title="Location (description)",
-        ca_help="Textual description of the location such as Australian Wet Tropics."
-        , ca_missing="", ca_placeholder="eg. Australian Wet Tropics or Great Barrier Reef")
+#    description = Column(Text(),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(rows=6),
+#            ca_placeholder="Provide a textual description of the dataset being collected.",
+#            ca_help="Provide a dataset specific description for the metadata records.")
+#
+#    time_period_description = Column(String(256), ca_name="dc:coverage.redbox:timePeriod", ca_order=next(order_counter), ca_title="Time Period (description)",
+#        ca_group_start="coverage", ca_group_collapsed=False, ca_group_title="Dataset Date and Location",
+#        ca_placeholder="eg. Summers of 1996-2006", ca_missing="",
+#        ca_help="Provide a textual representation of the time period such as world war 2 or more information on the time within the dates provided.")
+#    date_from = Column(Date(), ca_name="dc:coverage.vivo:DateTimeInterval.vivo:start", ca_order=next(order_counter), ca_placeholder="", ca_title="Date data started/will start being collected",
+#        ca_help="The date that data started being collected.  Note that this is the actual data date not the finding date, recording date or other date.  For example, an old letter may be found in 2013 but it was actually written in 1900 - the date to use is 1900.", ca_force_required=True)
+#    date_to = Column(Date(), ca_name="dc:coverage.vivo:DateTimeInterval.vivo:end", ca_order=next(order_counter), ca_title="Date data stopped/will stop being collected", ca_page="metadata",
+#        ca_help='The date that data will stop being collected.  Note that this is the actual data date not the finding date, recording date or other date.  For example, an old letter may be found in 2013 but it was actually written in 1900 - the date to use is 1900.', ca_missing=colander.null)
+#    location_description = Column(String(512), ca_order=next(order_counter), ca_title="Location (description)",
+#        ca_help="Textual description of the location such as Australian Wet Tropics."
+#        , ca_missing="", ca_placeholder="eg. Australian Wet Tropics or Great Barrier Reef")
 
     dataset_locations = relationship('Location', ca_order=next(order_counter), ca_title="Location",
         cascade="all, delete-orphan",ca_widget=deform.widget.SequenceWidget(template='map_sequence'),
@@ -950,14 +950,14 @@ class Metadata(Base):
     brief_description = Column(Text(), ca_order=next(order_counter), ca_page="description", ca_force_required=True,
         ca_placeholder="eg.  TODO: Get a well written brief description for the artificial tree project.",
         ca_widget=deform.widget.TextAreaWidget(rows=6), ca_title="Brief Description",
-        ca_description="<p>A short description (Approx. 6 lines) targeted at a general audience.</p><p><i>This field may be pre-filled with the grant description (<b>as a starting point</b>).</i></p>",
+        ca_description="<p>A short description targeted at a general audience.</p><p><i>This field may be pre-filled with the grant description (<b>as a starting point</b>).</i></p>",
         ca_help="A short description of the research done, why the research was done and the collection and research methods used:"\
                 "<ul><li>Write this description in lay-mans terms targeted for the general population to understand.</li>"\
                 "<li>A short description of the (project level) where and when can also be included.</li>"\
                 "<li>Note: Keep the description relevant to all generated records.</li></ul>")
     full_description = Column(Text(), ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(rows=20), ca_page="description", ca_force_required=True,
         ca_title="Full Description", ca_placeholder="eg.  TODO: Get a well written full description for the artificial tree project.",
-        ca_description="Full description (Approx. 10-20 lines) targeted at researchers and scientists",
+        ca_description="Full description targeted at researchers and scientists",
         ca_help="A full description of the research done, why the research was done and the collection and research methods used:"\
                 "<ul><li>Write this description targeted for other researchers  to understand (include the technicalities).</li>"\
                 "<li>Information about the research dataset/collection, registry/repository, catalogue or index, including its characteristics and features, eg. This dataset contains observational data, calibration files and catalogue information collected from the Mount Stromlo Observatory Facility.</li>"\
@@ -980,7 +980,7 @@ class Metadata(Base):
     fieldOfResearch = relationship('FieldOfResearch', ca_name="dc:subject.anzsrc:for.0.rdf:resource", ca_order=next(order_counter), ca_title="Fields of Research", ca_page="metadata",
         cascade="all, delete-orphan",
         ca_force_required=True,
-        ca_widget=deform.widget.SequenceWidget(template='multi_select_sequence'),
+        ca_widget=deform.widget.SequenceWidget(template='multi_select_sequence', max_len=3),
         ca_child_title="Field of Research",
         ca_help="Select the most applicable Fields of Research (FoR) from the drop-down menus, and click the 'Add Field Of Research' button (which is hidden until a code is selected)."
         , ca_missing="")
@@ -1224,10 +1224,10 @@ def grant_validator(form, value):
     mint = MintLookup(None)
 
     print value
-    if value['no_activity'] is False and value['activity'] == colander.null:
-        exc['activity'] = "'There is no associated research grant' must be selected if a research grant isn't provided."
+    if value['no_activity'] is True and value['activity'] == colander.null:
+        exc['activity'] = "'There is an associated research grant' must be un-selected if a research grant isn't provided."
         error = True
-    elif value['no_activity'] is False:
+    elif value['no_activity'] is True:
         if mint.get_from_identifier(value['activity']) is None:
             exc['activity'] = "The entered activity isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
             error = True
@@ -1250,13 +1250,13 @@ class CreatePage(colander.MappingSchema):
         help="<p>Templates pre-fill the project with as much information as possible to make this process as quick and easy as possible.</p><ul><li>If you don't want to use any template, select the general category and Blank template.</li><li>Please contact the administrators to request new templates.</li>",
         description="<ol><li>First select the category or organisational group on the left hand side.</li><li>Then select the most relevant template from the list on the right hand side.</li>")
 
-    no_activity = colander.SchemaNode(colander.Boolean(), help="Must be selected if a research grant isn't provided below.",
-        title="There is no associated research grant")
+    no_activity = colander.SchemaNode(colander.Boolean(), help="Must be un-selected if a research grant isn't provided below.",
+        title="There is an associated research grant", default=True, widget=deform.widget.CheckboxWidget(template="checked_conditional_input", inverted=True))
 
     activity = colander.SchemaNode(colander.String(), title="Research Grant",
         missing=colander.null, required=False,
         help="Enter title of the research grant associated with this record (Autocomplete).  The grant will be looked up for additional information that can be pre-filled.",
-        description="Select 'There is no associated research grant' above if your project isn't associated with a research grant.",
+        description="Un-Select 'There is an associated research grant' above if your project isn't associated with a research grant.",
         widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/activities/', template="mint_autocomplete_input", delay=10))
 
     #    services = Column(String(256), ca_title="Services - Remove this?", ca_order=next(order_counter), ca_placeholder="Autocomplete - Mint/Mint DB", ca_page="setup",

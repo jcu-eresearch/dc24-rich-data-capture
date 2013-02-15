@@ -87,7 +87,7 @@ class Workflows(Layouts):
             self.project_id = self.request.matchdict['project_id']
 
         # Get all project data, validate it and provide information for displaying workflow validation state.
-        project = self.session.query(Project).filter_by(id==self.project_id).first()
+        project = self.session.query(Project).filter_by(id=self.project_id).first()
         if project is not None:
             pass # TODO: Validate the project and set it to self for all workflow steps to use.
 
@@ -263,12 +263,25 @@ class Workflows(Layouts):
             model = self.session.query(Project).filter_by(id=self.project_id).first()
             appstruct = convert_sqlalchemy_model_to_data(model, schema)
 
+        # In either of the below cases get the data as a dict and get the rendered form
+        if 'Save' in appstruct:
+            try:
+                appstruct = form.validate_pstruct(appstruct)
+                display = form.render(appstruct)
+            except ValidationFailure, e:
+                appstruct = e.cstruct
+                display = e.render()
+
+        else:
+            display = form.render(appstruct)
+
+
         messages = {
             'error_messages': self.request.session.pop_flash("error"),
             'success_messages': self.request.session.pop_flash("success"),
             'warning_messages': self.request.session.pop_flash("warning")
         }
-        return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": form.render(appstruct), "form_only": False, 'messages': messages, 'page_help': page_help}
+        return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": display, "form_only": False, 'messages': messages, 'page_help': page_help}
 
 
     def clone (self, source):
@@ -347,7 +360,7 @@ class Workflows(Layouts):
                 if 'project_lead' in appstruct:
                     project_lead = Party()
                     project_lead.party_relationship = "owner"
-                    project_lead.identifier = appstruct['data_manager']
+                    project_lead.identifier = appstruct['project_lead']
                     new_parties.append(project_lead)
 
                 if 'activity' in appstruct:

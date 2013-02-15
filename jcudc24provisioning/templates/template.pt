@@ -54,6 +54,17 @@
         function set_content_size() {
 //            console.log($("#center").width() - $("#sidebar").width());
             $("#content").width($("#center").width() - $("#sidebar").width() - 15);
+
+            var body = $("body");
+            if ($("html").width() <= 1024){
+                if (body[0].original_padding === undefined) {
+                    body[0].original_padding = body.css("padding-left");
+                }
+                body.css("padding", "0");
+            } else if (body[0].original_padding !== undefined) {
+                body.css("padding-left", body[0].original_padding);
+                body.css("padding-right", body[0].original_padding);
+            }
         }
 
 //        $(window).ready(function () {
@@ -203,13 +214,16 @@
                 <div metal:define-slot="content"></div>
             </div>
             <div id="footer">
-                <a id="ands_logo" href="http://www.ands.org.au/"><img src="/static/images/ands_logo.bmp" alt="Australian National Data Services logo"></a>
-
-                <p id="footer_text">
-                    This project is supported by the <a href="http://www.ands.org.au/">Australian National Data Service (ANDS)</a> through the National Collaborative Research Infrastructure Strategy Program and the Education Investment Fund (EIF) Super Science Initiative, as well as through the <a href="http://www.qcif.edu.au/">Queensland Cyber Infrastructure Foundation (QCIF)</a> - <b style="color:red;">This needs re-writing</b>
-                </p>
-
-                <a id="qcif_logo" href="http://www.qcif.edu.au/"><img src="/static/images/qcif_logo.bmp" alt="the Queensland Cyber Infrastructure Foundation logo"></a>
+                <div id="supported_by">
+                    <a id="qcif_logo" href="http://www.qcif.edu.au/"><img src="/static/images/qcif_logo.bmp" alt="the Queensland Cyber Infrastructure Foundation logo" /></a>
+                    <a id="ands_logo" href="http://www.ands.org.au/"><img src="/static/images/ands_logo.bmp" alt="Australian National Data Services logo" /></a>
+                    <p>This project is supported by the <a href="http://www.ands.org.au/">Australian National Data Service (ANDS)</a> through the <a href="http://www.qcif.edu.au/">Queensland Cyber Infrastructure Foundation (QCIF)</a></p>
+                </div>
+                <div id="developed_by">
+                    <a href="eresearch.jcu.edu.au"><img style="padding-top: 18px;" src="../../static/images/eresearch-logo-sml.png" alt="eResearch Centre"/></a>
+                    <a href="www.bajtech.com.au"><img src="../../static/images/bajtech_logo_bw.png" alt="Bajtech" /></a>
+                    <p>Designed and developed by Bajtech and the JCU eResearch Centre.</p>
+                </div>
             </div>
         </div>
     </div>

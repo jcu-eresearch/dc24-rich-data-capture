@@ -42,7 +42,7 @@ def main(global_config, **settings):
     scripts.initializedb.initialise_all_db(settings)
 
     deform_templates = resource_filename('deform', 'templates')
-    search_path = (resource_filename('jcudc24provisioning', 'templates/widgets'),resource_filename('jcudc24provisioning', 'templates/widgets/readonly'), deform_templates)
+    search_path = (resource_filename('jcudc24provisioning', 'templates/widgets'),resource_filename('jcudc24provisioning', 'templates/widgets/readonly'), resource_filename('jcudc24provisioning', 'templates/custom_widgets'), resource_filename('jcudc24provisioning', 'templates/custom_widgets/readonly'), deform_templates)
     Form.set_zpt_renderer(search_path)
 
     set_cache_regions_from_settings(settings)

@@ -1,3 +1,4 @@
+<!--Simple chron selection template for text inputs-->
 
 <div id="${field.oid}-cron_selector" style="display: inline-block; padding-top: 15px;padding-bottom: 15px; position: relative;
     clear: both;"></div>

@@ -1,3 +1,5 @@
+<!--Incomplete checkbox widget and template that adds/removes a mapping on selection/deselection-->
+
 <span class="conditionalCheckboxMappingFieldset" i18n:domain="deform">
     <!-- select mapping -->
     <ul>

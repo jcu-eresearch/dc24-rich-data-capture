@@ -1,0 +1,34 @@
+<!--Checkbox that shows/hides the following list item when selected/unselected respectively, if invert=True is passed into the widget it will show/hide in the opposite order.-->
+
+<tal:block>
+    <input tal:condition="exists:field.widget.inverted" type="hidden" class="show_on_selected" value="${field.widget.inverted and 'true' or 'false'}" />
+
+    <input type="checkbox" onchange="conditionalCheckboxToggled(this);"
+         name="${field.name}" value="${field.widget.true_val}"
+         id="${field.oid}"
+         tal:attributes="checked (not cstruct and field.schema.default) or cstruct == field.widget.true_val;
+                         class field.widget.css_class"/>
+
+    <script type="text/javascript">
+        deform.addCallback(
+                '${field.oid}',
+                function (oid) {
+                    conditionalCheckboxToggled($("#" + oid)[0])
+                });
+
+        function conditionalCheckboxToggled(checkbox) {
+            var inverted = $(checkbox).siblings(".show_on_selected")[0];
+            inverted = (inverted !== undefined && inverted.value == 'true');
+            var show = inverted && checkbox.checked || !inverted && !checkbox.checked;
+            var next_element = $(checkbox).parent().next();
+
+            var DURATION = 300;
+            if (show) {
+                next_element.show(DURATION);
+            } else {
+                next_element.hide(DURATION);
+            }
+        }
+    </script>
+</tal:block>
+

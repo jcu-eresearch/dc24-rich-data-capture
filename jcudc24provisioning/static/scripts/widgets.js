@@ -448,6 +448,16 @@ function showAdd(oid, show) {
     var oid_node = $('#' + oid);
 //    alert(oid_node);
 
+    var $before_node = oid_node.children('ul').first().children('.deformInsertBefore').first();
+    var max_len = parseInt($before_node.attr('max_len')||'9999', 10);
+    var now_len = parseInt($before_node.attr('now_len')||'0', 10);
+    if (now_len >= max_len) {
+        oid_node.children("button").hide();
+        oid_node.children(".max_error").show();
+        return;
+    }
+    oid_node.children(".max_error").hide();
+
     if (show) {
         oid_node.children("button")[0].style.display = "inline";
 //        alert('show');

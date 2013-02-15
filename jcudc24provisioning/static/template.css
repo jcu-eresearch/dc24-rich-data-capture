@@ -682,25 +682,31 @@ div#workflow_nav ul li button:hover {
 
 div#footer {
     clear: both;
-    height: 100px;
-    padding: 10px;
-    border: 1px solid #777;
+    padding: 15px;
+    /*border: 1px solid #777;*/
 }
 
-#ands_logo {
+div#footer div {
+    display: inline-block;
+    width: 48%;
+}
+
+div#footer img {
+    padding: 10px;
     float: left;
 }
+
+#footer p {
+    padding-top: 10px;
+}
+
 
 #footer_text {
     float: left;
-    width: 880px;
     padding-left: 10px;
     padding-right: 10px;
 }
 
-#qcif_logo {
-    float: right;
-}
 
 
 .description.first {
@@ -830,6 +836,11 @@ span.collapse_icon {
 .multi_select_sequence .third_field {
     margin-left: 40px;
     display: none;
+}
+
+.multi_select_sequence .max_error {
+    padding: 10px;
+    color: rgb(233, 79, 53);
 }
 
 .messages {
