@@ -55,6 +55,9 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
             elif value == 'true':
                 value = True
 
+            if isinstance(value, str) and value == '':
+                value = None
+
             ca_registry = None
             if key in model_class._sa_class_manager:
                 if hasattr(model_class._sa_class_manager[key].comparator, 'mapper') and key in model_class._sa_class_manager[key].comparator.mapper.columns._data:
@@ -84,7 +87,7 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
 
             # If the value hasn't been changed
             if not isinstance(value, dict) and not isinstance(value, list) and (value == getattr(model_object, key) or
-                                                                                 (isinstance(getattr(model_object, key), bool) and bool(value) == getattr(model_object, key))):
+                            (isinstance(getattr(model_object, key), bool) and bool(value) == getattr(model_object, key))):
                 continue
 
             # If the value is now empty and it was set previously
