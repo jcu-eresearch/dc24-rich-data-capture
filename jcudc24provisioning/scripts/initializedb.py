@@ -98,6 +98,7 @@ def initialise_temperature_schema(session):
 def initialise_project_templates(session):
     blank_template = session.query(ProjectTemplate).filter_by(name="Blank Template").first()
     blank_project = Project()
+    blank_project.template_only = True
     if not blank_template:
         session.add(blank_project) # Add an empty project as a blank template
         session.flush()
@@ -140,6 +141,7 @@ def initialise_method_templates(session):
     blank_template = session.query(MethodTemplate).filter_by(name="Blank Template").first()
     if not blank_template:
         blank_method = Method()
+        blank_method.method_template = True
         #            blank_method.method_description = "Test description"
         session.add(blank_method) # Add an empty project as a blank template
 
@@ -160,6 +162,7 @@ def initialise_method_templates(session):
     tree_template = session.query(MethodTemplate).filter_by(name="Artificial Tree").first()
     if not tree_template:
         tree_method = Method()
+        tree_method.method_template = True
         tree_method.method_name = "Artificial Sensor Tree"
         tree_method.method_description = "Collection method for ingesting aggregated tree sensor data from an external file server."
         tree_method.data_source = PullDataSource.__tablename__
@@ -198,6 +201,7 @@ def initialise_method_templates(session):
     sensor_template = session.query(MethodTemplate).filter_by(name="Artificial Tree Sensor").first()
     if not sensor_template:
         sensor_method = Method()
+        sensor_method.method_template = True
         sensor_method.method_name = "Artificial Tree Sensor"
         sensor_method.method_description = "Filter and index one sensor station from the aggregated artificial tree data."
         sensor_method.data_source = DatasetDataSource.__tablename__

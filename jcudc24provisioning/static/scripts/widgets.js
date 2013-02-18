@@ -165,10 +165,13 @@ function addMapFeatures(oid) {
 
     var i = 0;
     for (i; i < fields.length; i++) {
+        var deleteLink = $(fields[i]).parents("li").children('.deformClosebutton')[0];
+        deleteLink.setAttribute("onclick", deleteLink.getAttribute("onclick") + " deleteFeature($(this.parentNode).find('input[type=text]')[1].feature);");
+
+        fields[i].setAttribute("onblur", "locationTextModified(this);");
         fields[i].map_div = map_div;
         locationTextModified(fields[i]);
     }
-
 }
 
 function locationTextModified(input) {
@@ -442,6 +445,14 @@ function buttonPressed(node) {
     $(third_select).next().hide();
 
     showAdd(oid_node[0].id, false);
+}
+
+function fix_multi_select_close(oid) {
+    var oid_node = $('#' + oid);
+    var close_buttons = oid_node.children('ul').first().find("span.deformClosebutton");
+    for (var i=0; i<close_buttons.length; i++) {
+        close_buttons[i].setAttribute("onclick","deform.removeSequenceItem(this);" + "showAdd('" + oid + "', false);");
+    }
 }
 
 function showAdd(oid, show) {

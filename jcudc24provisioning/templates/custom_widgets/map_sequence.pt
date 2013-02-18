@@ -43,6 +43,8 @@
     <small id="${field.oid}-addtext">${add_subitem_text}</small>
 </a>
 
+<input tal:condition="exists:field.schema.widget.points_only" class="points_only" value="${field.schema.widget.points_only}" type="hidden" />
+
 <script type="text/javascript">
 deform.addCallback(
         '${field.oid}',
@@ -94,15 +96,23 @@ deform.addCallback(
             //                            map.addControl(new OpenLayers.Control.Permalink());
             map.addControl(new OpenLayers.Control.MousePosition());
 
-            var panelControls = [
-                new OpenLayers.Control.SelectFeature(vector, {title:"Delete", onSelect:deleteFeature, 'displayClass':'olControlDeleteFeature'}),
-                new OpenLayers.Control.ModifyFeature(vector, {title:"Move points", mode:OpenLayers.Control.ModifyFeature.RESHAPE}),
-                new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.Point, {title:"Draw points", 'displayClass':'olControlDrawFeaturePoint'}),
-                new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.RegularPolygon, {handlerOptions: {sides: 4, irregular: true}, title:"Draw box", 'displayClass':'olControlDrawFeatureBox'}),
-                new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.Path, {title:"Draw lines", 'displayClass':'olControlDrawFeaturePath'}),
-                new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.Polygon, {title:"Draw shapes", 'displayClass':'olControlDrawFeaturePolygon'}),
-                new OpenLayers.Control.Navigation({title:"Navigate only"})
-            ];
+            if ($("#" + oid).children(".points_only")[0].value == 'True') {
+                var panelControls = [
+                    new OpenLayers.Control.SelectFeature(vector, {title:"Delete", onSelect:deleteFeature, 'displayClass':'olControlDeleteFeature'}),
+                    new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.Point, {title:"Draw points", 'displayClass':'olControlDrawFeaturePoint'}),
+                    new OpenLayers.Control.Navigation({title:"Navigate only"})
+                ];
+            } else {
+                var panelControls = [
+                    new OpenLayers.Control.SelectFeature(vector, {title:"Delete", onSelect:deleteFeature, 'displayClass':'olControlDeleteFeature'}),
+                    new OpenLayers.Control.ModifyFeature(vector, {title:"Move points", mode:OpenLayers.Control.ModifyFeature.RESHAPE}),
+                    new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.Point, {title:"Draw points", 'displayClass':'olControlDrawFeaturePoint'}),
+                    new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.RegularPolygon, {handlerOptions: {sides: 4, irregular: true}, title:"Draw box", 'displayClass':'olControlDrawFeatureBox'}),
+                    new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.Path, {title:"Draw lines", 'displayClass':'olControlDrawFeaturePath'}),
+                    new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.Polygon, {title:"Draw shapes", 'displayClass':'olControlDrawFeaturePolygon'}),
+                    new OpenLayers.Control.Navigation({title:"Navigate only"})
+                ];
+            }
             var toolbar = new OpenLayers.Control.Panel({
                 displayClass:'olControlEditingToolbar',
                 defaultControl:panelControls[0]

@@ -28,10 +28,12 @@ class OneOfDict(object):
         self.choices = choices
 
     def __call__(self, node, value):
+        test = 1
         if not value in [x[0] for x in self.choices]:
             choices = ', '.join(['%s' % x[1] for x in self.choices])
-            err = colander._('Please select one of ${choices}',
-                    mapping={'choices':choices})
+#            err = colander._('Please select one of ${choices}',
+#                    mapping={'choices':choices})
+            err = "Required"
             raise colander.Invalid(node, err)
 
 def _SelectMappingSchema__new__(cls, *args, **kw):

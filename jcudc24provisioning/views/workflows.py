@@ -30,7 +30,7 @@ from pyramid.view import view_config, view_defaults, render_view_to_response
 from colanderalchemy.types import SQLAlchemyMapping
 from jcudc24provisioning.views.views import Layouts
 from pyramid.renderers import get_renderer
-from jcudc24provisioning.models.project import DBSession, PullDataSource,Metadata, IngesterLogs, Location, ProjectTemplate,method_template,DatasetDataSource, Project, CreatePage, Method, Base, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
+from jcudc24provisioning.models.project import DBSession, PullDataSource,Metadata, UntouchedPages, IngesterLogs, Location, ProjectTemplate,method_template,DatasetDataSource, Project, CreatePage, Method, Base, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
 from jcudc24provisioning.views.ca_scripts import convert_schema, create_sqlalchemy_model, convert_sqlalchemy_model_to_data,fix_schema_field_name
 from jcudc24provisioning.models.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.mint_lookup import MintLookup
@@ -40,6 +40,7 @@ __author__ = 'Casey Bajema'
 
 logger = logging.getLogger(__name__)
 
+# Workflow page href needs to be synchronised with UntouchedPages table in project.py
 WORKFLOW_STEPS = [
         {'href': 'create', 'title': 'Create', 'page_title': 'Create a New Project', 'hidden': True},
         {'href': 'general', 'title': 'Details', 'page_title': 'General Details'},
@@ -157,10 +158,11 @@ class Workflows(Layouts):
 
         return False
 
-    def find_workflow_title(self, href):
+    def find_menu(self):
+        href = self.request.matched_route.name
         for menu in WORKFLOW_STEPS + WORKFLOW_ACTIONS:
             if menu['href'] == href:
-                return menu['page_title']
+                return menu#['page_title']
 
         raise ValueError("There is no page title for this address: " + str(href))
 
@@ -186,13 +188,14 @@ class Workflows(Layouts):
                  model = create_sqlalchemy_model(data, model_class=Project)
                  if model is not None:
                      self.session.add(model)
+                     saved = True
              else:
                  raise ValueError("No project found for the given project id(" + self.project_id + "), please do not directly edit the address bar.")
 
          else:
              # Update the model with all fields in the data
              if create_sqlalchemy_model(data, model_object=model) is None:
-                 return # There were no changes (if there were changes they will still be commited through the internals of sqlalchemy though).
+                 return False # There were no changes (if there were changes they will still be commited through the internals of sqlalchemy though).
              else:
                  self.session.merge(model)
 
@@ -206,6 +209,8 @@ class Workflows(Layouts):
              self.request.session.flash("There was an error while saving the project, please try again.", "error")
              self.request.session.flash("Error: %s" % e, "error")
              self.session.rollback()
+
+         return True
 
 #         self.session.remove()
 
@@ -237,8 +242,22 @@ class Workflows(Layouts):
                     display = e.render()
 
             # save the data even if it didn't validate - this allows the user to easily navigate and fill fields out as they get the info.
-            self.save_form(appstruct)
+            saved = self.save_form(appstruct)
             # TODO: Walk through schema saving to look at parent schemas (throws duplicate id error)
+
+
+            # Set the page as edited so future visits will show the page with validation
+            if saved:
+                untouched_pages = self.session.query(UntouchedPages).filter_by(project_id=self.project_id).first()
+                if untouched_pages is None:
+                    untouched_pages = UntouchedPages()
+                    untouched_pages.project_id = self.project_id
+                    self.session.add(untouched_pages)
+
+                # If this causes exceptions the UntouchedPages->column names (in project.py) need to by the same as href values in WORKFLOW_STEPS above.
+                page = self.find_menu()['href']
+                setattr(untouched_pages, page, True)
+
 #            If there is a target workflow step set then change to that page.
             if self.request.POST['target']:
                 target = self.request.POST['target']
@@ -250,11 +269,11 @@ class Workflows(Layouts):
                     'success_messages': self.request.session.pop_flash("success"),
                     'warning_messages': self.request.session.pop_flash("warning")
                 }
-                return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": display, "form_only": form.use_ajax,  'messages' : messages or '', 'page_help': page_help}
+                return {"page_title": self.find_menu()['title'], "form": display, "form_only": form.use_ajax,  'messages' : messages or '', 'page_help': page_help}
             else:
                 return HTTPFound(self.request.route_url(target, project_id=self.project_id))
 
-#            return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": display, "form_only": form.use_ajax, 'messages' : self.request.session.pop_flash() or ''}
+#            return {"page_title": self.find_menu()['title'], "form": display, "form_only": form.use_ajax, 'messages' : self.request.session.pop_flash() or ''}
 
         # If the page has just been opened but it is set to a specific project
         appstruct = {}
@@ -263,8 +282,10 @@ class Workflows(Layouts):
             model = self.session.query(Project).filter_by(id=self.project_id).first()
             appstruct = convert_sqlalchemy_model_to_data(model, schema)
 
-        # In either of the below cases get the data as a dict and get the rendered form
-        if 'Save' in appstruct:
+        # If the page has been saved previously, show the validated form
+        untouched_pages = self.session.query(UntouchedPages).filter_by(project_id=self.project_id).first()
+        page = self.find_menu()['href']
+        if untouched_pages is not None and hasattr(untouched_pages, page) and getattr(untouched_pages, page) == True:
             try:
                 appstruct = form.validate_pstruct(appstruct)
                 display = form.render(appstruct)
@@ -281,7 +302,7 @@ class Workflows(Layouts):
             'success_messages': self.request.session.pop_flash("success"),
             'warning_messages': self.request.session.pop_flash("warning")
         }
-        return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": display, "form_only": False, 'messages': messages, 'page_help': page_help}
+        return {"page_title": self.find_menu()['title'], "form": display, "form_only": False, 'messages': messages, 'page_help': page_help}
 
 
     def clone (self, source):
@@ -409,14 +430,14 @@ class Workflows(Layouts):
                     'success_messages': self.request.session.pop_flash("success"),
                     'warning_messages': self.request.session.pop_flash("warning")
                 }
-                return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": e.render(), "form_only": False, 'messages': messages}
+                return {"page_title": self.find_menu()['title'], "form": e.render(), "form_only": False, 'messages': messages}
 
         messages = {
             'error_messages': self.request.session.pop_flash("error"),
             'success_messages': self.request.session.pop_flash("success"),
             'warning_messages': self.request.session.pop_flash("warning")
         }
-        return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": form.render(appstruct), "form_only": False, 'messages': messages, 'page_help': page_help}
+        return {"page_title": self.find_menu()['title'], "form": form.render(appstruct), "form_only": False, 'messages': messages, 'page_help': page_help}
 
 
     @view_config(route_name="general")
@@ -507,7 +528,12 @@ class Workflows(Layouts):
                 for j in range(len(schema.children[i].children[0].children)):
                     if schema.children[i].children[0].children[j].name[-len(Method.method_template.key):] == Method.method_template.key:
                         METHOD_TEMPLATE_INDEX = j
-                        break
+
+                    # Delete the datasets relationship so that it doesn't cause validation failures
+                    elif schema.children[i].children[0].children[j].name[-len(Method.datasets.key):] == Method.datasets.key:
+                        DATASETS_INDEX = j
+                        del schema.children[i].children[0].children[j]
+
                 break
 
         schema.children[METHODS_INDEX].children[0].children[METHOD_TEMPLATE_INDEX].templates_data = templates
@@ -880,7 +906,7 @@ class Workflows(Layouts):
             'success_messages': self.request.session.pop_flash("success"),
             'warning_messages': self.request.session.pop_flash("warning")
         }
-        return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": display, "form_only": False, 'messages': messages, 'page_help': page_help}
+        return {"page_title": self.find_menu()['title'], "form": display, "form_only": False, 'messages': messages, 'page_help': page_help}
 
     @view_config(route_name="add_data")
     def add_data_view(self):
@@ -943,7 +969,7 @@ class Workflows(Layouts):
                     'success_messages': [],
                     'warning_messages': []
                 }
-                return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": '', "messages": messages, "form_only": False}
+                return {"page_title": self.find_menu()['title'], "form": '', "messages": messages, "form_only": False}
         else:
             try:
                 messages = {
@@ -951,7 +977,7 @@ class Workflows(Layouts):
                     'success_messages': [],
                     'warning_messages': []
                 }
-                return {"page_title": self.find_workflow_title(self.request.matched_route.name), "form": 'This address is not valid, please don\'t directly edit the address bar: ' + cgi.escape(str(self.context)), "form_only": False, "messages": messages}
+                return {"page_title": self.find_menu()['title'], "form": 'This address is not valid, please don\'t directly edit the address bar: ' + cgi.escape(str(self.context)), "form_only": False, "messages": messages}
             except:
                 self.request.session.flash('There is no page at the requested address, please don\'t edit the address bar directly.', 'error')
                 if self.request.matchdict and self.request.matchdict['route'] and (self.request.matchdict['route'].split("/")[0]).isnumeric():

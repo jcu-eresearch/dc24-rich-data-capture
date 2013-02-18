@@ -54,6 +54,7 @@
 
     </ul>
 
+    <p tal:condition="field.error" class="error">${field.error.msg}</p>
 
     <div id="second_level_data" class="hidden">
             <span tal:repeat="(key, values) data.items()"
@@ -94,6 +95,7 @@
                 function (oid) {
                     var oid_node = $('#' + oid);
                     showAdd(oid, false);
+                    fix_multi_select_close(oid);
 
                     var first_select = oid_node.find(".first_field")[0];
                     var second_select = oid_node.find(".second_field")[0];

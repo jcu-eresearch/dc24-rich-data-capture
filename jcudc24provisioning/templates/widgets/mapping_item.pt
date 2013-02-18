@@ -50,7 +50,7 @@ Modified:
             style="display: block;"/>
 
 
-    <p tal:condition="field.error and not field.widget.hidden and not field.typ.__class__.__name__=='Mapping'"
+    <p tal:condition="field.error and not field.widget.hidden and not field.typ.__class__.__name__=='Mapping' and field.widget.error_class"
        tal:define="errstr 'error-%s' % field.oid"
        tal:repeat="msg field.error.messages()"
        tal:attributes="id repeat.msg.index==0 and errstr or

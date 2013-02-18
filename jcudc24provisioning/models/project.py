@@ -13,7 +13,7 @@ import deform
 from sqlalchemy import (
     Integer,
     Text,
-    )
+    Float, INTEGER)
 from sqlalchemy.types import String, Boolean, Date
 from jcudc24provisioning.models.common_schemas import OneOfDict
 from jcudc24provisioning.models.common_schemas import upload_widget
@@ -33,6 +33,8 @@ from jcudc24provisioning.views.mint_lookup import MintLookup
 #db_engine = create_engine(config.get("app:main", "sqlalchemy.url"), connect_args={'pool_recycle': 3600, 'echo': False},) #connect_args={'reconnect':True})
 #db_engine.connect()
 #DBSession = scoped_session(sessionmaker(bind=db_engine))
+import re
+
 DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
 Base = declarative_base()
 
@@ -40,13 +42,13 @@ logger = logging.getLogger(__name__)
 
 def research_theme_validator(form, value):
     error = True
-    exc = colander.Invalid(form) # Uncomment to add a block message: , 'At least 1 research theme or Not aligned needs to be selected')
+    exc = colander.Invalid(form, 'At least 1 research theme or Not aligned needs to be selected')
 
     for key, selected in value.items():
         if selected:
             error = False
 
-        exc[key] = 'At least 1 research theme needs to be selected'
+#        exc[key] = 'At least 1 research theme needs to be selected'
 
 
     if error:
@@ -131,6 +133,11 @@ def getSEOCodes(node, kw):
 
     return data
 
+def field_of_research_validator(form, value):
+    if not isinstance(value, list) or len(value) < 1:
+        exc = colander.Invalid(form, 'Required')
+#        exc['fieldofresearch'] = 'Required'
+        raise exc
 
 class FieldOfResearch(Base):
     order_counter = itertools.count()
@@ -139,7 +146,7 @@ class FieldOfResearch(Base):
     id = Column(Integer, primary_key=True, ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
     metadata_id = Column(Integer, ForeignKey('metadata.id'),ca_order=next(order_counter),  nullable=False, ca_widget=deform.widget.HiddenWidget())
 
-    field_of_research = Column(String(50), ca_order=next(order_counter), ca_title="Field Of Research", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput", max_len=3),
+    field_of_research = Column(String(50), ca_order=next(order_counter), ca_title="Field Of Research", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
         ca_data=getFORCodes)
 
 
@@ -165,7 +172,7 @@ class Person(Base):
     email = Column(String(256), ca_order=next(order_counter), ca_missing="", ca_validator=colander.Email())
 
 relationship_types = (
-        (colander.null, "---Select One---"), ("owner", "Owned by"), ("manager", "Managed by"), ("associated", "Associated with"),
+        ("select", "---Select One---"), ("owner", "Owned by"), ("manager", "Managed by"), ("associated", "Associated with"),
         ("aggregated", "Aggregated by")
         , ("enriched", "Enriched by"))
 
@@ -269,6 +276,22 @@ class Region(Base):
     project_id = Column(Integer, ForeignKey('project.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
     # TODO: Regions
 
+
+location_validator = colander.Regex(
+    re.compile(r"""(point\([+-]?\d*\.?\d* [+-]?\d*\.?\d*\))|(polygon\(\(([+-]?\d*\.?\d*\s[+-]?\d*\.?\d*,?\s?)*\)\))|(linestring\(([+-]?\d*\.?\d*\s[+-]?\d*\.?\d*,?\s?)*\))""", re.I),
+    "Must be valid WTK"
+)
+
+#float_validator = colander.Regex(
+#    re.compile(r"""(((\.\d*)?)|(\d+(\.\d*)?))$"""),
+#    "Must be a valid decimal number"
+#)
+#
+#integer_validator = colander.Regex(
+#    re.compile(r"""\d*$"""),
+#    "Must be a valid decimal number"
+#)
+
 class Location(Base):
     order_counter = itertools.count()
 
@@ -279,12 +302,12 @@ class Location(Base):
     metadata_id = Column(Integer, ForeignKey('metadata.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
     dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
 
-    name = Column(String(256))
-    location = Column(String(512), ca_name="dc:coverage.vivo:GeographicLocation.0.redbox:wktRaw", ca_widget=deform.widget.TextInputWidget(css_class='map_location'),
-        ca_force_required=True,
+    name = Column(String(256), ca_force_required=True)
+    location = Column(String(512), ca_validator=location_validator, ca_name="dc:coverage.vivo:GeographicLocation.0.redbox:wktRaw", ca_widget=deform.widget.TextInputWidget(css_class='map_location'),
+        ca_force_required=True, ca_child_widget=deform.widget.TextInputWidget(regex_mask="^(POINT\([+-]?\d*\.?\d* [+-]?\d*\.?\d*\)) |(POLYGON\(\(([+-]?\d*\.?\d*\s[+-]?\d*\.?\d*,?\s?)*\)\))|(LINESTRING\(([+-]?\d*\.?\d*\s[+-]?\d*\.?\d*,?\s?)*\))$"),
         ca_help="<a href='http://en.wikipedia.org/wiki/Well-known_text#Geometric_Objects' title='Well-known Text (WKT) markup reference'>WTK format reference</a>")
 
-    elevation = Column(DOUBLE(), ca_help="Elevation in meters from mean sea level")
+    elevation = Column(Float(), ca_help="Elevation in meters from mean sea level", ca_widget=deform.widget.TextInputWidget(regex_mask="^(((\\\\.\\\\d*)?)|(\\\\d+(\\\\.\\\\d*)?))$", strip=False))
     # regions = relationship("Region", ca_widget=deform.widget.HiddenWidget())
 
     def is_point(self):
@@ -309,9 +332,9 @@ class LocationOffset(Base):
     dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
     data_entry_id = Column(Integer, ForeignKey('data_entry.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
 
-    x = Column(DOUBLE(), ca_title="Lattitude Offset (meters)", ca_placeholder="eg. 1 is East 3m", ca_widget=deform.widget.TextInputWidget(size=10, css_class="full_width"))
-    y = Column(DOUBLE(), ca_title="Longitude Offset (meters)", ca_placeholder="eg. 1 is North 3m", ca_widget=deform.widget.TextInputWidget(size=10, css_class="full_width"))
-    z = Column(DOUBLE(), ca_title="Elevation Offset (meters)", ca_placeholder="eg. 1 is Higher 3m", ca_widget=deform.widget.TextInputWidget(size=10, css_class="full_width"))
+    x = Column(Float(), ca_title="Lattitude Offset (meters)", ca_placeholder="eg. 1 is East 3m", ca_widget=deform.widget.TextInputWidget(size=10, css_class="full_width", regex_mask="^(((\\\\.\\\\d*)?)|(\\\\d+(\\\\.\\\\d*)?))$", strip=False))
+    y = Column(Float(), ca_title="Longitude Offset (meters)", ca_placeholder="eg. 1 is North 3m", ca_widget=deform.widget.TextInputWidget(size=10, css_class="full_width", regex_mask="^(((\\\\.\\\\d*)?)|(\\\\d+(\\\\.\\\\d*)?))$", strip=False))
+    z = Column(Float(), ca_title="Elevation Offset (meters)", ca_placeholder="eg. 1 is Higher 3m", ca_widget=deform.widget.TextInputWidget(size=10, css_class="full_width", regex_mask="^(((\\\\.\\\\d*)?)|(\\\\d+(\\\\.\\\\d*)?))$", strip=False))
 
     def __init__(self, x=0, y=0, z=0):
         self.x = x
@@ -336,7 +359,7 @@ class RelatedPublication(Base):
     metadata_id = Column(Integer, ForeignKey('metadata.id'), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
     title = Column(String(512), ca_name="dc:relation.swrc:Publication.0.dc:title", ca_title="Title", ca_placeholder="eg. TODO", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40), ca_force_required=True)
-    url = Column(String(512), ca_name="dc:relation.swrc:Publication.0.dc:identifier", ca_title="URL", ca_placeholder="eg. http://www.somewhere.com.au", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40), ca_force_required=True)
+    url = Column(String(512), ca_validator=colander.url, ca_name="dc:relation.swrc:Publication.0.dc:identifier", ca_title="URL", ca_placeholder="eg. http://www.somewhere.com.au", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40), ca_force_required=True)
     notes = Column(String(512), ca_name="dc:relation.swrc:Publication.0.skos:note", ca_title="Note", ca_missing="", ca_placeholder="eg. This publication provides additional information on xyz", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
 
 class RelatedWebsite(Base):
@@ -347,7 +370,7 @@ class RelatedWebsite(Base):
     metadata_id = Column(Integer, ForeignKey('metadata.id'), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
     title = Column(String(512), ca_name="dc:relation.bibo:Website.0.dc:title", ca_title="Title", ca_placeholder="eg. TODO", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40), ca_force_required=True)
-    url = Column(String(512), ca_name="dc:relation.bibo:Website.0.dc:identifier", ca_title="URL", ca_placeholder="eg. http://www.somewhere.com.au", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40), ca_force_required=True)
+    url = Column(String(512), ca_validator=colander.url, ca_name="dc:relation.bibo:Website.0.dc:identifier", ca_title="URL", ca_placeholder="eg. http://www.somewhere.com.au", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40), ca_force_required=True)
     notes = Column(String(512), ca_name="dc:relation.bibo:Website.0.skos:note", ca_title="Note", ca_missing="", ca_placeholder="eg. This publication provides additional information on xyz", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
 
 
@@ -408,7 +431,7 @@ class MethodWebsite(Base):
     project_id = Column(Integer, ForeignKey('method.id'), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
     title = Column(String(256), ca_title="Title", ca_placeholder="eg. Great Project Website", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
-    url = Column(String(256), ca_title="URL", ca_placeholder="eg. http://www.somewhere.com.au", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
+    url = Column(String(256), ca_validator=colander.url, ca_title="URL", ca_placeholder="eg. http://www.somewhere.com.au", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
     notes = Column(Text(), ca_title="Notes", ca_missing="", ca_placeholder="eg. This article provides additional information on xyz", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
 
 method_schema_to_schema = Table("schema_to_schema", Base.metadata,
@@ -513,18 +536,18 @@ class FormDataSource(Base):
     order_counter = itertools.count()
 
     __tablename__ = 'form_data_source'
-    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    id = Column(Integer, primary_key=True, nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
 
 class PullDataSource(Base):
     order_counter = itertools.count()
 
     __tablename__ = 'pull_data_source'
-    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    id = Column(Integer, primary_key=True, nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
-    uri = Column(Text(), ca_order=next(order_counter),
+    uri = Column(Text(), ca_order=next(order_counter), ca_validator=colander.url,
         ca_placeholder="eg. http://example.com.au/folder/",
         ca_description="Provide the url that should be polled for data - files will be ingested that follow the name convention of <i>TODO</i>")
 
@@ -545,7 +568,8 @@ class PullDataSource(Base):
         ca_group_widget=deform.widget.MappingWidget(item_template="choice_mapping_item", template="choice_mapping"),
         ca_group_missing=colander.null)
 
-    periodic_sampling = Column(String(100),ca_order=next(order_counter), ca_title="Periodic Sampling (Collect data every X minutes)",
+    periodic_sampling = Column(INTEGER(),ca_order=next(order_counter), ca_title="Periodic Sampling (Collect data every X minutes)",
+        ca_widget=deform.widget.TextInputWidget(regex_mask="^(\\\\d*)$"),
         ca_help="Provide the number of minutes between checks for new data.  If you require something more advanced any filtering can be achieved by adding a custom "\
                 "sampling script below.</br></br>  The sampling script API can be found <a href="">here</a>.")
 
@@ -594,8 +618,8 @@ class PushDataSource(Base):
     order_counter = itertools.count()
 
     __tablename__ = 'push_data_source'
-    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    id = Column(Integer, primary_key=True, nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
     api_key = Column(Text(), ca_title="API Key (Password to use this functionality)", ca_order=next(order_counter),
         ca_default="TODO: Auto-generate key",
@@ -608,10 +632,10 @@ class SOSDataSource(Base):
     order_counter = itertools.count()
 
     __tablename__ = 'sos_data_source'
-    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    id = Column(Integer, primary_key=True, nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
-    sos_data_source_url = Column(Text(), ca_title="Sensor Observation Service (SOS) Data Source", ca_order=next(order_counter),
+    sos_data_source_url = Column(Text(), ca_validator=colander.url, ca_title="Sensor Observation Service (SOS) Data Source", ca_order=next(order_counter),
         ca_placeholder="eg. http://example.com.au/sos/",
         ca_description="Provide the url of the Sensor Observation Service to pull data from.")
 
@@ -655,8 +679,8 @@ class DatasetDataSource(Base):
     order_counter = itertools.count()
 
     __tablename__ = 'dataset_data_source'
-    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    id = Column(Integer, primary_key=True, nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
     # TODO: Selection of datasets
     dataset_data_source_id = Column(Text(), ca_title="Source Dataset", ca_order=next(order_counter), ca_widget=dataset_select_widget,
@@ -735,7 +759,7 @@ class Method(Base):
         ca_help="Attach information about this method, this is preferred to websites as it is persistent.  " \
                        "Example attachments would be sensor datasheets, documentation describing your file/data storage schema or calibration data.")
 
-    method_url = relationship("MethodWebsite", ca_order=next(order_counter), ca_missing=colander.null,
+    method_website = relationship("MethodWebsite", ca_order=next(order_counter), ca_missing=colander.null,
         cascade="all, delete-orphan",ca_title="Further information website (Such as manufacturers website or supporting web resources)",
         ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"), ca_child_title="Website",
         ca_help="If there are web addresses that can provide more information on your data collection method, add them here.  Examples may include manufacturers of your equipment or an article on the calibration methods used.")
@@ -743,6 +767,31 @@ class Method(Base):
     datasets = relationship("Dataset", ca_order=next(order_counter), ca_missing=colander.null,
         cascade="all, delete-orphan", ca_widget=deform.widget.HiddenWidget())
 
+
+def dataset_validator(form, value):
+    error = False
+    exc = colander.Invalid(form) # Uncomment to add a block message: , 'At least 1 research theme or Not aligned needs to be selected')
+
+    mint = MintLookup(None)
+
+    if value['publish_dataset'] is True and value['publish_date'] == colander.null:
+     exc['publish_date'] = "Required"
+     error = True
+    elif value['no_activity'] is True:
+     if mint.get_from_identifier(value['activity']) is None:
+         exc['activity'] = "The entered activity isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
+         error = True
+
+    if mint.get_from_identifier(value['project_lead']) is None:
+         exc['project_lead'] = "The entered project lead isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
+         error = True
+
+    if mint.get_from_identifier(value['data_manager']) is None:
+         exc['data_manager'] = "The entered data manager isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
+         error = True
+
+    if error:
+     raise exc
 
 
 class Dataset(Base):
@@ -772,7 +821,7 @@ class Dataset(Base):
                        "will only search for the processed data).")
 
     publish_date = Column(Date(), ca_order=next(order_counter), ca_title="Date to make ReDBox record publicly available",
-        ca_help='The date that data will start being collected.', ca_force_required=True)
+        ca_help='The date that data will start being collected.')
 
 #    description = Column(Text(),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(rows=6),
 #            ca_placeholder="Provide a textual description of the dataset being collected.",
@@ -791,7 +840,7 @@ class Dataset(Base):
 #        , ca_missing="", ca_placeholder="eg. Australian Wet Tropics or Great Barrier Reef")
 
     dataset_locations = relationship('Location', ca_order=next(order_counter), ca_title="Location",
-        cascade="all, delete-orphan",ca_widget=deform.widget.SequenceWidget(template='map_sequence'),
+        cascade="all, delete-orphan",ca_widget=deform.widget.SequenceWidget(template='map_sequence', max_len=1, min_len=1, points_only=True),
         ca_force_required=True,
         ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
         ca_missing="", ca_help="<p>Use the drawing tools on the map and/or edit the text representations below.</p><p>Locations are represented using <a href='http://en.wikipedia.org/wiki/Well-known_text#Geometric_Objects'>Well-known Text (WKT) markup</a> in the WGS 84 coordinate system (coordinate system used by GPS).</p>")
@@ -801,11 +850,11 @@ class Dataset(Base):
         ca_group_end="coverage", ca_widget=deform.widget.MappingWidget(template="inline_mapping", show_label=True),
         ca_missing=colander.null, ca_help="Use an offset from the current location where the current location is the project location if valid, else the dataset location (eg. such as the artificial tree location is known so use z offsets for datasets).")
 
-    form_data_source = relationship("FormDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",ca_collapsed=False)
-    pull_data_source = relationship("PullDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",ca_collapsed=False)
-    sos_data_source = relationship("SOSDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",ca_collapsed=False,)
-    push_data_source = relationship("PushDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",ca_collapsed=False,)
-    dataset_data_source = relationship("DatasetDataSource", ca_order=next(order_counter), uselist=False,cascade="all, delete-orphan",ca_collapsed=False)
+    form_data_source = relationship("FormDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False, cascade="all, delete-orphan",ca_collapsed=False)
+    pull_data_source = relationship("PullDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False)
+    sos_data_source = relationship("SOSDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False,)
+    push_data_source = relationship("PushDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False,)
+    dataset_data_source = relationship("DatasetDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False)
 
 
 class ProjectNote(Base):
@@ -863,6 +912,18 @@ class UntouchedFields(Base):
 
     field_name = Column(String(100))
 
+# Page names below need to be synchronised with WORKFLOW_STEPS->href in workflows.py
+class UntouchedPages(Base):
+    __tablename__ = 'untouched_pages'
+    order_counter = itertools.count()
+    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('project.id'), nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+
+    general = Column(Boolean, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    description = Column(Boolean, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    information = Column(Boolean, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    methods = Column(Boolean, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    datasets = Column(Boolean, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
 class MetadataNote(Base):
     order_counter = itertools.count()
@@ -907,7 +968,7 @@ class Metadata(Base):
     #        ca_description="Must be selected if a research grant isn't provided below.")
     #
     activity = Column(String(256), ca_order=next(order_counter), ca_title="Research Grant", ca_page="setup",
-        ca_missing="", ca_force_required=True,
+        ca_missing="",
         ca_help="Enter the associated research grant associated with this record (this field will autocomplete).",
         ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/activities/', template="mint_autocomplete_input", delay=10))
 
@@ -978,7 +1039,7 @@ class Metadata(Base):
         ca_help="Enter keywords that users are likely to search on when looking for this projects data.")
 
     fieldOfResearch = relationship('FieldOfResearch', ca_name="dc:subject.anzsrc:for.0.rdf:resource", ca_order=next(order_counter), ca_title="Fields of Research", ca_page="metadata",
-        cascade="all, delete-orphan",
+        cascade="all, delete-orphan", ca_validator=field_of_research_validator,
         ca_force_required=True,
         ca_widget=deform.widget.SequenceWidget(template='multi_select_sequence', max_len=3),
         ca_child_title="Field of Research",
@@ -1044,7 +1105,7 @@ class Metadata(Base):
         ca_group_start="coverage", ca_group_collapsed=False, ca_group_title="Project Date and Location",
         ca_placeholder="eg. Summers of 1996-2006", ca_missing="",
         ca_help="Provide a textual representation of the time period such as 'world war 2' or more information on the time within the dates provided.")
-    date_from = Column(Date(), ca_name="dc:coverage.vivo:DateTimeInterval.vivo:start", ca_order=next(order_counter), ca_placeholder="", ca_title="Date data started/will start being collected", ca_page="metadata",
+    date_from = Column(Date(), ca_validator=colander.Range(), ca_name="dc:coverage.vivo:DateTimeInterval.vivo:start", ca_order=next(order_counter), ca_placeholder="", ca_title="Date data started/will start being collected", ca_page="metadata",
         ca_help="The date that data started being collected.  Note that this is the actual data date not the finding date, recording date or other date.  For example, an old letter may be found in 2013 but it was actually written in 1900 - the date to use is 1900.", ca_force_required=True)
     date_to = Column(Date(), ca_name="dc:coverage.vivo:DateTimeInterval.vivo:end", ca_order=next(order_counter), ca_title="Date data stopped/will stop being collected", ca_page="metadata",
         ca_help='The date that data will stop being collected.  Note that this is the actual data date not the finding date, recording date or other date.  For example, an old letter may be found in 2013 but it was actually written in 1900 - the date to use is 1900.', ca_missing=colander.null)
@@ -1065,7 +1126,7 @@ class Metadata(Base):
         ca_group_start="legality", ca_group_collapsed=False, ca_group_title="Licenses & Access Rights",
         ca_help="Information how to access the records data, including access restrictions or embargoes based on privacy, security or other policies. A URI is optional.<br/>TODO: Update the list of access rights.")
     # TODO: Pre-populate with a url - still waiting on URL to use
-    access_rights_url = Column(String(256), ca_order=next(order_counter), ca_name="dc:accessRights.dc:identifier", ca_title="URL", ca_missing="", ca_page="metadata",
+    access_rights_url = Column(String(256), ca_validator=colander.url, ca_order=next(order_counter), ca_name="dc:accessRights.dc:identifier", ca_title="URL", ca_missing="", ca_page="metadata",
         ca_requires_admin=True)
 
     rights = Column(String(256), ca_order=next(order_counter), ca_name="dc:accessRights.dc:RightsStatement.skos:prefLabel", ca_missing="", ca_title="Usage Rights", ca_page="metadata",
@@ -1073,7 +1134,7 @@ class Metadata(Base):
         ca_placeholder=" eg. Made available under the Public Domain Dedication and License v1.0",
         ca_help="Information about rights held over the collection such as copyright, licences and other intellectual property rights.  A URI is optional.",
         ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
-    rights_url = Column(String(256), ca_name="dc:accessRights.dc:RightsStatement.dc:identifier", ca_order=next(order_counter), ca_title="URL", ca_missing="", ca_page="metadata",ca_requires_admin=True,)
+    rights_url = Column(String(256), ca_validator=colander.url, ca_name="dc:accessRights.dc:RightsStatement.dc:identifier", ca_order=next(order_counter), ca_title="URL", ca_missing="", ca_page="metadata",ca_requires_admin=True,)
     #    TODO: Link to external sources
 
     licenses = (
@@ -1109,7 +1170,7 @@ class Metadata(Base):
                       "<ul><li>If you are using this field frequently for the same license it would make sense to get your system administrator to add the license to the field above.</li>"\
                       "<li>If you provide two licenses (one from above, plus this one) only the first will be sent to RDA in the RIF-CS.</li>"\
                       "<li>Example of another license: http://www.opendefinition.org/licenses</li></ul>", ca_requires_admin=True,)
-    license_url = Column(String(256), ca_name="dc:license.rdf:Alt.dc:identifier", ca_order=next(order_counter), ca_title="License URL", ca_placeholder="", ca_missing="", ca_page="metadata",
+    license_url = Column(String(256), ca_validator=colander.url, ca_name="dc:license.rdf:Alt.dc:identifier", ca_order=next(order_counter), ca_title="License URL", ca_placeholder="", ca_missing="", ca_page="metadata",
         ca_requires_admin=True, ca_group_end="legality")
 
     #-------------citation--------------------
@@ -1131,7 +1192,7 @@ class Metadata(Base):
     # Dates of data, eg. data data started being collected
     dates = relationship('CitationDate', ca_order=next(order_counter), ca_title="Date(s)", ca_page="metadata",cascade="all, delete-orphan",)
     # Autocomplete as link to data (CC-DAM)
-    url = Column(String(256), ca_name="dc:biblioGraphicCitation.dc:hasPart.bibo:Website.dc:identifier",ca_order=next(order_counter), ca_title="URL", ca_page="metadata")
+    url = Column(String(256), ca_validator=colander.url, ca_name="dc:biblioGraphicCitation.dc:hasPart.bibo:Website.dc:identifier",ca_order=next(order_counter), ca_title="URL", ca_page="metadata")
     # Unknown
     context = Column(String(512), ca_name="dc:biblioGraphicCitation.dc:hasPart.skos:scopeNote", ca_order=next(order_counter), ca_placeholder="citation context", ca_missing="", ca_page="metadata",
         ca_group_end='citation')

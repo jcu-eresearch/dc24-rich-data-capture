@@ -156,10 +156,9 @@ input[type=text].full_width, .full_width input[type=text] {
     width: 275px;
 }
 
-input[type=text], input[type=text].half_width {
+input[type=text]:not(.hasDatepicker), input[type=text].half_width {
     min-width: 50%;
 }
-
 
 #page_title {
     padding: 0 20px;

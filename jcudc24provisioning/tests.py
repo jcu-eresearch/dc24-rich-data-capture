@@ -195,6 +195,7 @@ class TestIngesterPlatform(unittest.TestCase):
 
     def test_listeners(self):
         test_location = Location()
+        test_location.location = "POINT(132.8763427287297 -24.167471616893767)"
         
         self.ingester_api.post(test_location)
 
@@ -203,6 +204,7 @@ class TestIngesterPlatform(unittest.TestCase):
     def tearDown(self):
         self.ingester_api.reset()
         self.ingester_api.close()
+        self.ingester_api.reset()
 
 if __name__ == '__main__':
     unittest.main()

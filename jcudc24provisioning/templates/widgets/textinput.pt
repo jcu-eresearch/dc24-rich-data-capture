@@ -16,6 +16,26 @@
                                 {placeholder:"${field.widget.mask_placeholder}"});
                     });
         </script>
+        <script tal:condition="exists:field.widget.regex_mask" type="text/javascript">
+            deform.addCallback(
+                    '${field.oid}',
+                    function (oid) {
+                        try {
+                            var pattern = new RegExp("${field.widget.regex_mask}");
+
+                            var timer = window.setInterval(function(){
+                                if ($.fn.regexMask != undefined) {
+                                    window.clearInterval(timer);
+                                        $("#" + oid).regexMask(pattern);
+                                }
+                            }, 100);
+                        } catch (e) {
+                            alert(e);
+                        }
+                    });
+
+
+        </script>
         <script tal:condition="field.schema.__dict__.get('placeholder')" type="text/javascript">
             deform.addCallback(
                     '${field.oid}',

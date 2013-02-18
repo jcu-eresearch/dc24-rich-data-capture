@@ -1,5 +1,6 @@
 import ast
 from collections import OrderedDict
+from datetime import date
 import colander
 import deform
 import os
@@ -47,7 +48,13 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
             # This is a grouping - add its fields to the current model_object
             create_sqlalchemy_model(value, model_class=model_class, model_object=model_object)
 
-        if hasattr(model_object, key):
+        elif hasattr(model_object, key):
+            # Fix boolean balues as javascript/CheckBoxWidget False value is u'false' which casts to true
+            if value == 'false':
+                value = False
+            elif value == 'true':
+                value = True
+
             ca_registry = None
             if key in model_class._sa_class_manager:
                 if hasattr(model_class._sa_class_manager[key].comparator, 'mapper') and key in model_class._sa_class_manager[key].comparator.mapper.columns._data:
@@ -56,6 +63,7 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
                     ca_registry = model_class._sa_class_manager[key]._parententity.columns._data[key]._ca_registry
 
             if ca_registry is not None:
+                # If this is a file field
                 if 'type' in ca_registry and isinstance(ca_registry['type'], deform.FileData):
                     # If this is a new file
                     if isinstance(value, dict) and 'preview_url' in value:
@@ -68,43 +76,26 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
                     # File was previously uploaded and the user just removed it
                     else:
                         value = None
-                    setattr(model_object, key, value)
-                    is_data_empty = False
+
+                    if value != getattr(model_object, key):
+                        setattr(model_object, key, value)
+                        is_data_empty = False
                     continue
 
-#            # Test if this is a file widget that needs to be converted to text (there is probably a more elegant way to do this)
-#            #   -> preview_url will be there if selected with widget, filepath will be there if re-saving data from database
-#            if (isinstance(value, dict) and 'filename' in value and 'uid' in value):
-#                if 'preview_url' in value:
-##                    file_data = value['preview_url'][1][value['uid']]
-##                    file_path = os.path.join(value['preview_url'][0], file_data['randid'])
-#    #                value = str(value)
-##                    value = str({'uid': value['uid'], 'filename': value['filename'], 'filepath': file_path})
-#                    value = str(value['preview_url'])
-##                elif 'filepath' in value:
-##                    value = str(value)
-#                else:     # TODO: Fix this!
-#                    continue
-#
-#
-#                if ('default' not in ca_registry or not value == ca_registry['default']) and str(value) != str(getattr(model_object, key, None)):
-#                    setattr(model_object, key, value)
-#                    is_data_empty = False
-#                continue
-#
-#            # Allow deleting of pre-uploaded files.
-#            elif isinstance(getattr(model_object, key), str) and 'filepath' in getattr(model_object, key) and 'filename' in getattr(model_object, key) and 'uid' in getattr(model_object, key):
-#                setattr(model_object, key, None)
-#                is_data_empty = False
-#                continue
-#            elif isinstance(getattr(model_object, key), str) and 'filename' in getattr(model_object, key) and 'uid' in getattr(model_object, key):
-#                ast.literal_eval(value)
-#                test = 'test'
-
-
-
-            if value is colander.null or value is None or value == 'None':
+            # If the value hasn't been changed
+            if not isinstance(value, dict) and not isinstance(value, list) and (value == getattr(model_object, key) or
+                                                                                 (isinstance(getattr(model_object, key), bool) and bool(value) == getattr(model_object, key))):
                 continue
+
+            # If the value is now empty and it was set previously
+            elif value is colander.null or value is None or value == 'None' or value == 'colander.null':
+                # If the attribute is a list there is no need to set the value
+                if isinstance(getattr(model_object, key), list):
+                    setattr(model_object, key, [])
+                else:
+                    setattr(model_object, key, None)
+                continue
+
             elif isinstance(value, list):
 
                 # Remove all items from the list, so that any items that aren't there are deleted.
@@ -163,18 +154,9 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
                     setattr(model_object, key, child_table_object)
                     is_data_empty = False
             else:
-                if value == False or value == 'false':
-                    value = 0
-                elif value == True or value == 'true':
-                    value = 1
-
                 # TODO: Need a more reliable way of doing this, these seem to change version to version.
                 try:
                     if key in model_class._sa_class_manager:
-                        if not hasattr(model_class._sa_class_manager[key], '_parententity') and key in model_class._sa_class_manager[key].comparator.mapper.columns._data:
-                            ca_registry = model_class._sa_class_manager[key].comparator.mapper.columns._data[key]._ca_registry
-                        elif hasattr(model_class._sa_class_manager[key], "_parententity"):
-                            ca_registry = model_class._sa_class_manager[key]._parententity.columns._data[key]._ca_registry
                         if ('default' not in ca_registry or not value == ca_registry['default']) and str(value) != str(getattr(model_object, key, None)):
                             setattr(model_object, key, value)
                             is_data_empty = False
@@ -199,13 +181,22 @@ def convert_sqlalchemy_model_to_data(model, schema):
         if hasattr(model, name):
             value = getattr(model, name, None)
 
+            if isinstance(value, date):
+                value = str(value)
+
+            if isinstance(value, bool)  and hasattr(node.widget, 'true_val'):
+                if value:
+                    value = node.widget.true_val
+                elif hasattr(node.widget, 'false_val'):
+                    value = node.widget.false_val
+
             if isinstance(value, list):
                 node_list = []
                 for item in value:
                     node_list.append(convert_sqlalchemy_model_to_data(item,  node.children[0]))
 
                 data[node.name] = node_list
-            elif isinstance(node.typ, deform.FileData):
+            elif isinstance(node.typ, deform.FileData) and value is not None:
                 tempstore = node.widget.tmpstore.tempstore
                 data[node.name] = node.default
                 if value is not None:
@@ -304,6 +295,9 @@ def force_required(schema):
 
         if hasattr(node, 'force_required') and node.force_required:
             setattr(node, 'missing', colander._marker)
+        elif hasattr(node, 'force_required') and not node.force_required:
+            setattr(node, 'missing', node.default)
+
 
 def remove_nodes_not_on_page(schema, page):
     children_to_remove = []
