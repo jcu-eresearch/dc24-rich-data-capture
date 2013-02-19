@@ -56,10 +56,13 @@
                              <ul>
                                  <li tal:repeat="menu view.workflow_step">
                                      <tal:block tal:condition="menu.current">
-                                         <button name="nav-${menu.href}" form="deform" onclick="False" class="current" value="${menu.title}">${menu.title}</button>
+                                         <button name="nav-${menu.href}" form="deform" onclick="false" class="current" value="${menu.title}">${menu.title}</button>
                                      </tal:block>
-                                     <tal:block tal:condition="not menu.current">
+                                     <tal:block tal:condition="not menu.current and not readonly">
                                          <button name="nav-${menu.href}" form="deform" href="${view.request.matched_route.name}" onclick="document.getElementById('workflow_target').value='${menu.href}';" value="${menu.title}">${menu.title}</button>
+                                     </tal:block>
+                                     <tal:block tal:condition="readonly and not menu.current">
+                                         <a href="${menu.href}">${menu.title}</a>
                                      </tal:block>
                                  </li>
                              </ul>

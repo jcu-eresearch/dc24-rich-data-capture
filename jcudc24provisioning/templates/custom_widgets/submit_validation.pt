@@ -1,1 +1,23 @@
 <!--Template for custom HTML/Javascript to validate the full workflow-->
+
+<div tal:condition="exists:field.schema.validation_errors" class="submit_validation">
+    <div tal:condition="len(field.schema.validation_errors) <= 0">
+        <p class="success_messages">Validation successful.  No Errors.</p>
+        <input id="${field.oid}" name="${field.name}" type="hidden" value="field.schema.widget.true_val">
+    </div>
+    <div tal:condition="len(field.schema.validation_errors) > 0">
+        <div tal:repeat="(href, page_title, errors) field.schema.validation_errors">
+            <fieldset>
+                <legend>${page_title}</legend>
+                <ul>
+                    <li tal:repeat="(field_title, error) errors"><span class="error_field_title"> ${field_title}:</span><span class="error_text">${error}</span></li>
+                </ul>
+            </fieldset>
+        </div>
+        <input id="${field.oid}" name="${field.name}" type="hidden" value="field.schema.widget.false_val">
+    </div>
+</div>
+<div tal:condition="not:exists:field.schema.validation_errors">
+    <p class="error">Validation data hasn't been added to schema in submit view.</p>
+    <input id="${field.oid}" name="${field.name}" type="hidden" value="field.schema.widget.false_val">
+</div>

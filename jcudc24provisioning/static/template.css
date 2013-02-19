@@ -563,7 +563,7 @@ div#main {
     font-size: 1.1em;
 }
 
-form.deform, .wizard  {
+.deform, .wizard  {
     border: 1px ridge rgb(253, 185, 19);
     border-radius: 0.5em 0.5em 0.5em 0.5em;
     background-color: #f8f8f8;
@@ -644,12 +644,11 @@ div#workflow_nav ul li {
 }
 
 
-div#workflow_nav ul li button {
+
+div#workflow_nav ul li button, div#workflow_nav ul li a {
     cursor: pointer;
     float: none;
-}
-
-div#workflow_nav ul li button {
+    text-decoration: none;
     font-size: 1.1em;
     border: 0px solid #ffcc00;
     border-bottom: none;
@@ -663,16 +662,22 @@ div#workflow_nav ul li button {
     box-shadow: 0px 0px 5px #dadada;
 }
 
-div#workflow_nav ul li button.current {
+div#workflow_nav ul li a {
+    display: inline-block;
+    padding: 11px !important;
+}
+
+div#workflow_nav ul li button.current, div#workflow_nav ul li a.current {
     color: #fff;
     background-color: #ff9933;
     border-color: #ff9933;
     text-shadow: 1px 1px 0px #ff3333;
     box-shadow: inset 0px 0px 2px #000;
+    cursor: auto;
 }
 
 
-div#workflow_nav ul li button:hover {
+div#workflow_nav ul li button:hover, div#workflow_nav ul li a:hover {
     /*border: 1px solid #ff3333;   */
     box-shadow: inset 0px 0px 2px #000;
     border-bottom: none;
@@ -977,6 +982,44 @@ div.more_info_panel {
     top: 6px;
     padding-right: 5px;
 }
+
+.submit_validation fieldset, .submit_validation fieldset:hover {
+    padding: 10px;
+    border: 1px solid rgb(233, 79, 53);
+    border-bottom: 1px solid rgb(233, 79, 53);
+    margin-top: 10px;
+}
+
+.submit_validation fieldset legend {
+    padding: 5px;
+}
+
+.deform .submit_validation fieldset li {
+    display: list-item;
+}
+.deform .submit_validation fieldset ul {
+    list-style: none inside none;
+}
+
+.submit_validation fieldset ul li .error_field_title {
+    font-weight: bold;
+}
+
+.submit_validation fieldset ul li .error_text {
+    padding-left: 5px;
+    color: rgb(233, 79, 53);
+}
+
+.submit_ingesters table, .submit_records table {
+    border-collapse:collapse;
+    margin: 10px 0;
+}
+
+.submit_ingesters table td, .submit_ingesters table th, .submit_records table td, .submit_records table th {
+    padding: 5px 15px;
+    border: 1px solid rgb(253, 185, 19);
+}
+
 /*--------------jquery tabs selector-------------------------*/
 .deform .ui-widget { font-family: inherit !important;  font-size: 1.1em !important;}
 .deform .ui-state-default, .ui-widget-content .ui-state-default, .ui-widget-header .ui-state-default {background: #fff !important;}

@@ -1,0 +1,19 @@
+<!--Template for custom HTML/Javascript to validate the full workflow-->
+
+<div tal:condition="exists:field.schema.records" class="submit_records">
+    <div tal:condition="len(field.schema.records) <= 0">
+        <p class="error">There are no ReDBox Records.</p>
+        <input id="${field.oid}" name="${field.name}" type="hidden" value="field.schema.widget.false_val">
+    </div>
+    <div tal:condition="len(field.schema.records) > 0">
+        <table>
+            <thead><th>Dataset Name</th><th>ReDBox URI</th><th>Edit Link</th></thead>
+            <tr tal:repeat="(name, uri, edit_url) field.schema.records"><td>${name}</td><td><span tal:condition="not uri"><i>Not created yet</i></span><a tal:condition="uri" href="${uri}">View in ReDBox</a></td><td><a href="${edit_url}">View/Edit</a></td></tr>
+        </table>
+        <input id="${field.oid}" name="${field.name}" type="hidden" value="field.schema.widget.true_val">
+    </div>
+</div>
+<div tal:condition="not:exists:field.schema.records">
+    <p class="error">ReDBox records data hasn't been added to schema in submit view.</p>
+    <input id="${field.oid}" name="${field.name}" type="hidden" value="field.schema.widget.false_val">
+</div>

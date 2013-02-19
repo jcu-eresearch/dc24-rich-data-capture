@@ -569,7 +569,7 @@ class PullDataSource(Base):
         ca_group_missing=colander.null)
 
     periodic_sampling = Column(INTEGER(),ca_order=next(order_counter), ca_title="Periodic Sampling (Collect data every X minutes)",
-        ca_widget=deform.widget.TextInputWidget(regex_mask="^(\\\\d*)$"),
+        ca_widget=deform.widget.TextInputWidget(regex_mask="^(\\\\d*)$", strip=False),
         ca_help="Provide the number of minutes between checks for new data.  If you require something more advanced any filtering can be achieved by adding a custom "\
                 "sampling script below.</br></br>  The sampling script API can be found <a href="">here</a>.")
 
@@ -671,7 +671,7 @@ def dataset_select_widget(node, kw):
         datasets = kw['datasets']
         dataset_values = []
         for dataset in datasets:
-            dataset_values.append((dataset.id, dataset.title))
+            dataset_values.append((dataset.id, dataset.name))
         return deform.widget.SelectWidget(values=dataset_values, template="source_dataset_select")
 
 
@@ -711,7 +711,7 @@ class Method(Base):
 
 
     method_template = Column(Integer, ca_order=next(order_counter), ca_title="Select a template to base this method off (Overrides all fields)",
-        ca_widget=deform.widget.TextInputWidget(template="project_template_mapping"),
+        ca_widget=deform.widget.TextInputWidget(template="project_template_mapping", strip=False),
         ca_help="<p>Method templates provide pre-configured data collection methods and pre-fill as much information as possible to make this process as quick and easy as possible.</p>"
              "<ul><li>If you don't want to use any template, select the general category and Blank template."
              "</li><li>Please contact the administrators to request new templates.</li>",
@@ -811,7 +811,7 @@ class Dataset(Base):
     disabled = Column(Boolean,ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
     redbox_uri = Column(String(256), ca_name="dc:relation.vivo:Dataset.0.dc:identifier",ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 
-    title = Column(Text(), ca_name="dc:relation.vivo:Dataset.0.dc:title", ca_title="Dataset Name", ca_order=next(order_counter),
+    name = Column(Text(), ca_name="dc:relation.vivo:Dataset.0.dc:title", ca_title="Dataset Name", ca_order=next(order_counter),
         ca_placeholder="Provide a textual description of this dataset.",
         ca_help="Provide a dataset specific name that is easily identifiable within this system.", ca_force_required=True)
 
@@ -833,7 +833,7 @@ class Dataset(Base):
 #        ca_help="Provide a textual representation of the time period such as world war 2 or more information on the time within the dates provided.")
 #    date_from = Column(Date(), ca_name="dc:coverage.vivo:DateTimeInterval.vivo:start", ca_order=next(order_counter), ca_placeholder="", ca_title="Date data started/will start being collected",
 #        ca_help="The date that data started being collected.  Note that this is the actual data date not the finding date, recording date or other date.  For example, an old letter may be found in 2013 but it was actually written in 1900 - the date to use is 1900.", ca_force_required=True)
-#    date_to = Column(Date(), ca_name="dc:coverage.vivo:DateTimeInterval.vivo:end", ca_order=next(order_counter), ca_title="Date data stopped/will stop being collected", ca_page="metadata",
+#    date_to = Column(Date(), ca_name="dc:coverage.vivo:DateTimeInterval.vivo:end", ca_order=next(order_counter), ca_title="Date data stopped/will stop being collected", ca_page="information",
 #        ca_help='The date that data will stop being collected.  Note that this is the actual data date not the finding date, recording date or other date.  For example, an old letter may be found in 2013 but it was actually written in 1900 - the date to use is 1900.', ca_missing=colander.null)
 #    location_description = Column(String(512), ca_order=next(order_counter), ca_title="Location (description)",
 #        ca_help="Textual description of the location such as Australian Wet Tropics."
@@ -945,14 +945,14 @@ class Metadata(Base):
 
     id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget())
     project_id = Column(Integer, ForeignKey('project.id'), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    dataset_id = Column(Integer, ForeignKey('dataset.id'), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    dataset_id = Column(Integer, ForeignKey('dataset.id'), unique=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
     redbox_identifier = Column(String(256), ca_name="", ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     ccdam_identifier = Column(String(256), ca_name="", ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
     #--------------Setup--------------------
     project_title = Column(String(512), ca_order=next(order_counter), ca_name="dc:title",
-        ca_widget=deform.widget.TextInputWidget(css_class="full_width"), ca_page="setup", ca_force_required=True,
+        ca_widget=deform.widget.TextInputWidget(css_class="full_width"), ca_page="general", ca_force_required=True,
         ca_placeholder="eg. Temperature deviation across rainforest canopy elevations",
         ca_title="Project Title",
         ca_help="<p>A descriptive title that will make the generated records easy to search:</P>"\
@@ -961,29 +961,29 @@ class Metadata(Base):
                 "<li>The title should be unique to the data, ie. do not use the publication title as the data title.</li></ul>")
 
     # TODO: Refactor template, activity and data_manager/project_lead into setup page - use the autocomplete functionality to add details to project.
-    #    template = Column(String(512), ca_order=next(order_counter), ca_page="setup", ca_force_required=True,
+    #    template = Column(String(512), ca_order=next(order_counter), ca_page="general", ca_force_required=True,
     #        ca_description="<b>TODO: Implement templating</b>",)
     #
-    #    no_activity = Column(Boolean(), ca_order=next(order_counter), ca_title="There is no associated research grant", ca_page="setup",
+    #    no_activity = Column(Boolean(), ca_order=next(order_counter), ca_title="There is no associated research grant", ca_page="general",
     #        ca_description="Must be selected if a research grant isn't provided below.")
     #
-    activity = Column(String(256), ca_order=next(order_counter), ca_title="Research Grant", ca_page="setup",
+    activity = Column(String(256), ca_order=next(order_counter), ca_title="Research Grant", ca_page="general",
         ca_missing="",
         ca_help="Enter the associated research grant associated with this record (this field will autocomplete).",
         ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/activities/', template="mint_autocomplete_input", delay=10))
 
-    #    services = Column(String(256), ca_title="Services - Remove this?", ca_order=next(order_counter), ca_placeholder="Autocomplete - Mint/Mint DB", ca_page="setup",
+    #    services = Column(String(256), ca_title="Services - Remove this?", ca_order=next(order_counter), ca_placeholder="Autocomplete - Mint/Mint DB", ca_page="general",
     #            ca_help="Indicate any related Services to this Collection. A lookup works against Mint, or you can enter known information about remote Services."
     #            , ca_missing="",
     #            ca_group_end="associations")
 
 
-    #    data_manager = Column(String(256), ca_order=next(order_counter), ca_title="Data Manager (Primary contact)", ca_page="setup", ca_force_required=True,
+    #    data_manager = Column(String(256), ca_order=next(order_counter), ca_title="Data Manager (Primary contact)", ca_page="general", ca_force_required=True,
     #        ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values=choices),
     #        ca_placeholder="eg. TODO: data manager of artificial tree",
     #        ca_help="Primary contact for the project, this should be the person in charge of the data and actively working on the project.<br /><br />" \
     #                       "<i>Autocomplete from most universities and large organisations, if the person you are trying to select isn't available please organise an external JCU account for them.</i>")
-    #    project_lead = Column(String(256), ca_order=next(order_counter), ca_title="Project Lead (Supervisor)", ca_page="setup",
+    #    project_lead = Column(String(256), ca_order=next(order_counter), ca_title="Project Lead (Supervisor)", ca_page="general",
     #        ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values=choices), ca_force_required=True,
     #        ca_placeholder="eg. Dr Jeremy Vanderwal",
     #        ca_help="Head supervisor of the project that should be contacted when the data manager is unavailable.<br /><br />" \
@@ -992,7 +992,7 @@ class Metadata(Base):
     #-------------associations--------------------
     parties = relationship('Party', ca_title="People", ca_order=next(order_counter),
         cascade="all, delete-orphan",
-        ca_widget=deform.widget.SequenceWidget(min_len=1), ca_missing="", ca_page="setup",
+        ca_widget=deform.widget.SequenceWidget(min_len=1), ca_missing="", ca_page="general",
         ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
         ca_child_title="Person",
         ca_help="Enter the details of all associated people.  There will already be some pre-filled:"
@@ -1001,7 +1001,7 @@ class Metadata(Base):
                 "<i>Autocomplete from most universities and large organisations, if the person you are trying to select isn't available please organise an external JCU account for them.</i>")
 
 
-    collaborators = relationship('Collaborator', ca_order=next(order_counter), ca_page="setup", ca_title="Collaborators (Organisations, groups or external people)",
+    collaborators = relationship('Collaborator', ca_order=next(order_counter), ca_page="general", ca_title="Collaborators (Organisations, groups or external people)",
         cascade="all, delete-orphan", ca_widget=deform.widget.SequenceWidget(min_len=1),
         ca_help="Enter the collaborators fully qualified name:<ul><li>Try to avoid abbreviations.</li><li>If the collaborator is a person, it is preferable to organise an external JCU account and add them in the people section above.</li></ul>",
         ca_description="Other people, groups or organisations who are associated with this project but cannot be added as a person above.",
@@ -1031,14 +1031,14 @@ class Metadata(Base):
 
     #---------------------metadata---------------------
     #-------------Subject--------------------
-    keywords = relationship('Keyword', ca_order=next(order_counter), ca_page="metadata",
+    keywords = relationship('Keyword', ca_order=next(order_counter), ca_page="information",
         ca_widget=deform.widget.SequenceWidget(min_len=1),
         cascade="all, delete-orphan",
         ca_group_collapsed=False, ca_group_start='subject', ca_group_title="Area of Research",
         ca_group_description="",
         ca_help="Enter keywords that users are likely to search on when looking for this projects data.")
 
-    fieldOfResearch = relationship('FieldOfResearch', ca_name="dc:subject.anzsrc:for.0.rdf:resource", ca_order=next(order_counter), ca_title="Fields of Research", ca_page="metadata",
+    fieldOfResearch = relationship('FieldOfResearch', ca_name="dc:subject.anzsrc:for.0.rdf:resource", ca_order=next(order_counter), ca_title="Fields of Research", ca_page="information",
         cascade="all, delete-orphan", ca_validator=field_of_research_validator,
         ca_force_required=True,
         ca_widget=deform.widget.SequenceWidget(template='multi_select_sequence', max_len=3),
@@ -1048,7 +1048,7 @@ class Metadata(Base):
     #    colander.SchemaNode(colander.String(), title="Fields of Research",
     #        placeholder="To be redeveloped similar to ReDBox", description="Select relevant FOR code/s. ")
     #
-    socioEconomicObjective = relationship('SocioEconomicObjective', ca_name="dc:subject.anzsrc:seo.0.rdf:resource", ca_order=next(order_counter), ca_title="Socio-Economic Objectives", ca_page="metadata",
+    socioEconomicObjective = relationship('SocioEconomicObjective', ca_name="dc:subject.anzsrc:seo.0.rdf:resource", ca_order=next(order_counter), ca_title="Socio-Economic Objectives", ca_page="information",
         cascade="all, delete-orphan",
         ca_widget=deform.widget.SequenceWidget(template='multi_select_sequence'),
         ca_child_title="Socio-Economic Objective",
@@ -1060,19 +1060,19 @@ class Metadata(Base):
     #        ca_description="Select one or more of the 4 themes, or \'Not aligned to a University theme\'.", required=True)
 
     #-------Research themese---------------------
-    ecosystems_conservation_climate = Column(Boolean(), ca_name="jcu:research.themes.tropicalEcoSystems", ca_order=next(order_counter), ca_widget=deform.widget.CheckboxWidget(css_class="normal_font"), ca_page="metadata",
+    ecosystems_conservation_climate = Column(Boolean(), ca_name="jcu:research.themes.tropicalEcoSystems", ca_order=next(order_counter), ca_widget=deform.widget.CheckboxWidget(css_class="normal_font"), ca_page="information",
         ca_title='Tropical Ecosystems, Conservation and Climate Change',
         ca_group_start="research_themes", ca_group_title="Research Themes",ca_group_validator=research_theme_validator,
-        ca_group_force_required=True,
+        ca_group_force_required=True, ca_group_page="information",
         #        ca_group_description="Select one or more of the 4 themes, or \'Not aligned to a University theme\'.",
         ca_group_required=True,)
-    industries_economies = Column(Boolean(), ca_name="jcu:research.themes.industriesEconomies", ca_order=next(order_counter),ca_widget=deform.widget.CheckboxWidget(css_class="normal_font"), ca_page="metadata",
+    industries_economies = Column(Boolean(), ca_name="jcu:research.themes.industriesEconomies", ca_order=next(order_counter),ca_widget=deform.widget.CheckboxWidget(css_class="normal_font"), ca_page="information",
         ca_title='Industries and Economies in the Tropics')
-    peoples_societies = Column(Boolean(), ca_name="jcu:research.themes.peopleSocieties", ca_order=next(order_counter), ca_widget=deform.widget.CheckboxWidget(css_class="normal_font"), ca_page="metadata",
+    peoples_societies = Column(Boolean(), ca_name="jcu:research.themes.peopleSocieties", ca_order=next(order_counter), ca_widget=deform.widget.CheckboxWidget(css_class="normal_font"), ca_page="information",
         ca_title='Peoples and Societies in the Tropics')
-    health_medicine_biosecurity = Column(Boolean(), ca_name="jcu:research.themes.tropicalHealth", ca_order=next(order_counter), ca_widget=deform.widget.CheckboxWidget(css_class="normal_font"), ca_page="metadata",
+    health_medicine_biosecurity = Column(Boolean(), ca_name="jcu:research.themes.tropicalHealth", ca_order=next(order_counter), ca_widget=deform.widget.CheckboxWidget(css_class="normal_font"), ca_page="information",
         ca_title='Tropical Health, Medicine and Biosecurity',
-        #    not_aligned = Column(Boolean(), ca_order=next(order_counter), ca_widget=deform.widget.CheckboxWidget(), ca_page="metadata",
+        #    not_aligned = Column(Boolean(), ca_order=next(order_counter), ca_widget=deform.widget.CheckboxWidget(), ca_page="information",
         #        ca_title='Not aligned to a University theme',
         ca_group_end="research_themes")
     #------------end Research themes--------------
@@ -1085,7 +1085,7 @@ class Metadata(Base):
         ('pure_basic', 'Pure basic research'),
         ('pure_strategic', 'Strategic basic research'))
 
-    typeOfResearch = Column(String(50), ca_name="dc:subject.anzsrc:toa.rdf:resource", ca_order=next(order_counter), ca_page="metadata",
+    typeOfResearch = Column(String(50), ca_name="dc:subject.anzsrc:toa.rdf:resource", ca_order=next(order_counter), ca_page="information",
         ca_group_end="subject",
         ca_widget=deform.widget.RadioChoiceWidget(values=researchTypes),
         ca_validator=OneOfDict(researchTypes[1:]),
@@ -1101,18 +1101,18 @@ class Metadata(Base):
 
 
     #-------------coverage--------------------
-    time_period_description = Column(String(256), ca_order=next(order_counter), ca_title="Time Period (description)", ca_page="metadata",
+    time_period_description = Column(String(256), ca_order=next(order_counter), ca_title="Time Period (description)", ca_page="information",
         ca_group_start="coverage", ca_group_collapsed=False, ca_group_title="Project Date and Location",
         ca_placeholder="eg. Summers of 1996-2006", ca_missing="",
         ca_help="Provide a textual representation of the time period such as 'world war 2' or more information on the time within the dates provided.")
-    date_from = Column(Date(), ca_validator=colander.Range(), ca_name="dc:coverage.vivo:DateTimeInterval.vivo:start", ca_order=next(order_counter), ca_placeholder="", ca_title="Date data started/will start being collected", ca_page="metadata",
+    date_from = Column(Date(), ca_validator=colander.Range(), ca_name="dc:coverage.vivo:DateTimeInterval.vivo:start", ca_order=next(order_counter), ca_placeholder="", ca_title="Date data started/will start being collected", ca_page="information",
         ca_help="The date that data started being collected.  Note that this is the actual data date not the finding date, recording date or other date.  For example, an old letter may be found in 2013 but it was actually written in 1900 - the date to use is 1900.", ca_force_required=True)
-    date_to = Column(Date(), ca_name="dc:coverage.vivo:DateTimeInterval.vivo:end", ca_order=next(order_counter), ca_title="Date data stopped/will stop being collected", ca_page="metadata",
+    date_to = Column(Date(), ca_name="dc:coverage.vivo:DateTimeInterval.vivo:end", ca_order=next(order_counter), ca_title="Date data stopped/will stop being collected", ca_page="information",
         ca_help='The date that data will stop being collected.  Note that this is the actual data date not the finding date, recording date or other date.  For example, an old letter may be found in 2013 but it was actually written in 1900 - the date to use is 1900.', ca_missing=colander.null)
-    location_description = Column(String(512), ca_order=next(order_counter), ca_title="Location (description)", ca_page="metadata",
+    location_description = Column(String(512), ca_order=next(order_counter), ca_title="Location (description)", ca_page="information",
         ca_help="Textual description of the region covered such as Australian Wet Tropics."
         , ca_missing="", ca_placeholder="eg. Australian Wet Tropics or Great Barrier Reef")
-    locations = relationship('Location', ca_order=next(order_counter), ca_title="Location", ca_widget=deform.widget.SequenceWidget(template='map_sequence'), ca_page="metadata",
+    locations = relationship('Location', ca_order=next(order_counter), ca_title="Location", ca_widget=deform.widget.SequenceWidget(template='map_sequence'), ca_page="information",
         cascade="all, delete-orphan",
         ca_force_required=True,
         ca_group_end="coverage", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
@@ -1121,20 +1121,20 @@ class Metadata(Base):
 
     #-------------legal--------------------
     # TODO: Make this into a drop down - still need the list of options though.
-    access_rights = Column(String(256), ca_name="dc:accessRights.skos:prefLabel", ca_order=next(order_counter), ca_title="Access Rights", ca_page="metadata",
+    access_rights = Column(String(256), ca_name="dc:accessRights.skos:prefLabel", ca_order=next(order_counter), ca_title="Access Rights", ca_page="information",
         ca_widget=deform.widget.SelectWidget(values=(("open", "Open Access"),)),
         ca_group_start="legality", ca_group_collapsed=False, ca_group_title="Licenses & Access Rights",
         ca_help="Information how to access the records data, including access restrictions or embargoes based on privacy, security or other policies. A URI is optional.<br/>TODO: Update the list of access rights.")
     # TODO: Pre-populate with a url - still waiting on URL to use
-    access_rights_url = Column(String(256), ca_validator=colander.url, ca_order=next(order_counter), ca_name="dc:accessRights.dc:identifier", ca_title="URL", ca_missing="", ca_page="metadata",
+    access_rights_url = Column(String(256), ca_validator=colander.url, ca_order=next(order_counter), ca_name="dc:accessRights.dc:identifier", ca_title="URL", ca_missing="", ca_page="information",
         ca_requires_admin=True)
 
-    rights = Column(String(256), ca_order=next(order_counter), ca_name="dc:accessRights.dc:RightsStatement.skos:prefLabel", ca_missing="", ca_title="Usage Rights", ca_page="metadata",
+    rights = Column(String(256), ca_order=next(order_counter), ca_name="dc:accessRights.dc:RightsStatement.skos:prefLabel", ca_missing="", ca_title="Usage Rights", ca_page="information",
         ca_requires_admin=True,
         ca_placeholder=" eg. Made available under the Public Domain Dedication and License v1.0",
         ca_help="Information about rights held over the collection such as copyright, licences and other intellectual property rights.  A URI is optional.",
         ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
-    rights_url = Column(String(256), ca_validator=colander.url, ca_name="dc:accessRights.dc:RightsStatement.dc:identifier", ca_order=next(order_counter), ca_title="URL", ca_missing="", ca_page="metadata",ca_requires_admin=True,)
+    rights_url = Column(String(256), ca_validator=colander.url, ca_name="dc:accessRights.dc:RightsStatement.dc:identifier", ca_order=next(order_counter), ca_title="URL", ca_missing="", ca_page="information",ca_requires_admin=True,)
     #    TODO: Link to external sources
 
     licenses = (
@@ -1157,72 +1157,72 @@ class Metadata(Base):
 #        ('restricted_license', 'Restricted License'),
 #        ('other', 'Other'),
         )
-    license = Column(String(256), ca_name="dc:license.dc:identifier", ca_order=next(order_counter), ca_title="License", ca_page="metadata",
+    license = Column(String(256), ca_name="dc:license.dc:identifier", ca_order=next(order_counter), ca_title="License", ca_page="information",
         ca_default="creative_commons_by", ca_force_required=True,
         ca_widget=deform.widget.SelectWidget(values=licenses, template="select_with_other"),
         ca_help="<p>This list contains data licences that this server has been configured with. For more information about "
                 "Creative Commons licences please <a href=\'http://creativecommons.org.au/learn-more/licences\' alt=\'licenses\'>see here</a>.</p>"
                 "<p><i>If you would like to add additional licenses please contact the administrators.</i></p>")
 
-    license_name = Column(String(256), ca_name="dc:license.rdf:Alt.skos:prefLabel", ca_order=next(order_counter), ca_title="License Name", ca_placeholder="", ca_missing="", ca_page="metadata",
+    license_name = Column(String(256), ca_name="dc:license.rdf:Alt.skos:prefLabel", ca_order=next(order_counter), ca_title="License Name", ca_placeholder="", ca_missing="", ca_page="information",
         ca_group_requires_admin=True, ca_group_end="legality", ca_group_start="other_license", ca_group_title="Other",
         ca_group_help="If you want to use a license not included in the above list you can provide details below.</br></br>"\
                       "<ul><li>If you are using this field frequently for the same license it would make sense to get your system administrator to add the license to the field above.</li>"\
                       "<li>If you provide two licenses (one from above, plus this one) only the first will be sent to RDA in the RIF-CS.</li>"\
                       "<li>Example of another license: http://www.opendefinition.org/licenses</li></ul>", ca_requires_admin=True,)
-    license_url = Column(String(256), ca_validator=colander.url, ca_name="dc:license.rdf:Alt.dc:identifier", ca_order=next(order_counter), ca_title="License URL", ca_placeholder="", ca_missing="", ca_page="metadata",
+    license_url = Column(String(256), ca_validator=colander.url, ca_name="dc:license.rdf:Alt.dc:identifier", ca_order=next(order_counter), ca_title="License URL", ca_placeholder="", ca_missing="", ca_page="information",
         ca_requires_admin=True, ca_group_end="legality")
 
     #-------------citation--------------------
     # Autocomplete from project title
-    title = Column(String(512), ca_name="dc:biblioGraphicCitation.dc:hasPart.dc:title", ca_order=next(order_counter), ca_placeholder="", ca_missing="", ca_page="metadata",
+    title = Column(String(512), ca_name="dc:biblioGraphicCitation.dc:hasPart.dc:title", ca_order=next(order_counter), ca_placeholder="", ca_missing="", ca_page="information",
         ca_group_collapsed=False, ca_group_start='citation', ca_group_title="Citation", ca_group_requires_admin=True,
         ca_group_description="<b>TODO:  Need to work out what these feilds actually mean and refactor/reword."
                              "</b><br/>Provide metadata that should be used for the purposes of citing this record. Providing a "
                              "citation is optional, but if you choose to enable this there are quite specific mandatory "
                              "fields that will be required.")
     # Autocomplete from all people
-    creators = relationship('Creator', ca_order=next(order_counter), ca_missing=None, ca_page="metadata",cascade="all, delete-orphan",)
+    creators = relationship('Creator', ca_order=next(order_counter), ca_missing=None, ca_page="information",cascade="all, delete-orphan",)
     # Dont know?
-    edition = Column(String(256), ca_name="dc:biblioGraphicCitation.dc:hasPart.dc:hasVersion.rdf:PlainLiteral", ca_order=next(order_counter), ca_missing="", ca_page="metadata",)
+    edition = Column(String(256), ca_name="dc:biblioGraphicCitation.dc:hasPart.dc:hasVersion.rdf:PlainLiteral", ca_order=next(order_counter), ca_missing="", ca_page="information",)
     # Autocomplete as James Cook University
-    publisher = Column(String(256), ca_name="dc:biblioGraphicCitation.dc:hasPart.dc:publisher.rdf:PlainLiteral", ca_order=next(order_counter), ca_page="metadata")
+    publisher = Column(String(256), ca_name="dc:biblioGraphicCitation.dc:hasPart.dc:publisher.rdf:PlainLiteral", ca_order=next(order_counter), ca_page="information")
     # Autocomplete as James Cook University
-    place_of_publication = Column(String(512), ca_name="dc:biblioGraphicCitation.dc:hasPart.vivo:Publisher.vivo:Location", ca_order=next(order_counter), ca_title="Place of publication", ca_page="metadata")
+    place_of_publication = Column(String(512), ca_name="dc:biblioGraphicCitation.dc:hasPart.vivo:Publisher.vivo:Location", ca_order=next(order_counter), ca_title="Place of publication", ca_page="information")
     # Dates of data, eg. data data started being collected
-    dates = relationship('CitationDate', ca_order=next(order_counter), ca_title="Date(s)", ca_page="metadata",cascade="all, delete-orphan",)
+    dates = relationship('CitationDate', ca_order=next(order_counter), ca_title="Date(s)", ca_page="information",cascade="all, delete-orphan",)
     # Autocomplete as link to data (CC-DAM)
-    url = Column(String(256), ca_validator=colander.url, ca_name="dc:biblioGraphicCitation.dc:hasPart.bibo:Website.dc:identifier",ca_order=next(order_counter), ca_title="URL", ca_page="metadata")
+    url = Column(String(256), ca_validator=colander.url, ca_name="dc:biblioGraphicCitation.dc:hasPart.bibo:Website.dc:identifier",ca_order=next(order_counter), ca_title="URL", ca_page="information")
     # Unknown
-    context = Column(String(512), ca_name="dc:biblioGraphicCitation.dc:hasPart.skos:scopeNote", ca_order=next(order_counter), ca_placeholder="citation context", ca_missing="", ca_page="metadata",
+    context = Column(String(512), ca_name="dc:biblioGraphicCitation.dc:hasPart.skos:scopeNote", ca_order=next(order_counter), ca_placeholder="citation context", ca_missing="", ca_page="information",
         ca_group_end='citation')
     #-------------additional_information--------------------
     retention_periods = (
         ("indefinite", "Indefinite"), ("1", "1 Year"), ("5", "5 Years"), ("7", "7 Years"), ("10", "10 Years"),
         ("15", "15 Years"))
-    retention_period = Column(String(50), ca_name="redbox:retentionPeriod", ca_order=next(order_counter), ca_title="Retention period", ca_page="metadata",
+    retention_period = Column(String(50), ca_name="redbox:retentionPeriod", ca_order=next(order_counter), ca_title="Retention period", ca_page="information",
         #        ca_group_start="additional_information", ca_group_collapsed=False, ca_group_title="Additional Information",
         ca_widget=deform.widget.SelectWidget(values=retention_periods),
         ca_help="Record the period of time that the data must be kept in line with institutional or funding body policies.")
-#    national_significance = Column(Boolean(), ca_order=next(order_counter), ca_title="Is the data nationally significant?", ca_page="metadata",
+#    national_significance = Column(Boolean(), ca_order=next(order_counter), ca_title="Is the data nationally significant?", ca_page="information",
 #        ca_widget=deform.widget.RadioChoiceWidget(values=(("true", "Yes"), ("false", "No"))),
 #        ca_help="Do you know or believe that this projects data may be Nationally Significant?")
 
-    related_publications = relationship('RelatedPublication', ca_order=next(order_counter), ca_title="Related Publications", ca_page="metadata",
+    related_publications = relationship('RelatedPublication', ca_order=next(order_counter), ca_title="Related Publications", ca_page="information",
         cascade="all, delete-orphan",
         ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"), ca_child_title="Related Publication",
         ca_help="Please provide details on any publications that are related to this project including their title and URL with an optional note.")
 
-    related_websites = relationship('RelatedWebsite', ca_order=next(order_counter), ca_title="Related Websites", ca_page="metadata",
+    related_websites = relationship('RelatedWebsite', ca_order=next(order_counter), ca_title="Related Websites", ca_page="information",
         cascade="all, delete-orphan",
         ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"), ca_child_title="Related Website",
         ca_help="Please provide details on any websites that are related to this project including their title and URL with an optional note.")
 
     attachments = relationship('Attachment', ca_order=next(order_counter),
-        ca_missing=None, ca_page="metadata", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
+        ca_missing=None, ca_page="information", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
         cascade="all, delete-orphan",
         ca_help="Optionally provide additional information as attachments.")
-#    notes = relationship('Note', ca_order=next(order_counter), ca_description="Enter administrative notes as required.", ca_missing=None, ca_page="metadata",
+#    notes = relationship('Note', ca_order=next(order_counter), ca_description="Enter administrative notes as required.", ca_missing=None, ca_page="information",
 #        ca_group_end="additional_information")
 
 class ProjectStates(object):
@@ -1234,7 +1234,7 @@ class Project(Base):
     __tablename__ = 'project'
 
     id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget())
-    state = Column(Integer, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(), ca_missing=ProjectStates.OPEN)
+    state = Column(Integer, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(), ca_missing=ProjectStates.OPEN, ca_default=ProjectStates.OPEN)
 
     project_creator = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
     creation_date = Column(Date, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
@@ -1273,9 +1273,15 @@ class Project(Base):
     validated = Column(Boolean, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(template="submit_validation"), default=False,
         ca_group_start="validation", ca_group_end="validation", ca_group_title="Validation", ca_group_collapsed=False, ca_page="submit",)
 
+    records_ready = Column(Boolean, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(template="submit_records"), default=False,
+        ca_group_start="records", ca_group_end="records", ca_group_title="Generated ReDBox Records", ca_group_collapsed=False, ca_page="submit",)
+
+    ingesters_ready = Column(Boolean, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(template="submit_ingesters"), default=False,
+        ca_group_start="ingesters", ca_group_end="ingesters", ca_group_title="Summary of Data Ingesters", ca_group_collapsed=False, ca_page="submit",)
+
     project_notes = relationship("ProjectNote", ca_title="Project Note",  ca_order=next(order_counter), ca_page="submit",
-        cascade="all, delete-orphan",
-        ca_help="Project comments that are only relevant to the provisioning system (eg. comments as to why the project was reopened after the creator submitted it).")
+            cascade="all, delete-orphan",
+            ca_help="Project comments that are only relevant to the provisioning system (eg. comments as to why the project was reopened after the creator submitted it).")
 
 
 def grant_validator(form, value):
@@ -1320,7 +1326,7 @@ class CreatePage(colander.MappingSchema):
         description="Un-Select 'There is an associated research grant' above if your project isn't associated with a research grant.",
         widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/activities/', template="mint_autocomplete_input", delay=10))
 
-    #    services = Column(String(256), ca_title="Services - Remove this?", ca_order=next(order_counter), ca_placeholder="Autocomplete - Mint/Mint DB", ca_page="setup",
+    #    services = Column(String(256), ca_title="Services - Remove this?", ca_order=next(order_counter), ca_placeholder="Autocomplete - Mint/Mint DB", ca_page="general",
     #            ca_help="Indicate any related Services to this Collection. A lookup works against Mint, or you can enter known information about remote Services."
     #            , ca_missing="",
     #            ca_group_end="associations")

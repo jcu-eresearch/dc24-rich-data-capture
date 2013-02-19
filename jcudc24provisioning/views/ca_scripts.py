@@ -97,6 +97,8 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
                     setattr(model_object, key, [])
                 else:
                     setattr(model_object, key, None)
+
+                is_data_empty = False
                 continue
 
             elif isinstance(value, list):
@@ -160,7 +162,7 @@ def create_sqlalchemy_model(data, model_class=None, model_object=None):
                 # TODO: Need a more reliable way of doing this, these seem to change version to version.
                 try:
                     if key in model_class._sa_class_manager:
-                        if ('default' not in ca_registry or not value == ca_registry['default']) and str(value) != str(getattr(model_object, key, None)):
+                        if ('default' not in ca_registry or not value == ca_registry['default']) or str(value) != str(getattr(model_object, key, None)):
                             setattr(model_object, key, value)
                             is_data_empty = False
                 except Exception as e:
@@ -185,7 +187,10 @@ def convert_sqlalchemy_model_to_data(model, schema):
             value = getattr(model, name, None)
 
             if isinstance(value, date):
-                value = str(value)
+                try:
+                    colander.Date().serialize(None, value)
+                except colander.Invalid, e:
+                    value = str(value)
 
             if isinstance(value, bool)  and hasattr(node.widget, 'true_val'):
                 if value:

@@ -146,7 +146,7 @@ def initialise_method_templates(session):
         session.add(blank_method) # Add an empty project as a blank template
 
         blank_dataset = Dataset()
-        blank_dataset.title = "Test Title"
+        blank_dataset.name = "Test Title"
         session.add(blank_dataset) # Add an empty project as a blank template
         session.flush()
 
@@ -180,7 +180,7 @@ def initialise_method_templates(session):
         session.add(tree_method) # Add an empty project as a blank template
 
         tree_dataset = Dataset()
-        tree_dataset.title = "Raw Artificial Tree Data"
+        tree_dataset.name = "Raw Artificial Tree Data"
         tree_datasource = PullDataSource()
         tree_datasource.uri = "http://emu.hpc.jcu.edu.au/tree/split/"
         tree_datasource.filename_pattern = "\\.*\\"
@@ -211,7 +211,7 @@ def initialise_method_templates(session):
         session.add(sensor_method) # Add an empty project as a blank template
 
         sensor_dataset = Dataset()
-        sensor_dataset.title = "Artificial Tree Sensor"
+        sensor_dataset.name = "Artificial Tree Sensor"
         sensor_datasource = DatasetDataSource()
         sensor_datasource.custom_processing_parameters = "28180E08030000BE"
         sensor_dataset.dataset_data_source = sensor_datasource

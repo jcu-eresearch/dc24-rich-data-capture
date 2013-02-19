@@ -117,6 +117,7 @@
             }
         });
 
+
         window.onbeforeunload = function (e) {
             var message = "Are you sure you want to leave this page, all unsaved data will be lost.",
             e = e || window.event;
@@ -221,12 +222,12 @@
                 <div id="supported_by">
                     <a id="qcif_logo" href="http://www.qcif.edu.au/"><img src="/static/images/qcif_logo.bmp" alt="the Queensland Cyber Infrastructure Foundation logo" /></a>
                     <a id="ands_logo" href="http://www.ands.org.au/"><img src="/static/images/ands_logo.bmp" alt="Australian National Data Services logo" /></a>
-                    <p>This project is supported by the <a href="http://www.ands.org.au/">Australian National Data Service (ANDS)</a> through the <a href="http://www.qcif.edu.au/">Queensland Cyber Infrastructure Foundation (QCIF)</a></p>
+                    <p>Supported by <a href="http://www.ands.org.au/">Australian National Data Service (ANDS)</a> through the <a href="http://www.qcif.edu.au/">Queensland Cyber Infrastructure Foundation (QCIF)</a></p>
                 </div>
                 <div id="developed_by">
                     <a href="eresearch.jcu.edu.au"><img style="padding-top: 18px;" src="../../static/images/eresearch-logo-sml.png" alt="eResearch Centre"/></a>
                     <a href="www.bajtech.com.au"><img src="../../static/images/bajtech_logo_bw.png" alt="Bajtech" /></a>
-                    <p>Designed and developed by Bajtech and the JCU eResearch Centre.</p>
+                    <p>Designed and developed by <a href="http://www.bajtech.com.au">Bajtech</a> and the <a href="http://eresearch.jcu.edu.au">JCU eResearch Centre</a>.</p>
                 </div>
             </div>
         </div>

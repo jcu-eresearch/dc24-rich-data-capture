@@ -96,7 +96,7 @@ deform.addCallback(
             //                            map.addControl(new OpenLayers.Control.Permalink());
             map.addControl(new OpenLayers.Control.MousePosition());
 
-            if ($("#" + oid).children(".points_only")[0].value == 'True') {
+            if ($("#" + oid).children(".points_only").length > 0 && $("#" + oid).children(".points_only")[0].value == 'True') {
                 var panelControls = [
                     new OpenLayers.Control.SelectFeature(vector, {title:"Delete", onSelect:deleteFeature, 'displayClass':'olControlDeleteFeature'}),
                     new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.Point, {title:"Draw points", 'displayClass':'olControlDrawFeaturePoint'}),
