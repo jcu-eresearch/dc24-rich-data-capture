@@ -12,7 +12,7 @@ import jcudc24ingesterapi
 from jcudc24ingesterapi.authentication import CredentialsAuthentication
 from jcudc24provisioning.models.project import Project, Location, Base, LocationOffset, Method, Dataset, Keyword, FieldOfResearch, MethodSchema, MethodSchemaField, PullDataSource, Metadata, DBSession
 from jcudc24provisioning.models.ingesterapi_wrapper import IngesterAPIWrapper
-from jcudc24provisioning.views.ca_scripts import convert_schema, convert_sqlalchemy_model_to_data, create_sqlalchemy_model
+from jcudc24provisioning.views.ca_scripts import convert_schema
 
 
 class TestModelConversion(unittest.TestCase):
@@ -23,8 +23,8 @@ class TestModelConversion(unittest.TestCase):
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise',))
         form = Form(schema, action='test', project_id=PROJECT_ID, buttons=('Save', 'Delete', 'Submit', 'Reopen', 'Approve', 'Disable'), use_ajax=False)
         model = session.query(Project).filter_by(id=2).first()
-        data = convert_sqlalchemy_model_to_data(model, schema)
-        new_model = create_sqlalchemy_model(data, Project)
+        data = model.dictify(schema)
+        new_model = Project(appstruct=data)
 
         public_props = (name for name in dir(object) if not name.startswith('_'))
         for name in public_props:

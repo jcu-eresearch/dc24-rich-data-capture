@@ -30,8 +30,9 @@ from pyramid.view import view_config, view_defaults, render_view_to_response
 from colanderalchemy.types import SQLAlchemyMapping
 from jcudc24provisioning.views.views import Layouts
 from pyramid.renderers import get_renderer
-from jcudc24provisioning.models.project import DBSession, PullDataSource,Metadata, UntouchedPages, IngesterLogs, Location, ProjectTemplate,method_template,DatasetDataSource, Project, CreatePage, Method, Base, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
-from jcudc24provisioning.views.ca_scripts import convert_schema, create_sqlalchemy_model, convert_sqlalchemy_model_to_data,fix_schema_field_name
+from jcudc24provisioning.models.project import DBSession, PullDataSource, Metadata, UntouchedPages, IngesterLogs, Location, \
+    ProjectTemplate,method_template,DatasetDataSource, Project, CreatePage, Method, Base, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
+from jcudc24provisioning.views.ca_scripts import convert_schema, fix_schema_field_name
 from jcudc24provisioning.models.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.mint_lookup import MintLookup
 
@@ -48,7 +49,9 @@ WORKFLOW_STEPS = [
         {'href': 'information', 'title': 'Information', 'page_title': 'Associated Information'},
         {'href': 'methods', 'title': 'Methods', 'page_title': 'Data Collection Methods'},
         {'href': 'datasets', 'title': 'Datasets', 'page_title': 'Datasets (Collections of Data)'},
-        {'href': 'dataset_record', 'title': 'Generated Dataset Record', 'page_title': 'Generated Dataset Record', 'hidden': True},
+        {'href': 'view_record', 'title': 'Generated Dataset Record', 'page_title': 'Generated Dataset Record', 'hidden': True},
+        {'href': 'edit_record', 'title': 'Generated Dataset Record', 'page_title': 'Generated Dataset Record', 'hidden': True},
+        {'href': 'delete_record', 'title': 'Generated Dataset Record', 'page_title': 'Generated Dataset Record', 'hidden': True},
         {'href': 'submit', 'title': 'Submit', 'page_title': 'Submit & Approval'},
         {'href': 'template', 'title': 'Template', 'page_title': 'Template Details', 'hidden': True},
 ]
@@ -206,7 +209,7 @@ class Workflows(Layouts):
 
          if model is None or not isinstance(model, model_type):
              if model_id is None or model_id == colander.null:
-                 model = create_sqlalchemy_model(data, model_class=model_type)
+                 model = model_type(appstruct=data)
                  if model is not None:
                      self.session.add(model)
                      saved = True
@@ -215,8 +218,8 @@ class Workflows(Layouts):
 
          else:
              # Update the model with all fields in the data
-             if create_sqlalchemy_model(data, model_object=model) is None:
-                 return False # There were no changes (if there were changes they will still be commited through the internals of sqlalchemy though).
+             if model.update(data):
+                 return model.id # There were no changes (if there were changes they will still be commited through the internals of sqlalchemy though).
              else:
                  self.session.merge(model)
 
@@ -286,7 +289,7 @@ class Workflows(Layouts):
 
         if self.project_id is not None:
             model = self.session.query(Project).filter_by(id=self.project_id).first()
-            appstruct = convert_sqlalchemy_model_to_data(model, schema)
+            appstruct = model.dictify(schema)
 
         # If the page has been saved previously, show the validated form
         untouched_pages = self.session.query(UntouchedPages).filter_by(project_id=self.project_id).first()
@@ -596,7 +599,7 @@ class Workflows(Layouts):
                     if template is None:
                         continue
 
-                    new_method_dict = convert_sqlalchemy_model_to_data(self.clone(template_method), schema.children[METHODS_INDEX].children[0])
+                    new_method_dict = self.clone(template_method).dictify(schema.children[METHODS_INDEX].children[0])
 #                    new_method_dict = new_method_dict['method']
                     del new_method_dict['method:id']
                     new_method_dict['method:project_id'] = new_method_data['method:project_id']
@@ -779,7 +782,7 @@ class Workflows(Layouts):
                             break
 
                     # Copy all data from the template
-                    new_dataset_dict = convert_sqlalchemy_model_to_data(template_clone, schema.children[DATASETS_INDEX].children[0])
+                    new_dataset_dict = template_clone.dictify(schema.children[DATASETS_INDEX].children[0])
 
 
 #                    new_method_dict = new_method_dict['method']
@@ -811,9 +814,13 @@ class Workflows(Layouts):
         if self.project is not None:
             # Create full self.project schema and form (without filtering to a single page as usual)
             val_schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise')).bind(request=self.request, settings=self.config)
+
+            # Remove the relationship between methods and datasets to prevent incorrect validation failures (eg. methods->datasets->sos_datasource has errors even though there isn't one...)
+            del val_schema['project:methods']['method']['method:datasets']
+
             val_form = Form(val_schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
 
-            appstruct = convert_sqlalchemy_model_to_data(self.project, val_schema)
+            appstruct = self.project.dictify(val_schema)
             try:
                 val_form.validate_pstruct(appstruct)
                 self.error = []
@@ -837,7 +844,9 @@ class Workflows(Layouts):
         ingesters = []
         for dataset in self.project.datasets:
             if dataset.publish_dataset:
-                redbox_records.append((dataset.name, dataset.redbox_uri, self.request.route_url("dataset_record", project_id=self.project_id, dataset_id=dataset.id)))
+                redbox_records.append((dataset.name, dataset.redbox_uri,
+                                       self.request.route_url("view_record", project_id=self.project_id, dataset_id=dataset.id),
+                                       self.request.route_url("delete_record", project_id=self.project_id, dataset_id=dataset.id)))
 
             dataset_method = self.session.query(Method).filter_by(id=dataset.method_id).first()
             ingesters.append((dataset.name, dataset_method.data_source, dataset_method.data_type.name))
@@ -872,6 +881,7 @@ class Workflows(Layouts):
 
         if SUBMIT_TEXT in self.request.POST and 'id' in self.request.POST and (self.project.state == ProjectStates.OPEN or self.project.state is None) and len(self.error) <= 0:
             self.project.state = ProjectStates.SUBMITTED
+            # TODO: fill citation data
 
         if REOPEN_TEXT in self.request.POST and 'id' in self.request.POST and self.project.state == ProjectStates.SUBMITTED:
             self.project.state = ProjectStates.OPEN
@@ -913,15 +923,45 @@ class Workflows(Layouts):
 
         return response
 
-#-----------------------Dataset Record View/Edit-----------------------------------
-    @view_config(route_name="dataset_record")
-    def dataset_record_view(self):
+    def generate_dataset_record(self, dataset_id):
+        metadata_id = self.session.query(Metadata.id).filter_by(dataset_id=dataset_id).first()
+
+        metadata_template = self.session.query(Metadata).join(Project).filter(Metadata.project_id==Project.id).join(Dataset).filter(Project.id==Dataset.project_id).filter(Dataset.id==dataset_id).first()
+
+        template_clone = self.clone(metadata_template)
+        template_clone.id = metadata_id
+        template_clone.project_id = None
+        template_clone.dataset_id = dataset_id
+        # TODO:  Generate/add dataset specific metadata
+
+        self.session.merge(template_clone)
+        return template_clone
+
+
+    @view_config(route_name="delete_record")
+    def delete_record_view(self):
         dataset_id = self.request.matchdict['dataset_id']
+
+        record = self.session.query(Metadata).filter_by(dataset_id=dataset_id).first()
+        if record is not None:
+            self.session.delete(record)
+
+        self.request.session.flash('Dataset record successfully deleted (will be recreated when needed).', 'success')
+
+        target = 'submit'
+        return HTTPFound(self.request.route_url(target, project_id=self.project_id))
+
+#-----------------------Dataset Record View/Edit-----------------------------------
+    @view_config(route_name="view_record")
+    @view_config(route_name="edit_record")
+    def edit_record_view(self):
+        dataset_id = self.request.matchdict['dataset_id']
+
         page_help=""
         schema = convert_schema(SQLAlchemyMapping(Metadata, unknown='raise',)).bind(request=self.request, settings=self.config)
         form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id, dataset_id=dataset_id), buttons=("Cancel", "Save & Close", "Save",), use_ajax=False)
 
-        readonly = self.project is not None and not (self.project.state == ProjectStates.OPEN or self.project.state is None)
+        readonly = (self.project is not None and not (self.project.state == ProjectStates.OPEN or self.project.state is None)) or self.request.matched_route == "view_dataset_record"
 
         # If the form is being saved (there would be 1 item in controls if it is a fresh page with a project id set)
         if len(self.request.POST) > 1 and not 'Cancel' in self.request.POST:
@@ -942,7 +982,12 @@ class Workflows(Layouts):
             appstruct = {}
 
             model = self.session.query(Metadata).filter_by(dataset_id=dataset_id).first()
-            appstruct = convert_sqlalchemy_model_to_data(model, schema)
+            if model is None:
+                model = self.generate_dataset_record(dataset_id)
+
+            appstruct = model.dictify(schema)
+
+
             try:
                 appstruct = form.validate_pstruct(appstruct)
                 display = form.render(appstruct, readonly=readonly)
@@ -966,6 +1011,8 @@ class Workflows(Layouts):
             'warning_messages': self.request.session.pop_flash("warning")
         }
         return {"page_title": self.find_menu()['title'], "form": display, "form_only": False, 'messages': messages, 'page_help': page_help, 'readonly': readonly}
+
+
 
     # --------------------WORKFLOW ACTION/SIDEBAR VIEWS-------------------------------------------
     @view_config(route_name="dataset_logs")

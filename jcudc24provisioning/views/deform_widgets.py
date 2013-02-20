@@ -1,6 +1,5 @@
 from colander import null, Invalid
 from deform.widget import Widget, _normalize_choices
-from jcudc24provisioning.views.ca_scripts import convert_sqlalchemy_model_to_data
 
 __author__ = 'Casey'
 
@@ -260,7 +259,7 @@ class MethodSchemaWidget(Widget):
         if 'parents' in pstruct:
             parents = []
             for parent_id in pstruct['parents']:
-                parents.append(convert_sqlalchemy_model_to_data(field.view.get_schema(parent_id)))
+                parents.append(field.view.get_schema(parent_id).dictify())
 
             pstruct['parents'] = parents
 

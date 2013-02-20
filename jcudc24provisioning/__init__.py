@@ -62,10 +62,11 @@ def main(global_config, **settings):
     config.add_route('information', '/project/{project_id}/information')    # metadata or associated information
     config.add_route('methods', '/project/{project_id}/methods')            # Data collection methods
     config.add_route('datasets', '/project/{project_id}/datasets')          # Datasets or collections of data
-    config.add_route('dataset_record', '/project/{project_id}/datasets/record/{dataset_id}')          # Datasets or collections of data
+    config.add_route('view_record', '/project/{project_id}/datasets/view_record/{dataset_id}')          # Datasets or collections of data
+    config.add_route('edit_record', '/project/{project_id}/datasets/edit_record/{dataset_id}')          # Datasets or collections of data
+    config.add_route('delete_record', '/project/{project_id}/datasets/delete_record/{dataset_id}')          # Datasets or collections of data
     config.add_route('submit', '/project/{project_id}/submit')              # Submit, review and approval
     config.add_route('manage', '/project/{project_id}/manage')              # Manage projecct data, eg. change sample rates, add data values
-
 
     # Project action pages
     config.add_route('dataset_logs', '/project/{project_id}/logs/dataset_{dataset_id}_logs.txt')

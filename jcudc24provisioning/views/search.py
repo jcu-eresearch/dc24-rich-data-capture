@@ -7,7 +7,7 @@ import colander
 from colanderalchemy.types import SQLAlchemyMapping
 from jcudc24provisioning.models.project import DBSession
 from pyramid.view import view_config, view_defaults
-from jcudc24provisioning.views.ca_scripts import convert_sqlalchemy_model_to_data, convert_schema, create_sqlalchemy_model
+from jcudc24provisioning.views.ca_scripts import convert_schema
 from jcudc24provisioning.models.project import *
 import transaction
 
@@ -41,7 +41,7 @@ class Search(object):
         print model
 
         if model:
-            data = convert_sqlalchemy_model_to_data(model, convert_schema(SQLAlchemyMapping(object_type, unknown='raise', ca_description=""), page='setup'))
+            data = model.dictify(convert_schema(SQLAlchemyMapping(object_type, unknown='raise', ca_description=""), page='setup'))
 
             json_data = json.dumps(data)
             return {'values': json_data}

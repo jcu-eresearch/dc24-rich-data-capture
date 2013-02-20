@@ -9,6 +9,7 @@ from sqlalchemy.engine import create_engine
 from sqlalchemy.schema import ForeignKey, Table
 from zope.sqlalchemy import ZopeTransactionExtension
 from colanderalchemy.declarative import Column, relationship
+from colanderalchemy.ca_model import CAModel
 import deform
 from sqlalchemy import (
     Integer,
@@ -139,7 +140,7 @@ def field_of_research_validator(form, value):
 #        exc['fieldofresearch'] = 'Required'
         raise exc
 
-class FieldOfResearch(Base):
+class FieldOfResearch(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'field_of_research'
@@ -150,7 +151,7 @@ class FieldOfResearch(Base):
         ca_data=getFORCodes)
 
 
-class SocioEconomicObjective(Base):
+class SocioEconomicObjective(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'socio_economic_objective'
@@ -160,7 +161,7 @@ class SocioEconomicObjective(Base):
     socio_economic_objective = Column(String(50), ca_order=next(order_counter), ca_title="Socio-Economic Objective", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
     ca_data=getSEOCodes)
 
-class Person(Base):
+class Person(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'person'
@@ -176,7 +177,7 @@ relationship_types = (
         ("aggregated", "Aggregated by")
         , ("enriched", "Enriched by"))
 
-class Party(Base):
+class Party(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'party'
@@ -192,7 +193,7 @@ class Party(Base):
         ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/parties/', template="mint_autocomplete_input", size="70", delay=10))
 #    person = relationship('Person', ca_order=next(order_counter), uselist=False)
 
-class Creator(Base):
+class Creator(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'creator'
@@ -205,7 +206,7 @@ class Creator(Base):
     email = Column(String(256), ca_order=next(order_counter), ca_missing="", ca_validator=colander.Email())
 
 
-class Keyword(Base):
+class Keyword(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'keyword'
@@ -215,7 +216,7 @@ class Keyword(Base):
     keyword = Column(String(512), ca_name="dc:subject.vivo:keyword.0.rdf:PlainLiteral")
 
 
-class Collaborator(Base):
+class Collaborator(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'collaborator'
@@ -226,7 +227,7 @@ class Collaborator(Base):
         ca_placeholder="eg. CSIRO, University of X, Prof. Jim Bloggs, etc.")
 
 
-class CitationDate(Base):
+class CitationDate(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'citation_date'
@@ -239,7 +240,7 @@ class CitationDate(Base):
 
 
 attachment_types = (("data", "Data file"), ("supporting", "Supporting material"), ("readme", "Readme"))
-class Attachment(Base):
+class Attachment(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'attachment'
@@ -256,7 +257,7 @@ class Attachment(Base):
 #    ca_params={'widget' : deform.widget.HiddenWidget()}
 
 
-class Note(Base):
+class Note(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'note'
@@ -268,7 +269,7 @@ class Note(Base):
     def __init__(self, note):
         self.note = note
 
-class Region(Base):
+class Region(CAModel, Base):
     __tablename__ = 'region'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
     dam_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget())
@@ -292,22 +293,22 @@ location_validator = colander.Regex(
 #    "Must be a valid decimal number"
 #)
 
-class Location(Base):
+class Location(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'location'
-    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    dam_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget())
+    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    dam_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dam_version = Column(String(128), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    metadata_id = Column(Integer, ForeignKey('metadata.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
-    dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
+    metadata_id = Column(Integer, ForeignKey('metadata.id'), nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
-    name = Column(String(256), ca_force_required=True)
-    location = Column(String(512), ca_validator=location_validator, ca_name="dc:coverage.vivo:GeographicLocation.0.redbox:wktRaw", ca_widget=deform.widget.TextInputWidget(css_class='map_location'),
+    name = Column(String(256), ca_force_required=True,ca_order=next(order_counter))
+    location = Column(String(512), ca_validator=location_validator, ca_name="dc:coverage.vivo:GeographicLocation.0.redbox:wktRaw", ca_widget=deform.widget.TextInputWidget(css_class='map_location'),ca_order=next(order_counter),
         ca_force_required=True, ca_child_widget=deform.widget.TextInputWidget(regex_mask="^(POINT\([+-]?\d*\.?\d* [+-]?\d*\.?\d*\)) |(POLYGON\(\(([+-]?\d*\.?\d*\s[+-]?\d*\.?\d*,?\s?)*\)\))|(LINESTRING\(([+-]?\d*\.?\d*\s[+-]?\d*\.?\d*,?\s?)*\))$"),
         ca_help="<a href='http://en.wikipedia.org/wiki/Well-known_text#Geometric_Objects' title='Well-known Text (WKT) markup reference'>WTK format reference</a>")
 
-    elevation = Column(Float(), ca_help="Elevation in meters from mean sea level", ca_widget=deform.widget.TextInputWidget(regex_mask="^(((\\\\.\\\\d*)?)|(\\\\d+(\\\\.\\\\d*)?))$", strip=False))
+    elevation = Column(Float(),ca_order=next(order_counter), ca_help="Elevation in meters from mean sea level", ca_widget=deform.widget.TextInputWidget(regex_mask="^(((\\\\.\\\\d*)?)|(\\\\d+(\\\\.\\\\d*)?))$", strip=False))
     # regions = relationship("Region", ca_widget=deform.widget.HiddenWidget())
 
     def is_point(self):
@@ -322,19 +323,19 @@ class Location(Base):
     def get_points(self):
         return [[]]
 
-class LocationOffset(Base):
+class LocationOffset(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'location_offset'
-    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    dam_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget())
+    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    dam_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dam_version = Column(String(128), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
-    data_entry_id = Column(Integer, ForeignKey('data_entry.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
+    dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    data_entry_id = Column(Integer, ForeignKey('data_entry.id'), nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
-    x = Column(Float(), ca_title="Lattitude Offset (meters)", ca_placeholder="eg. 1 is East 3m", ca_widget=deform.widget.TextInputWidget(size=10, css_class="full_width", regex_mask="^(((\\\\.\\\\d*)?)|(\\\\d+(\\\\.\\\\d*)?))$", strip=False))
-    y = Column(Float(), ca_title="Longitude Offset (meters)", ca_placeholder="eg. 1 is North 3m", ca_widget=deform.widget.TextInputWidget(size=10, css_class="full_width", regex_mask="^(((\\\\.\\\\d*)?)|(\\\\d+(\\\\.\\\\d*)?))$", strip=False))
-    z = Column(Float(), ca_title="Elevation Offset (meters)", ca_placeholder="eg. 1 is Higher 3m", ca_widget=deform.widget.TextInputWidget(size=10, css_class="full_width", regex_mask="^(((\\\\.\\\\d*)?)|(\\\\d+(\\\\.\\\\d*)?))$", strip=False))
+    x = Column(Float(), ca_title="Lattitude Offset (meters)",ca_order=next(order_counter), ca_placeholder="eg. 1 is East 3m", ca_widget=deform.widget.TextInputWidget(size=10, css_class="full_width", regex_mask="^(((\\\\.\\\\d*)?)|(\\\\d+(\\\\.\\\\d*)?))$", strip=False))
+    y = Column(Float(), ca_title="Longitude Offset (meters)",ca_order=next(order_counter), ca_placeholder="eg. 1 is North 3m", ca_widget=deform.widget.TextInputWidget(size=10, css_class="full_width", regex_mask="^(((\\\\.\\\\d*)?)|(\\\\d+(\\\\.\\\\d*)?))$", strip=False))
+    z = Column(Float(), ca_title="Elevation Offset (meters)",ca_order=next(order_counter), ca_placeholder="eg. 1 is Higher 3m", ca_widget=deform.widget.TextInputWidget(size=10, css_class="full_width", regex_mask="^(((\\\\.\\\\d*)?)|(\\\\d+(\\\\.\\\\d*)?))$", strip=False))
 
     def __init__(self, x=0, y=0, z=0):
         self.x = x
@@ -342,7 +343,7 @@ class LocationOffset(Base):
         self.z = z
 
 
-class DataEntry(Base):
+class DataEntry(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'data_entry'
@@ -351,7 +352,7 @@ class DataEntry(Base):
     dam_version = Column(String(128), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
 
-class RelatedPublication(Base):
+class RelatedPublication(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'related_publication'
@@ -362,7 +363,7 @@ class RelatedPublication(Base):
     url = Column(String(512), ca_validator=colander.url, ca_name="dc:relation.swrc:Publication.0.dc:identifier", ca_title="URL", ca_placeholder="eg. http://www.somewhere.com.au", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40), ca_force_required=True)
     notes = Column(String(512), ca_name="dc:relation.swrc:Publication.0.skos:note", ca_title="Note", ca_missing="", ca_placeholder="eg. This publication provides additional information on xyz", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
 
-class RelatedWebsite(Base):
+class RelatedWebsite(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'related_website'
@@ -412,7 +413,7 @@ field_types = (
     ('hidden', 'Hidden (Used by custom processing only)'),
 )
 
-class MethodAttachment(Base):
+class MethodAttachment(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'method_attachment'
@@ -423,7 +424,7 @@ class MethodAttachment(Base):
     note = colander.SchemaNode(colander.String(), placeholder="eg. data sheet", widget=deform.widget.TextInputWidget(css_class="full_width"))
 
 
-class MethodWebsite(Base):
+class MethodWebsite(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'method_website'
@@ -474,7 +475,7 @@ def find_duplicate_names(names, duplicates, values):
 
 
 # TODO: Test that schemas are fully recursive (eg. parents can have parents)
-class MethodSchemaField(Base):
+class MethodSchemaField(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'method_schema_field'
@@ -496,7 +497,7 @@ class MethodSchemaField(Base):
     validators = Column(String(256), ca_title="Validator", ca_placeholder="eg. Numerical value with decimal places or what values are expected such as for a dropdown box", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_validators"))
     notes = Column(String(256), ca_title="Admin Notes", ca_placeholder="eg. Please read this field from the uploaded files, it will follow a pattern like temp:xxx.xx", ca_widget=deform.widget.TextAreaWidget(css_class="full_width custom_field_notes"))
 
-class MethodSchema(Base):
+class MethodSchema(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'method_schema'
@@ -519,7 +520,7 @@ class MethodSchema(Base):
         secondary=method_schema_to_schema,
         primaryjoin=id==method_schema_to_schema.c.child_id,
         secondaryjoin=id==method_schema_to_schema.c.parent_id,
-        ca_title="Template(s) to base/extend your data schema from (Recommended)",
+        ca_title="Template(s) to CAModel, Base/extend your data schema from (Recommended)",
         ca_widget=deform.widget.SequenceWidget(template="method_schema_parents_sequence"),
         ca_child_title = "Parent Schema",
         ca_child_widget=deform.widget.MappingWidget(template="ca_sequence_mapping", item_template="method_schema_parents_item"),
@@ -532,7 +533,7 @@ class MethodSchema(Base):
         ca_description="Provide details of the schema field and how it should be displayed.",
         ca_help="TODO:  This needs to be displayed better - I'm thinking a custom template that has a sidebar for options and the fields are displayed 1 per line.  All fields will be shown here (including fields from parent/extended schemas selected above).")
 
-class FormDataSource(Base):
+class FormDataSource(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'form_data_source'
@@ -540,7 +541,7 @@ class FormDataSource(Base):
     dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
 
-class PullDataSource(Base):
+class PullDataSource(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'pull_data_source'
@@ -614,7 +615,7 @@ class PullDataSource(Base):
             "<a title=\"Python processing script API\"href=\"\">here</a>.")
 
 
-class PushDataSource(Base):
+class PushDataSource(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'push_data_source'
@@ -628,7 +629,7 @@ class PushDataSource(Base):
     file_field = Column(String(100), ca_order=next(order_counter),
             ca_description="<b>TODO: Redevelop into dropdown selection from schema fields that are of type file</b>")
 
-class SOSDataSource(Base):
+class SOSDataSource(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'sos_data_source'
@@ -675,7 +676,7 @@ def dataset_select_widget(node, kw):
         return deform.widget.SelectWidget(values=dataset_values, template="source_dataset_select")
 
 
-class DatasetDataSource(Base):
+class DatasetDataSource(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'dataset_data_source'
@@ -702,7 +703,7 @@ class DatasetDataSource(Base):
             "process the data in some way.  The processing script API can be found "\
             "<a title=\"Python processing script API\"href=\"\">here</a>.")
 
-class Method(Base):
+class Method(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'method'
@@ -794,7 +795,7 @@ def dataset_validator(form, value):
      raise exc
 
 
-class Dataset(Base):
+class Dataset(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'dataset'
@@ -857,7 +858,7 @@ class Dataset(Base):
     dataset_data_source = relationship("DatasetDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False)
 
 
-class ProjectNote(Base):
+class ProjectNote(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'project_note'
@@ -869,7 +870,7 @@ class ProjectNote(Base):
         ca_placeholder="eg. Please enter all metadata, the supplied processing script has errors, please extend the existing temperature data type so that your data is searchable, etc..."
         , ca_widget=deform.widget.TextAreaWidget(rows=3))
 
-class ProjectTemplate(Base):
+class ProjectTemplate(CAModel, Base):
     """
     Indicate an existing project is a template that others can use to pre-populate their projects
     """
@@ -883,7 +884,7 @@ class ProjectTemplate(Base):
     name = Column(String(100),ca_order=next(order_counter), ca_description="Name the template (eg. Artificial tree).")
     description = Column(String(256),ca_order=next(order_counter), ca_description="Provide a short description (<256 chars) of the template for the end user.")
 
-class MethodTemplate(Base):
+class MethodTemplate(CAModel, Base):
     """
     Method templates that can be used to pre-populate a method with as well as datasets created for that method.
     """
@@ -899,7 +900,7 @@ class MethodTemplate(Base):
 
 choices = ['JCU Name 1', 'JCU Name 2', 'JCU Name 3', 'JCU Name 4']
 
-class UntouchedFields(Base):
+class UntouchedFields(CAModel, Base):
     __tablename__ = 'untouched_fields'
     order_counter = itertools.count()
     id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget())
@@ -913,7 +914,7 @@ class UntouchedFields(Base):
     field_name = Column(String(100))
 
 # Page names below need to be synchronised with WORKFLOW_STEPS->href in workflows.py
-class UntouchedPages(Base):
+class UntouchedPages(CAModel, Base):
     __tablename__ = 'untouched_pages'
     order_counter = itertools.count()
     id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget())
@@ -925,7 +926,7 @@ class UntouchedPages(Base):
     methods = Column(Boolean, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     datasets = Column(Boolean, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
-class MetadataNote(Base):
+class MetadataNote(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'metadata_note'
@@ -938,7 +939,7 @@ class MetadataNote(Base):
             ca_widget=deform.widget.TextAreaWidget(rows=3), ca_title="Note",)
 
 
-class Metadata(Base):
+class Metadata(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'metadata'
@@ -1088,7 +1089,7 @@ class Metadata(Base):
     typeOfResearch = Column(String(50), ca_name="dc:subject.anzsrc:toa.rdf:resource", ca_order=next(order_counter), ca_page="information",
         ca_group_end="subject",
         ca_widget=deform.widget.RadioChoiceWidget(values=researchTypes),
-        ca_validator=OneOfDict(researchTypes[1:]),
+        ca_validator=OneOfDict(researchTypes[:]),
         ca_title="Type of Research Activity",
         ca_force_required=True,
         ca_help="1297.0 Australian Standard Research Classification (ANZSRC) 2008. </br></br>"\
@@ -1228,7 +1229,7 @@ class Metadata(Base):
 class ProjectStates(object):
     OPEN, SUBMITTED, APPROVED, ACTIVE, DISABLED = range(5)
 
-class Project(Base):
+class Project(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'project'

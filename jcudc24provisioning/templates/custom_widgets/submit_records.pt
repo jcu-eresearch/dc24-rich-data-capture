@@ -7,8 +7,13 @@
     </div>
     <div tal:condition="len(field.schema.records) > 0">
         <table>
-            <thead><th>Dataset Name</th><th>ReDBox URI</th><th>Edit Link</th></thead>
-            <tr tal:repeat="(name, uri, edit_url) field.schema.records"><td>${name}</td><td><span tal:condition="not uri"><i>Not created yet</i></span><a tal:condition="uri" href="${uri}">View in ReDBox</a></td><td><a href="${edit_url}">View/Edit</a></td></tr>
+            <thead><th>Dataset Name</th><th>ReDBox URI</th></thead>
+            <tr tal:repeat="(name, uri, edit_url, regenerate_url) field.schema.records">
+                <td>${name}</td>
+                <td><span tal:condition="not uri"><i>Not created yet</i></span><a tal:condition="uri" href="${uri}">View in ReDBox</a></td>
+                <td><a href="${edit_url}">View/Edit</a></td>
+                <td><a href="${regenerate_url}" title="Regenerate record (all current data will be lost).">Regenerate</a></td>
+            </tr>
         </table>
         <input id="${field.oid}" name="${field.name}" type="hidden" value="field.schema.widget.true_val">
     </div>
