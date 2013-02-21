@@ -31,7 +31,7 @@ from colanderalchemy.types import SQLAlchemyMapping
 from jcudc24provisioning.views.views import Layouts
 from pyramid.renderers import get_renderer
 from jcudc24provisioning.models.project import DBSession, PullDataSource, Metadata, UntouchedPages, IngesterLogs, Location, \
-    ProjectTemplate,method_template,DatasetDataSource, Project, CreatePage, Method, Base, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
+    ProjectTemplate,method_template,DatasetDataSource, Project, project_validator, CreatePage, Method, Base, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
 from jcudc24provisioning.views.ca_scripts import convert_schema, fix_schema_field_name
 from jcudc24provisioning.models.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.mint_lookup import MintLookup
@@ -96,9 +96,11 @@ class Workflows(Layouts):
         if self.request.matchdict and 'project_id' in self.request.matchdict:
             self.project_id = self.request.matchdict['project_id']
 
-        # Get all project data, validate it and provide information for displaying workflow validation state.
-        self.project = self.session.query(Project).filter_by(id=self.project_id).first()
-
+    @property
+    def project(self):
+        if '_project' not in locals():
+            self._project = self.session.query(Project).filter_by(id=self.project_id).first()
+        return self._project
 
     def find_errors(self, error, page=None):
         errors = []
@@ -375,6 +377,8 @@ class Workflows(Layouts):
                     if template is not None:
                         new_project = self.clone(template)
                         new_project.id = None
+                        new_project.template = False
+                        new_project.state = ProjectStates.OPEN
 
                 if not new_project.information:
                     new_info = Metadata()
@@ -813,7 +817,7 @@ class Workflows(Layouts):
 
         if self.project is not None:
             # Create full self.project schema and form (without filtering to a single page as usual)
-            val_schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise')).bind(request=self.request, settings=self.config)
+            val_schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_validator=project_validator)).bind(request=self.request, settings=self.config)
 
             # Remove the relationship between methods and datasets to prevent incorrect validation failures (eg. methods->datasets->sos_datasource has errors even though there isn't one...)
             del val_schema['project:methods']['method']['method:datasets']
@@ -883,6 +887,16 @@ class Workflows(Layouts):
             self.project.state = ProjectStates.SUBMITTED
             # TODO: fill citation data
 
+            # Fill citation fields
+            self.project.information.citation_title = self.project.information.project_title
+            self.project.information.citation_creators = self.project.information.parties
+            self.project.information.citation_edition = None
+            self.project.information.citation_publisher = "James Cook University"
+            self.project.information.citation_place_of_publication = "James Cook University"
+            # Type of Data?
+            self.project.information.citation_url = "" # TODO:  CC-DAM Data Link
+            self.project.information.citation_context = self.project.information.project_title
+
         if REOPEN_TEXT in self.request.POST and 'id' in self.request.POST and self.project.state == ProjectStates.SUBMITTED:
             self.project.state = ProjectStates.OPEN
 
@@ -906,6 +920,7 @@ class Workflows(Layouts):
                 return response
 
             try:
+
                 # TODO: ReDBox integration
                 logger.info("Project has been added to ReDBox successfully: %s", self.project.id)
                 raise NotImplementedError("ReDBox integration hasn't been implemented yet.")

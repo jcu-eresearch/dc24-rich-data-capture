@@ -6,7 +6,7 @@ from jcudc24ingesterapi.authentication import CredentialsAuthentication
 from jcudc24ingesterapi.ingester_platform_api import IngesterPlatformAPI
 from jcudc24ingesterapi.ingester_platform_api import UnitOfWork
 import jcudc24ingesterapi
-from jcudc24provisioning.models.project import Location, LocationOffset, MethodSchema, Base, Project, Region, Dataset, DBSession, Method, MethodSchemaField, PullDataSource,FormDataSource, PushDataSource, DatasetDataSource, SOSDataSource
+from jcudc24provisioning.models.project import Location, LocationOffset, MethodSchema, Base, Project, Region, Dataset, DBSession, Method, MethodSchemaField, PullDataSource,FormDataSource, PushDataSource, DatasetDataSource, SOSScraperDataSource
 from jcudc24ingesterapi.schemas.data_types import DateTime, FileDataType, Integer, String, Double, Boolean
 from jcudc24ingesterapi.models.sampling import PeriodicSampling
 
@@ -314,7 +314,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             sampling_object = None
             if PullDataSource.periodic_sampling.key in model.pull_data_source.selected_sampling:
                 try:
-                    sampling_object = jcudc24ingesterapi.models.sampling.PeriodicSampling(int(model.pull_data_source.periodic_sampling))
+                    sampling_object = jcudc24ingesterapi.models.sampling.PeriodicSampling(int(model.pull_data_source.periodic_sampling*60000))
                 except TypeError:
                     logger.exception("Trying to create a periodic sampler with invalid rate: %s for %s" % (model.pull_data_source.periodic_sampling, model.title))
                     raise ValueError("Trying to create a periodic sampler with invalid rate: %s for %s" % (model.pull_data_source.periodic_sampling, model.title))
@@ -333,11 +333,8 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
                     logger.exception("Trying to create a custom sampler with invalid script handle: %s" % model.pull_data_source.custom_sampling_script)
                     raise ValueError("Trying to create a custom sampler with invalid script handle: %s" % model.pull_data_source.custom_sampling_script)
 
-            print "SAMPLIING OBJECT: %s" % sampling_object
-
             # Create the data source
             try:
-                print "URI: %s" % model.pull_data_source.uri
                 data_source_field = self.session.query(MethodSchemaField).filter_by(id=model.pull_data_source.file_field).first()
                 data_source = jcudc24ingesterapi.models.data_sources.PullDataSource(
                     url=model.pull_data_source.uri,
@@ -372,11 +369,65 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
                 raise ValueError("Trying to provision a dataset with no data source.  Go back to the dataset step and configure the data source: %s" % model.title)
             data_source = jcudc24ingesterapi.models.data_sources.PushDataSource()
             # TODO: Update datasource configuration
-        if method.data_source == SOSDataSource.__tablename__:
-            if model.sos_data_source is None:
+        if method.data_source == SOSScraperDataSource.__tablename__:
+            if model.sos_scraper_data_source is None:
                 raise ValueError("Trying to provision a dataset with no data source.  Go back to the dataset step and configure the data source: %s" % model.title)
-            data_source = jcudc24ingesterapi.models.data_sources.SOSDataSource()
-            # TODO: Update datasource configuration
+
+            # Create the sampling
+            sampling_object = None
+            if SOSScraperDataSource.periodic_sampling.key in model.sos_scraper_data_source.selected_sampling:
+                try:
+                    sampling_object = jcudc24ingesterapi.models.sampling.PeriodicSampling(int(model.sos_scraper_data_source.periodic_sampling*60000))
+                except TypeError:
+                    logger.exception("Trying to create a periodic sampler with invalid rate: %s for %s" % (model.sos_scraper_data_source.periodic_sampling, model.title))
+                    raise ValueError("Trying to create a periodic sampler with invalid rate: %s for %s" % (model.sos_scraper_data_source.periodic_sampling, model.title))
+
+            elif SOSScraperDataSource.cron_sampling.key in model.sos_scraper_data_source.selected_sampling:
+                try:
+                    sampling_object = jcudc24ingesterapi.models.sampling.CronSampling(str(model.sos_scraper_data_source.cron_sampling))
+                except TypeError:
+                    logger.exception("Trying to create a cron sampler with an invalid cron string: %s for %s" % (model.sos_scraper_data_source.cron_sampling, model.title))
+                    raise ValueError("Trying to create a cron sampler with an invalid cron string: %s for %s" % (model.sos_scraper_data_source.cron_sampling, model.title))
+
+            elif SOSScraperDataSource.custom_sampling_desc.ca_group_start in model.sos_scraper_data_source.selected_sampling:
+                try:
+                    sampling_object = jcudc24ingesterapi.models.sampling.CustomSampling(model.sos_scraper_data_source.custom_sampling_script)
+                except TypeError:
+                    logger.exception("Trying to create a custom sampler with invalid script handle: %s" % model.sos_scraper_data_source.custom_sampling_script)
+                    raise ValueError("Trying to create a custom sampler with invalid script handle: %s" % model.sos_scraper_data_source.custom_sampling_script)
+
+            # Create the data source
+            try:
+                data_field = self.session.query(MethodSchemaField).filter_by(id=model.sos_scraper_data_source.data_field).first()
+                data_source = jcudc24ingesterapi.models.data_sources.SOSScraperDataSource(
+                    url=model.sos_scraper_data_source.uri,
+                    field=data_source.name,
+                    #                    pattern=model.pull_data_source.filename_pattern,
+                    #                    mime_type=data_source_field.mime_type,
+                    #                    processing_script=model.pull_data_source.custom_processor_script,
+                    sampling=sampling_object,
+                    variant=model.sos_scraper_data_source.variant,
+                    version=model.sos_scraper_data_source.version,
+                )
+
+                if model.sos_scraper_data_source.custom_processor_script is not None:
+                    try:
+                        script_path = model.dataset_data_source.custom_processor_script
+                        with open(script_path) as f:
+                            script = f.read()
+                            if model.sos_scraper_data_source.custom_processing_parameters is not None:
+                                params = model.sos_scraper_data_source.custom_processing_parameters.split(",")
+                                for param in params:
+                                    param.strip()
+                                script = script % tuple(params)
+                            data_source.processing_script = script
+                    except IOError as e:
+                        logger.exception("Could not read custom processing script for dataset: %s" % model.title)
+                        raise ValueError("Could not read custom processing script for dataset: %s" % model.title)
+            except Exception as e:
+                logger.exception("Trying to create an ingester pull data source with invalid parameters: %s, Error: %s" % (model.title, e))
+                raise ValueError("Trying to create an ingester pull data source with invalid parameters: %s, Error: %s" % (model.title, e))
+
         if method.data_source == DatasetDataSource.__tablename__:
             if model.dataset_data_source is None:
                 raise ValueError("Trying to provision a dataset with no data source.  Go back to the dataset step and configure the data source: %s" % model.title)

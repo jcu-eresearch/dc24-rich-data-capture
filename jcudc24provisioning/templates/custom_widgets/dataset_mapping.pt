@@ -46,7 +46,7 @@
                     <tal:block tal:condition="str(method.data_source) in f.name" >
 
                         <!--If this is a pull_data_source-->
-                        <tal:block tal:condition="'pull_data_source' in f.name">
+                        <tal:block tal:condition="'pull_data_source' in f.name or 'sos_scraper_data_source' in f.name">
                             <tal:block tal:define="test setattr(f.schema.children[3].widget, 'values',field.schema.widget.get_file_fields(method.data_type)) "></tal:block>
                         </tal:block>
                         <div tal:replace="structure rndr(tmpl,field=f,cstruct=cstruct.get(f.name,null))" />

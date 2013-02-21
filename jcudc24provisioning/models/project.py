@@ -8,8 +8,9 @@ from sqlalchemy.dialects.mysql.base import DOUBLE
 from sqlalchemy.engine import create_engine
 from sqlalchemy.schema import ForeignKey, Table
 from zope.sqlalchemy import ZopeTransactionExtension
+from client import SOSVersions
 from colanderalchemy.declarative import Column, relationship
-from colanderalchemy.ca_model import CAModel
+from jcudc24provisioning.models.ca_model import CAModel
 import deform
 from sqlalchemy import (
     Integer,
@@ -134,17 +135,16 @@ def getSEOCodes(node, kw):
 
     return data
 
-def field_of_research_validator(form, value):
-    if not isinstance(value, list) or len(value) < 1:
-        exc = colander.Invalid(form, 'Required')
-#        exc['fieldofresearch'] = 'Required'
-        raise exc
+def sequence_required_validator(form, value):
+        if not isinstance(value, list) or len(value) < 1:
+            exc = colander.Invalid(form, 'Required.')
+            raise exc
 
 class FieldOfResearch(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'field_of_research'
-    id = Column(Integer, primary_key=True, ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
+    id = Column(Integer, primary_key=True, ca_order=next(order_counter), ca_force_required=False, nullable=False, ca_widget=deform.widget.HiddenWidget())
     metadata_id = Column(Integer, ForeignKey('metadata.id'),ca_order=next(order_counter),  nullable=False, ca_widget=deform.widget.HiddenWidget())
 
     field_of_research = Column(String(50), ca_order=next(order_counter), ca_title="Field Of Research", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
@@ -181,7 +181,7 @@ class Party(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'party'
-    id = Column(Integer, primary_key=True, nullable=False, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+    id = Column(Integer, primary_key=True, nullable=False, ca_force_required=False, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 #    person_id = Column(Integer, ForeignKey('person.id'), ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
     metadata_id = Column(Integer, ForeignKey('metadata.id'), ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
@@ -210,8 +210,8 @@ class Keyword(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'keyword'
-    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    metadata_id = Column(Integer, ForeignKey('metadata.id'), nullable=False, ca_widget=deform.widget.HiddenWidget())
+    id = Column(Integer, primary_key=True, ca_force_required=False, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    metadata_id = Column(Integer, ForeignKey('metadata.id'), ca_force_required=False, nullable=False, ca_widget=deform.widget.HiddenWidget())
 
     keyword = Column(String(512), ca_name="dc:subject.vivo:keyword.0.rdf:PlainLiteral")
 
@@ -297,7 +297,7 @@ class Location(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'location'
-    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    id = Column(Integer, primary_key=True, ca_force_required=False, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dam_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dam_version = Column(String(128), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     metadata_id = Column(Integer, ForeignKey('metadata.id'), nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
@@ -327,7 +327,7 @@ class LocationOffset(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'location_offset'
-    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    id = Column(Integer, primary_key=True, ca_force_required=False, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dam_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dam_version = Column(String(128), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
@@ -629,42 +629,80 @@ class PushDataSource(CAModel, Base):
     file_field = Column(String(100), ca_order=next(order_counter),
             ca_description="<b>TODO: Redevelop into dropdown selection from schema fields that are of type file</b>")
 
-class SOSDataSource(CAModel, Base):
+sos_variants = (("52North", "52 North"),)
+sos_versions = ((SOSVersions.v_1_0_0, "1.0.0"),)
+
+class SOSScraperDataSource(CAModel, Base):
     order_counter = itertools.count()
 
-    __tablename__ = 'sos_data_source'
+    __tablename__ = 'sos_scraper_data_source'
     id = Column(Integer, primary_key=True, nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
-    sos_data_source_url = Column(Text(), ca_validator=colander.url, ca_title="Sensor Observation Service (SOS) Data Source", ca_order=next(order_counter),
-        ca_placeholder="eg. http://example.com.au/sos/",
-        ca_description="Provide the url of the Sensor Observation Service to pull data from.")
+    uri = Column(Text(), ca_order=next(order_counter), ca_validator=colander.url,
+        ca_placeholder="eg. http://example.com.au/folder/",
+        ca_description="Provide the url of the external Sensor Observation Service.")
 
-    sensor_id = Column(Text(), ca_title="Sensor ID", ca_order=next(order_counter),
-        ca_placeholder="eg. 22",
-        ca_description="The ID of the sensor that data should be extracted for (leave blank to extract all data).")
+    # Id of the data_entry schema field used for the datasource file
+    data_field = Column(Integer, ca_order=next(order_counter),
+        ca_widget=deform.widget.SelectWidget(),
+        ca_description="<i>Select the schema field (field within the data type in methods) that the raw SOS data will be saved to.</i>")
 
-    start_conditions = Column(String(100),ca_order=next(order_counter), ca_title="Start conditions(TODO)", ca_child_title="todo",
+    variant = Column(String(64), ca_order=next(order_counter), ca_widget=deform.widget.SelectWidget(values=sos_variants),
+        ca_description="Select the external Sensor Observation Service (SOS) implementation variant, please contact the administrators if you require a different variant.")
+    version = Column(String(64), ca_order=next(order_counter), ca_widget=deform.widget.SelectWidget(values=sos_versions),
+        ca_description="Select the external Sensor Observation Service (SOS) implementation version, please contact the administrators if you require a different version.")
+
+
+    selected_sampling = Column(String(64), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter),
         ca_group_start="sampling", ca_group_title="Data Sampling/Filtering", ca_group_collapsed=False,
-        ca_group_help="Provide filtering conditions for the data received, the most common and simplest"\
-                      "cases are a sampling rate (eg. once per hour) or a repeating time periods (such as "\
-                      "start at 6am, stop at 7am daily) but any filtering can be acheived by adding a custom "\
-                      "sampling script below.</br></br>  The sampling script API can be found <a href="">here</a>.")
-    stop_conditions = Column(String(100),ca_order=next(order_counter), ca_title="Stop conditions (TODO)", ca_child_title="todo")
+        ca_group_widget=deform.widget.MappingWidget(item_template="choice_mapping_item", template="choice_mapping"),
+        ca_group_missing=colander.null)
+
+    periodic_sampling = Column(INTEGER(),ca_order=next(order_counter), ca_title="Periodic Sampling (Collect data every X minutes)",
+        ca_widget=deform.widget.TextInputWidget(regex_mask="^(\\\\d*)$", strip=False),
+        ca_help="Provide the number of minutes between checks for new data.  If you require something more advanced any filtering can be achieved by adding a custom "\
+                "sampling script below.</br></br>  The sampling script API can be found <a href="">here</a>.")
+
+    cron_sampling = Column(String(100),ca_order=next(order_counter), ca_title="Cron Based Sampling (When data is collected)",
+        ca_widget=deform.widget.TextInputWidget(template="chron_textinput"),
+        ca_help="<p>Provide repetitive filtering condition for retrieving data using the selectors below.</p>"\
+                "<p>If you require something more advanced you can provide your own cron string or any filtering can be achieved by adding a custom "\
+                "sampling script below.</p><p>The sampling script API can be found <a href="">here</a></p>.")
+
+
+    #    stop_conditions = Column(String(100),ca_order=next(order_counter), ca_title="Stop conditions (TODO)", ca_child_title="todo")
 
     custom_sampling_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
         ca_group_start="custom_sampling", ca_group_title="Custom Data Sampling/Filtering",
-        ca_placeholder="eg. Only ingest the firt data value of evry hour.",
-        ca_title="Describe custom sampling needs", ca_missing="", ca_description="Describe your sampling "\
-                                                                                 "requirements and what your uploaded script does, or what you will need help with.")
+        ca_placeholder="eg. Only ingest the first data value of every hour.",
+        ca_title="Describe custom sampling needs", ca_missing="",
+        ca_description="Describe your sampling requirements and what your uploaded script does, or what you will need help with.")
 
-    custom_sampling_script = Column(String(256),ca_order=next(order_counter), ca_widget=upload_widget,
-        ca_title="Upload custom sampling script", ca_missing = colander.null,
+    custom_sampling_script = Column(String(512), ca_type = deform.FileData(), ca_missing=colander.null ,ca_order=next(order_counter),ca_widget=upload_widget,
+        ca_title="Upload custom sampling script",
         ca_group_end="sampling",
         ca_description="Upload a custom Python script to "\
                        "sample the data in some way.  The sampling script API can be found "\
                        "<a title=\"Python sampling script API\"href=\"\">here</a>.")
 
+    custom_processor_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
+        ca_group_start="processing", ca_group_collapsed=False, ca_group_title="Custom Data Processing",
+        ca_placeholder="eg. Extract he humidity and temperature values from the raw data file received in another dataset.",
+        ca_title="Describe custom processing needs", ca_missing="", ca_description="Describe your processing "\
+                                                                                   "requirements and what your uploaded script does (or what you will need help with).")
+
+    custom_processing_parameters = Column(String(512),ca_order=next(order_counter),
+        ca_description="Comma separated list of parameters.",
+        ca_help="Parameters are added via python string formatting syntax, simply add %s or %(<i>name</i>)s wherever you want a parameter inserted (parameters must either be added in the correct order or be named).")
+
+
+    custom_processor_script = Column(String(512), ca_type = deform.FileData(), ca_missing=colander.null ,ca_order=next(order_counter),ca_widget=upload_widget,
+        ca_title="Upload custom processing script",
+        ca_group_end="method",
+        ca_description="Upload a custom Python script to "\
+                       "process the data in some way.  The processing script API can be found "\
+                       "<a title=\"Python processing script API\"href=\"\">here</a>.")
 
 @colander.deferred
 def dataset_select_widget(node, kw):
@@ -737,7 +775,7 @@ class Method(CAModel, Base):
     data_sources=(
         (FormDataSource.__tablename__,"Web form/manual only"),
         (PullDataSource.__tablename__,"Pull from external file system"),
-        (SOSDataSource.__tablename__,"Sensor Observation Service"),
+        (SOSScraperDataSource.__tablename__,"Sensor Observation Service"),
         (PushDataSource.__tablename__,"<i>(Advanced)</i> Push to this website through the API"),
         (DatasetDataSource.__tablename__,"<i>(Advanced)</i> Output from other dataset"),
     )
@@ -794,7 +832,6 @@ def dataset_validator(form, value):
     if error:
      raise exc
 
-
 class Dataset(CAModel, Base):
     order_counter = itertools.count()
 
@@ -841,7 +878,7 @@ class Dataset(CAModel, Base):
 #        , ca_missing="", ca_placeholder="eg. Australian Wet Tropics or Great Barrier Reef")
 
     dataset_locations = relationship('Location', ca_order=next(order_counter), ca_title="Location",
-        cascade="all, delete-orphan",ca_widget=deform.widget.SequenceWidget(template='map_sequence', max_len=1, min_len=1, points_only=True),
+        cascade="all, delete-orphan",ca_widget=deform.widget.SequenceWidget(template='map_sequence', max_len=1, min_len=1, points_only=True, error_class="error"),
         ca_force_required=True,
         ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
         ca_missing="", ca_help="<p>Use the drawing tools on the map and/or edit the text representations below.</p><p>Locations are represented using <a href='http://en.wikipedia.org/wiki/Well-known_text#Geometric_Objects'>Well-known Text (WKT) markup</a> in the WGS 84 coordinate system (coordinate system used by GPS).</p>")
@@ -853,7 +890,7 @@ class Dataset(CAModel, Base):
 
     form_data_source = relationship("FormDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False, cascade="all, delete-orphan",ca_collapsed=False)
     pull_data_source = relationship("PullDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False)
-    sos_data_source = relationship("SOSDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False,)
+    sos_scraper_data_source = relationship("SOSScraperDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False,)
     push_data_source = relationship("PushDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False,)
     dataset_data_source = relationship("DatasetDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False)
 
@@ -944,7 +981,7 @@ class Metadata(CAModel, Base):
 
     __tablename__ = 'metadata'
 
-    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget())
+    id = Column(Integer, ca_order=next(order_counter), ca_force_required=False, primary_key=True, ca_widget=deform.widget.HiddenWidget())
     project_id = Column(Integer, ForeignKey('project.id'), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dataset_id = Column(Integer, ForeignKey('dataset.id'), unique=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
@@ -1040,9 +1077,9 @@ class Metadata(CAModel, Base):
         ca_help="Enter keywords that users are likely to search on when looking for this projects data.")
 
     fieldOfResearch = relationship('FieldOfResearch', ca_name="dc:subject.anzsrc:for.0.rdf:resource", ca_order=next(order_counter), ca_title="Fields of Research", ca_page="information",
-        cascade="all, delete-orphan", ca_validator=field_of_research_validator,
+        cascade="all, delete-orphan", ca_validator=sequence_required_validator,
         ca_force_required=True,
-        ca_widget=deform.widget.SequenceWidget(template='multi_select_sequence', max_len=3),
+        ca_widget=deform.widget.SequenceWidget(template='multi_select_sequence', max_len=3, error_class="error"),
         ca_child_title="Field of Research",
         ca_help="Select the most applicable Fields of Research (FoR) from the drop-down menus, and click the 'Add Field Of Research' button (which is hidden until a code is selected)."
         , ca_missing="")
@@ -1113,8 +1150,10 @@ class Metadata(CAModel, Base):
     location_description = Column(String(512), ca_order=next(order_counter), ca_title="Location (description)", ca_page="information",
         ca_help="Textual description of the region covered such as Australian Wet Tropics."
         , ca_missing="", ca_placeholder="eg. Australian Wet Tropics or Great Barrier Reef")
-    locations = relationship('Location', ca_order=next(order_counter), ca_title="Location", ca_widget=deform.widget.SequenceWidget(template='map_sequence'), ca_page="information",
-        cascade="all, delete-orphan",
+
+
+    locations = relationship('Location', ca_order=next(order_counter), ca_title="Location", ca_widget=deform.widget.SequenceWidget(template='map_sequence', error_class="error"), ca_page="information",
+        cascade="all, delete-orphan", ca_validator=sequence_required_validator,
         ca_force_required=True,
         ca_group_end="coverage", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
         ca_missing=colander.null, ca_help="<p>Use the drawing tools on the map and/or edit the text representations below.</p><p>Locations are represented using <a href='http://en.wikipedia.org/wiki/Well-known_text#Geometric_Objects'>Well-known Text (WKT) markup</a> in the WGS 84 coordinate system (coordinate system used by GPS).</p>")
@@ -1176,26 +1215,26 @@ class Metadata(CAModel, Base):
 
     #-------------citation--------------------
     # Autocomplete from project title
-    title = Column(String(512), ca_name="dc:biblioGraphicCitation.dc:hasPart.dc:title", ca_order=next(order_counter), ca_placeholder="", ca_missing="", ca_page="information",
+    citation_title = Column(String(512), ca_name="dc:biblioGraphicCitation.dc:hasPart.dc:title", ca_order=next(order_counter), ca_placeholder="", ca_missing="", ca_page="information",
         ca_group_collapsed=False, ca_group_start='citation', ca_group_title="Citation", ca_group_requires_admin=True,
         ca_group_description="<b>TODO:  Need to work out what these feilds actually mean and refactor/reword."
                              "</b><br/>Provide metadata that should be used for the purposes of citing this record. Providing a "
                              "citation is optional, but if you choose to enable this there are quite specific mandatory "
                              "fields that will be required.")
     # Autocomplete from all people
-    creators = relationship('Creator', ca_order=next(order_counter), ca_missing=None, ca_page="information",cascade="all, delete-orphan",)
+    citation_creators = relationship('Creator', ca_order=next(order_counter), ca_missing=None, ca_page="information",cascade="all, delete-orphan",)
     # Dont know?
-    edition = Column(String(256), ca_name="dc:biblioGraphicCitation.dc:hasPart.dc:hasVersion.rdf:PlainLiteral", ca_order=next(order_counter), ca_missing="", ca_page="information",)
+    citation_edition = Column(String(256), ca_name="dc:biblioGraphicCitation.dc:hasPart.dc:hasVersion.rdf:PlainLiteral", ca_order=next(order_counter), ca_missing="", ca_page="information",)
     # Autocomplete as James Cook University
-    publisher = Column(String(256), ca_name="dc:biblioGraphicCitation.dc:hasPart.dc:publisher.rdf:PlainLiteral", ca_order=next(order_counter), ca_page="information")
+    citation_publisher = Column(String(256), ca_name="dc:biblioGraphicCitation.dc:hasPart.dc:publisher.rdf:PlainLiteral", ca_order=next(order_counter), ca_page="information")
     # Autocomplete as James Cook University
-    place_of_publication = Column(String(512), ca_name="dc:biblioGraphicCitation.dc:hasPart.vivo:Publisher.vivo:Location", ca_order=next(order_counter), ca_title="Place of publication", ca_page="information")
+    citation_place_of_publication = Column(String(512), ca_name="dc:biblioGraphicCitation.dc:hasPart.vivo:Publisher.vivo:Location", ca_order=next(order_counter), ca_title="Place of publication", ca_page="information")
     # Dates of data, eg. data data started being collected
-    dates = relationship('CitationDate', ca_order=next(order_counter), ca_title="Date(s)", ca_page="information",cascade="all, delete-orphan",)
+    citation_dates = relationship('CitationDate', ca_order=next(order_counter), ca_title="Date(s)", ca_page="information",cascade="all, delete-orphan",)
     # Autocomplete as link to data (CC-DAM)
-    url = Column(String(256), ca_validator=colander.url, ca_name="dc:biblioGraphicCitation.dc:hasPart.bibo:Website.dc:identifier",ca_order=next(order_counter), ca_title="URL", ca_page="information")
+    citation_url = Column(String(256), ca_validator=colander.url, ca_name="dc:biblioGraphicCitation.dc:hasPart.bibo:Website.dc:identifier",ca_order=next(order_counter), ca_title="URL", ca_page="information")
     # Unknown
-    context = Column(String(512), ca_name="dc:biblioGraphicCitation.dc:hasPart.skos:scopeNote", ca_order=next(order_counter), ca_placeholder="citation context", ca_missing="", ca_page="information",
+    citation_context = Column(String(512), ca_name="dc:biblioGraphicCitation.dc:hasPart.skos:scopeNote", ca_order=next(order_counter), ca_placeholder="citation context", ca_missing="", ca_page="information",
         ca_group_end='citation')
     #-------------additional_information--------------------
     retention_periods = (
@@ -1228,6 +1267,21 @@ class Metadata(CAModel, Base):
 
 class ProjectStates(object):
     OPEN, SUBMITTED, APPROVED, ACTIVE, DISABLED = range(5)
+
+def project_validator(form, value):
+    error = False
+    exc = colander.Invalid(form) # Uncomment to add a block message: , 'At least 1 research theme or Not aligned needs to be selected')
+
+    if not isinstance(value['project:methods'], list) or len(value['project:methods']) <= 0:
+        exc['project:methods'] = "The project must have at least one method."
+        error = True
+    if not isinstance(value['project:datasets'], list) or len(value['project:datasets']) <= 0:
+        exc['project:datasets'] = "The project must have at least one dataset."
+        error = True
+
+    if error:
+        raise exc
+
 
 class Project(CAModel, Base):
     order_counter = itertools.count()

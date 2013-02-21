@@ -185,7 +185,7 @@ def initialise_method_templates(session):
         tree_datasource.uri = "http://emu.hpc.jcu.edu.au/tree/split/"
         tree_datasource.filename_pattern = "\\.*\\"
         tree_datasource.selected_sampling = PullDataSource.periodic_sampling.key
-        tree_datasource.periodic_sampling = "60000"
+        tree_datasource.periodic_sampling = "1"
         tree_dataset.pull_data_source = tree_datasource
         session.add(tree_dataset) # Add an empty project as a blank template
         session.flush()

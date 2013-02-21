@@ -54,8 +54,6 @@
 
     </ul>
 
-    <p tal:condition="field.error" class="error">${field.error.msg}</p>
-
     <div id="second_level_data" class="hidden">
             <span tal:repeat="(key, values) data.items()"
                   tal:attributes="class 'second_level_data-'+key">
