@@ -98,7 +98,6 @@ deform.addCallback(
 
             if ($("#" + oid).children(".points_only").length > 0 && $("#" + oid).children(".points_only")[0].value == 'True') {
                 var panelControls = [
-                    new OpenLayers.Control.SelectFeature(vector, {title:"Delete", onSelect:deleteFeature, 'displayClass':'olControlDeleteFeature'}),
                     new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.Point, {title:"Draw points", 'displayClass':'olControlDrawFeaturePoint'}),
                     new OpenLayers.Control.Navigation({title:"Navigate only"})
                 ];

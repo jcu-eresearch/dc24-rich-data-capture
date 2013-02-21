@@ -848,7 +848,11 @@ class Workflows(Layouts):
         ingesters = []
         for dataset in self.project.datasets:
             if dataset.publish_dataset:
-                redbox_records.append((dataset.name, dataset.redbox_uri,
+                metadata_record = self.session.query(Metadata).filter_by(dataset_id=dataset.id).first()
+                redbox_uri = None
+                if metadata_record is not None:
+                    redbox_uri = metadata_record.redbox_uri
+                redbox_records.append((dataset.name, redbox_uri,
                                        self.request.route_url("view_record", project_id=self.project_id, dataset_id=dataset.id),
                                        self.request.route_url("delete_record", project_id=self.project_id, dataset_id=dataset.id)))
 
@@ -920,11 +924,18 @@ class Workflows(Layouts):
                 return response
 
             try:
+                dataset_services_csv = [self.dataset_to_mint_service_csv(dataset.id) for dataset in self.project.datasets]
 
-                # TODO: ReDBox integration
+                # TODO: Upload service csv files to Mint and get mint url and identifier
+
+                project_csv = self.record_to_redbox_csv(self.project.information.id)
+                dataset_records_csv = [self.record_to_redbox_csv(self.session.query(Metadata).filter(Metadata.dataset_id==dataset.id).first().id) for dataset in self.project.datasets]
+                dataset_records_csv = [self.record_to_redbox_csv(id) for id in self.session.query(Metadata).join(Dataset).filter(Metadata.dataset_id==Dataset.id).filter(Dataset.project_id==self.project_id).all()]
+
+                # TODO: Upload the csv files to ReDBox and get the links and identifiers
+
                 logger.info("Project has been added to ReDBox successfully: %s", self.project.id)
-                raise NotImplementedError("ReDBox integration hasn't been implemented yet.")
-                pass
+
             except Exception as e:
                 logger.exception("Project failed to add to ReDBox: %s", self.project.id)
                 self.request.session.flash("Sorry, the project failed to generate or add metadata records to ReDBox, please try agiain.", 'error')
@@ -937,6 +948,22 @@ class Workflows(Layouts):
             logger.info("Project has been approved successfully: %s", self.project.id)
 
         return response
+
+    def dataset_to_mint_service_csv(self):
+        service_csv = ""
+
+        # TODO: Dataset to mint service csv mappings
+
+        return service_csv
+
+    def record_to_redbox_csv(self, metadata_id):
+        redbox_csv = ""
+
+        metadata = self.session.query(Metadata).filter_by(id==metadata_id).first()
+
+        #TODO: Metadata to redbox csv mappings.
+
+        return redbox_csv
 
     def generate_dataset_record(self, dataset_id):
         metadata_id = self.session.query(Metadata.id).filter_by(dataset_id=dataset_id).first()

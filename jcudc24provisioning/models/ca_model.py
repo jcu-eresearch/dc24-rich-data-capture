@@ -250,9 +250,6 @@ class CAModel(object):
         if is_data_empty:
             return None
 
-        if not isinstance(getattr(model_object, 'id'), (int, long)):
-            test = 2
-
         return model_object
     
     def convert_sqlalchemy_model_to_data(self, model, schema=None):

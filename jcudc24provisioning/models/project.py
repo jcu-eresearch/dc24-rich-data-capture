@@ -847,7 +847,9 @@ class Dataset(CAModel, Base):
     method_id = Column(Integer, ForeignKey('method.id'), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
     disabled = Column(Boolean,ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
-    redbox_uri = Column(String(256), ca_name="dc:relation.vivo:Dataset.0.dc:identifier",ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+
+    mint_service_id = Column(String(256), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+    mint_service_uri = Column(String(256), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 
     name = Column(Text(), ca_name="dc:relation.vivo:Dataset.0.dc:title", ca_title="Dataset Name", ca_order=next(order_counter),
         ca_placeholder="Provide a textual description of this dataset.",
@@ -985,7 +987,9 @@ class Metadata(CAModel, Base):
     project_id = Column(Integer, ForeignKey('project.id'), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dataset_id = Column(Integer, ForeignKey('dataset.id'), unique=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
+
     redbox_identifier = Column(String(256), ca_name="", ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    redbox_uri = Column(String(256), ca_name="dc:relation.vivo:Dataset.0.dc:identifier",ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
     ccdam_identifier = Column(String(256), ca_name="", ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
     #--------------Setup--------------------
