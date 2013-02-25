@@ -3,7 +3,7 @@ import sys
 import transaction
 
 import random
-from jcudc24provisioning.models.project import Base, Dataset, MethodSchema,ProjectTemplate, MethodSchemaField, DBSession, Project, MethodTemplate, Method, PullDataSource, DatasetDataSource
+from jcudc24provisioning.models.project import Base, Dataset, Location, MethodSchema,ProjectTemplate, MethodSchemaField, DBSession, Project, MethodTemplate, Method, PullDataSource, DatasetDataSource
 from jcudc24ingesterapi.schemas.data_types import Double
 
 from sqlalchemy import engine_from_config
@@ -141,7 +141,6 @@ def initialise_method_templates(session):
     blank_template = session.query(MethodTemplate).filter_by(name="Blank Template").first()
     if not blank_template:
         blank_method = Method()
-        blank_method.method_template = True
         #            blank_method.method_description = "Test description"
         session.add(blank_method) # Add an empty project as a blank template
 
@@ -162,7 +161,6 @@ def initialise_method_templates(session):
     tree_template = session.query(MethodTemplate).filter_by(name="Artificial Tree").first()
     if not tree_template:
         tree_method = Method()
-        tree_method.method_template = True
         tree_method.method_name = "Artificial Sensor Tree"
         tree_method.method_description = "Collection method for ingesting aggregated tree sensor data from an external file server."
         tree_method.data_source = PullDataSource.__tablename__
@@ -201,7 +199,6 @@ def initialise_method_templates(session):
     sensor_template = session.query(MethodTemplate).filter_by(name="Artificial Tree Sensor").first()
     if not sensor_template:
         sensor_method = Method()
-        sensor_method.method_template = True
         sensor_method.method_name = "Artificial Tree Sensor"
         sensor_method.method_description = "Filter and index one sensor station from the aggregated artificial tree data."
         sensor_method.data_source = DatasetDataSource.__tablename__
@@ -213,7 +210,7 @@ def initialise_method_templates(session):
         sensor_dataset = Dataset()
         sensor_dataset.name = "Artificial Tree Sensor"
         sensor_datasource = DatasetDataSource()
-        sensor_datasource.custom_processing_parameters = "28180E08030000BE"
+        sensor_datasource.custom_processing_parameters = "file_field=TreeData, temp_field=Temperature, sensor_id=28180E08030000BE"
         sensor_dataset.dataset_data_source = sensor_datasource
         session.add(sensor_dataset) # Add an empty project as a blank template
         session.flush()

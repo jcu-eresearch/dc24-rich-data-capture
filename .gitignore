@@ -6,3 +6,4 @@ lib
 *.iml
 tmp_files/*
 /*.iml
+/data

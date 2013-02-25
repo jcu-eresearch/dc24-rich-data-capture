@@ -4,9 +4,15 @@ from dc24_ingester_platform.utils import *
 
 def process(cwd, data_entries):
     ret = []
+    arg_list = [param.strip() for param in "{args}".split(',')]
+
+    tree_file_field = "{file_field}"
+    sensor_temp_field = "{temp_field}"
+    sensor_id = "{sensor_id}"
+
     started = False
     for data_entry in data_entries:
-        with open(os.path.join(cwd, data_entry["file"].f_path)) as f:
+        with open(os.path.join(cwd, data_entry[tree_file_field].f_path)) as f:
             for l in f.readlines():
                 l = l.strip()
                 if not started:
@@ -17,8 +23,8 @@ def process(cwd, data_entries):
                     # parse line
                     l = l.split(",")
                     if len(l) < 3: continue
-                    if l[1] != "%s": continue
+                    if l[1] != sensor_id: continue
                     new_data_entry = DataEntry(timestamp=datetime.datetime.now())
-                    new_data_entry["temp"] = float(l[2])
+                    new_data_entry[sensor_temp_field] = float(l[2])
                     ret.append( new_data_entry )
     return ret

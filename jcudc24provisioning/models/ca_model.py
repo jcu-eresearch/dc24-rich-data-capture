@@ -36,7 +36,7 @@ class CAModel(object):
         return self.create_sqlalchemy_model(appstruct, model_object=self) is not None
     
     def _get_field_type(self, field_name, model_object):
-        return model_object._sa_class_manager[field_name].parententity.columns._data[field_name].type.python_type
+        return model_object._sa_class_manager[field_name]._parententity.columns._data[field_name].type.python_type
 
     def _get_ca_registry(self, field_name, model_class):
         try:

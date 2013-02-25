@@ -31,7 +31,7 @@ from colanderalchemy.types import SQLAlchemyMapping
 from jcudc24provisioning.views.views import Layouts
 from pyramid.renderers import get_renderer
 from jcudc24provisioning.models.project import DBSession, PullDataSource, Metadata, UntouchedPages, IngesterLogs, Location, \
-    ProjectTemplate,method_template,DatasetDataSource, Project, project_validator, CreatePage, Method, Base, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
+    ProjectTemplate,method_template,DatasetDataSource, Project, project_validator, ProjectStates, CreatePage, Method, Base, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
 from jcudc24provisioning.views.ca_scripts import convert_schema, fix_schema_field_name
 from jcudc24provisioning.models.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.mint_lookup import MintLookup
@@ -58,9 +58,9 @@ WORKFLOW_STEPS = [
 
 WORKFLOW_ACTIONS = [
         {'href': 'general', 'title': 'Configuration', 'page_title': 'General Details'},
-        {'href': 'logs', 'title': 'View Logs', 'page_title': 'Ingester Event Logs', },
-        {'href': 'add_data', 'title': 'Add Data', 'page_title': 'Add Data'},
-        {'href': 'manage_data', 'title': 'Manage Data', 'page_title': 'Manage Data'},
+        {'href': 'logs', 'title': 'View Logs', 'page_title': 'Ingester Event Logs', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED]},
+        {'href': 'add_data', 'title': 'Add Data', 'page_title': 'Add Data', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED]},
+        {'href': 'manage_data', 'title': 'Manage Data', 'page_title': 'Manage Data', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED]},
         {'href': 'permissions', 'title': 'Sharing', 'page_title': 'Sharing & Permissions'},
         {'href': 'duplicate', 'title': 'Duplicate Project', 'page_title': 'Duplicate Project'},
         {'href': 'create_template', 'title': 'Make into Template', 'page_title': 'Create Project Template'},
@@ -95,6 +95,23 @@ class Workflows(Layouts):
         self.project_id = None
         if self.request.matchdict and 'project_id' in self.request.matchdict:
             self.project_id = self.request.matchdict['project_id']
+
+        # If the user submits a form
+        if 'project:id' in self.request.POST and self.request.POST['project:id'] != self.project_id:
+            self.request.POST['project:id'] = self.project_id
+
+    @property
+    def readonly(self):
+        if '_readonly' not in locals():
+            # TODO: Update this to take permissions into account for submitted state
+            self._readonly = self.project is not None and not (self.project.state == ProjectStates.OPEN or self.project.state is None or self.project.state == ProjectStates.SUBMITTED)
+        return self._readonly
+
+    @property
+    def title(self):
+        if '_title' not in locals():
+            self._title = self.find_menu()['title']
+        return self._title
 
     @property
     def project(self):
@@ -132,17 +149,58 @@ class Workflows(Layouts):
         return self._ingester_api
 
 
+    @property
+    def page(self):
+        if '_page' not in locals():
+            for menu in WORKFLOW_STEPS + WORKFLOW_ACTIONS:
+                if self.request.url.endswith(menu['href']):
+                    self._page = menu
+        return self._page
 
-# --------------------MENU METHODS-------------------------------------------
-    def find_current_page(self):
-        for menu in WORKFLOW_STEPS + WORKFLOW_ACTIONS:
-            if self.request.url.endswith(menu['href']):
-                return menu
+    @property
+    def next(self):
+        if '_next' not in locals():
+            self._next = None # Set as None if this is the last visible step or it isn't a workflow page.
 
+            if self.page in WORKFLOW_STEPS:
+                for i in range(len(WORKFLOW_STEPS))[WORKFLOW_STEPS.index(self.page) + 1:]:
+                    if 'hidden' not in self._next or not self._next['hidden']:
+                        self._next = WORKFLOW_STEPS[i]
+                        break
+
+        return self._next
+
+    @property
+    def previous(self):
+        if '_previous' not in locals():
+            self._previous = None # Set as None if this is the first visible step or it isn't a workflow page.
+
+            if self.page in WORKFLOW_STEPS:
+                for i in range(len(WORKFLOW_STEPS))[WORKFLOW_STEPS.index(self.page) - 1:].reverse():
+                    if 'hidden' not in self._previous or not self._previous['hidden']:
+                        self._previous = WORKFLOW_STEPS[i]
+                        break
+
+        return self._previous
+
+    @property
+    def appstruct(self):
+        if '_appstruct' not in locals():
+            controls = self.request.POST.items()
+
+            if 'POST' != self.request.method or len(self.request.POST) == 0:
+                self._appstruct = {}
+            else:
+                try:
+                    self._appstruct = self.form.validate(controls)
+                except ValidationFailure, e:
+                    self._appstruct = e.cstruct
+        return self._appstruct
+
+# --------------------MENU TEMPLATE METHODS-------------------------------------------
     @reify
     def workflow_step(self):
-#        print "find_current_page: %s" % self.find_current_page() not in WORKFLOW_STEPS
-        if self.find_current_page() not in WORKFLOW_STEPS:
+        if self.page not in WORKFLOW_STEPS:
             return []
 
         new_menu = WORKFLOW_STEPS[:]
@@ -164,8 +222,8 @@ class Workflows(Layouts):
         url = split(self.request.url, "?")[0]
         hidden = []
         for menu in new_menu:
-            menu['current'] = url.endswith(menu['href']) or self.find_current_page() in WORKFLOW_STEPS and menu['href'] == 'general'
-            if 'hidden' in menu and menu['hidden'] is True:
+            menu['current'] = url.endswith(menu['href']) or self.page in WORKFLOW_STEPS and menu['href'] == 'general'
+            if ('hidden' in menu and menu['hidden'] is True) or ('hidden_states' in menu and self.project is not None and self.project.state in menu['hidden_states']):
                 hidden.append(menu)
 
         for menu in hidden:
@@ -204,37 +262,64 @@ class Workflows(Layouts):
     def isDelete(self):
         return 'Delete' in self.request.POST
 
+    def get_address(self, href):
+        return self.request.route_url(href, project_id=self.project_id)
 
 # --------------------WORKFLOW STEP METHODS-------------------------------------------
-    def save_form(self, data, model_id, model_type=Project):
-         model = self.session.query(model_type).filter_by(id=model_id).first()
+    def _save_form(self, appstruct, model_id, model_type):
+         # In either of the below cases get the data as a dict and get the rendered form
+#        if 'POST' != self.request.method or len(self.request.POST) == 0 or self.readonly or \
+#                'model_id' not in self.request.POST or 'model_type' not in self.request.POST:
+#            return
 
-         if model is None or not isinstance(model, model_type):
-             if model_id is None or model_id == colander.null:
-                 model = model_type(appstruct=data)
-                 if model is not None:
-                     self.session.add(model)
-                     saved = True
-             else:
-                 raise ValueError("No project found for the given project id(" + model_id + "), please do not directly edit the address bar.")
+#        model_id = self.request.POST['model_id']
+#        model_type = globals()[self.request.POST['model_type']]
 
-         else:
-             # Update the model with all fields in the data
-             if model.update(data):
-                 return model.id # There were no changes (if there were changes they will still be commited through the internals of sqlalchemy though).
-             else:
-                 self.session.merge(model)
+        model = self.session.query(model_type).filter_by(id=model_id).first()
 
-         try:
-             self.session.flush()
-             return model.id
-#             self.request.session.flash("Project saved successfully.", "success")
-         except Exception as e:
-             logger.exception("SQLAlchemy exception while flushing after save: %s" % e)
-             self.request.session.flash("There was an error while saving the project, please try again.", "error")
-             self.request.session.flash("Error: %s" % e, "error")
-             self.session.rollback()
-#         self.session.remove()
+        if model is None or not isinstance(model, model_type):
+            if model_id is None or model_id == colander.null:
+                model = model_type(appstruct=appstruct)
+                if model is not None:
+                    self.session.add(model)
+                else:
+                    return
+            else:
+                raise ValueError("No project found for the given project id(" + model_id + "), please do not directly edit the address bar.")
+
+        else:
+            # Update the model with all fields in the data
+            if model.update(appstruct):
+                self.session.merge(model)
+
+        try:
+            self.session.flush()
+            return model.id
+#            self.request.session.flash("Project saved successfully.", "success")
+        except Exception as e:
+            logger.exception("SQLAlchemy exception while flushing after save: %s" % e)
+            self.request.session.flash("There was an error while saving the project, please try again.", "error")
+            self.request.session.flash("Error: %s" % e, "error")
+            self.session.rollback()
+#       self.session.remove()
+
+    def _get_messages(self):
+        return {'error_messages': self.request.session.pop_flash("error"),
+                'success_messages': self.request.session.pop_flash("success"),
+                'warning_messages': self.request.session.pop_flash("warning")
+            }
+
+    def _redirect_to_target(self):
+#       If there is a target workflow step set then change to that page.
+        if self.request.POST['target']:
+            target = self.request.POST['target']
+        else:
+            target = self.request.matched_route.name
+#        if form.use_ajax:
+#            return {"page_title": self.title, "form": display, "form_only": form.use_ajax,  'messages' : self._get_messages() or '', 'page_help': page_help, 'readonly': readonly}
+#        else:
+        return HTTPFound(self.request.route_url(target, project_id=self.project_id))
+
 
     def handle_form(self, form, schema, page_help=None, appstruct=None, display=None, readonly=False):
         # If the form is being saved (there would be 1 item in controls if it is a fresh page with a project id set)
@@ -252,8 +337,7 @@ class Workflows(Layouts):
                     display = e.render()
 
             # save the data even if it didn't validate - this allows the user to easily navigate and fill fields out as they get the info.
-            project_id = self.save_form(appstruct, self.project_id)
-            # TODO: Walk through schema saving to look at parent schemas (throws duplicate id error)
+            project_id = self._save_form(appstruct, self.project_id, Project)
 
 
             # Set the page as edited so future visits will show the page with validation
@@ -269,21 +353,7 @@ class Workflows(Layouts):
                 page = self.find_menu()['href']
                 setattr(untouched_pages, page, True)
 
-#            If there is a target workflow step set then change to that page.
-            if self.request.POST['target']:
-                target = self.request.POST['target']
-            else:
-                target = self.request.matched_route.name
-            if form.use_ajax:
-                messages = {
-                    'error_messages': self.request.session.pop_flash("error"),
-                    'success_messages': self.request.session.pop_flash("success"),
-                    'warning_messages': self.request.session.pop_flash("warning")
-                }
-                return {"page_title": self.find_menu()['title'], "form": display, "form_only": form.use_ajax,  'messages' : messages or '', 'page_help': page_help, 'readonly': readonly}
-            else:
-                return HTTPFound(self.request.route_url(target, project_id=self.project_id))
-
+            return self._redirect_to_target()
 #            return {"page_title": self.find_menu()['title'], "form": display, "form_only": form.use_ajax, 'messages' : self.request.session.pop_flash() or ''}
 
         # If the page has just been opened but it is set to a specific project
@@ -291,7 +361,8 @@ class Workflows(Layouts):
 
         if self.project_id is not None:
             model = self.session.query(Project).filter_by(id=self.project_id).first()
-            appstruct = model.dictify(schema)
+            if model is not None:
+                appstruct = model.dictify(schema)
 
         # If the page has been saved previously, show the validated form
         untouched_pages = self.session.query(UntouchedPages).filter_by(project_id=self.project_id).first()
@@ -307,13 +378,7 @@ class Workflows(Layouts):
         else:
             display = form.render(appstruct, readonly=readonly)
 
-
-        messages = {
-            'error_messages': self.request.session.pop_flash("error"),
-            'success_messages': self.request.session.pop_flash("success"),
-            'warning_messages': self.request.session.pop_flash("warning")
-        }
-        return {"page_title": self.find_menu()['title'], "form": display, "form_only": False, 'messages': messages, 'page_help': page_help, 'readonly': readonly}
+        return {"page_title": self.find_menu()['title'], "form": display, "form_only": False, 'messages': self._get_messages(), 'page_help': page_help, 'readonly': readonly}
 
 
     def clone (self, source):
@@ -356,9 +421,7 @@ class Workflows(Layouts):
         schema.children[0].templates_data = templates
         schema.children[0].template_categories = categories
 
-#        print self.get_grants("a")
-
-        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id),
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id),
             buttons=('Create Project',), use_ajax=False, ajax_options=redirect_options)
 
         controls = self.request.POST.items()
@@ -368,7 +431,7 @@ class Workflows(Layouts):
         if len(controls) > 0:
             # In either of the below cases get the data as a dict and get the rendered form
             try:
-                appstruct = form.validate(controls)
+                appstruct = self.form.validate(controls)
 
                 new_project = Project()
 
@@ -438,32 +501,22 @@ class Workflows(Layouts):
             except ValidationFailure, e:
                 appstruct = e.cstruct
                 self.request.session.flash('Valid project setup data must be entered before progressing.', 'error')
-                messages = {
-                    'error_messages': self.request.session.pop_flash("error"),
-                    'success_messages': self.request.session.pop_flash("success"),
-                    'warning_messages': self.request.session.pop_flash("warning")
-                }
-                return {"page_title": self.find_menu()['title'], "form": e.render(), "form_only": False, 'messages': messages}
+                return {"page_title": self.find_menu()['title'], "form": e.render(), "form_only": False, 'messages': self._get_messages()}
 
-        messages = {
-            'error_messages': self.request.session.pop_flash("error"),
-            'success_messages': self.request.session.pop_flash("success"),
-            'warning_messages': self.request.session.pop_flash("warning")
-        }
-        return {"page_title": self.find_menu()['title'], "form": form.render(appstruct), "form_only": False, 'messages': messages, 'page_help': page_help}
+        return {"page_title": self.find_menu()['title'], "form": self.form.render(appstruct), "form_only": False, 'messages': self._get_messages(), 'page_help': page_help}
 
 
     @view_config(route_name="general")
     def general_view(self):
         page_help = ""
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description=""), page='general').bind(request=self.request)
-        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', ), use_ajax=False, ajax_options=redirect_options)
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', ), use_ajax=False, ajax_options=redirect_options)
 
         if 'Next' in self.request.POST:
             self.request.POST['target'] = 'description'
 
         readonly = self.project is not None and not (self.project.state == ProjectStates.OPEN or self.project.state is None)
-        return self.handle_form(form, schema, page_help, readonly=readonly)
+        return self.handle_form(self.form, schema, page_help, readonly=readonly)
 
 
     @view_config(route_name="description")
@@ -478,7 +531,7 @@ class Workflows(Layouts):
             request=self.request)
 
 
-        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
 
         if 'Next' in self.request.POST:
             self.request.POST['target'] = 'information'
@@ -487,7 +540,7 @@ class Workflows(Layouts):
             self.request.POST['target'] = 'general'
 
         readonly = self.project is not None and not (self.project.state == ProjectStates.OPEN or self.project.state is None)
-        return self.handle_form(form, schema, page_help, readonly=readonly)
+        return self.handle_form(self.form, schema, page_help, readonly=readonly)
 
 
     @view_config(route_name="information")
@@ -506,7 +559,7 @@ class Workflows(Layouts):
                                    "these forms, you can enter it directly in the ReDBox-Mint records once the project " \
                                    "is submitted and accepted (Look under <i>[to be worked out]</i> for a link).</li></ul>"
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page='information').bind(request=self.request, settings=self.config)
-        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
 
         if 'Next' in self.request.POST:
             self.request.POST['target'] = 'methods'
@@ -515,7 +568,7 @@ class Workflows(Layouts):
             self.request.POST['target'] = 'description'
 
         readonly = self.project is not None and not (self.project.state == ProjectStates.OPEN or self.project.state is None)
-        return self.handle_form(form, schema, page_help, readonly=readonly)
+        return self.handle_form(self.form, schema, page_help, readonly=readonly)
 
     def get_template_schemas(self):
         return self.session.query(MethodSchema).filter_by(template_schema=1).all()
@@ -536,24 +589,12 @@ class Workflows(Layouts):
             if not template.category in categories:
                 categories.append(template.category)
 
-        for i in range(len(schema.children)):
-            if schema.children[i].name[-len(Project.methods.key):] == Project.methods.key:
-                METHODS_INDEX = i
-
-                for j in range(len(schema.children[i].children[0].children)):
-                    if schema.children[i].children[0].children[j].name[-len(Method.method_template.key):] == Method.method_template.key:
-                        METHOD_TEMPLATE_INDEX = j
-
-                    # Delete the datasets relationship so that it doesn't cause validation failures
-                    elif schema.children[i].children[0].children[j].name[-len(Method.datasets.key):] == Method.datasets.key:
-                        DATASETS_INDEX = j
-                        del schema.children[i].children[0].children[j]
-
-                break
-
-        schema.children[METHODS_INDEX].children[0].children[METHOD_TEMPLATE_INDEX].templates_data = templates
-        schema.children[METHODS_INDEX].children[0].children[METHOD_TEMPLATE_INDEX].template_categories = categories
-        schema.children[METHODS_INDEX].children[0].children[METHOD_TEMPLATE_INDEX].widget=deform.widget.HiddenWidget()
+        PREFIX_SEPARATOR = ":"
+        METHODS_INDEX = string.join([schema.name, Project.methods.key], PREFIX_SEPARATOR)
+        METHOD_TEMPLATE_INDEX = string.join([schema[METHODS_INDEX].children[0].name, Method.method_template_id.key], PREFIX_SEPARATOR)
+        schema[METHODS_INDEX].children[0][METHOD_TEMPLATE_INDEX].templates_data = templates
+        schema[METHODS_INDEX].children[0][METHOD_TEMPLATE_INDEX].template_categories = categories
+        schema[METHODS_INDEX].children[0][METHOD_TEMPLATE_INDEX].widget=deform.widget.HiddenWidget()
 
         template_data = method_template#type("dummy_object", (object,), {})
         template_data.oid = "MethodsTemplate"
@@ -561,21 +602,16 @@ class Workflows(Layouts):
         template_data.schema.templates_data = templates
         template_data.schema.template_categories = categories
 
-        schema.children[METHODS_INDEX].templates_data = template_data
+        schema[METHODS_INDEX].templates_data = template_data
 
-        # Find the METHOD_SCHEMA_PARENTS_INDEX:
-        for i in range(len(schema.children[METHODS_INDEX].children[0].children)):
-            if schema.children[METHODS_INDEX].children[0].children[i].name[-len(Method.data_type.key):] == Method.data_type.key:
-                DATA_SCHEMA_INDEX = i
-                for j in range(len(schema.children[METHODS_INDEX].children[0].children[i].children)):
-                    if schema.children[METHODS_INDEX].children[0].children[i].children[j].name[-len(MethodSchema.parents.key):] == MethodSchema.parents.key:
-                        METHOD_SCHEMA_PARENTS_INDEX = j
-                        break
-                break
-        schema.children[METHODS_INDEX].children[0].children[DATA_SCHEMA_INDEX].children[METHOD_SCHEMA_PARENTS_INDEX].template_schemas = self.get_template_schemas()
+        DATA_SCHEMA_INDEX = string.join([schema[METHODS_INDEX].children[0].name, Method.data_type.key], PREFIX_SEPARATOR)
+        METHOD_SCHEMA_PARENTS_INDEX = string.join([schema[METHODS_INDEX].children[0].name, Method.data_type.key, MethodSchema.parents.key], PREFIX_SEPARATOR)
+        schema[METHODS_INDEX].children[0][DATA_SCHEMA_INDEX][METHOD_SCHEMA_PARENTS_INDEX].template_schemas = self.get_template_schemas()
 #        assert False
 
-        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
+
+
 
         if 'Next' in self.request.POST:
             self.request.POST['target'] = 'datasets'
@@ -583,13 +619,13 @@ class Workflows(Layouts):
         if 'Previous' in self.request.POST:
             self.request.POST['target'] = 'information'
 
-        appstruct = None
+        appstruct = {}
         display = None
         controls = self.request.POST.items()
         if len(controls) > 0:
             try:
-                appstruct = form.validate(controls)
-                display = form.render(appstruct)
+                appstruct = self.form.validate(controls)
+                display = self.form.render(appstruct)
             except ValidationFailure, e:
                 appstruct = e.cstruct
                 display = e.render()
@@ -598,20 +634,20 @@ class Workflows(Layouts):
 
 #            old_models = self.session.query(Method).filter_by(project_id=self.project_id).all()
             for new_method_data in appstruct['project:methods']:
-                if not new_method_data['method:id'] and 'method:method_template' in new_method_data and new_method_data['method:method_template']:
-                    template_method = self.session.query(Method).filter_by(id=new_method_data['method:method_template']).first()
+                if not new_method_data['method:id'] and 'method:method_template_id' in new_method_data and new_method_data['method:method_template_id']:
+                    template_method = self.session.query(Method).filter_by(id=new_method_data['method:method_template_id']).first()
                     if template is None:
                         continue
 
-                    new_method_dict = self.clone(template_method).dictify(schema.children[METHODS_INDEX].children[0])
+                    new_method_dict = self.clone(template_method).dictify(schema[METHODS_INDEX].children[0])
 #                    new_method_dict = new_method_dict['method']
                     del new_method_dict['method:id']
                     new_method_dict['method:project_id'] = new_method_data['method:project_id']
-                    new_method_dict['method:method_template'] = new_method_data['method:method_template']
+                    new_method_dict['method:method_template_id'] = new_method_data['method:method_template_id']
                     new_method_data.update(new_method_dict)
 
         readonly = self.project is not None and not (self.project.state == ProjectStates.OPEN or self.project.state is None)
-        return self.handle_form(form, schema, page_help, appstruct=appstruct, display=display, readonly=readonly)
+        return self.handle_form(self.form, schema, page_help, appstruct=appstruct, display=display, readonly=readonly)
 
 
     @view_config(route_name="datasets")
@@ -666,7 +702,7 @@ class Workflows(Layouts):
 #            # Add dataset template data to each method if it exists
 #            for method in methods:
 #                method.template = self.session.query(Dataset).join(MethodTemplate).filter(Dataset.id == MethodTemplate.dataset_id).\
-#                    filter(MethodTemplate.id == method.method_template).first()
+#                    filter(MethodTemplate.id == method.method_template_id).first()
 
             # Add method data to the field for information to create new templates.
             schema.children[DATASETS_INDEX].children[0].methods = methods
@@ -709,9 +745,9 @@ class Workflows(Layouts):
 #                    dataset_children[DATA_CONFIG_INDEX].description = "No associated data source - please select a datasource on the Methods page."
 #
 #                # Get the dataset template if there is one
-#                if method.method_template:
+#                if method.method_template_id:
 #                    template = self.session.query(Dataset).join(MethodTemplate).filter(Dataset.id == MethodTemplate.dataset_id).\
-#                        filter(MethodTemplate.id == method.method_template).first()
+#                        filter(MethodTemplate.id == method.method_template_id).first()
 #
 #                # Set all field defaults based on the template.
 #                for child in dataset_children:
@@ -742,7 +778,7 @@ class Workflows(Layouts):
 
 
 
-        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
 
         if 'Next' in self.request.POST:
             self.request.POST['target'] = 'submit'
@@ -756,8 +792,8 @@ class Workflows(Layouts):
         controls = self.request.POST.items()
         if len(controls) > 0:
             try:
-                appstruct = form.validate(controls)
-                display = form.render()
+                appstruct = self.form.validate(controls)
+                display = self.form.render()
             except ValidationFailure, e:
                 appstruct = e.cstruct
                 display = e.render()
@@ -770,7 +806,7 @@ class Workflows(Layouts):
                 if not new_dataset_data['dataset:id'] and 'dataset:method_id' in new_dataset_data and new_dataset_data['dataset:method_id']:
                     method = self.session.query(Method).filter_by(id=new_dataset_data['dataset:method_id']).first()
                     template_dataset = self.session.query(Dataset).join(MethodTemplate).filter(Dataset.id == MethodTemplate.dataset_id).\
-                                            filter(MethodTemplate.id == method.method_template).first()
+                                            filter(MethodTemplate.id == method.method_template_id).first()
                     if template_dataset is None:
                         continue
 
@@ -796,7 +832,7 @@ class Workflows(Layouts):
                     new_dataset_data.update(new_dataset_dict)
 
         readonly = self.project is not None and not (self.project.state == ProjectStates.OPEN or self.project.state is None)
-        return self.handle_form(form, schema, page_help, appstruct=appstruct, display=display, readonly=readonly)
+        return self.handle_form(self.form, schema, page_help, appstruct=appstruct, display=display, readonly=readonly)
 
 
     @view_config(route_name="submit")
@@ -813,14 +849,11 @@ class Workflows(Layouts):
                     "<b>Reopen:</b> Reopen the project for editing, this can only occur when the project has been submitted but not yet accepted (eg. the project may require updates before being approved)<br/><br/>"\
                     "<b>Approve:</b> Approve this project, generate metadata records and setup data ingestion<br/><br/>"\
                     "<b>Disable:</b> Stop data ingestion, this would usually occur once the project has finished."
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise',), page="submit").bind(request=self.request)
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="submit").bind(request=self.request)
 
         if self.project is not None:
             # Create full self.project schema and form (without filtering to a single page as usual)
-            val_schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_validator=project_validator)).bind(request=self.request, settings=self.config)
-
-            # Remove the relationship between methods and datasets to prevent incorrect validation failures (eg. methods->datasets->sos_datasource has errors even though there isn't one...)
-            del val_schema['project:methods']['method']['method:datasets']
+            val_schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_validator=project_validator, )).bind(request=self.request, settings=self.config)
 
             val_form = Form(val_schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
 
@@ -883,9 +916,9 @@ class Workflows(Layouts):
         elif self.project.state == ProjectStates.DISABLED:
             buttons += (DELETE_TEXT,)
 
-        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=buttons, use_ajax=False)
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=buttons, use_ajax=False)
 
-        response = self.handle_form(form, schema, page_help)
+        response = self.handle_form(self.form, schema, page_help)
 
         if SUBMIT_TEXT in self.request.POST and 'id' in self.request.POST and (self.project.state == ProjectStates.OPEN or self.project.state is None) and len(self.error) <= 0:
             self.project.state = ProjectStates.SUBMITTED
@@ -893,7 +926,7 @@ class Workflows(Layouts):
 
             # Fill citation fields
             self.project.information.citation_title = self.project.information.project_title
-            self.project.information.citation_creators = self.project.information.parties
+#            self.project.information.citation_creators = self.project.information.parties  TODO: Citation creators
             self.project.information.citation_edition = None
             self.project.information.citation_publisher = "James Cook University"
             self.project.information.citation_place_of_publication = "James Cook University"
@@ -919,7 +952,7 @@ class Workflows(Layouts):
                 logger.info("Project has been added to ingesterplatform successfully: %s", self.project.id)
             except Exception as e:
                 logger.exception("Project failed to add to ingesterplatform: %s", self.project.id)
-                self.request.session.flash("<p>Sorry, the project failed to configure the data storage, please try agiain.", 'error')
+                self.request.session.flash("Failed to configure data storage and ingestion.", 'error')
                 self.request.session.flash("Error: %s" % e, 'error')
                 return response
 
@@ -1001,7 +1034,7 @@ class Workflows(Layouts):
 
         page_help=""
         schema = convert_schema(SQLAlchemyMapping(Metadata, unknown='raise',)).bind(request=self.request, settings=self.config)
-        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id, dataset_id=dataset_id), buttons=("Cancel", "Save & Close", "Save",), use_ajax=False)
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id, dataset_id=dataset_id), buttons=("Cancel", "Save & Close", "Save",), use_ajax=False)
 
         readonly = (self.project is not None and not (self.project.state == ProjectStates.OPEN or self.project.state is None)) or self.request.matched_route == "view_dataset_record"
 
@@ -1012,14 +1045,14 @@ class Workflows(Layouts):
 
             # In either of the below cases get the data as a dict and get the rendered form
             try:
-                appstruct = form.validate(controls)
-                display = form.render(appstruct)
+                appstruct = self.form.validate(controls)
+                display = self.form.render(appstruct)
             except ValidationFailure, e:
                 appstruct = e.cstruct
                 display = e.render()
 
             # save the data even if it didn't validate - this allows the user to easily navigate and fill fields out as they get the info.
-            metadata_id = self.save_form(appstruct, appstruct['metadata:id'], Metadata)
+            metadata_id = self._save_form(appstruct, appstruct['metadata:id'], Metadata)
         else:
             appstruct = {}
 
@@ -1031,8 +1064,8 @@ class Workflows(Layouts):
 
 
             try:
-                appstruct = form.validate_pstruct(appstruct)
-                display = form.render(appstruct, readonly=readonly)
+                appstruct = self.form.validate_pstruct(appstruct)
+                display = self.form.render(appstruct, readonly=readonly)
             except ValidationFailure, e:
                 appstruct = e.cstruct
                 display = e.render()
@@ -1041,18 +1074,12 @@ class Workflows(Layouts):
 
         if 'Cancel' in self.request.POST or 'Save_&_Close' in self.request.POST:
             target = 'submit'
-            if form.use_ajax:
+            if self.form.use_ajax:
                 pass
             else:
                 return HTTPFound(self.request.route_url(target, project_id=self.project_id))
 
-
-        messages = {
-            'error_messages': self.request.session.pop_flash("error"),
-            'success_messages': self.request.session.pop_flash("success"),
-            'warning_messages': self.request.session.pop_flash("warning")
-        }
-        return {"page_title": self.find_menu()['title'], "form": display, "form_only": False, 'messages': messages, 'page_help': page_help, 'readonly': readonly}
+        return {"page_title": self.find_menu()['title'], "form": display, "form_only": False, 'messages': self._get_messages(), 'page_help': page_help, 'readonly': readonly}
 
 
 
@@ -1072,7 +1099,7 @@ class Workflows(Layouts):
 #        print "POST VARS" + str(self.request.POST) + " " + str(self.project_id)
         page_help="View ingester event logs for project datasets."
         schema = IngesterLogs()
-        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Refresh',), use_ajax=False)
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Refresh',), use_ajax=False)
 
         datasets = self.session.query(Dataset).filter_by(project_id=self.project_id).order_by(Dataset.name).all()
 
@@ -1121,18 +1148,14 @@ class Workflows(Layouts):
         appstruct = {}
         if self.request.POST.items() > 0:
             try:
-                appstruct = form.validate(self.request.POST.items())
-                display = form.render(appstruct)
+                appstruct = self.form.validate(self.request.POST.items())
+                display = self.form.render(appstruct)
             except ValidationFailure, e:
                 appstruct = e.cstruct
                 display = e.render()
 
-        messages = {
-            'error_messages': self.request.session.pop_flash("error"),
-            'success_messages': self.request.session.pop_flash("success"),
-            'warning_messages': self.request.session.pop_flash("warning")
-        }
-        return {"page_title": self.find_menu()['title'], "form": display, "form_only": False, 'messages': messages, 'page_help': page_help}
+
+        return {"page_title": self.find_menu()['title'], "form": display, "form_only": False, 'messages': self._get_messages(), 'page_help': page_help}
 
     @view_config(route_name="add_data")
     def add_data_view(self):
@@ -1140,10 +1163,10 @@ class Workflows(Layouts):
 
         page_help=""
         schema = IngesterLogs()
-        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Refresh',), use_ajax=False)
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Refresh',), use_ajax=False)
 
 
-        return self.handle_form(form, schema, page_help)
+        return self.handle_form(self.form, schema, page_help)
 
     @view_config(route_name="manage_data")
     def manage_data_view(self):
@@ -1151,10 +1174,10 @@ class Workflows(Layouts):
 
         page_help=""
         schema = IngesterLogs()
-        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Refresh',), use_ajax=False)
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Refresh',), use_ajax=False)
 
 
-        return self.handle_form(form, schema, page_help)
+        return self.handle_form(self.form, schema, page_help)
 
     @view_config(route_name="permissions")
     def permissions_view(self):
@@ -1162,10 +1185,10 @@ class Workflows(Layouts):
 
         page_help=""
         schema = IngesterLogs()
-        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Refresh',), use_ajax=False)
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Refresh',), use_ajax=False)
 
 
-        return self.handle_form(form, schema, page_help)
+        return self.handle_form(self.form, schema, page_help)
 
     @view_config(route_name="duplicate")
     def duplicate_view(self):
@@ -1173,10 +1196,10 @@ class Workflows(Layouts):
 
         page_help=""
         schema = IngesterLogs()
-        form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Refresh',), use_ajax=False)
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Refresh',), use_ajax=False)
 
 
-        return self.handle_form(form, schema, page_help)
+        return self.handle_form(self.form, schema, page_help)
 
     # --------------------WORKFLOW EXCEPTION VIEWS-------------------------------------------
     @view_config(context=Exception, route_name="workflow_exception")
@@ -1258,7 +1281,7 @@ class Workflows(Layouts):
 #            del new_model.id
 #            #            new_model = Method()
 #            self.session.add(new_model)
-#            new_model.method_template = model.id
+#            new_model.method_template_id = model.id
 #            new_model.project_id = project.id
 #            new_model.method_description="alsdjkh"
 #            project.methods.append(new_model)

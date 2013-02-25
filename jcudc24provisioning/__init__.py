@@ -33,6 +33,8 @@ def main(global_config, **settings):
     """
     jcudc24provisioning.global_settings = settings
 
+    logging.basicConfig()
+    logging.getLogger('sqlalchemy.engine').setLevel(logging.WARN)
     logging.captureWarnings(True)
 #    execfile("D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py", dict(__file__="D:/Repositories/JCU-DC24/venv/Scripts/activate_this.py"))
 

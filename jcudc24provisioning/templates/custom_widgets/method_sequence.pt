@@ -111,10 +111,9 @@
             var oid = create_button.parentNode.parentNode.id.replace('-template_panel', '');
             var new_oid = $("#" + oid).children("ul").first().children(".deformInsertBefore").prev()[0].id;
             var method_id = $(create_button.parentNode.parentNode).find(".selected input")[0].value;
-            $("#" + new_oid + " [name='method:method_template']")[0].value = method_id;
+            $("#" + new_oid + " [name='method:method_template_id']")[0].value = method_id;
             var project_id = $("[name='project:id']")[0].value;
             $("#" + new_oid + " [name='method:project_id']")[0].value = project_id;
-
 
             $("#deformSave").click();
         }

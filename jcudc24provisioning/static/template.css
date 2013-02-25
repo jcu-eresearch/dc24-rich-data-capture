@@ -505,9 +505,9 @@ body {
     border-radius: 3px;
 }
 
-.rounded-corners {
-    behavior: url(/css/border-radius.htc);
-}
+/*.rounded-corners {*/
+    /*behavior: url(/css/border-radius.htc);*/
+/*}*/
 
 
 div#workflow ul {

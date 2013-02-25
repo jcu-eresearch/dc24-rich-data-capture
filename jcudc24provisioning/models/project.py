@@ -533,6 +533,74 @@ class MethodSchema(CAModel, Base):
         ca_description="Provide details of the schema field and how it should be displayed.",
         ca_help="TODO:  This needs to be displayed better - I'm thinking a custom template that has a sidebar for options and the fields are displayed 1 per line.  All fields will be shown here (including fields from parent/extended schemas selected above).")
 
+def custom_processing_validator(form, value):
+
+    with open(value) as f:
+        script = f.read()
+        if model.dataset_data_source.custom_processing_parameters is not None:
+            temp_params = [param.strip() for param in model.dataset_data_source.custom_processing_parameters.split(",")]
+            named_params = {'args': model.dataset_data_source.custom_processing_parameters}
+            unnamed_params = []
+            for param in temp_params:
+                if '=' in param:
+                    param_parts = param.split("=")
+                    named_params[param_parts[0]] = param_parts[1]
+                else:
+                    unnamed_params.append(param)
+
+            try:
+                script = script.format(*unnamed_params, **named_params)
+            except KeyError as e:
+                raise ValueError("Invalid custom processing parameters for {} dataset: {}".format(model.name, e.message))
+            data_source.processing_script = script
+
+    error = False
+    exc = colander.Invalid(form) # Uncomment to add a block message: , 'At least 1 research theme or Not aligned needs to be selected')
+
+    mint = MintLookup(None)
+
+    if value['publish_dataset'] is True and value['publish_date'] == colander.null:
+     exc['publish_date'] = "Required"
+     error = True
+    elif value['no_activity'] is True:
+     if mint.get_from_identifier(value['activity']) is None:
+         exc['activity'] = "The entered activity isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
+         error = True
+
+    if mint.get_from_identifier(value['project_lead']) is None:
+         exc['project_lead'] = "The entered project lead isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
+         error = True
+
+    if mint.get_from_identifier(value['data_manager']) is None:
+         exc['data_manager'] = "The entered data manager isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
+         error = True
+
+    if error:
+     raise exc
+
+class CustomProcessor(CAModel, Base):
+    order_counter = itertools.count()
+
+    __tablename__ = 'custom_processor'
+    id = Column(Integer, primary_key=True, nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+
+    custom_processor_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
+        ca_placeholder="eg. Extract he humidity and temperature values from the raw data file received in another dataset.",
+        ca_title="Describe custom processing needs", ca_missing="", ca_description="Describe your processing "\
+                    "requirements and what your uploaded script does (or what you will need help with).")
+
+    custom_processing_parameters = Column(String(512),ca_order=next(order_counter),
+            ca_description="Comma separated list of parameters.",
+            ca_help="Parameters are added via python string formatting syntax, simply add %s or %(<i>name</i>)s wherever you want a parameter inserted (parameters must either be added in the correct order or be named).")
+
+    custom_processor_script = Column(String(512), ca_type = deform.FileData(), ca_missing=colander.null ,ca_order=next(order_counter),ca_widget=upload_widget,
+        ca_title="Upload custom processing script",
+        ca_group_end="method",
+        ca_description="Upload a custom Python script to "\
+            "process the data in some way.  The processing script API can be found "\
+            "<a title=\"Python processing script API\"href=\"\">here</a>.")
+
+
 class FormDataSource(CAModel, Base):
     order_counter = itertools.count()
 
@@ -565,7 +633,7 @@ class PullDataSource(CAModel, Base):
 #                ca_group_help="Provide a file MIME type that identifies the file content type.")
 
     selected_sampling = Column(String(64), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter),
-        ca_group_start="sampling", ca_group_title="Data Sampling/Filtering", ca_group_collapsed=False,
+        ca_group_start="sampling", ca_group_title="Data Sampling/Filtering", ca_group_collapsed=False, ca_group_validator=custom_processing_validator,
         ca_group_widget=deform.widget.MappingWidget(item_template="choice_mapping_item", template="choice_mapping"),
         ca_group_missing=colander.null)
 
@@ -596,23 +664,13 @@ class PullDataSource(CAModel, Base):
                        "sample the data in some way.  The sampling script API can be found "\
                        "<a title=\"Python sampling script API\"href=\"\">here</a>.")
 
-    custom_processor_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
-        ca_group_start="processing", ca_group_collapsed=False, ca_group_title="Custom Data Processing",
+
+    custom_processor_id = Column(Integer, ForeignKey('custom_processor.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    custom_processor = relationship("CustomProcessor", uselist=False, ca_order=next(order_counter), ca_group_collapsed=False,
+        ca_group_title="Custom Data Processing",  ca_group_validator=custom_processing_validator,
         ca_placeholder="eg. Extract he humidity and temperature values from the raw data file received in another dataset.",
         ca_title="Describe custom processing needs", ca_missing="", ca_description="Describe your processing "\
-                    "requirements and what your uploaded script does (or what you will need help with).")
-
-    custom_processing_parameters = Column(String(512),ca_order=next(order_counter),
-            ca_description="Comma separated list of parameters.",
-            ca_help="Parameters are added via python string formatting syntax, simply add %s or %(<i>name</i>)s wherever you want a parameter inserted (parameters must either be added in the correct order or be named).")
-
-
-    custom_processor_script = Column(String(512), ca_type = deform.FileData(), ca_missing=colander.null ,ca_order=next(order_counter),ca_widget=upload_widget,
-        ca_title="Upload custom processing script",
-        ca_group_end="method",
-        ca_description="Upload a custom Python script to "\
-            "process the data in some way.  The processing script API can be found "\
-            "<a title=\"Python processing script API\"href=\"\">here</a>.")
+                                   "requirements and what your uploaded script does (or what you will need help with).")
 
 
 class PushDataSource(CAModel, Base):
@@ -670,24 +728,8 @@ class SOSScraperDataSource(CAModel, Base):
                 "<p>If you require something more advanced you can provide your own cron string or any filtering can be achieved by adding a custom "\
                 "sampling script below.</p><p>The sampling script API can be found <a href="">here</a></p>.")
 
-
-    #    stop_conditions = Column(String(100),ca_order=next(order_counter), ca_title="Stop conditions (TODO)", ca_child_title="todo")
-
-    custom_sampling_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
-        ca_group_start="custom_sampling", ca_group_title="Custom Data Sampling/Filtering",
-        ca_placeholder="eg. Only ingest the first data value of every hour.",
-        ca_title="Describe custom sampling needs", ca_missing="",
-        ca_description="Describe your sampling requirements and what your uploaded script does, or what you will need help with.")
-
-    custom_sampling_script = Column(String(512), ca_type = deform.FileData(), ca_missing=colander.null ,ca_order=next(order_counter),ca_widget=upload_widget,
-        ca_title="Upload custom sampling script",
-        ca_group_end="sampling",
-        ca_description="Upload a custom Python script to "\
-                       "sample the data in some way.  The sampling script API can be found "\
-                       "<a title=\"Python sampling script API\"href=\"\">here</a>.")
-
     custom_processor_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
-        ca_group_start="processing", ca_group_collapsed=False, ca_group_title="Custom Data Processing",
+        ca_group_start="processing", ca_group_collapsed=False, ca_group_title="Custom Data Processing",  ca_group_validator=custom_processing_validator,
         ca_placeholder="eg. Extract he humidity and temperature values from the raw data file received in another dataset.",
         ca_title="Describe custom processing needs", ca_missing="", ca_description="Describe your processing "\
                                                                                    "requirements and what your uploaded script does (or what you will need help with).")
@@ -726,7 +768,7 @@ class DatasetDataSource(CAModel, Base):
         ca_description="The dataset to retrieve processed data from.  If there are no items to select from - there must be other datasets already setup!")
 
     custom_processor_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
-#        ca_group_start="processing", ca_group_collapsed=False, ca_group_title="Custom Data Processing",
+        ca_group_start="processing", ca_group_collapsed=False, ca_group_title="Custom Data Processing",  ca_group_validator=custom_processing_validator,
         ca_placeholder="eg. Extract he humidity and temperature values from the raw data file received in another dataset.",
         ca_title="Describe custom processing needs", ca_missing="", ca_description="Describe your processing "\
                     "requirements and what your uploaded script does (or what you will need help with).")
@@ -741,6 +783,25 @@ class DatasetDataSource(CAModel, Base):
             "process the data in some way.  The processing script API can be found "\
             "<a title=\"Python processing script API\"href=\"\">here</a>.")
 
+
+class MethodTemplate(CAModel, Base):
+    """
+    Method templates that can be used to pre-populate a method with as well as datasets created for that method.
+    """
+    __tablename__ = 'method_template'
+    order_counter = itertools.count()
+    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget())
+    template_id = Column(Integer, ForeignKey('method.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+
+#    implementing_methdos = relationship("Method", foreign_keys="method.method_template_id", ca_order=next(order_counter), ca_missing=colander.null,
+#        ca_widget=deform.widget.HiddenWidget(), backref="template", )
+
+    name = Column(String(100),ca_order=next(order_counter), ca_description="Name the template (eg. Artificial tree).")
+    description = Column(String(256),ca_order=next(order_counter), ca_description="Provide a short description (<256 chars) of the template for the end user.")
+    category = Column(String(100),ca_order=next(order_counter), ca_description="Category of template, this is a flexible way of grouping templates such as DRO, SEMAT or other organisational groupings.")
+
+
 class Method(CAModel, Base):
     order_counter = itertools.count()
 
@@ -748,8 +809,7 @@ class Method(CAModel, Base):
     project_id = Column(Integer, ForeignKey('project.id'), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
     id = Column(Integer, ca_order=next(order_counter), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
 
-
-    method_template = Column(Integer, ca_order=next(order_counter), ca_title="Select a template to base this method off (Overrides all fields)",
+    method_template_id = Column(Integer, ForeignKey('method_template.id', use_alter=True, name="fk_method_template_id"), nullable=True, ca_order=next(order_counter), ca_title="Select a template to base this method off (Overrides all fields)",
         ca_widget=deform.widget.TextInputWidget(template="project_template_mapping", strip=False),
         ca_help="<p>Method templates provide pre-configured data collection methods and pre-fill as much information as possible to make this process as quick and easy as possible.</p>"
              "<ul><li>If you don't want to use any template, select the general category and Blank template."
@@ -804,8 +864,10 @@ class Method(CAModel, Base):
         ca_help="If there are web addresses that can provide more information on your data collection method, add them here.  Examples may include manufacturers of your equipment or an article on the calibration methods used.")
 
     datasets = relationship("Dataset", ca_order=next(order_counter), ca_missing=colander.null,
-        cascade="all, delete-orphan", ca_widget=deform.widget.HiddenWidget())
+        cascade="all, delete-orphan", ca_widget=deform.widget.HiddenWidget(), ca_exclude=True)
 
+    method_template = relationship("MethodTemplate", foreign_keys=[MethodTemplate.template_id], ca_exclude=True, uselist=False, ca_order=next(order_counter), ca_missing=colander.null,
+        cascade="all, delete-orphan", ca_widget=deform.widget.HiddenWidget())
 
 def dataset_validator(form, value):
     error = False
@@ -896,6 +958,12 @@ class Dataset(CAModel, Base):
     push_data_source = relationship("PushDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False,)
     dataset_data_source = relationship("DatasetDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False)
 
+    record_metadata = relationship("Metadata", uselist=False, ca_order=next(order_counter), ca_missing=colander.null,
+        cascade="all, delete-orphan", ca_widget=deform.widget.HiddenWidget(), ca_exclude=True)
+
+    method_template = relationship("MethodTemplate", ca_order=next(order_counter), ca_missing=colander.null,
+        cascade="all, delete-orphan", ca_widget=deform.widget.HiddenWidget(), ca_exclude=True)
+
 
 class ProjectNote(CAModel, Base):
     order_counter = itertools.count()
@@ -922,20 +990,6 @@ class ProjectTemplate(CAModel, Base):
     category = Column(String(100),ca_order=next(order_counter), ca_description="Category of template, this is a flexible way of grouping templates such as DRO, SEMAT or other organisational groupings.")
     name = Column(String(100),ca_order=next(order_counter), ca_description="Name the template (eg. Artificial tree).")
     description = Column(String(256),ca_order=next(order_counter), ca_description="Provide a short description (<256 chars) of the template for the end user.")
-
-class MethodTemplate(CAModel, Base):
-    """
-    Method templates that can be used to pre-populate a method with as well as datasets created for that method.
-    """
-    __tablename__ = 'method_template'
-    order_counter = itertools.count()
-    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget())
-    template_id = Column(Integer, ForeignKey('method.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-
-    name = Column(String(100),ca_order=next(order_counter), ca_description="Name the template (eg. Artificial tree).")
-    description = Column(String(256),ca_order=next(order_counter), ca_description="Provide a short description (<256 chars) of the template for the end user.")
-    category = Column(String(100),ca_order=next(order_counter), ca_description="Category of template, this is a flexible way of grouping templates such as DRO, SEMAT or other organisational groupings.")
 
 choices = ['JCU Name 1', 'JCU Name 2', 'JCU Name 3', 'JCU Name 4']
 
@@ -1313,7 +1367,7 @@ class Project(CAModel, Base):
 #        ca_help="<p>This will be used as the description for data collection in the project metadata record and will provide users of your data with an overview of what the project is researching.</p>"
 #                "<p><i>If you aren't sure what a method is return to this description after completing the Methods page.</i></p>")
 
-    methods = relationship('Method', ca_title="", ca_widget=deform.widget.SequenceWidget(min_len=0, max_len=sys.maxint, template="method_sequence"), ca_order=next(order_counter), ca_page="methods",
+    methods = relationship('Method', ca_title="", ca_widget=deform.widget.SequenceWidget(min_len=0, template="method_sequence"), ca_order=next(order_counter), ca_page="methods",
         cascade="all, delete-orphan",
         ca_child_collapsed=False,)
 #        ca_description="Add one method for each type of data collection method (eg. temperature sensors, manually entered field observations using a form or files retrieved by polling a server...)")
@@ -1341,6 +1395,10 @@ class Project(CAModel, Base):
     project_notes = relationship("ProjectNote", ca_title="Project Note",  ca_order=next(order_counter), ca_page="submit",
             cascade="all, delete-orphan",
             ca_help="Project comments that are only relevant to the provisioning system (eg. comments as to why the project was reopened after the creator submitted it).")
+
+
+    project_template = relationship("ProjectTemplate", ca_order=next(order_counter), ca_missing=colander.null,
+        cascade="all, delete-orphan", ca_widget=deform.widget.HiddenWidget(), ca_exclude=True)
 
 
 def grant_validator(form, value):
