@@ -4,7 +4,7 @@
                           cols field.widget.cols;
                           class (field.widget.css_class or '') + (default_text == field.schema.__dict__.get('placeholder') and ' placeholder_text' or '')"
               id="${field.oid}" name="${field.name}"
-              onclick="if (value == '${field.schema.__dict__.get('placeholder')}') {className = className.replace( /(?:^|\s)placeholder_text(?!\S)/g , '' ); value='';}"
+              onfocus="if (value == '${field.schema.__dict__.get('placeholder')}') {className = className.replace( /(?:^|\s)placeholder_text(?!\S)/g , '' ); value='';}"
               onblur="if (value == '') {value='${placeholder}'; className += ' placeholder_text';}">${default_text}</textarea>
 
     <script tal:condition="field.schema.__dict__.get('placeholder')" type="text/javascript">

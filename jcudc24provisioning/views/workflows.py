@@ -35,6 +35,7 @@ from jcudc24provisioning.models.project import DBSession, PullDataSource, Metada
 from jcudc24provisioning.views.ca_scripts import convert_schema, fix_schema_field_name
 from jcudc24provisioning.models.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.mint_lookup import MintLookup
+from pyramid.request import Request
 
 
 __author__ = 'Casey Bajema'
@@ -155,6 +156,7 @@ class Workflows(Layouts):
             for menu in WORKFLOW_STEPS + WORKFLOW_ACTIONS:
                 if self.request.url.endswith(menu['href']):
                     self._page = menu
+                    break
         return self._page
 
     @property
@@ -162,11 +164,10 @@ class Workflows(Layouts):
         if '_next' not in locals():
             self._next = None # Set as None if this is the last visible step or it isn't a workflow page.
 
-            if self.page in WORKFLOW_STEPS:
-                for i in range(len(WORKFLOW_STEPS))[WORKFLOW_STEPS.index(self.page) + 1:]:
-                    if 'hidden' not in self._next or not self._next['hidden']:
-                        self._next = WORKFLOW_STEPS[i]
-                        break
+            for i in range(len(WORKFLOW_STEPS))[WORKFLOW_STEPS.index(self.page) + 1:]:
+                if 'hidden' not in WORKFLOW_STEPS[i] or not WORKFLOW_STEPS[i]['hidden']:
+                    self._next = WORKFLOW_STEPS[i]
+                    break
 
         return self._next
 
@@ -175,27 +176,40 @@ class Workflows(Layouts):
         if '_previous' not in locals():
             self._previous = None # Set as None if this is the first visible step or it isn't a workflow page.
 
-            if self.page in WORKFLOW_STEPS:
-                for i in range(len(WORKFLOW_STEPS))[WORKFLOW_STEPS.index(self.page) - 1:].reverse():
-                    if 'hidden' not in self._previous or not self._previous['hidden']:
+            if self.page in WORKFLOW_STEPS and WORKFLOW_STEPS.index(self.page) > 0:
+                for i in reversed(range(len(WORKFLOW_STEPS))[:WORKFLOW_STEPS.index(self.page) - 1]):
+                    if 'hidden' not in WORKFLOW_STEPS[i] or not WORKFLOW_STEPS[i]['hidden']:
                         self._previous = WORKFLOW_STEPS[i]
                         break
 
         return self._previous
 
     @property
-    def appstruct(self):
-        if '_appstruct' not in locals():
-            controls = self.request.POST.items()
+    def schema(self):
+        if self.form is None:
+            return None
+        return self.form.schema
 
-            if 'POST' != self.request.method or len(self.request.POST) == 0:
-                self._appstruct = {}
+    @property
+    def model_type(self):
+        if self.form is None or not hasattr(self.form.schema, '_reg'):
+            return None
+
+        return self.form.schema._reg.cls
+
+
+    @property
+    def model_id(self):
+        if '_model_id' not in locals():
+            if self.model_type is None:
+                self._model_id = None
+            elif self.model_type == Project:
+                self._model_id = self.project_id
+            elif self.model_type.__tablename__ + '_id' in self.request.matchdict:
+                self._model_id = self.request.matchdict[self.model_type.__name__ + '_id']
             else:
-                try:
-                    self._appstruct = self.form.validate(controls)
-                except ValidationFailure, e:
-                    self._appstruct = e.cstruct
-        return self._appstruct
+                self._model_id = self.request.POST.get(self.model_type.__name__ + ":id", None)
+        return self._model_id
 
 # --------------------MENU TEMPLATE METHODS-------------------------------------------
     @reify
@@ -263,10 +277,19 @@ class Workflows(Layouts):
         return 'Delete' in self.request.POST
 
     def get_address(self, href):
+        if href is None:
+            return None
         return self.request.route_url(href, project_id=self.project_id)
 
 # --------------------WORKFLOW STEP METHODS-------------------------------------------
-    def _save_form(self, appstruct, model_id, model_type):
+    def _save_form(self, appstruct=None, model_id=None, model_type=None):
+        if appstruct is None:
+            appstruct = self._get_post_appstruct()
+        if model_id is None:
+            model_id = self.model_id
+        if model_type is None:
+            model_type = self.model_type
+
          # In either of the below cases get the data as a dict and get the rendered form
 #        if 'POST' != self.request.method or len(self.request.POST) == 0 or self.readonly or \
 #                'model_id' not in self.request.POST or 'model_type' not in self.request.POST:
@@ -310,16 +333,85 @@ class Workflows(Layouts):
             }
 
     def _redirect_to_target(self):
-#       If there is a target workflow step set then change to that page.
-        if self.request.POST['target']:
-            target = self.request.POST['target']
-        else:
-            target = self.request.matched_route.name
-#        if form.use_ajax:
-#            return {"page_title": self.title, "form": display, "form_only": form.use_ajax,  'messages' : self._get_messages() or '', 'page_help': page_help, 'readonly': readonly}
-#        else:
-        return HTTPFound(self.request.route_url(target, project_id=self.project_id))
+        target = self.get_address(self.request.POST['target'])
+        sub_request = Request.blank(target)
+        return self.request.invoke_subrequest(sub_request)
 
+#        introspector = self.request.registry.introspector
+#        target_callable = introspector.get('views', target)
+#        route_intr = introspector.get('routes', target)
+
+    def _touch_page(self):
+        # Set the page as edited so future visits will show the page with validation
+        if self.project_id is not None:
+            untouched_pages = self.session.query(UntouchedPages).filter_by(project_id=self.project_id).first()
+            if untouched_pages is None:
+                untouched_pages = UntouchedPages()
+                untouched_pages.project_id = self.project_id
+                self.session.add(untouched_pages)
+
+            # If this causes exceptions the UntouchedPages->column names (in project.py) need to by the same as href values in WORKFLOW_STEPS above.
+            page = self.find_menu()['href']
+            setattr(untouched_pages, page, True)
+
+    def _is_page_touched(self):
+        # If the page has been saved previously, show the validated form
+        untouched_pages = self.session.query(UntouchedPages).filter_by(project_id=self.project_id).first()
+        page = self.find_menu()['href']
+        return untouched_pages is not None and hasattr(untouched_pages, page) and getattr(untouched_pages, page) == True
+
+##       If there is a target workflow step set then change to that page.
+#        if self.request.POST['target']:
+#            target = self.request.POST['target']
+#        else:
+#            target = self.request.matched_route.name
+##        if form.use_ajax:
+##            return {"page_title": self.title, "form": display, "form_only": form.use_ajax,  'messages' : self._get_messages() or '', 'page_help': page_help, 'readonly': readonly}
+##        else:
+#        return HTTPFound(self.request.route_url(target, project_id=self.project_id))
+
+    def _render_model(self):
+        if self._get_model_appstruct() is not None:
+            if self._is_page_touched():
+                try:
+                    appstruct = self.form.validate_pstruct(self._get_model_appstruct())
+                    display = self.form.render(appstruct, readonly=self.readonly)
+                except ValidationFailure, e:
+                    appstruct = e.cstruct
+                    display = e.render()
+
+            else:
+                display = self.form.render(self._get_model_appstruct(), readonly=self.readonly)
+
+            return display
+
+        return None
+
+    def _render_post(self):
+        if self._get_post_appstruct() is not None:
+            if hasattr(self, '_validation_error'):
+                return self._validation_error.render()
+            else:
+                return self.form.render(self._get_post_appstruct(), readonly=self.readonly)
+
+        return None
+
+
+    def _get_model(self):
+        if not hasattr(self, '_model'):
+            if self.model_type is None or self.model_id is None:
+                self._model = None
+            else:
+                self._model = self.session.query(self.model_type).filter_by(id=self.model_id).first()
+        return self._model
+
+    def _get_model_appstruct(self):
+        if self._get_model() is not None:
+            if not hasattr(self, '_model_appstruct'):
+                self._model_appstruct = self._get_model().dictify(self.form.schema)
+
+            return self._model_appstruct
+        return {}
 
     def handle_form(self, form, schema, page_help=None, appstruct=None, display=None, readonly=False):
         # If the form is being saved (there would be 1 item in controls if it is a fresh page with a project id set)
@@ -341,47 +433,18 @@ class Workflows(Layouts):
 
 
             # Set the page as edited so future visits will show the page with validation
-            if project_id is not None:
-                self.project_id = project_id
-                untouched_pages = self.session.query(UntouchedPages).filter_by(project_id=self.project_id).first()
-                if untouched_pages is None:
-                    untouched_pages = UntouchedPages()
-                    untouched_pages.project_id = self.project_id
-                    self.session.add(untouched_pages)
-
-                # If this causes exceptions the UntouchedPages->column names (in project.py) need to by the same as href values in WORKFLOW_STEPS above.
-                page = self.find_menu()['href']
-                setattr(untouched_pages, page, True)
+            self._touch_page()
 
             return self._redirect_to_target()
 #            return {"page_title": self.find_menu()['title'], "form": display, "form_only": form.use_ajax, 'messages' : self.request.session.pop_flash() or ''}
 
-        # If the page has just been opened but it is set to a specific project
-        appstruct = {}
+#        # If the page has just been opened but it is set to a specific project
+#        appstruct = self._get_model_appstruct()
 
-        if self.project_id is not None:
-            model = self.session.query(Project).filter_by(id=self.project_id).first()
-            if model is not None:
-                appstruct = model.dictify(schema)
-
-        # If the page has been saved previously, show the validated form
-        untouched_pages = self.session.query(UntouchedPages).filter_by(project_id=self.project_id).first()
-        page = self.find_menu()['href']
-        if untouched_pages is not None and hasattr(untouched_pages, page) and getattr(untouched_pages, page) == True:
-            try:
-                appstruct = form.validate_pstruct(appstruct)
-                display = form.render(appstruct, readonly=readonly)
-            except ValidationFailure, e:
-                appstruct = e.cstruct
-                display = e.render()
-
-        else:
-            display = form.render(appstruct, readonly=readonly)
-
-        return {"page_title": self.find_menu()['title'], "form": display, "form_only": False, 'messages': self._get_messages(), 'page_help': page_help, 'readonly': readonly}
+        return {"page_title": self.find_menu()['title'], "form": self._render_model(), "form_only": False, 'messages': self._get_messages(), 'page_help': page_help, 'readonly': readonly}
 
 
-    def clone (self, source):
+    def _clone_model(self, source):
         """
         Clone a database model
         """
@@ -396,17 +459,48 @@ class Workflows(Layouts):
                 if isinstance(getattr(source, prop.key), list):
                     items = []
                     for item in getattr(source, prop.key):
-                        items.append(self.clone(item))
+                        items.append(self._clone_model(item))
                     setattr(new_object, prop.key, items)
                 else:
-                    setattr(new_object, prop.key, self.clone(getattr(source, prop.key)))
+                    setattr(new_object, prop.key, self._clone_model(getattr(source, prop.key)))
 
 
         return new_object
 
+    def _get_post_appstruct(self):
+        if not hasattr(self, '_appstruct'):
+            controls = self.request.POST.items()
+
+            if 'POST' != self.request.method or len(self.request.POST) == 0:
+                self._appstruct = {}
+            else:
+                try:
+                    self._appstruct = self.form.validate(controls)
+                except ValidationFailure, e:
+                    self._validation_error = e
+                    self._appstruct = e.cstruct
+
+        return self._appstruct
 
 
-# --------------------WORKFLOW STEP VIEWS-------------------------------------------
+    def _create_response(self, **kwargs):
+        response_dict = {
+            "page_title": kwargs.pop("page_title", self.title),
+            "form": kwargs.pop("form", None),
+            "form_only": kwargs.pop("form_only",False),
+            'readonly': kwargs.pop('readonly',self.readonly),
+            'messages': kwargs.pop('messages',self._get_messages()),
+            "next_page": kwargs.pop("next_page",self.next),
+            "prev_page": kwargs.pop("prev_page",self.previous),
+            "page_help": kwargs.pop("page_help", ""),
+        }
+        # Lazy default initialisation as this has high overheads.
+        if response_dict['form'] is None:
+            response_dict['form'] = self._render_model()
+        response_dict.update(kwargs)
+        return response_dict
+
+    # --------------------WORKFLOW STEP VIEWS-------------------------------------------
     @view_config(route_name="create")
     def create_view(self):
         page_help = "This project creation wizard helps pre-fill as many fields as possible to make the process as painless as possible!"
@@ -424,87 +518,76 @@ class Workflows(Layouts):
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id),
             buttons=('Create Project',), use_ajax=False, ajax_options=redirect_options)
 
-        controls = self.request.POST.items()
-        appstruct = {}
+        appstruct = self._get_post_appstruct()
 
         # If the form is being saved (there would be 1 item in controls if it is a fresh page with a project id set)
-        if len(controls) > 0:
+        if len(appstruct) > 0 and not hasattr(self, '_validation_error'):
             # In either of the below cases get the data as a dict and get the rendered form
+            new_project = Project()
+
+            if 'template' in appstruct:
+                template = self.session.query(Project).filter_by(id=appstruct['template']).first()
+                if template is not None:
+                    new_project = self._clone_model(template)
+                    new_project.id = None
+                    new_project.template = False
+                    new_project.state = ProjectStates.OPEN
+
+            if not new_project.information:
+                new_info = Metadata()
+                new_project.information = new_info
+
+            new_parties = []
+            if 'data_manager' in appstruct:
+                data_manager = Party()
+                data_manager.party_relationship = "manager"
+                data_manager.identifier = appstruct['data_manager']
+                new_parties.append(data_manager)
+
+            if 'project_lead' in appstruct:
+                project_lead = Party()
+                project_lead.party_relationship = "owner"
+                project_lead.identifier = appstruct['project_lead']
+                new_parties.append(project_lead)
+
+            if 'activity' in appstruct:
+                new_project.information.activity = appstruct['activity']
+                activity_results = MintLookup(None).get_from_identifier(appstruct['activity'])
+
+                if activity_results is not None:
+                    new_project.information.brief_description = activity_results['dc:description']
+                    new_project.information.project_title = activity_results['dc:title']
+
+                    for contributor in activity_results['result-metadata']['all']['dc_contributor']:
+                        if str(contributor).strip() != appstruct['data_manager'].split("/")[-1].strip():
+                            new_party = Party()
+                            new_party.identifier = "jcu.edu.au/parties/people/" + str(contributor).strip()
+                            new_parties.append(new_party)
+
+                    if activity_results['result-metadata']['all']['dc_date'][0]:
+                        new_project.information.date_from = date(int(activity_results['result-metadata']['all']['dc_date'][0]), 1, 1)
+
+                    if activity_results['result-metadata']['all']['dc_date_end'][0]:
+                        new_project.information.date_to = date(int(activity_results['result-metadata']['all']['dc_date_end'][0]), 1, 1)
+
+            new_project.information.parties = new_parties
+
+            # TODO:  Add the current user (known because of login) as a creator for citations
+            # TODO:  Add the current user (known because of login) as the creator of the project
+
             try:
-                appstruct = self.form.validate(controls)
+                self.session.add(new_project)
+                self.session.flush()
+                self.request.session.flash('New project successfully created.', 'success')
+            except Exception as e:
+                logger.exception("SQLAlchemy exception while flushing after project creation: %s" % e)
+                self.request.session.flash("There was an error while creating the project, please try again.", "error")
+                self.request.session.flash("Error: %s" % e, "error")
+                self.session.rollback()
 
-                new_project = Project()
+            return HTTPFound(self.request.route_url('general', project_id=new_project.id))
 
-                if 'template' in appstruct:
-                    template = self.session.query(Project).filter_by(id=appstruct['template']).first()
-                    if template is not None:
-                        new_project = self.clone(template)
-                        new_project.id = None
-                        new_project.template = False
-                        new_project.state = ProjectStates.OPEN
-
-                if not new_project.information:
-                    new_info = Metadata()
-                    new_project.information = new_info
-
-                new_parties = []
-                if 'data_manager' in appstruct:
-                    data_manager = Party()
-                    data_manager.party_relationship = "manager"
-                    data_manager.identifier = appstruct['data_manager']
-                    new_parties.append(data_manager)
-
-                if 'project_lead' in appstruct:
-                    project_lead = Party()
-                    project_lead.party_relationship = "owner"
-                    project_lead.identifier = appstruct['project_lead']
-                    new_parties.append(project_lead)
-
-                if 'activity' in appstruct:
-                    new_project.information.activity = appstruct['activity']
-                    activity_results = MintLookup(None).get_from_identifier(appstruct['activity'])
-
-                    if activity_results is not None:
-                        new_project.information.brief_description = activity_results['dc:description']
-                        new_project.information.project_title = activity_results['dc:title']
-
-                        for contributor in activity_results['result-metadata']['all']['dc_contributor']:
-                            if str(contributor).strip() != appstruct['data_manager'].split("/")[-1].strip():
-                                new_party = Party()
-                                new_party.identifier = "jcu.edu.au/parties/people/" + str(contributor).strip()
-                                new_parties.append(new_party)
-
-                        if activity_results['result-metadata']['all']['dc_date'][0]:
-                            new_project.information.date_from = date(int(activity_results['result-metadata']['all']['dc_date'][0]), 1, 1)
-
-                        if activity_results['result-metadata']['all']['dc_date_end'][0]:
-                            new_project.information.date_to = date(int(activity_results['result-metadata']['all']['dc_date_end'][0]), 1, 1)
-
-                new_project.information.parties = new_parties
-
-                # TODO:  Add the current user (known because of login) as a creator for citations
-                # TODO:  Add the current user (known because of login) as the creator of the project
-
-
-                try:
-                    self.session.add(new_project)
-                    self.session.flush()
-                    self.request.session.flash('New project successfully created.', 'success')
-                except Exception as e:
-                    logger.exception("SQLAlchemy exception while flushing after project creation: %s" % e)
-                    self.request.session.flash("There was an error while creating the project, please try again.", "error")
-                    self.request.session.flash("Error: %s" % e, "error")
-                    self.session.rollback()
-
-                return HTTPFound(self.request.route_url('general', project_id=new_project.id))
-
-            except ValidationFailure, e:
-                appstruct = e.cstruct
-                self.request.session.flash('Valid project setup data must be entered before progressing.', 'error')
-                return {"page_title": self.find_menu()['title'], "form": e.render(), "form_only": False, 'messages': self._get_messages()}
-
-        return {"page_title": self.find_menu()['title'], "form": self.form.render(appstruct), "form_only": False, 'messages': self._get_messages(), 'page_help': page_help}
-
+        return self._create_response(page_help=page_help, form=self._render_post())
 
     @view_config(route_name="general")
     def general_view(self):
@@ -512,11 +595,16 @@ class Workflows(Layouts):
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description=""), page='general').bind(request=self.request)
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', ), use_ajax=False, ajax_options=redirect_options)
 
-        if 'Next' in self.request.POST:
-            self.request.POST['target'] = 'description'
+        if self.request.method == 'POST' and len(self.request.POST) > 0:
+            # If this is a sub-request called just to save.
+            if self.request.referrer == self.request.path_url:
+                model_id = self._save_form()
+                self._touch_page()
+                return
+            else:
+                self._redirect_to_target(self.request.referrer)
 
-        readonly = self.project is not None and not (self.project.state == ProjectStates.OPEN or self.project.state is None)
-        return self.handle_form(self.form, schema, page_help, readonly=readonly)
+        return self._create_response(page_help=page_help)
 
 
     @view_config(route_name="description")
@@ -529,18 +617,17 @@ class Workflows(Layouts):
                     " and <i>Datasets</i> steps later on.</li></ul>"
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="description").bind(
             request=self.request)
-
-
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
 
-        if 'Next' in self.request.POST:
-            self.request.POST['target'] = 'information'
+        if self.request.method == 'POST' and len(self.request.POST) > 0:
+            model_id = self._save_form()
+            self.request.POST.clear
 
-        if 'Previous' in self.request.POST:
-            self.request.POST['target'] = 'general'
+            # If this is a sub-request called just to save.
+            if self.request.referrer != self.request.path_url:
+                return
 
-        readonly = self.project is not None and not (self.project.state == ProjectStates.OPEN or self.project.state is None)
-        return self.handle_form(self.form, schema, page_help, readonly=readonly)
+        return self._create_response(page_help=page_help)
 
 
     @view_config(route_name="information")
@@ -639,7 +726,7 @@ class Workflows(Layouts):
                     if template is None:
                         continue
 
-                    new_method_dict = self.clone(template_method).dictify(schema[METHODS_INDEX].children[0])
+                    new_method_dict = self._clone_model(template_method).dictify(schema[METHODS_INDEX].children[0])
 #                    new_method_dict = new_method_dict['method']
                     del new_method_dict['method:id']
                     new_method_dict['method:project_id'] = new_method_data['method:project_id']
@@ -810,13 +897,13 @@ class Workflows(Layouts):
                     if template_dataset is None:
                         continue
 
-                    template_clone = self.clone(template_dataset)
+                    template_clone = self._clone_model(template_dataset)
 
                     # Pre-fill with first project point location
                     project_locations = self.session.query(Location).join(Metadata).filter(Metadata.id==Location.metadata_id).filter_by(project_id=self.project_id).all()
                     for location in project_locations:
                         if location.is_point():
-                            location_clone = self.clone(location)
+                            location_clone = self._clone_model(location)
                             location_clone.metadata_id = None
                             template_clone.dataset_locations.append(location_clone)
                             break
@@ -1003,7 +1090,7 @@ class Workflows(Layouts):
 
         metadata_template = self.session.query(Metadata).join(Project).filter(Metadata.project_id==Project.id).join(Dataset).filter(Project.id==Dataset.project_id).filter(Dataset.id==dataset_id).first()
 
-        template_clone = self.clone(metadata_template)
+        template_clone = self._clone_model(metadata_template)
         template_clone.id = metadata_id
         template_clone.project_id = None
         template_clone.dataset_id = dataset_id

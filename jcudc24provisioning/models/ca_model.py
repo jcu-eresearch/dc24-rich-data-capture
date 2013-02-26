@@ -36,7 +36,10 @@ class CAModel(object):
         return self.create_sqlalchemy_model(appstruct, model_object=self) is not None
     
     def _get_field_type(self, field_name, model_object):
-        return model_object._sa_class_manager[field_name]._parententity.columns._data[field_name].type.python_type
+        class_manager = model_object._sa_class_manager[field_name]
+        parent = getattr(class_manager, 'parententity', getattr(class_manager, '_parententity', None)) # Seems to have either or?
+        return parent.columns._data[field_name].type.python_type
+#        return model_object._sa_class_manager[field_name]._parententity.columns._data[field_name].type.python_type
 
     def _get_ca_registry(self, field_name, model_class):
         try:
@@ -187,11 +190,17 @@ class CAModel(object):
                                     break
 
                         child_table_object = self.create_sqlalchemy_model(item, model_class=model_object._sa_class_manager[field_name].property.mapper.class_, model_object=current_object)
+                        # If the child object has changed
                         if child_table_object is not None:
                             is_data_empty = False
-                            getattr(model_object, field_name).append(child_table_object) # Add the modified object
-                        elif current_object is not None:
-                            getattr(model_object, field_name).append(current_object) # Re-add the un-modified object
+
+                            # If the child object is new
+                            if current_object is None:
+                                getattr(model_object, field_name).append(child_table_object) # Add the modified object
+
+                        # If the child object was just updated SQLAlchemy keeps track of the changes internally
+#                        elif current_object is not None:
+#                            getattr(model_object, field_name).append(current_object) # Re-add the un-modified object
 
                     # Delete items in the list that were missing from the new data
                     for item in old_items:

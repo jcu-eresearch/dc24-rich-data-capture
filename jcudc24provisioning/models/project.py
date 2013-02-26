@@ -866,7 +866,8 @@ class Method(CAModel, Base):
     datasets = relationship("Dataset", ca_order=next(order_counter), ca_missing=colander.null,
         cascade="all, delete-orphan", ca_widget=deform.widget.HiddenWidget(), ca_exclude=True)
 
-    method_template = relationship("MethodTemplate", foreign_keys=[MethodTemplate.template_id], ca_exclude=True, uselist=False, ca_order=next(order_counter), ca_missing=colander.null,
+    method_template = relationship("MethodTemplate", primaryjoin=method_template_id==MethodTemplate.id, single_parent=True,
+        ca_exclude=True, uselist=False, ca_order=next(order_counter), ca_missing=colander.null,
         cascade="all, delete-orphan", ca_widget=deform.widget.HiddenWidget())
 
 def dataset_validator(form, value):
@@ -1428,7 +1429,6 @@ def grant_validator(form, value):
         raise exc
 
 class CreatePage(colander.MappingSchema):
-
     template = colander.SchemaNode(colander.Integer(), title="Select a Project Template",
         widget=deform.widget.TextInputWidget(template="project_template_mapping"),
         help="<p>Templates pre-fill the project with as much information as possible to make this process as quick and easy as possible.</p><ul><li>If you don't want to use any template, select the general category and Blank template.</li><li>Please contact the administrators to request new templates.</li>",

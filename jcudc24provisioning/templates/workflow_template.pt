@@ -1,6 +1,30 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:metal="http://xml.zope.org/namespaces/metal" xmlns:tal="http://xml.zope.org/namespaces/tal" metal:define-macro="layout" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://xml.zope.org/namespaces/metal ">
     <div metal:use-macro="view.global_template">
         <div metal:fill-slot="content">
+            <script type="text/javascript">
+                $(window).ready(function() {
+                    var next = $("[name='Next']");
+                    var previous = $("[name='Previous']");
+
+                    <tal:block tal:condition="exists:next_page">
+                        <tal:block tal:condition="next_page is None">
+                            next.remove();
+                        </tal:block>
+                        <tal:block tal:condition="next_page is not None">
+                            next.attr("onclick", "$('#deform')[0].action='${view.get_address(next_page.href)}'");
+                        </tal:block>
+                    </tal:block>
+
+                    <tal:block tal:condition="exists:prev_page">
+                        <tal:block tal:condition="prev_page is None">
+                            previous.remove();
+                        </tal:block>
+                        <tal:block tal:condition="prev_page is not None">
+                              previous.attr("onclick", "$('#deform')[0].action='${view.get_address(prev_page.href)}'");
+                        </tal:block>
+                    </tal:block>
+                });
+            </script>
 
             <div id="page_title">
                  <h1><tal:block tal:condition="exists: page_help">
@@ -59,7 +83,7 @@
                                          <button name="nav-${menu.href}" form="deform" onclick="false" class="current" value="${menu.title}">${menu.title}</button>
                                      </tal:block>
                                      <tal:block tal:condition="not menu.current and not readonly">
-                                         <button name="nav-${menu.href}" form="deform" href="${view.request.matched_route.name}" onclick="document.getElementById('workflow_target').value='${menu.href}';" value="${menu.title}">${menu.title}</button>
+                                         <button name="nav-${menu.href}" form="deform" href="${view.request.matched_route.name}" onclick="$('#deform')[0].action='${view.get_address(menu.href)}';" value="${menu.title}">${menu.title}</button>
                                      </tal:block>
                                      <tal:block tal:condition="readonly and not menu.current">
                                          <a href="${menu.href}">${menu.title}</a>
