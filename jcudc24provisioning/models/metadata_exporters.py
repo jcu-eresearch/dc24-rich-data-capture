@@ -3,70 +3,103 @@ import colander
 from lxml import etree
 from sqlalchemy import Column
 from jcudc24provisioning.models.ca_model import CAModel
+from jcudc24provisioning.models.project import Metadata, Party, Keyword, Collaborator, MetadataNote, CitationDate, Attachment, RelatedPublication, RelatedWebsite, FieldOfResearch, SocioEconomicObjective, Location, Creator
 from jcudc24provisioning.views.ca_scripts import fix_schema_field_name
 
 __author__ = 'Casey Bajema'
 
-class ReDBoxExportWrapper(CAModel):
-    def _add_xml_elements(self, root, data):
-        for key, value in data.items():
-            key = fix_schema_field_name(key)
-            element = etree.SubElement(root, key)
-            if value is colander.null or value is None or (isinstance(value, list) and len(value) == 0):
-                continue
-
-            if isinstance(value, dict):
-                self._add_xml_elements(element, value)
-            elif isinstance(value, list):
-                for i in range(len(value)):
-                    child_element = etree.SubElement(element, key + ".%i" % i)
-                    self._add_xml_elements(child_element, value[i])
-            else:
-                element.text = str(value)
-        return element
-
-    def to_xml(self):
-        root = etree.Element(self.__class__.__name__.lower())
-        root.append(self._add_xml_elements(root, self.dictify()))
-
-        print (etree.tostring(root.getroottree().getroot(), pretty_print=True))
-        return etree.ElementTree(root.getroottree().getroot())
-
-
-    def _create_mapping(self, data, list_item=False):
-        if len(data) == 1:
-            return ""
-        elif len(data) > 1:
-            result = {}
-
-            for key, value in data.items():
-                rdc_key = "/%s" % fix_schema_field_name(key)
-                if list_item:
-                    rdc_key += ".0"
-
-                if isinstance(value, dict):
-                    result[key] = self._create_mapping(value)
-                elif isinstance(value, list):
-                    result[key] = self._create_mapping(value[0], True)
-                else:
-                    result["."] = str(value)
-        return result
-
-    def to_json_config(self):
-        dict_config = {
-            "comment": "This James Cook University's XML mapping is generated from the DC24 RichDataCapture provisioning interface.  It is generated on startup to create a ReDBox json configuration file that matches the models XML conversion.",
-            "mappings": self._create_mapping(self.dictify(force_not_empty_lists=True)),
-            "exceptions": {
+def create_json_config():
+    dict_config = {
+        "comment": "This James Cook University's XML mapping is generated from the DC24 RichDataCapture provisioning interface.  It is generated on startup to create a ReDBox json configuration file that matches the models XML conversion.",
+        "mappings": {
+            "/%s" % Metadata.redbox_identifier.key: "",
+            "/%s" % Metadata.ccdam_identifier.key: "",
+            "/%s" % Metadata.project_title.key: "",
+            "/%s" % Metadata.activity.key: "",
+            "/%s" % Metadata.parties.key: {
+                Party.party_relationship.key: "",
+                Party.identifier.key: "",
             },
-            "defaultNamespace": {}
-        }
+            "/%s" % Metadata.collaborators.key: {
+                Metadata.collaborators.key: "",
+            },
+            "/%s" % Metadata.brief_description.key: "",
+            "/%s" % Metadata.full_description.key: "",
+            "/%s" % Metadata.notes.key: {
+                Metadata.notes.key: "",
+            },
+            "/%s" % Metadata.keywords.key: {
+                Keyword.keyword.key: "",
+            },
+            "/%s" % Metadata.fieldOfResearch.key: {
+                FieldOfResearch.field_of_research.key: "",
+            },
+            "/%s" % Metadata.socioEconomicObjective.key: {
+                SocioEconomicObjective.socio_economic_objective.key: "",
+            },
+            "/%s" % Metadata.ecosystems_conservation_climate.key: "",
+            "/%s" % Metadata.industries_economies.key: "",
+            "/%s" % Metadata.peoples_societies.key: "",
+            "/%s" % Metadata.health_medicine_biosecurity.key: "",
+            "/%s" % Metadata.typeOfResearch.key: "",
+            "/%s" % Metadata.time_period_description.key: "",
+            "/%s" % Metadata.date_from.key: "",
+            "/%s" % Metadata.date_to.key: "",
+            "/%s" % Metadata.location_description.key: "",
+            "/%s" % Metadata.locations.key: {
+                Location.name.key: "",
+                Location.location.key: "",
+                Location.elevation.key: "",
+            },
+            "/%s" % Metadata.access_rights.key: "",
+            "/%s" % Metadata.access_rights_url.key: "",
+            "/%s" % Metadata.rights.key: "",
+            "/%s" % Metadata.rights_url.key: "",
+            "/%s" % Metadata.license.key: "",
+            "/%s" % Metadata.license_name.key: "",
+            "/%s" % Metadata.license_url.key: "",
+            "/%s" % Metadata.citation_title.key: "",
+            "/%s" % Metadata.citation_creators.key: {
+                Creator.title.key: "",
+                Creator.given_name.key: "",
+                Creator.family_name.key: "",
+                Creator.email.key: "",
 
+            },
+            "/%s" % Metadata.citation_edition.key: "",
+            "/%s" % Metadata.citation_publisher.key: "",
+            "/%s" % Metadata.citation_place_of_publication.key: "",
+            "/%s" % Metadata.citation_dates.key: {
+                CitationDate.dateType.key: "",
+                CitationDate.archivalDate.key: "",
+            },
+            "/%s" % Metadata.citation_url.key: "",
+            "/%s" % Metadata.citation_context.key: "",
+            "/%s" % Metadata.retention_period.key: "",
+            "/%s" % Metadata.related_publications.key: {
+                RelatedPublication.title.key: "",
+                RelatedPublication.url.key: "",
+                RelatedPublication.notes.key: "",
+            },
+            "/%s" % Metadata.related_websites.key: {
+                RelatedWebsite.title.key: "",
+                RelatedWebsite.url.key: "",
+                RelatedWebsite.notes.key: "",
 
+            },
+            "/%s" % Metadata.attachments.key: {
+                Attachment.type.key: "",
+                Attachment.attachment.key: "",
+                Attachment.note.key: "",
 
+            }
+        }, "exceptions": {},
+        "defaultNamespace": {}
+    }
 
-        json_config = json.dumps(dict_config)
-        print json_config
-        return json_config
+    json_config = json.dumps(dict_config)
+    print json.dumps(dict_config, sort_keys=True, indent=4, separators=(',', ': '))
+    return json_config
 
 
 

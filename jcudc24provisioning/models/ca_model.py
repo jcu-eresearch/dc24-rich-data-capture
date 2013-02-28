@@ -1,4 +1,5 @@
 from datetime import date
+from lxml import etree
 import colander
 from sqlalchemy.ext.declarative import DeclarativeMeta
 import sys
@@ -327,6 +328,30 @@ class CAModel(object):
                 data[node.name] = node_data
     
         return data
+
+    def _add_xml_elements(self, root, data):
+        for key, value in data.items():
+            key = fix_schema_field_name(key)
+            element = etree.SubElement(root, key)
+            if value is colander.null or value is None or (isinstance(value, list) and len(value) == 0):
+                continue
+
+            if isinstance(value, dict):
+                self._add_xml_elements(element, value)
+            elif isinstance(value, list):
+                for i in range(len(value)):
+                    child_element = etree.SubElement(element, key + ".%i" % i)
+                    self._add_xml_elements(child_element, value[i])
+            else:
+                element.text = str(value)
+        return element
+
+    def to_xml(self):
+        root = etree.Element(self.__class__.__name__.lower())
+        root.append(self._add_xml_elements(root, self.dictify()))
+
+        print (etree.tostring(root.getroottree().getroot(), pretty_print=True))
+        return etree.ElementTree(root.getroottree().getroot())
 
     
 

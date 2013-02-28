@@ -20,7 +20,6 @@ from sqlalchemy import (
 from sqlalchemy.types import String, Boolean, Date
 from jcudc24provisioning.models.common_schemas import OneOfDict
 from jcudc24provisioning.models.common_schemas import upload_widget
-from jcudc24provisioning.models.metadata_exporters import ReDBoxExportWrapper
 
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -161,7 +160,7 @@ class SocioEconomicObjective(CAModel, Base):
     metadata_id = Column(Integer, ForeignKey('metadata.id'), ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
     socio_economic_objective = Column(String(50), ca_order=next(order_counter), ca_title="Socio-Economic Objective", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
-    ca_data=getSEOCodes)
+        ca_data=getSEOCodes)
 
 class Person(CAModel, Base):
     order_counter = itertools.count()
@@ -1036,7 +1035,7 @@ class MetadataNote(CAModel, Base):
             ca_widget=deform.widget.TextAreaWidget(rows=3), ca_title="Note",)
 
 
-class Metadata(ReDBoxExportWrapper, Base):
+class Metadata(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'metadata'

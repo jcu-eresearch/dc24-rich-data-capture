@@ -38,6 +38,7 @@ from jcudc24provisioning.views.ca_scripts import convert_schema, fix_schema_fiel
 from jcudc24provisioning.models.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.mint_lookup import MintLookup
 from pyramid.request import Request
+from jcudc24provisioning.models.metadata_exporters import create_json_config
 
 
 __author__ = 'Casey Bajema'
@@ -608,7 +609,7 @@ class Workflows(Layouts):
 
         return self._create_response(page_help=page_help, form=self._render_post())
 
-    @view_config(route_name="general", permission="edit")
+    @view_config(route_name="general")
     def general_view(self):
         page_help = ""
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description=""), page='general').bind(request=self.request)
@@ -619,7 +620,7 @@ class Workflows(Layouts):
             return
 
         self.project.information.to_xml()
-        self.project.information.to_json_config()
+        create_json_config()
 
         return self._create_response(page_help=page_help)
 
