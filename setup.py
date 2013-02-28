@@ -14,7 +14,7 @@ requires = [
     'pyramid_debugtoolbar',
     'zope.sqlalchemy',
     'waitress',
-    'deform',    
+    'deform',
     'colander >= 1.0a1',
     'pyramid_deform',
     "pyramid_beaker",

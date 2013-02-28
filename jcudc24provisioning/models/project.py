@@ -8,7 +8,7 @@ from sqlalchemy.dialects.mysql.base import DOUBLE
 from sqlalchemy.engine import create_engine
 from sqlalchemy.schema import ForeignKey, Table
 from zope.sqlalchemy import ZopeTransactionExtension
-from client import SOSVersions
+from simplesos.client import SOSVersions
 from colanderalchemy.declarative import Column, relationship
 from jcudc24provisioning.models.ca_model import CAModel
 import deform
@@ -19,7 +19,7 @@ from sqlalchemy import (
 from sqlalchemy.types import String, Boolean, Date
 from jcudc24provisioning.models.common_schemas import OneOfDict
 from jcudc24provisioning.models.common_schemas import upload_widget
-
+from jcudc24provisioning.models.metadata_exporters import ReDBoxExportWrapper
 
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -534,49 +534,50 @@ class MethodSchema(CAModel, Base):
         ca_help="TODO:  This needs to be displayed better - I'm thinking a custom template that has a sidebar for options and the fields are displayed 1 per line.  All fields will be shown here (including fields from parent/extended schemas selected above).")
 
 def custom_processing_validator(form, value):
-
-    with open(value) as f:
-        script = f.read()
-        if model.dataset_data_source.custom_processing_parameters is not None:
-            temp_params = [param.strip() for param in model.dataset_data_source.custom_processing_parameters.split(",")]
-            named_params = {'args': model.dataset_data_source.custom_processing_parameters}
-            unnamed_params = []
-            for param in temp_params:
-                if '=' in param:
-                    param_parts = param.split("=")
-                    named_params[param_parts[0]] = param_parts[1]
-                else:
-                    unnamed_params.append(param)
-
-            try:
-                script = script.format(*unnamed_params, **named_params)
-            except KeyError as e:
-                raise ValueError("Invalid custom processing parameters for {} dataset: {}".format(model.name, e.message))
-            data_source.processing_script = script
-
-    error = False
-    exc = colander.Invalid(form) # Uncomment to add a block message: , 'At least 1 research theme or Not aligned needs to be selected')
-
-    mint = MintLookup(None)
-
-    if value['publish_dataset'] is True and value['publish_date'] == colander.null:
-     exc['publish_date'] = "Required"
-     error = True
-    elif value['no_activity'] is True:
-     if mint.get_from_identifier(value['activity']) is None:
-         exc['activity'] = "The entered activity isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
-         error = True
-
-    if mint.get_from_identifier(value['project_lead']) is None:
-         exc['project_lead'] = "The entered project lead isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
-         error = True
-
-    if mint.get_from_identifier(value['data_manager']) is None:
-         exc['data_manager'] = "The entered data manager isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
-         error = True
-
-    if error:
-     raise exc
+    pass
+    #TODO
+#    with open(value) as f:
+#        script = f.read()
+#        if model.dataset_data_source.custom_processing_parameters is not None:
+#            temp_params = [param.strip() for param in model.dataset_data_source.custom_processing_parameters.split(",")]
+#            named_params = {'args': model.dataset_data_source.custom_processing_parameters}
+#            unnamed_params = []
+#            for param in temp_params:
+#                if '=' in param:
+#                    param_parts = param.split("=")
+#                    named_params[param_parts[0]] = param_parts[1]
+#                else:
+#                    unnamed_params.append(param)
+#
+#            try:
+#                script = script.format(*unnamed_params, **named_params)
+#            except KeyError as e:
+#                raise ValueError("Invalid custom processing parameters for {} dataset: {}".format(model.name, e.message))
+#            data_source.processing_script = script
+#
+#    error = False
+#    exc = colander.Invalid(form) # Uncomment to add a block message: , 'At least 1 research theme or Not aligned needs to be selected')
+#
+#    mint = MintLookup(None)
+#
+#    if value['publish_dataset'] is True and value['publish_date'] == colander.null:
+#     exc['publish_date'] = "Required"
+#     error = True
+#    elif value['no_activity'] is True:
+#     if mint.get_from_identifier(value['activity']) is None:
+#         exc['activity'] = "The entered activity isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
+#         error = True
+#
+#    if mint.get_from_identifier(value['project_lead']) is None:
+#         exc['project_lead'] = "The entered project lead isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
+#         error = True
+#
+#    if mint.get_from_identifier(value['data_manager']) is None:
+#         exc['data_manager'] = "The entered data manager isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
+#         error = True
+#
+#    if error:
+#     raise exc
 
 class CustomProcessor(CAModel, Base):
     order_counter = itertools.count()
@@ -794,8 +795,8 @@ class MethodTemplate(CAModel, Base):
     template_id = Column(Integer, ForeignKey('method.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
-#    implementing_methdos = relationship("Method", foreign_keys="method.method_template_id", ca_order=next(order_counter), ca_missing=colander.null,
-#        ca_widget=deform.widget.HiddenWidget(), backref="template", )
+#    implementing_methods = relationship("Method", foreign_keys="method.method_template_id", ca_order=next(order_counter), ca_missing=colander.null,
+#        ca_widget=deform.widget.HiddenWidget(), backref="template", ca_exclude=True)
 
     name = Column(String(100),ca_order=next(order_counter), ca_description="Name the template (eg. Artificial tree).")
     description = Column(String(256),ca_order=next(order_counter), ca_description="Provide a short description (<256 chars) of the template for the end user.")
@@ -809,8 +810,8 @@ class Method(CAModel, Base):
     project_id = Column(Integer, ForeignKey('project.id'), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
     id = Column(Integer, ca_order=next(order_counter), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
 
-    method_template_id = Column(Integer, ForeignKey('method_template.id', use_alter=True, name="fk_method_template_id"), nullable=True, ca_order=next(order_counter), ca_title="Select a template to base this method off (Overrides all fields)",
-        ca_widget=deform.widget.TextInputWidget(template="project_template_mapping", strip=False),
+    method_template_id = Column(Integer, ForeignKey('method_template.id', ForeignKey('method_template.id'), use_alter=True, name="fk_method_template_id"), nullable=True, ca_order=next(order_counter), ca_title="Select a template to base this method off (Overrides all fields)",
+        ca_widget=deform.widget.TextInputWidget(template="method_template_mapping", strip=False),
         ca_help="<p>Method templates provide pre-configured data collection methods and pre-fill as much information as possible to make this process as quick and easy as possible.</p>"
              "<ul><li>If you don't want to use any template, select the general category and Blank template."
              "</li><li>Please contact the administrators to request new templates.</li>",
@@ -1033,7 +1034,7 @@ class MetadataNote(CAModel, Base):
             ca_widget=deform.widget.TextAreaWidget(rows=3), ca_title="Note",)
 
 
-class Metadata(CAModel, Base):
+class Metadata(ReDBoxExportWrapper, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'metadata'

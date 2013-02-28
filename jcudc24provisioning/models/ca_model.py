@@ -22,15 +22,19 @@ class CAModel(object):
 
         if appstruct is not None:
             self.update(appstruct)
-            
-        self.schema = schema              
-        if self.schema is None:
-            self.schema = convert_schema(SQLAlchemyMapping(type(self)))
 
-    def dictify(self, schema=None):
+        self._schema = schema
+
+    @property
+    def schema(self):
+        if '_schema' not in locals() or self._schema is None:
+            self._schema = convert_schema(SQLAlchemyMapping(type(self)))
+        return self._schema
+
+    def dictify(self, schema=None, force_not_empty_lists=False):
         if schema is None:
             schema = self.schema
-        return self.convert_sqlalchemy_model_to_data(self, schema=schema)
+        return self.convert_sqlalchemy_model_to_data(self, schema=schema, force_not_empty_lists=force_not_empty_lists)
 
     def update(self, appstruct):
         return self.create_sqlalchemy_model(appstruct, model_object=self) is not None
@@ -261,7 +265,7 @@ class CAModel(object):
 
         return model_object
     
-    def convert_sqlalchemy_model_to_data(self, model, schema=None):
+    def convert_sqlalchemy_model_to_data(self, model, schema=None, force_not_empty_lists=False):
         if schema is None:
             # This will not take groupings into account
             schema = convert_schema(SQLAlchemyMapping(type(model)))
@@ -289,7 +293,10 @@ class CAModel(object):
                 if isinstance(value, list):
                     node_list = []
                     for item in value:
-                        node_list.append(self.convert_sqlalchemy_model_to_data(item,  node.children[0]))
+                        node_list.append(self.convert_sqlalchemy_model_to_data(item,  node.children[0], force_not_empty_lists))
+
+                    if force_not_empty_lists and len(value) == 0:
+                        node_list.append(self.convert_sqlalchemy_model_to_data(node.children[0]._reg.cls(),  node.children[0], force_not_empty_lists))
     
                     data[node.name] = node_list
                 elif isinstance(node.typ, deform.FileData) and value is not None:
@@ -303,14 +310,14 @@ class CAModel(object):
                                 break
     
                 elif len(node.children):
-                    data[node.name] = self.convert_sqlalchemy_model_to_data(value,  node)
+                    data[node.name] = self.convert_sqlalchemy_model_to_data(value,  node, force_not_empty_lists)
     
                 elif value is None:
                     data[node.name] = node.default
                 else:
                     data[node.name] = value
             elif len(node.children) > 0:
-                node_data = self.convert_sqlalchemy_model_to_data(model, node.children)
+                node_data = self.convert_sqlalchemy_model_to_data(model, node.children, force_not_empty_lists)
     
                 # Fix data for select mapping schemas
                 if not ':' in node.name:

@@ -14,7 +14,6 @@ from jcudc24provisioning.models.project import Project, Location, Base, Location
 from jcudc24provisioning.models.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.ca_scripts import convert_schema
 
-
 class TestModelConversion(unittest.TestCase):
     def test_conversion_equality(self):
         session = DBSession

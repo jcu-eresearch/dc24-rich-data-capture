@@ -16,6 +16,7 @@ import deform
 from deform.exception import ValidationFailure
 from deform.form import Form
 from pyramid.url import route_url
+import inspect
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker, RelationshipProperty
 import time
@@ -332,9 +333,11 @@ class Workflows(Layouts):
                 'warning_messages': self.request.session.pop_flash("warning")
             }
 
-    def _redirect_to_target(self):
-        target = self.get_address(self.request.POST['target'])
-        sub_request = Request.blank(target)
+    def _redirect_to_target(self, target):
+#        target = self.get_address(self.request.POST['target'])
+        sub_request = Request.blank(path=target, POST=self.request.POST, referrer=self.request.referrer, referer=self.request.referer)
+        # Request sorts the post items (which breaks deform) - fix it directly
+        sub_request.POST._items = self.request.POST._items
         return self.request.invoke_subrequest(sub_request)
 
 #        introspector = self.request.registry.introspector
@@ -412,6 +415,20 @@ class Workflows(Layouts):
 
             return self._model_appstruct
         return {}
+
+    def _handle_form(self, view_name):
+        if self.request.method == 'POST' and len(self.request.POST) > 0:
+            # If this is a sub-request called just to save.
+            if self.request.referrer == self.request.path_url:
+                model_id = self._save_form()
+                self._touch_page()
+
+                # If this view has been called for saving only, return without rendering.
+                view_name = inspect.stack()[0][3]
+                if not self.request.matched_route.name in view_name:
+                    return
+            else:
+                self._redirect_to_target(self.request.referrer)
 
     def handle_form(self, form, schema, page_help=None, appstruct=None, display=None, readonly=False):
         # If the form is being saved (there would be 1 item in controls if it is a fresh page with a project id set)
@@ -595,14 +612,12 @@ class Workflows(Layouts):
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description=""), page='general').bind(request=self.request)
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', ), use_ajax=False, ajax_options=redirect_options)
 
-        if self.request.method == 'POST' and len(self.request.POST) > 0:
-            # If this is a sub-request called just to save.
-            if self.request.referrer == self.request.path_url:
-                model_id = self._save_form()
-                self._touch_page()
-                return
-            else:
-                self._redirect_to_target(self.request.referrer)
+        # If this page was only called for saving and a rendered response isn't needed, return now.
+        if self._handle_form(view_name=inspect.stack()[0][3]):
+            return
+
+        self.project.information.to_xml()
+        self.project.information.to_json_config()
 
         return self._create_response(page_help=page_help)
 
@@ -619,13 +634,9 @@ class Workflows(Layouts):
             request=self.request)
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
 
-        if self.request.method == 'POST' and len(self.request.POST) > 0:
-            model_id = self._save_form()
-            self.request.POST.clear
-
-            # If this is a sub-request called just to save.
-            if self.request.referrer != self.request.path_url:
-                return
+        # If this page was only called for saving and a rendered response isn't needed, return now.
+        if self._handle_form(view_name=inspect.stack()[0][3]):
+            return
 
         return self._create_response(page_help=page_help)
 
@@ -648,14 +659,11 @@ class Workflows(Layouts):
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page='information').bind(request=self.request, settings=self.config)
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
 
-        if 'Next' in self.request.POST:
-            self.request.POST['target'] = 'methods'
+        # If this page was only called for saving and a rendered response isn't needed, return now.
+        if self._handle_form(view_name=inspect.stack()[0][3]):
+            return
 
-        if 'Previous' in self.request.POST:
-            self.request.POST['target'] = 'description'
-
-        readonly = self.project is not None and not (self.project.state == ProjectStates.OPEN or self.project.state is None)
-        return self.handle_form(self.form, schema, page_help, readonly=readonly)
+        return self._create_response(page_help=page_help)
 
     def get_template_schemas(self):
         return self.session.query(MethodSchema).filter_by(template_schema=1).all()
@@ -698,32 +706,17 @@ class Workflows(Layouts):
 
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
 
-
-
-        if 'Next' in self.request.POST:
-            self.request.POST['target'] = 'datasets'
-
-        if 'Previous' in self.request.POST:
-            self.request.POST['target'] = 'information'
-
-        appstruct = {}
-        display = None
-        controls = self.request.POST.items()
-        if len(controls) > 0:
-            try:
-                appstruct = self.form.validate(controls)
-                display = self.form.render(appstruct)
-            except ValidationFailure, e:
-                appstruct = e.cstruct
-                display = e.render()
-
-#            print "Post variables: " + str(appstruct)
-
-#            old_models = self.session.query(Method).filter_by(project_id=self.project_id).all()
+        # If a new method was just added update it with data from the chosen template.
+        # Because the same appstruct
+        appstruct = self._get_post_appstruct()
+        if len(appstruct) > 0:
             for new_method_data in appstruct['project:methods']:
                 if not new_method_data['method:id'] and 'method:method_template_id' in new_method_data and new_method_data['method:method_template_id']:
-                    template_method = self.session.query(Method).filter_by(id=new_method_data['method:method_template_id']).first()
+                    template = self.session.query(MethodTemplate).filter_by(id=new_method_data['method:method_template_id']).first()
                     if template is None:
+                        continue
+                    template_method = self.session.query(Method).filter_by(id=template.template_id).first()
+                    if template_method is None:
                         continue
 
                     new_method_dict = self._clone_model(template_method).dictify(schema[METHODS_INDEX].children[0])
@@ -733,8 +726,11 @@ class Workflows(Layouts):
                     new_method_dict['method:method_template_id'] = new_method_data['method:method_template_id']
                     new_method_data.update(new_method_dict)
 
-        readonly = self.project is not None and not (self.project.state == ProjectStates.OPEN or self.project.state is None)
-        return self.handle_form(self.form, schema, page_help, appstruct=appstruct, display=display, readonly=readonly)
+        # If this page was only called for saving and a rendered response isn't needed, return now.
+        if self._handle_form(view_name=inspect.stack()[0][3]):
+            return
+
+        return self._create_response(page_help=page_help)
 
 
     @view_config(route_name="datasets")
@@ -763,21 +759,8 @@ class Workflows(Layouts):
         datasets = self.session.query(Dataset).filter_by(project_id=self.project_id).all()
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="datasets").bind(request=self.request, datasets=datasets)
 
-        # Get the index of datasets
-        for i in range(len(schema.children)):
-            if schema.children[i].name[-len(Project.datasets.key):] == Project.datasets.key:
-                DATASETS_INDEX = i
-                break
-        # Find the DATASET_DATA_SOURCE_INDEX
-        for i in range(len(schema.children[DATASETS_INDEX].children[0].children)):
-            if schema.children[DATASETS_INDEX].children[0].children[i].name[-len(Dataset.dataset_data_source.key):] == Dataset.dataset_data_source.key:
-                DATASET_DATA_SOURCE_INDEX = i
-                break
-        # Find teh DATASET_DATA_SOURCE_ID_INDEX
-        for i in range(len(schema.children[DATASETS_INDEX].children[0].children[DATASET_DATA_SOURCE_INDEX].children)):
-            if schema.children[DATASETS_INDEX].children[0].children[DATASET_DATA_SOURCE_INDEX].children[i].name[-len(DatasetDataSource.dataset_data_source_id.key):] == DatasetDataSource.dataset_data_source_id.key:
-                DATASET_DATA_SOURCE_ID_INDEX = i
-                break
+        PREFIX_SEPARATOR = ":"
+        DATASETS_INDEX = string.join([schema.name, Project.datasets.key], PREFIX_SEPARATOR)
 
         if self.project_id is not None:
             methods = self.session.query(Method).filter_by(project_id=self.project_id).all()
@@ -786,114 +769,21 @@ class Workflows(Layouts):
                 self.request.session.flash('You must configure at least one method before adding dataset\'s', 'warning')
                 return HTTPFound(self.request.route_url('methods', project_id=self.project_id))
 
-#            # Add dataset template data to each method if it exists
-#            for method in methods:
-#                method.template = self.session.query(Dataset).join(MethodTemplate).filter(Dataset.id == MethodTemplate.dataset_id).\
-#                    filter(MethodTemplate.id == method.method_template_id).first()
-
             # Add method data to the field for information to create new templates.
-            schema.children[DATASETS_INDEX].children[0].methods = methods
-            schema.children[DATASETS_INDEX].children[0].widget.get_file_fields = get_file_fields
-
-
-
-#            method_schemas = []
-#            for method in methods:
-#                dataset_children = convert_schema(SQLAlchemyMapping(Dataset, unknown='raise')).children
-#
-#                DATA_SOURCE_CONFIGURATION_GROUP_NAME = "data_source_configuration"
-#                # Find the DATA_CONFIG_INDEX
-#                for i in range(len(dataset_children)):
-#                    if dataset_children[i].name[-len(DATA_SOURCE_CONFIGURATION_GROUP_NAME):] == DATA_SOURCE_CONFIGURATION_GROUP_NAME:
-#                        DATA_CONFIG_INDEX = i
-#                        break
-#
-#                # Selectively show only the selected data source per method.
-#                if method.data_source is not None and 'DATA_CONFIG_INDEX' in locals():
-#                    for data_source in dataset_children[DATA_CONFIG_INDEX].children:
-#                        if fix_schema_field_name(data_source.name) == method.data_source:
-#                            # Add dynamic data to pull data sources
-#                            if fix_schema_field_name(data_source.name) == PullDataSource.__tablename__:
-#                                for child in data_source.children:
-#                                    if fix_schema_field_name(child.name) == PullDataSource.file_field.key:
-#                                        fields = get_all_fields(method.data_type)
-#                                        field_values = []
-#                                        for i in range(len(fields)):
-#                                            if fields[i].type == "file":
-#                                                field_values.append((fields[i].id, fields[i].name))
-#
-#                                        child.widget.values = tuple(field_values)
-#
-#                            # Set the data source
-#                            dataset_children[DATA_CONFIG_INDEX].children = [data_source]
-#                            break
-#                elif 'DATA_CONFIG_INDEX' in locals():
-#                    dataset_children[DATA_CONFIG_INDEX].children = []
-#                    dataset_children[DATA_CONFIG_INDEX].description = "No associated data source - please select a datasource on the Methods page."
-#
-#                # Get the dataset template if there is one
-#                if method.method_template_id:
-#                    template = self.session.query(Dataset).join(MethodTemplate).filter(Dataset.id == MethodTemplate.dataset_id).\
-#                        filter(MethodTemplate.id == method.method_template_id).first()
-#
-#                # Set all field defaults based on the template.
-#                for child in dataset_children:
-#                    if fix_schema_field_name(child.name) == 'method_id':
-##                        child.missing = method.id
-#                        child.default = method.id
-##                    else:
-#                        # If there is a template for datasets of this method, set all fields default values accordingly
-#                    elif template:
-#                        name = fix_schema_field_name(child.name)
-#                        if name != "id" and hasattr(template, name):
-#                            child.default = getattr(template, name, colander.null)
-#                        elif name != "id":
-#                            logger.warn("Schema has field template doesn't: %s" % name)
-#
-#
-#                method_schemas.append(colander.MappingSchema(*dataset_children, name=(method.method_name and method.method_name or 'Un-named')))
-#
-#            method_select_schema = SelectMappingSchema(*method_schemas, name="dataset", collapsed=False,
-#                select_title="Select dataset method type", select_description="<i>Changing will overwrite all fields.</i>")
-#
-#
-#
-#        else:
-#            method_select_schema = SelectMappingSchema(select_title="Method", name="dataset" ,collapsed=False)
-#
-#        schema.children[DATASETS_INDEX].children = [method_select_schema]
-
-
+            schema[DATASETS_INDEX].children[0].methods = methods
+            schema[DATASETS_INDEX].children[0].widget.get_file_fields = get_file_fields
 
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
 
-        if 'Next' in self.request.POST:
-            self.request.POST['target'] = 'submit'
-
-        if 'Previous' in self.request.POST:
-            self.request.POST['target'] = 'methods'
-
         # If a new dataset was added through the wizard - Update the appstruct with that datasets' template's data
-        appstruct = None
-        display = None
-        controls = self.request.POST.items()
-        if len(controls) > 0:
-            try:
-                appstruct = self.form.validate(controls)
-                display = self.form.render()
-            except ValidationFailure, e:
-                appstruct = e.cstruct
-                display = e.render()
-
-#            print "Post variables: " + str(appstruct)
-
-#            old_models = self.session.query(Method).filter_by(project_id=self.project_id).all()
+        appstruct = self._get_post_appstruct()
+        if len(appstruct) > 0:
             for new_dataset_data in appstruct['project:datasets']:
                 # If this is a newly created dataset
                 if not new_dataset_data['dataset:id'] and 'dataset:method_id' in new_dataset_data and new_dataset_data['dataset:method_id']:
                     method = self.session.query(Method).filter_by(id=new_dataset_data['dataset:method_id']).first()
                     template_dataset = self.session.query(Dataset).join(MethodTemplate).filter(Dataset.id == MethodTemplate.dataset_id).\
-                                            filter(MethodTemplate.id == method.method_template_id).first()
+                    filter(MethodTemplate.id == method.method_template_id).first()
                     if template_dataset is None:
                         continue
 
@@ -909,18 +799,18 @@ class Workflows(Layouts):
                             break
 
                     # Copy all data from the template
-                    new_dataset_dict = template_clone.dictify(schema.children[DATASETS_INDEX].children[0])
+                    new_dataset_dict = template_clone.dictify(schema[DATASETS_INDEX].children[0])
 
-
-#                    new_method_dict = new_method_dict['method']
                     del new_dataset_dict['dataset:id']
                     new_dataset_dict['dataset:project_id'] = new_dataset_data['dataset:project_id']
                     new_dataset_dict['dataset:method_id'] = new_dataset_data['dataset:method_id']
                     new_dataset_data.update(new_dataset_dict)
 
-        readonly = self.project is not None and not (self.project.state == ProjectStates.OPEN or self.project.state is None)
-        return self.handle_form(self.form, schema, page_help, appstruct=appstruct, display=display, readonly=readonly)
+        # If this page was only called for saving and a rendered response isn't needed, return now.
+        if self._handle_form(view_name=inspect.stack()[0][3]):
+            return
 
+        return self._create_response(page_help=page_help)
 
     @view_config(route_name="submit")
     def submit_view(self):
@@ -938,6 +828,7 @@ class Workflows(Layouts):
                     "<b>Disable:</b> Stop data ingestion, this would usually occur once the project has finished."
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="submit").bind(request=self.request)
 
+        # Get validation errors
         if self.project is not None:
             # Create full self.project schema and form (without filtering to a single page as usual)
             val_schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_validator=project_validator, )).bind(request=self.request, settings=self.config)
@@ -964,6 +855,8 @@ class Workflows(Layouts):
 
             # TODO: Validate the project and set it to self for all workflow steps to use.
 
+        # Get all generated (and to-be-generated) metadata records
+        # + Get a summary of all ingesters to be setup
         redbox_records = []
         ingesters = []
         for dataset in self.project.datasets:
@@ -987,6 +880,7 @@ class Workflows(Layouts):
             if schema.children[i].name[-len('ingesters'):] == 'ingesters':
                 schema.children[i].children[0].ingesters = ingesters
 
+        # Configure the available buttons based of the proect state.
         SUBMIT_TEXT = "Submit"
         REOPEN_TEXT = "Reopen"
         DISABLE_TEXT = "Disable"
@@ -1005,8 +899,11 @@ class Workflows(Layouts):
 
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=buttons, use_ajax=False)
 
-        response = self.handle_form(self.form, schema, page_help)
+        # If this page was only called for saving and a rendered response isn't needed, return now.
+        if self._handle_form(view_name=inspect.stack()[0][3]):
+            return
 
+        # Handle button presses and actual functionality.
         if SUBMIT_TEXT in self.request.POST and 'id' in self.request.POST and (self.project.state == ProjectStates.OPEN or self.project.state is None) and len(self.error) <= 0:
             self.project.state = ProjectStates.SUBMITTED
             # TODO: fill citation data
@@ -1041,7 +938,7 @@ class Workflows(Layouts):
                 logger.exception("Project failed to add to ingesterplatform: %s", self.project.id)
                 self.request.session.flash("Failed to configure data storage and ingestion.", 'error')
                 self.request.session.flash("Error: %s" % e, 'error')
-                return response
+                return self._create_response(page_help=page_help)
 
             try:
                 dataset_services_csv = [self.dataset_to_mint_service_csv(dataset.id) for dataset in self.project.datasets]
@@ -1060,14 +957,14 @@ class Workflows(Layouts):
                 logger.exception("Project failed to add to ReDBox: %s", self.project.id)
                 self.request.session.flash("Sorry, the project failed to generate or add metadata records to ReDBox, please try agiain.", 'error')
                 self.request.session.flash("Error: %s" % e, 'error')
-                return response
+                return self._create_response(page_help=page_help)
 
 
             # Change the state to active
             self.project.state = ProjectStates.ACTIVE
             logger.info("Project has been approved successfully: %s", self.project.id)
 
-        return response
+        return self._create_response(page_help=page_help)
 
     def dataset_to_mint_service_csv(self):
         service_csv = ""
