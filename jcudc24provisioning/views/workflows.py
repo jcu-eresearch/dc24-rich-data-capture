@@ -8,6 +8,7 @@ import random
 from string import split
 import string
 import urllib2
+from pyramid.security import authenticated_userid
 import sqlalchemy
 from sqlalchemy.orm.properties import ColumnProperty, RelationProperty
 from sqlalchemy.orm.util import object_mapper
@@ -86,7 +87,7 @@ class ProjectStates(object):
     ACTIVE = 2
     DISABLED = 3
 
-@view_defaults(renderer="../templates/form.pt")
+@view_defaults(renderer="../templates/workflow_form.pt")
 class Workflows(Layouts):
     def __init__(self, context, request):
         self.request = request
@@ -424,9 +425,9 @@ class Workflows(Layouts):
                 self._touch_page()
 
                 # If this view has been called for saving only, return without rendering.
-                view_name = inspect.stack()[0][3]
-                if not self.request.matched_route.name in view_name:
-                    return
+                view_name = inspect.stack()[1][3][:-5]
+                if self.request.matched_route.name != view_name:
+                    return True
             else:
                 self._redirect_to_target(self.request.referrer)
 
@@ -510,6 +511,7 @@ class Workflows(Layouts):
             "next_page": kwargs.pop("next_page",self.next),
             "prev_page": kwargs.pop("prev_page",self.previous),
             "page_help": kwargs.pop("page_help", ""),
+            "logged_in": authenticated_userid(self.request)
         }
         # Lazy default initialisation as this has high overheads.
         if response_dict['form'] is None:
@@ -606,7 +608,7 @@ class Workflows(Layouts):
 
         return self._create_response(page_help=page_help, form=self._render_post())
 
-    @view_config(route_name="general")
+    @view_config(route_name="general", permission="edit")
     def general_view(self):
         page_help = ""
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description=""), page='general').bind(request=self.request)

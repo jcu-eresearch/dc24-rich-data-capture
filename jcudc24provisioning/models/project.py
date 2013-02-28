@@ -4,6 +4,7 @@ import itertools
 import logging
 import sys
 import colander
+from pyramid.security import Allow, Everyone
 from sqlalchemy.dialects.mysql.base import DOUBLE
 from sqlalchemy.engine import create_engine
 from sqlalchemy.schema import ForeignKey, Table
@@ -41,6 +42,7 @@ DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
 Base = declarative_base()
 
 logger = logging.getLogger(__name__)
+
 
 def research_theme_validator(form, value):
     error = True

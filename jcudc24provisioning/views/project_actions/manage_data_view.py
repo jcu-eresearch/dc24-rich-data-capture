@@ -59,7 +59,7 @@
 #        self.schema = ManageDataSchema(description="Attach metadata to data already added, such as quality information or notes.  The intent of adding metadata to persistent storage is post markup information about the data, not as actual data itself.<br/><br/><b>TODO: Generate form on the fly based off the models</b>").bind(request=request)
 #        self.form = Form(self.schema, action="submit_manage_data", buttons=('Search',), use_ajax=False)
 #
-#    @view_config(renderer="../../templates/form.pt", name="submit_manage_data")   # Use ../../templates/submit.pt for AJAX - File upload doesn't work due to jquery/deform limitations
+#    @view_config(renderer="../../templates/workflow_form.pt", name="submit_manage_data")   # Use ../../templates/submit.pt for AJAX - File upload doesn't work due to jquery/deform limitations
 #    def submit(self):
 #        controls = self.request.POST.items()
 #        try:
@@ -79,7 +79,7 @@
 #        self.form = Form(self.schema, action="submit_manage_data", buttons=('Delete/Disable', 'Add metadata', 'View everything related'), use_ajax=False)
 #        return {"page_title": self.title, "form": self.form.render(appstruct), "form_only": self.form.use_ajax}
 #
-#    @view_config(renderer="../../templates/form.pt", name="manage_data")
+#    @view_config(renderer="../../templates/workflow_form.pt", name="manage_data")
 #    def add_data_view(self):
 #        return {"page_title": self.title, "form": self.form.render(), "form_only": False}
 #

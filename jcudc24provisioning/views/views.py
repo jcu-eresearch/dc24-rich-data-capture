@@ -2,9 +2,14 @@ import ConfigParser
 import logging
 from string import split
 import urllib2
-import sqlalchemy
+import pyramid
 from pyramid.httpexceptions import HTTPNotFound, HTTPFound
-from pyramid.view import view_config
+from pyramid.view import view_config, forbidden_view_config, view_defaults
+from pyramid.security import remember, forget, authenticated_userid
+from jcudc24provisioning.controllers.authentication import authenticate_user
+from deform.form import Form
+from jcudc24provisioning.models.website import Login
+
 
 __author__ = 'Casey Bajema'
 from pyramid.renderers import get_renderer
@@ -22,6 +27,7 @@ PAGES = [
         {'route_name': 'login', 'title': 'Log in', 'page_title': 'Log in', 'hidden': True},
 ]
 
+@view_defaults(permission=pyramid.security.NO_PERMISSION_REQUIRED)
 class Layouts(object):
     def __init__(self, context, request):
         self.context = context
@@ -117,6 +123,65 @@ class Layouts(object):
             'warning_messages': self.request.session.pop_flash("warning")
         }
         return {"page_title": "Provisioning Dashboard", 'messages': messages}
+
+
+
+    @view_config(route_name='login', renderer='../templates/form.pt')
+    @forbidden_view_config(renderer='../templates/form.pt')
+    def login(self):
+        request = self.request
+        logged_in = authenticated_userid(self.request)
+
+        form = Form(Login(), action=self.request.route_url("login"), buttons=('Login', ))
+
+        login_url = self.request.resource_url(self.request.context, 'login')
+        referrer = self.request.url
+        if referrer == login_url:
+            referrer = '/' # never use the login form itself as came_from
+        came_from = self.request.params.get('came_from', referrer)
+        login = ''
+        password = ''
+        if self.request.method == 'POST':
+            login = self.request.params['user_name']
+            password = self.request.params['password']
+            if authenticate_user(login, password):
+                headers = remember(self.request, login)
+                self.request.session.flash('Logged in successfully.', 'success',)
+                return HTTPFound(location = came_from,
+                                 headers = headers)
+
+            self.request.session.flash('Authentication Failed.', 'error',)
+            try:
+                appstruct = form.validate(self.request.POST.items())
+                display = form.render(appstruct)
+            except Exception, e:
+                appstruct = e.cstruct
+                display = e.render()
+        else:
+            display = form.render({'came_from': came_from})
+
+
+        messages = {
+                    'error_messages': self.request.session.pop_flash("error"),
+                    'success_messages': self.request.session.pop_flash("success"),
+                    'warning_messages': self.request.session.pop_flash("warning")
+                }
+
+        return dict(
+                page_title="Login",
+                messages = messages,
+                url = self.request.application_url + '/login',
+                came_from = came_from,
+                login = login,
+                password = password,
+                form=display
+            )
+
+    @view_config(route_name='logout')
+    def logout(self):
+        headers = forget(self.request)
+        return HTTPFound(location = self.request.resource_url(self.request.context),
+                         headers = headers)
 
 
     @view_config(context=Exception, renderer="../templates/exception.pt")

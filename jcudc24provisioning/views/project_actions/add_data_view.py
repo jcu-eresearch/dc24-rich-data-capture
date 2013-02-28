@@ -43,7 +43,7 @@
 #                collapsed=False, collapse_group="add_data").bind(request=request)
 #        self.form = Form(self.schema, action="submit_add_data", buttons=('Save',), use_ajax=False)
 #
-#    @view_config(renderer="../../templates/form.pt", name="submit_add_data")   # Use ../../templates/submit.pt for AJAX - File upload doesn't work due to jquery/deform limitations
+#    @view_config(renderer="../../templates/workflow_form.pt", name="submit_add_data")   # Use ../../templates/submit.pt for AJAX - File upload doesn't work due to jquery/deform limitations
 #    def submit(self):
 #        controls = self.request.POST.items()
 #        try:
@@ -55,7 +55,7 @@
 #        # Process the valid form data, do some work
 #        return {"page_title": self.title, "form": self.form.render(appstruct), "form_only": self.form.use_ajax}
 #
-#    @view_config(renderer="../../templates/form.pt", name="add_data")
+#    @view_config(renderer="../../templates/workflow_form.pt", name="add_data")
 #    def add_data_view(self):
 #        return {"page_title": self.title, "form": self.form.render(), "form_only": False}
 #

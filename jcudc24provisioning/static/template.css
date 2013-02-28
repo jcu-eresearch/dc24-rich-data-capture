@@ -156,7 +156,7 @@ input[type=text].full_width, .full_width input[type=text] {
     width: 275px;
 }
 
-input[type=text]:not(.hasDatepicker), input[type=text].half_width {
+input[type=text]:not(.hasDatepicker), input[type=text].half_width, input[type=password] {
     min-width: 50%;
 }
 
@@ -252,6 +252,7 @@ body {
     right: 1em;
     top: 0;
 }
+
 
 #help_menu {
     border-bottom-right-radius: 5.76667px;
@@ -465,6 +466,10 @@ body {
 
 #exception_content {
     padding: 20px;
+}
+
+#simple_form {
+    margin-right: 15px;
 }
 
 #content {

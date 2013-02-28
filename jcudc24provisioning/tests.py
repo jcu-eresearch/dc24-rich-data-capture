@@ -145,7 +145,6 @@ class TestIngesterPlatform(unittest.TestCase):
         dataset1.method_id = method1.id
         dataset1.disabled = False
         dataset1.description = "Test dataset"
-        dataset1.schema = method1.data_type
 
         data_source = PullDataSource()
         data_source.uri = "http://localhost/test_ingestion"

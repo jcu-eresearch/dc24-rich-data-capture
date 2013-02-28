@@ -1,4 +1,7 @@
-
+from pyramid.authentication import AuthTktAuthenticationPolicy
+from pyramid.authorization import ACLAuthorizationPolicy
+from jcudc24provisioning.controllers.authentication import get_groups
+from jcudc24provisioning.models import RootFactory
 
 global global_settings
 
@@ -19,7 +22,6 @@ from pkg_resources import resource_filename
 from pyramid_beaker import session_factory_from_settings, set_cache_regions_from_settings
 
 from pkg_resources import declare_namespace
-from . import models
 import sys
 import scripts.initializedb
 
@@ -47,10 +49,11 @@ def main(global_config, **settings):
 
     set_cache_regions_from_settings(settings)
     my_session_factory = session_factory_from_settings(settings)
-    config = Configurator(settings=settings, session_factory = my_session_factory)
+    config = Configurator(settings=settings, session_factory = my_session_factory, root_factory=RootFactory)
 
     config.add_route('dashboard', '/')                                      # Home page/user dashboard
     config.add_route('login', '/login')                                     # Login page
+    config.add_route('logout', '/logout')                                     # logout and redirect page
     config.add_route('search', '/search_page')                                   # Search and manage projects and data
     config.add_route('browse', '/project')                                     # administer user permissions + view admin required items
     config.add_route('admin', '/admin')                                     # administer user permissions + view admin required items
@@ -93,6 +96,11 @@ def main(global_config, **settings):
     config.add_static_view('deform_static', 'deform:static', cache_max_age=0)
     config.add_static_view('static', 'static')
 
+    authn_policy = AuthTktAuthenticationPolicy('seekrit', callback=get_groups) # Todo: There should be a hashalg attribute to provide more secure methods, but it throws AttributeErrors?
+    authz_policy = ACLAuthorizationPolicy()
+    config.set_authentication_policy(authn_policy)
+    config.set_authorization_policy(authz_policy)
+    config.set_default_permission("admin")
 
     config.scan()
 
