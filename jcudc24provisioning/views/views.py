@@ -6,9 +6,8 @@ import pyramid
 from pyramid.httpexceptions import HTTPNotFound, HTTPFound
 from pyramid.view import view_config, forbidden_view_config, view_defaults
 from pyramid.security import remember, forget, authenticated_userid
-from jcudc24provisioning.controllers.authentication import authenticate_user
 from deform.form import Form
-from jcudc24provisioning.models.website import Login
+from jcudc24provisioning.models.website import Login, User
 
 
 __author__ = 'Casey Bajema'
@@ -141,11 +140,12 @@ class Layouts(object):
         came_from = self.request.params.get('came_from', referrer)
         login = ''
         password = ''
-        if self.request.method == 'POST':
+        if 'Login' in self.request.params:
             login = self.request.params['user_name']
             password = self.request.params['password']
-            if authenticate_user(login, password):
-                headers = remember(self.request, login)
+            user = User.get_user(username=login)
+            if user and user.validate_password(password):
+                headers = remember(self.request, user.id)
                 self.request.session.flash('Logged in successfully.', 'success',)
                 return HTTPFound(location = came_from,
                                  headers = headers)

@@ -5,7 +5,7 @@ import urllib
 import urllib2
 import colander
 from colanderalchemy.types import SQLAlchemyMapping
-from jcudc24provisioning.models.project import DBSession
+from jcudc24provisioning.models import DBSession
 from pyramid.view import view_config, view_defaults
 from jcudc24provisioning.views.ca_scripts import convert_schema
 from jcudc24provisioning.models.project import *

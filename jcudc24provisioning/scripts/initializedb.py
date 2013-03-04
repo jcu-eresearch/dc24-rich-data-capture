@@ -3,8 +3,11 @@ import sys
 import transaction
 
 import random
-from jcudc24provisioning.models.project import Base, Dataset, Location, MethodSchema,ProjectTemplate, MethodSchemaField, DBSession, Project, MethodTemplate, Method, PullDataSource, DatasetDataSource
+from jcudc24provisioning.controllers.authentication import DefaultPermissions, DefaultRoles
+from jcudc24provisioning.models import DBSession, Base
+from jcudc24provisioning.models.project import Dataset, Location, MethodSchema, ProjectTemplate, MethodSchemaField, Project, MethodTemplate, Method, PullDataSource, DatasetDataSource
 from jcudc24ingesterapi.schemas.data_types import Double
+from jcudc24provisioning.models import website
 
 from sqlalchemy import engine_from_config
 
@@ -12,6 +15,7 @@ from pyramid.paster import (
     get_appsettings,
     setup_logging,
     )
+from jcudc24provisioning.models.website import User, Role, Permission
 
 def usage(argv):
     cmd = os.path.basename(argv[0])
@@ -30,18 +34,49 @@ def main(argv=sys.argv):
 def initialise_all_db(settings):
     engine = engine_from_config(settings, 'sqlalchemy.')
     DBSession.configure(bind=engine)
+
+    test = Base
+    initialised = engine.dialect.has_table(engine.connect(), "project")
     Base.metadata.create_all(engine)
 
+#    if not initialised:
     with transaction.manager:
         session = DBSession
         #        self.initialise_offset_locations_schema()
         initialise_temperature_schema(session)
         initialise_project_templates(session)
         initialise_method_templates(session)
+        initialise_security(session)
         transaction.commit()
 
-def initialise_offset_locations_schema(session):
+def initialise_security(session):
+    defaults = DefaultPermissions()
+    for name in dir(defaults):
+        if name.startswith("_"):
+            continue
+        name, description = getattr(defaults, name)
+        permission = Permission(name, description)
+        session.add(permission)
 
+    defaults = DefaultRoles()
+    for name in dir(defaults):
+        if name.startswith("_") or name == 'name':
+            continue
+        name, description, permissions = getattr(defaults, name)
+
+        permission_objects = session.query(Permission).filter(Permission.name.in_([permission_name for (permission_name, permission_description) in permissions])).all()
+        role = Role(name, description, permission_objects)
+        session.add(role)
+
+    session.flush()
+    user = User("user", "user")
+    session.add(user)
+    test = DefaultRoles().ADMIN[0]
+    admin = User("admin", "admin", roles=session.query(Role).filter(Role.name==DefaultRoles().ADMIN[0]).all())
+    session.add(admin)
+
+
+def initialise_offset_locations_schema(session):
     location_offsets_schema = session.query(MethodSchema).filter_by(name="XYZ Location Offsets").first()
     if not location_offsets_schema:
         location_offsets_schema = MethodSchema()

@@ -32,8 +32,9 @@ from pyramid.view import view_config, view_defaults, render_view_to_response
 from colanderalchemy.types import SQLAlchemyMapping
 from jcudc24provisioning.views.views import Layouts
 from pyramid.renderers import get_renderer
-from jcudc24provisioning.models.project import DBSession, PullDataSource, Metadata, UntouchedPages, IngesterLogs, Location, \
-    ProjectTemplate,method_template,DatasetDataSource, Project, project_validator, ProjectStates, CreatePage, Method, Base, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
+from jcudc24provisioning.models import DBSession, Base
+from jcudc24provisioning.models.project import PullDataSource, Metadata, UntouchedPages, IngesterLogs, Location, \
+    ProjectTemplate,method_template,DatasetDataSource, Project, project_validator, ProjectStates, CreatePage, Method, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
 from jcudc24provisioning.views.ca_scripts import convert_schema, fix_schema_field_name
 from jcudc24provisioning.models.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.mint_lookup import MintLookup
@@ -418,7 +419,7 @@ class Workflows(Layouts):
             return self._model_appstruct
         return {}
 
-    def _handle_form(self, view_name):
+    def _handle_form(self):
         if self.request.method == 'POST' and len(self.request.POST) > 0:
             # If this is a sub-request called just to save.
             if self.request.referrer == self.request.path_url:
@@ -616,7 +617,7 @@ class Workflows(Layouts):
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', ), use_ajax=False, ajax_options=redirect_options)
 
         # If this page was only called for saving and a rendered response isn't needed, return now.
-        if self._handle_form(view_name=inspect.stack()[0][3]):
+        if self._handle_form():
             return
 
         self.project.information.to_xml()
@@ -638,7 +639,7 @@ class Workflows(Layouts):
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
 
         # If this page was only called for saving and a rendered response isn't needed, return now.
-        if self._handle_form(view_name=inspect.stack()[0][3]):
+        if self._handle_form():
             return
 
         return self._create_response(page_help=page_help)
@@ -663,7 +664,7 @@ class Workflows(Layouts):
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
 
         # If this page was only called for saving and a rendered response isn't needed, return now.
-        if self._handle_form(view_name=inspect.stack()[0][3]):
+        if self._handle_form():
             return
 
         return self._create_response(page_help=page_help)
@@ -730,7 +731,7 @@ class Workflows(Layouts):
                     new_method_data.update(new_method_dict)
 
         # If this page was only called for saving and a rendered response isn't needed, return now.
-        if self._handle_form(view_name=inspect.stack()[0][3]):
+        if self._handle_form():
             return
 
         return self._create_response(page_help=page_help)
@@ -810,7 +811,7 @@ class Workflows(Layouts):
                     new_dataset_data.update(new_dataset_dict)
 
         # If this page was only called for saving and a rendered response isn't needed, return now.
-        if self._handle_form(view_name=inspect.stack()[0][3]):
+        if self._handle_form():
             return
 
         return self._create_response(page_help=page_help)
@@ -903,7 +904,7 @@ class Workflows(Layouts):
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=buttons, use_ajax=False)
 
         # If this page was only called for saving and a rendered response isn't needed, return now.
-        if self._handle_form(view_name=inspect.stack()[0][3]):
+        if self._handle_form():
             return
 
         # Handle button presses and actual functionality.
@@ -934,23 +935,13 @@ class Workflows(Layouts):
 
         if APPROVE_TEXT in self.request.POST and 'id' in self.request.POST and self.project.state == ProjectStates.SUBMITTED:
             try:
-                self.ingester_api.post(self.project)
-                self.ingester_api.close()
-                logger.info("Project has been added to ingesterplatform successfully: %s", self.project.id)
-            except Exception as e:
-                logger.exception("Project failed to add to ingesterplatform: %s", self.project.id)
-                self.request.session.flash("Failed to configure data storage and ingestion.", 'error')
-                self.request.session.flash("Error: %s" % e, 'error')
-                return self._create_response(page_help=page_help)
-
-            try:
                 dataset_services_csv = [self.dataset_to_mint_service_csv(dataset.id) for dataset in self.project.datasets]
 
                 # TODO: Upload service csv files to Mint and get mint url and identifier
 
                 project_csv = self.record_to_redbox_csv(self.project.information.id)
                 dataset_records_csv = [self.record_to_redbox_csv(self.session.query(Metadata).filter(Metadata.dataset_id==dataset.id).first().id) for dataset in self.project.datasets]
-                dataset_records_csv = [self.record_to_redbox_csv(id) for id in self.session.query(Metadata).join(Dataset).filter(Metadata.dataset_id==Dataset.id).filter(Dataset.project_id==self.project_id).all()]
+                dataset_records_csv.append([self.record_to_redbox_csv(id) for id in self.session.query(Metadata).join(Dataset).filter(Metadata.dataset_id==Dataset.id).filter(Dataset.project_id==self.project_id).all()])
 
                 # TODO: Upload the csv files to ReDBox and get the links and identifiers
 
@@ -962,6 +953,15 @@ class Workflows(Layouts):
                 self.request.session.flash("Error: %s" % e, 'error')
                 return self._create_response(page_help=page_help)
 
+            try:
+                self.ingester_api.post(self.project)
+                self.ingester_api.close()
+                logger.info("Project has been added to ingesterplatform successfully: %s", self.project.id)
+            except Exception as e:
+                logger.exception("Project failed to add to ingesterplatform: %s", self.project.id)
+                self.request.session.flash("Failed to configure data storage and ingestion.", 'error')
+                self.request.session.flash("Error: %s" % e, 'error')
+                return self._create_response(page_help=page_help)
 
             # Change the state to active
             self.project.state = ProjectStates.ACTIVE
@@ -980,8 +980,9 @@ class Workflows(Layouts):
         redbox_csv = ""
 
         metadata = self.session.query(Metadata).filter_by(id==metadata_id).first()
-
-        #TODO: Metadata to redbox csv mappings.
+        record_csv = metadata.to_xml()
+        #TODO: Add related service
+        #TODO: Add related datasets.
 
         return redbox_csv
 

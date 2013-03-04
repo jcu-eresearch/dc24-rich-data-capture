@@ -20,6 +20,7 @@ from sqlalchemy import (
 from sqlalchemy.types import String, Boolean, Date
 from jcudc24provisioning.models.common_schemas import OneOfDict
 from jcudc24provisioning.models.common_schemas import upload_widget
+from jcudc24provisioning.models import Base
 
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -36,9 +37,6 @@ from jcudc24provisioning.views.mint_lookup import MintLookup
 #db_engine.connect()
 #DBSession = scoped_session(sessionmaker(bind=db_engine))
 import re
-
-DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
-Base = declarative_base()
 
 logger = logging.getLogger(__name__)
 
@@ -148,6 +146,7 @@ class FieldOfResearch(CAModel, Base):
     id = Column(Integer, primary_key=True, ca_order=next(order_counter), ca_force_required=False, nullable=False, ca_widget=deform.widget.HiddenWidget())
     metadata_id = Column(Integer, ForeignKey('metadata.id'),ca_order=next(order_counter),  nullable=False, ca_widget=deform.widget.HiddenWidget())
 
+    field_of_research_label = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget)
     field_of_research = Column(String(50), ca_order=next(order_counter), ca_title="Field Of Research", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
         ca_data=getFORCodes)
 
@@ -159,6 +158,7 @@ class SocioEconomicObjective(CAModel, Base):
     id = Column(Integer, primary_key=True, ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
     metadata_id = Column(Integer, ForeignKey('metadata.id'), ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
+    socio_economic_objective_label = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget)
     socio_economic_objective = Column(String(50), ca_order=next(order_counter), ca_title="Socio-Economic Objective", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
         ca_data=getSEOCodes)
 
@@ -174,9 +174,9 @@ class Person(CAModel, Base):
     email = Column(String(256), ca_order=next(order_counter), ca_missing="", ca_validator=colander.Email())
 
 relationship_types = (
-        ("select", "---Select One---"), ("owner", "Owned by"), ("manager", "Managed by"), ("associated", "Associated with"),
-        ("aggregated", "Aggregated by")
-        , ("enriched", "Enriched by"))
+        ("select", "---Select One---"), ("isOwnedBy", "Owned by"), ("isManagedBy", "Managed by"), ("hasAssocationWith", "Associated with"),
+        ("hasCollector", "Aggregated by")
+        , ("isEnrichedBy'", "Enriched by"))
 
 class Party(CAModel, Base):
     order_counter = itertools.count()
@@ -186,11 +186,23 @@ class Party(CAModel, Base):
 #    person_id = Column(Integer, ForeignKey('person.id'), ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
     metadata_id = Column(Integer, ForeignKey('metadata.id'), ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
-    party_relationship = Column(String(100), ca_name="dc:creator.foaf:Person.0.jcu:relationshipType", ca_order=next(order_counter), ca_title="This project is",
+    party_relationship_label = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(),)
+    party_relationship = Column(String(100), ca_order=next(order_counter), ca_title="This project is",
         ca_widget=deform.widget.SelectWidget(values=relationship_types),
         ca_validator=OneOfDict(relationship_types[1:]),)
 
-    identifier = Column(String(100), ca_name="dc:creator.foaf:Person.0.dc:identifier", ca_order=next(order_counter), ca_title="Persistent Identifier", ca_force_required=True,
+    party_relationship = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(),)
+    name = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(),)              # TODO: Pre-fill these fields when a party is selected.
+    title = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(),)
+    #                Party.coprimary: "dc:creator.foaf:Person.1.redbox:isCoPrimaryInvestigator",
+    #                Party.primary: "dc:creator.foaf:Person.1.redbox:isPrimaryInvestigator",
+    given_name = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(),)
+    family_name = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(),)
+    organisation = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(),)
+    organisation_labl = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(),)
+    email = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(),)
+
+    identifier = Column(String(100), ca_order=next(order_counter), ca_title="Persistent Identifier", ca_force_required=True,
         ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/parties/', template="mint_autocomplete_input", size="70", delay=10))
 #    person = relationship('Person', ca_order=next(order_counter), uselist=False)
 
@@ -204,8 +216,6 @@ class Creator(CAModel, Base):
     title = Column(String(5), ca_name="dc:biblioGraphicCitation.dc:hasPart.locrel:ctb.0.foaf:title", ca_title="Title", ca_order=next(order_counter), ca_placeholder="eg. Mr, Mrs, Dr",)
     given_name = Column(String(256), ca_name="dc:biblioGraphicCitation.dc:hasPart.locrel:ctb.0.foaf:givenName", ca_order=next(order_counter), ca_title="Given name")
     family_name = Column(String(256), ca_name="dc:biblioGraphicCitation.dc:hasPart.locrel:ctb.0.foaf:familyName", ca_order=next(order_counter), ca_title="Family name")
-    email = Column(String(256), ca_order=next(order_counter), ca_missing="", ca_validator=colander.Email())
-
 
 class Keyword(CAModel, Base):
     order_counter = itertools.count()
@@ -235,9 +245,10 @@ class CitationDate(CAModel, Base):
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
     metadata_id = Column(Integer, ForeignKey('metadata.id'), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
-    dateType = Column(String(100), ca_name="sourced from citationDateType.json", ca_title="Date type",
+    label = Column(String(256), ca_widget=deform.widget.HiddenWidget())
+    type = Column(String(100), ca_name="sourced from citationDateType.json", ca_title="Date type",
         ca_widget=deform.widget.TextInputWidget(size="40", css_class="full_width"))
-    archivalDate = Column(Date(), ca_name="dc:biblioGraphicCitation.dc:hasPart.dc:date.0.dc:type.skos:prefLabel", ca_title="Date")
+    date = Column(Date(), ca_name="dc:biblioGraphicCitation.dc:hasPart.dc:date.0.dc:type.skos:prefLabel", ca_title="Date")
 
 
 attachment_types = (("data", "Data file"), ("supporting", "Supporting material"), ("readme", "Readme"))
@@ -304,6 +315,7 @@ class Location(CAModel, Base):
     metadata_id = Column(Integer, ForeignKey('metadata.id'), nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
+    location_type = Column(String(10), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(), default="text")
     name = Column(String(256), ca_force_required=True,ca_order=next(order_counter))
     location = Column(String(512), ca_validator=location_validator, ca_name="dc:coverage.vivo:GeographicLocation.0.redbox:wktRaw", ca_widget=deform.widget.TextInputWidget(css_class='map_location'),ca_order=next(order_counter),
         ca_force_required=True, ca_child_widget=deform.widget.TextInputWidget(regex_mask="^(POINT\([+-]?\d*\.?\d* [+-]?\d*\.?\d*\)) |(POLYGON\(\(([+-]?\d*\.?\d*\s[+-]?\d*\.?\d*,?\s?)*\)\))|(LINESTRING\(([+-]?\d*\.?\d*\s[+-]?\d*\.?\d*,?\s?)*\))$"),
@@ -1030,6 +1042,8 @@ class MetadataNote(CAModel, Base):
     id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget())
     metadata_id = Column(Integer, ForeignKey('metadata.id'), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
+    note_desc_type = Column(String(100), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), ca_default="note")
+    note_desc_label = Column(String(100), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), ca_default="Note:",)
     note = Column(Text(), ca_order=next(order_counter),
             ca_placeholder="eg. TODO",
             ca_widget=deform.widget.TextAreaWidget(rows=3), ca_title="Note",)
@@ -1044,10 +1058,25 @@ class Metadata(CAModel, Base):
     project_id = Column(Integer, ForeignKey('project.id'), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dataset_id = Column(Integer, ForeignKey('dataset.id'), unique=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
+    #----------------------Static fields for ReDBox integration-------------------------
+    record_export_date = Column(Date, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(), name="dc:created") # TODO: set this b4 exported.
+    dc_spec = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="xmlns:dc", ca_default="http://dublincore.org/documents/2008/01/14/dcmi-terms/")
+    foaf_spec = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="xmlns:foaf", ca_default="http://xmlns.com/foaf/spec/",)
+    anzsrc_spec = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="xmlns:anzsrc", ca_default="http://purl.org/anzsrc/",)
+    view_id = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="viewId", ca_default="default",)
+    package_type = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="packageType", ca_default="dataset",)
+    record_origin = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="dc:identifier.redbox:origin", ca_default="internal",) #TODO: What should this be prefilled with? Internal or something like rdc?
+    new_redbox_form = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="redbox:newForm", ca_default="false",)    #TODO: Should this be true?
+    redbox_form_version = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="redbox:formVersion", ca_default="1.5.2.2",)
+    record_type = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="dc:type.rdf:PlainLiteral", ca_default="dataset",)
+    record_type_label = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="dc:type.skos:prefLabel", ca_default="Dataset",)
+    language = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="dc:language.dc:identifier", ca_default="http://id.loc.gov/vocabulary/iso639-2/eng",)
+    language_label = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="dc:language.skos:prefLabel", ca_default="English",)
 
-    redbox_identifier = Column(String(256), ca_name="", ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    data_storage_location = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), ca_default="CC-DAM, James Cook University, Townsville Campus")
+    redbox_identifier = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     redbox_uri = Column(String(256), ca_name="dc:relation.vivo:Dataset.0.dc:identifier",ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
-    ccdam_identifier = Column(String(256), ca_name="", ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    ccdam_identifier = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
     #--------------Setup--------------------
     project_title = Column(String(512), ca_order=next(order_counter), ca_name="dc:title",
@@ -1066,6 +1095,10 @@ class Metadata(CAModel, Base):
     #    no_activity = Column(Boolean(), ca_order=next(order_counter), ca_title="There is no associated research grant", ca_page="general",
     #        ca_description="Must be selected if a research grant isn't provided below.")
     #
+
+    internal_grant = Column(Boolean, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="foaf:fundedBy.vivo:Grant.1.redbox:internalGrant", ca_default="false")
+    grant_number = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="foaf:fundedBy.vivo:Grant.1.redbox:grantNumber",)
+    grant_label = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="foaf:fundedBy.vivo:Grant.1.skos:prefLabel",)
     activity = Column(String(256), ca_order=next(order_counter), ca_title="Research Grant", ca_page="general",
         ca_missing="",
         ca_help="Enter the associated research grant associated with this record (this field will autocomplete).",
@@ -1107,6 +1140,8 @@ class Metadata(CAModel, Base):
         ca_herlp="<b>TODO: This should give good definitions and edge cases etc...</b>", ca_missing="")
 
     #---------------------description---------------------
+    breif_desc_type = Column(String(100), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), ca_default="brief", ca_page="description",)
+    breif_desc_label = Column(String(100), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), ca_default="Brief:", ca_page="description",)
     brief_description = Column(Text(), ca_order=next(order_counter), ca_page="description", ca_force_required=True,
         ca_placeholder="eg.  TODO: Get a well written brief description for the artificial tree project.",
         ca_widget=deform.widget.TextAreaWidget(rows=6), ca_title="Brief Description",
@@ -1115,6 +1150,9 @@ class Metadata(CAModel, Base):
                 "<ul><li>Write this description in lay-mans terms targeted for the general population to understand.</li>"\
                 "<li>A short description of the (project level) where and when can also be included.</li>"\
                 "<li>Note: Keep the description relevant to all generated records.</li></ul>")
+
+    full_desc_type = Column(String(100), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), ca_default="full", ca_page="description",)
+    full_desc_label = Column(String(100), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), ca_default="Full:", ca_page="description",)
     full_description = Column(Text(), ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(rows=20), ca_page="description", ca_force_required=True,
         ca_title="Full Description", ca_placeholder="eg.  TODO: Get a well written full description for the artificial tree project.",
         ca_description="Full description targeted at researchers and scientists",
@@ -1159,6 +1197,7 @@ class Metadata(CAModel, Base):
     #        ca_description="Select one or more of the 4 themes, or \'Not aligned to a University theme\'.", required=True)
 
     #-------Research themese---------------------
+    no_research_theme = Column(Boolean(), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())   # TODO: On save, set this if no other selected, else unset.
     ecosystems_conservation_climate = Column(Boolean(), ca_name="jcu:research.themes.tropicalEcoSystems", ca_order=next(order_counter), ca_widget=deform.widget.CheckboxWidget(css_class="normal_font"), ca_page="information",
         ca_title='Tropical Ecosystems, Conservation and Climate Change',
         ca_group_start="research_themes", ca_group_title="Research Themes",ca_group_validator=research_theme_validator,
@@ -1184,7 +1223,8 @@ class Metadata(CAModel, Base):
         ('pure_basic', 'Pure basic research'),
         ('pure_strategic', 'Strategic basic research'))
 
-    typeOfResearch = Column(String(50), ca_name="dc:subject.anzsrc:toa.rdf:resource", ca_order=next(order_counter), ca_page="information",
+    type_of_research_label = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+    type_of_research = Column(String(50), ca_name="dc:subject.anzsrc:toa.rdf:resource", ca_order=next(order_counter), ca_page="information",
         ca_group_end="subject",
         ca_widget=deform.widget.RadioChoiceWidget(values=researchTypes),
         ca_validator=OneOfDict(researchTypes[:]),
@@ -1258,6 +1298,7 @@ class Metadata(CAModel, Base):
 #        ('restricted_license', 'Restricted License'),
 #        ('other', 'Other'),
         )
+    license_name = other_license_name = Column(String(256), ca_order=next(order_counter), ca_page="information", ca_widget=deform.widget.HiddenWidget(),)
     license = Column(String(256), ca_name="dc:license.dc:identifier", ca_order=next(order_counter), ca_title="License", ca_page="information",
         ca_default="creative_commons_by", ca_force_required=True,
         ca_widget=deform.widget.SelectWidget(values=licenses, template="select_with_other"),
@@ -1265,16 +1306,18 @@ class Metadata(CAModel, Base):
                 "Creative Commons licences please <a href=\'http://creativecommons.org.au/learn-more/licences\' alt=\'licenses\'>see here</a>.</p>"
                 "<p><i>If you would like to add additional licenses please contact the administrators.</i></p>")
 
-    license_name = Column(String(256), ca_name="dc:license.rdf:Alt.skos:prefLabel", ca_order=next(order_counter), ca_title="License Name", ca_placeholder="", ca_missing="", ca_page="information",
+    other_license_name = Column(String(256), ca_name="dc:license.rdf:Alt.skos:prefLabel", ca_order=next(order_counter), ca_title="License Name", ca_placeholder="", ca_missing="", ca_page="information",
         ca_group_requires_admin=True, ca_group_end="legality", ca_group_start="other_license", ca_group_title="Other",
         ca_group_help="If you want to use a license not included in the above list you can provide details below.</br></br>"\
                       "<ul><li>If you are using this field frequently for the same license it would make sense to get your system administrator to add the license to the field above.</li>"\
                       "<li>If you provide two licenses (one from above, plus this one) only the first will be sent to RDA in the RIF-CS.</li>"\
                       "<li>Example of another license: http://www.opendefinition.org/licenses</li></ul>", ca_requires_admin=True,)
-    license_url = Column(String(256), ca_validator=colander.url, ca_name="dc:license.rdf:Alt.dc:identifier", ca_order=next(order_counter), ca_title="License URL", ca_placeholder="", ca_missing="", ca_page="information",
+    other_license_url = Column(String(256), ca_validator=colander.url, ca_name="dc:license.rdf:Alt.dc:identifier", ca_order=next(order_counter), ca_title="License URL", ca_placeholder="", ca_missing="", ca_page="information",
         ca_requires_admin=True, ca_group_end="legality")
 
     #-------------citation--------------------
+    send_citation = Column(Boolean(), ca_order=next(order_counter), ca_default="on", ca_page="information",)
+    use_curation = Column(Boolean(), ca_order=next(order_counter), ca_default="on", ca_page="information",)
     # Autocomplete from project title
     citation_title = Column(String(512), ca_name="dc:biblioGraphicCitation.dc:hasPart.dc:title", ca_order=next(order_counter), ca_placeholder="", ca_missing="", ca_page="information",
         ca_group_collapsed=False, ca_group_start='citation', ca_group_title="Citation", ca_group_requires_admin=True,
@@ -1294,6 +1337,8 @@ class Metadata(CAModel, Base):
     citation_dates = relationship('CitationDate', ca_order=next(order_counter), ca_title="Date(s)", ca_page="information",cascade="all, delete-orphan",)
     # Autocomplete as link to data (CC-DAM)
     citation_url = Column(String(256), ca_validator=colander.url, ca_name="dc:biblioGraphicCitation.dc:hasPart.bibo:Website.dc:identifier",ca_order=next(order_counter), ca_title="URL", ca_page="information")
+    # Unknown
+    citation_data_type = Column(String(256), ca_order=next(order_counter), ca_page="information")
     # Unknown
     citation_context = Column(String(512), ca_name="dc:biblioGraphicCitation.dc:hasPart.skos:scopeNote", ca_order=next(order_counter), ca_placeholder="citation context", ca_missing="", ca_page="information",
         ca_group_end='citation')

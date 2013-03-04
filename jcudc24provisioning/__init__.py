@@ -1,6 +1,6 @@
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
-from jcudc24provisioning.controllers.authentication import get_groups
+from jcudc24provisioning.controllers.authentication import ShibbolethAuthenticationPolicy, get_user
 from jcudc24provisioning.models import RootFactory
 
 global global_settings
@@ -96,11 +96,12 @@ def main(global_config, **settings):
     config.add_static_view('deform_static', 'deform:static', cache_max_age=0)
     config.add_static_view('static', 'static')
 
-    authn_policy = AuthTktAuthenticationPolicy('seekrit', callback=get_groups) # Todo: There should be a hashalg attribute to provide more secure methods, but it throws AttributeErrors?
+    authn_policy = ShibbolethAuthenticationPolicy(settings)
     authz_policy = ACLAuthorizationPolicy()
     config.set_authentication_policy(authn_policy)
     config.set_authorization_policy(authz_policy)
     config.set_default_permission("admin")
+    config.add_request_method(get_user, 'user', reify=True)
 
     config.scan()
 

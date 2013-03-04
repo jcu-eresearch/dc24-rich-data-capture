@@ -2,11 +2,13 @@ import ast
 import copy
 import logging
 from beaker.cache import cache_region
+import jcudc24provisioning
 from jcudc24ingesterapi.authentication import CredentialsAuthentication
 from jcudc24ingesterapi.ingester_platform_api import IngesterPlatformAPI
 from jcudc24ingesterapi.ingester_platform_api import UnitOfWork
 import jcudc24ingesterapi
-from jcudc24provisioning.models.project import Location, LocationOffset, MethodSchema, Base, Project, Region, Dataset, DBSession, Method, MethodSchemaField, PullDataSource,FormDataSource, PushDataSource, DatasetDataSource, SOSScraperDataSource
+from jcudc24provisioning.models import DBSession, Base
+from jcudc24provisioning.models.project import Location, LocationOffset, MethodSchema, Project, Region, Dataset, Method, MethodSchemaField, PullDataSource,FormDataSource, PushDataSource, DatasetDataSource, SOSScraperDataSource, Metadata
 from jcudc24ingesterapi.schemas.data_types import DateTime, FileDataType, Integer, String, Double, Boolean
 from jcudc24ingesterapi.models.sampling import PeriodicSampling
 
@@ -17,7 +19,15 @@ logger = logging.getLogger(__name__)
 def model_id_listener(self, attr, var):
     if attr == "_id":
         self.provisioning_model.dam_id = var
+
+        if isinstance(self, jcudc24ingesterapi.models.dataset.Dataset):
+            session = DBSession
+            metadata = session.query(Metadata).filter_by(dataset_id=self.provisioning_model.id)
+            config = jcudc24provisioning.global_settings
+            metadata.ccdam_identifier = config.get("ingesterapi.portal_url") % var
+
 #        print "Model id set: " + str(var) + " : " + str(self.provisioning_model)
+
 
 
 class IngesterAPIWrapper(IngesterPlatformAPI):
