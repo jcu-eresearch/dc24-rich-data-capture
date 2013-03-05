@@ -1,7 +1,8 @@
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
-from jcudc24provisioning.controllers.authentication import ShibbolethAuthenticationPolicy, get_user
 from jcudc24provisioning.models import RootFactory
+from jcudc24provisioning.controllers.authentication import ShibbolethAuthenticationPolicy, get_user
+from models.metadata_exporters import create_json_config
 
 global global_settings
 
@@ -104,6 +105,10 @@ def main(global_config, **settings):
     config.add_request_method(get_user, 'user', reify=True)
 
     config.scan()
+
+    json_config = create_json_config()
+    f = open(settings.get("redbox.config_file"), 'w')
+    f.write(json_config)
 
 #    try:
 #        InitialiseDatabase()

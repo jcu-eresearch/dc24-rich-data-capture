@@ -19,8 +19,10 @@ requires = [
     'pyramid_deform',
     "pyramid_beaker",
     "mysql-python",
-    'webob'
-    ]
+    'webob',
+    'paramiko',
+    'requests'
+]
 
 setup(name='jcu.dc24.provisioning',
       version='0.0',

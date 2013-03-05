@@ -350,7 +350,6 @@ class CAModel(object):
         root = etree.Element(self.__class__.__name__.lower())
         root.append(self._add_xml_elements(root, self.dictify()))
 
-        print (etree.tostring(root.getroottree().getroot(), pretty_print=True))
         return etree.ElementTree(root.getroottree().getroot())
 
     

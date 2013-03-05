@@ -4,11 +4,14 @@ import copy
 from datetime import datetime, date
 import json
 import logging
+import os
+from lxml import etree
 import random
 from string import split
 import string
 import urllib2
 from pyramid.security import authenticated_userid
+import requests
 import sqlalchemy
 from sqlalchemy.orm.properties import ColumnProperty, RelationProperty
 from sqlalchemy.orm.util import object_mapper
@@ -115,7 +118,7 @@ class Workflows(Layouts):
     @property
     def title(self):
         if '_title' not in locals():
-            self._title = self.find_menu()['title']
+            self._title = self.find_menu()['page_title']
         return self._title
 
     @property
@@ -461,7 +464,7 @@ class Workflows(Layouts):
 #        # If the page has just been opened but it is set to a specific project
 #        appstruct = self._get_model_appstruct()
 
-        return {"page_title": self.find_menu()['title'], "form": self._render_model(), "form_only": False, 'messages': self._get_messages(), 'page_help': page_help, 'readonly': readonly}
+        return {"page_title": self.find_menu()['page_title'], "form": self._render_model(), "form_only": False, 'messages': self._get_messages(), 'page_help': page_help, 'readonly': readonly}
 
 
     def _clone_model(self, source):
@@ -850,7 +853,7 @@ class Workflows(Layouts):
                 for (page, field, error) in errors:
                     if page != last_page:
                         last_page = page
-                        sorted_errors.append((page, self.find_menu(page)['title'], []))
+                        sorted_errors.append((page, self.find_menu(page)['page_title'], []))
 
                     sorted_errors[-1][2].append((field, error))
                 self.error = sorted_errors
@@ -935,15 +938,61 @@ class Workflows(Layouts):
 
         if APPROVE_TEXT in self.request.POST and 'id' in self.request.POST and self.project.state == ProjectStates.SUBMITTED:
             try:
-                dataset_services_csv = [self.dataset_to_mint_service_csv(dataset.id) for dataset in self.project.datasets]
+                dataset_services_xml = [self.dataset_to_mint_service_csv(dataset.id) for dataset in self.project.datasets]
 
                 # TODO: Upload service csv files to Mint and get mint url and identifier
 
-                project_csv = self.record_to_redbox_csv(self.project.information.id)
-                dataset_records_csv = [self.record_to_redbox_csv(self.session.query(Metadata).filter(Metadata.dataset_id==dataset.id).first().id) for dataset in self.project.datasets]
-                dataset_records_csv.append([self.record_to_redbox_csv(id) for id in self.session.query(Metadata).join(Dataset).filter(Metadata.dataset_id==Dataset.id).filter(Dataset.project_id==self.project_id).all()])
+                project_record = self.session.query(Metadata).filter_by(id==self.project.information.id).first().to_xml()
 
-                # TODO: Upload the csv files to ReDBox and get the links and identifiers
+                dataset_metadata = [dataset.metadata for dataset in self.project.datasets if dataset.publish_dataset]
+                dataset_records = [metadata.to_xml() for metadata in dataset_metadata]
+
+
+                related_parent = self.create_relationship_node(project_record, "isPartOf")
+
+                # Create the relationships for related data
+                related_siblings = []
+                related_children = []
+                for related_record in dataset_metadata:
+                    related_siblings.append(self.create_relationship_node(related_record, "hasAssociationWith"))
+                    related_children.append(self.create_relationship_node(related_record, "hasPart"))
+
+                # Add all records generated from datassets as related data for the project record.
+                related_records = etree.Element("related_records")
+                project_record.append(related_records)
+                for child in related_children:
+                    related_records.append(child)
+
+                for record in dataset_metadata:
+                    # Add a data relationship to the project for on dataset records.
+                    related_records = etree.Element("related_records")
+                    related_records.append(related_parent)
+
+                    # Add data relationships between all datasets within the project.
+                    for related_record in related_siblings:
+                        # Don't add a relationship to itself.
+                        if record != related_record.original_record:
+                            record.append(related_record)
+
+
+                #            # TODO: This is the related servces fields
+                #            "dc:relation.vivo:Service.0.dc:identifier": "some_identifier",
+                #            "dc:relation.vivo:Service.0.vivo:Relationship.rdf:PlainLiteral": "isProducedBy",
+                #            "dc:relation.vivo:Service.0.vivo:Relationship.skos:prefLabel": "Is produced by:",
+                #            "dc:relation.vivo:Service.0.dc:title": "Artificial tree sensor",
+                #            "dc:relation.vivo:Service.0.skos:note": "test notes",
+
+                tmp_file_path = self.config.get("redbox.tmp") + project_record.xpath("/%s" % Metadata.redbox_identifier.key)
+                f = open(tmp_file_path, 'w')
+                f.write((etree.tostring(project_record.getroottree().getroot(), pretty_print=True)))
+                requests.post(self.config.get("redbox.harvest_folder_url"), data={"rdc_project.xml": f})
+
+                for record in dataset_metadata:
+                    # Write the xml records to the temp directory and upload to redbox's alerts folder
+                    tmp_file_path = self.config.get("redbox.tmp") + record.xpath("/%s" % Metadata.redbox_identifier.key)
+                    f = open(tmp_file_path, 'w')
+                    f.write((etree.tostring(record.getroottree().getroot(), pretty_print=True)))
+                    requests.post(self.config.get("redbox.alert_url"), data={"rdc_dataset.xml": f})
 
                 logger.info("Project has been added to ReDBox successfully: %s", self.project.id)
 
@@ -969,22 +1018,38 @@ class Workflows(Layouts):
 
         return self._create_response(page_help=page_help)
 
+    def create_relationship_node(self, record, relationship_type):
+        related_record_node = etree.Element("related_record")
+        related_record_node.original_record = record  # Record which record created this relationship
+
+        identifier = related_record_node.etree.SubElement(related_record_node, "identifier")
+        identifier.text = record.xpath("/%s" % Metadata.redbox_identifier.key)
+
+        relationship = related_record_node.etree.SubElement(related_record_node, "relationship")
+        relationship.text = relationship_type
+
+        preflabel = related_record_node.etree.SubElement(related_record_node, "preflabel")
+        preflabel.text = "Has association with:"
+
+        title = related_record_node.etree.SubElement(related_record_node, "title")
+        title.text = record.xpath("/%s" % Metadata.project_title.key)
+
+        notes = related_record_node.etree.SubElement(related_record_node, "notes")
+        notes.text = "Related dataset from the same RDC provisioing project."
+
+        origin = related_record_node.etree.SubElement(related_record_node, "origin")
+        origin.text = "on"
+
+        publish = related_record_node.etree.SubElement(related_record_node, "publish")
+        publish.text = "on"
+
+
     def dataset_to_mint_service_csv(self):
         service_csv = ""
 
         # TODO: Dataset to mint service csv mappings
 
         return service_csv
-
-    def record_to_redbox_csv(self, metadata_id):
-        redbox_csv = ""
-
-        metadata = self.session.query(Metadata).filter_by(id==metadata_id).first()
-        record_csv = metadata.to_xml()
-        #TODO: Add related service
-        #TODO: Add related datasets.
-
-        return redbox_csv
 
     def generate_dataset_record(self, dataset_id):
         metadata_id = self.session.query(Metadata.id).filter_by(dataset_id=dataset_id).first()
@@ -1067,7 +1132,7 @@ class Workflows(Layouts):
             else:
                 return HTTPFound(self.request.route_url(target, project_id=self.project_id))
 
-        return {"page_title": self.find_menu()['title'], "form": display, "form_only": False, 'messages': self._get_messages(), 'page_help': page_help, 'readonly': readonly}
+        return {"page_title": self.find_menu()['page_title'], "form": display, "form_only": False, 'messages': self._get_messages(), 'page_help': page_help, 'readonly': readonly}
 
 
 
@@ -1143,7 +1208,7 @@ class Workflows(Layouts):
                 display = e.render()
 
 
-        return {"page_title": self.find_menu()['title'], "form": display, "form_only": False, 'messages': self._get_messages(), 'page_help': page_help}
+        return {"page_title": self.find_menu()['page_title'], "form": display, "form_only": False, 'messages': self._get_messages(), 'page_help': page_help}
 
     @view_config(route_name="add_data")
     def add_data_view(self):
@@ -1206,7 +1271,7 @@ class Workflows(Layouts):
                     'success_messages': [],
                     'warning_messages': []
                 }
-                return {"page_title": self.find_menu()['title'], "form": '', "messages": messages, "form_only": False}
+                return {"page_title": self.find_menu()['page_title'], "form": '', "messages": messages, "form_only": False}
         else:
             try:
                 messages = {
@@ -1214,7 +1279,7 @@ class Workflows(Layouts):
                     'success_messages': [],
                     'warning_messages': []
                 }
-                return {"page_title": self.find_menu()['title'], "form": 'This address is not valid, please don\'t directly edit the address bar: ' + cgi.escape(str(self.context)), "form_only": False, "messages": messages}
+                return {"page_title": self.find_menu()['page_title'], "form": 'This address is not valid, please don\'t directly edit the address bar: ' + cgi.escape(str(self.context)), "form_only": False, "messages": messages}
             except:
                 self.request.session.flash('There is no page at the requested address, please don\'t edit the address bar directly.', 'error')
                 if self.request.matchdict and self.request.matchdict['route'] and (self.request.matchdict['route'].split("/")[0]).isnumeric():

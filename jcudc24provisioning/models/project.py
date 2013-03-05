@@ -1060,6 +1060,7 @@ class Metadata(CAModel, Base):
 
     #----------------------Static fields for ReDBox integration-------------------------
     record_export_date = Column(Date, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(), name="dc:created") # TODO: set this b4 exported.
+
     dc_spec = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="xmlns:dc", ca_default="http://dublincore.org/documents/2008/01/14/dcmi-terms/")
     foaf_spec = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="xmlns:foaf", ca_default="http://xmlns.com/foaf/spec/",)
     anzsrc_spec = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="xmlns:anzsrc", ca_default="http://purl.org/anzsrc/",)
@@ -1370,6 +1371,7 @@ class Metadata(CAModel, Base):
         ca_help="Optionally provide additional information as attachments.")
 #    notes = relationship('Note', ca_order=next(order_counter), ca_description="Enter administrative notes as required.", ca_missing=None, ca_page="information",
 #        ca_group_end="additional_information")
+
 
 class ProjectStates(object):
     OPEN, SUBMITTED, APPROVED, ACTIVE, DISABLED = range(5)

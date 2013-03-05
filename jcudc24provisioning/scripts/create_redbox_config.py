@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import json
 import colander
 from lxml import etree
@@ -31,16 +32,6 @@ def create_json_config():
 
 #    # TODO: What is the metalist?
 ##    "metaList": [...]
-#
-#    # TODO: What are the submission process fields?
-#    "redbox:submissionProcess.redbox:submitted": "null",
-#    "redbox:submissionProcess.dc:date": "",
-#    "redbox:submissionProcess.dc:description": "",
-#    "redbox:submissionProcess.locrel:prc.foaf:Person.foaf:name": "",
-#    "redbox:submissionProcess.locrel:prc.foaf:Person.foaf:phone": "",
-#    "redbox:submissionProcess.locrel:prc.foaf:Person.foaf:mbox": "",
-#    "redbox:submissionProcess.dc:title": "",
-#    "redbox:submissionProcess.skos:note": "",
 
 
 
@@ -197,8 +188,7 @@ def create_json_config():
         "defaultNamespace": {}
     }
 
-    json_config = json.dumps(dict_config)
-    print json.dumps(dict_config, sort_keys=True, indent=4, separators=(',', ': '))
+    json_config = json.dumps(dict_config, sort_keys=True, indent=4, separators=(',', ': '))
     return json_config
 
 
