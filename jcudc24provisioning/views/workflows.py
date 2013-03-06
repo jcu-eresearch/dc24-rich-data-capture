@@ -10,12 +10,14 @@ import random
 from string import split
 import string
 import urllib2
+from paste.deploy.converters import asint
 from pyramid.security import authenticated_userid
 import requests
 import sqlalchemy
 from sqlalchemy.orm.properties import ColumnProperty, RelationProperty
 from sqlalchemy.orm.util import object_mapper
 import colander
+from jcudc24provisioning.controllers.sftp_filesend import SFTPFileSend
 import deform
 from deform.exception import ValidationFailure
 from deform.form import Form
@@ -436,6 +438,7 @@ class Workflows(Layouts):
             else:
                 self._redirect_to_target(self.request.referrer)
 
+    @PendingDeprecationWarning
     def handle_form(self, form, schema, page_help=None, appstruct=None, display=None, readonly=False):
         # If the form is being saved (there would be 1 item in controls if it is a fresh page with a project id set)
         if len(self.request.POST) > 1 and not readonly:
@@ -938,64 +941,7 @@ class Workflows(Layouts):
 
         if APPROVE_TEXT in self.request.POST and 'id' in self.request.POST and self.project.state == ProjectStates.SUBMITTED:
             try:
-                dataset_services_xml = [self.dataset_to_mint_service_csv(dataset.id) for dataset in self.project.datasets]
-
-                # TODO: Upload service csv files to Mint and get mint url and identifier
-
-                project_record = self.session.query(Metadata).filter_by(id==self.project.information.id).first().to_xml()
-
-                dataset_metadata = [dataset.metadata for dataset in self.project.datasets if dataset.publish_dataset]
-                dataset_records = [metadata.to_xml() for metadata in dataset_metadata]
-
-
-                related_parent = self.create_relationship_node(project_record, "isPartOf")
-
-                # Create the relationships for related data
-                related_siblings = []
-                related_children = []
-                for related_record in dataset_metadata:
-                    related_siblings.append(self.create_relationship_node(related_record, "hasAssociationWith"))
-                    related_children.append(self.create_relationship_node(related_record, "hasPart"))
-
-                # Add all records generated from datassets as related data for the project record.
-                related_records = etree.Element("related_records")
-                project_record.append(related_records)
-                for child in related_children:
-                    related_records.append(child)
-
-                for record in dataset_metadata:
-                    # Add a data relationship to the project for on dataset records.
-                    related_records = etree.Element("related_records")
-                    related_records.append(related_parent)
-
-                    # Add data relationships between all datasets within the project.
-                    for related_record in related_siblings:
-                        # Don't add a relationship to itself.
-                        if record != related_record.original_record:
-                            record.append(related_record)
-
-
-                #            # TODO: This is the related servces fields
-                #            "dc:relation.vivo:Service.0.dc:identifier": "some_identifier",
-                #            "dc:relation.vivo:Service.0.vivo:Relationship.rdf:PlainLiteral": "isProducedBy",
-                #            "dc:relation.vivo:Service.0.vivo:Relationship.skos:prefLabel": "Is produced by:",
-                #            "dc:relation.vivo:Service.0.dc:title": "Artificial tree sensor",
-                #            "dc:relation.vivo:Service.0.skos:note": "test notes",
-
-                tmp_file_path = self.config.get("redbox.tmp") + project_record.xpath("/%s" % Metadata.redbox_identifier.key)
-                f = open(tmp_file_path, 'w')
-                f.write((etree.tostring(project_record.getroottree().getroot(), pretty_print=True)))
-                requests.post(self.config.get("redbox.harvest_folder_url"), data={"rdc_project.xml": f})
-
-                for record in dataset_metadata:
-                    # Write the xml records to the temp directory and upload to redbox's alerts folder
-                    tmp_file_path = self.config.get("redbox.tmp") + record.xpath("/%s" % Metadata.redbox_identifier.key)
-                    f = open(tmp_file_path, 'w')
-                    f.write((etree.tostring(record.getroottree().getroot(), pretty_print=True)))
-                    requests.post(self.config.get("redbox.alert_url"), data={"rdc_dataset.xml": f})
-
-                logger.info("Project has been added to ReDBox successfully: %s", self.project.id)
-
+                self.send_redbox_records()
             except Exception as e:
                 logger.exception("Project failed to add to ReDBox: %s", self.project.id)
                 self.request.session.flash("Sorry, the project failed to generate or add metadata records to ReDBox, please try agiain.", 'error')
@@ -1017,54 +963,6 @@ class Workflows(Layouts):
             logger.info("Project has been approved successfully: %s", self.project.id)
 
         return self._create_response(page_help=page_help)
-
-    def create_relationship_node(self, record, relationship_type):
-        related_record_node = etree.Element("related_record")
-        related_record_node.original_record = record  # Record which record created this relationship
-
-        identifier = related_record_node.etree.SubElement(related_record_node, "identifier")
-        identifier.text = record.xpath("/%s" % Metadata.redbox_identifier.key)
-
-        relationship = related_record_node.etree.SubElement(related_record_node, "relationship")
-        relationship.text = relationship_type
-
-        preflabel = related_record_node.etree.SubElement(related_record_node, "preflabel")
-        preflabel.text = "Has association with:"
-
-        title = related_record_node.etree.SubElement(related_record_node, "title")
-        title.text = record.xpath("/%s" % Metadata.project_title.key)
-
-        notes = related_record_node.etree.SubElement(related_record_node, "notes")
-        notes.text = "Related dataset from the same RDC provisioing project."
-
-        origin = related_record_node.etree.SubElement(related_record_node, "origin")
-        origin.text = "on"
-
-        publish = related_record_node.etree.SubElement(related_record_node, "publish")
-        publish.text = "on"
-
-
-    def dataset_to_mint_service_csv(self):
-        service_csv = ""
-
-        # TODO: Dataset to mint service csv mappings
-
-        return service_csv
-
-    def generate_dataset_record(self, dataset_id):
-        metadata_id = self.session.query(Metadata.id).filter_by(dataset_id=dataset_id).first()
-
-        metadata_template = self.session.query(Metadata).join(Project).filter(Metadata.project_id==Project.id).join(Dataset).filter(Project.id==Dataset.project_id).filter(Dataset.id==dataset_id).first()
-
-        template_clone = self._clone_model(metadata_template)
-        template_clone.id = metadata_id
-        template_clone.project_id = None
-        template_clone.dataset_id = dataset_id
-        # TODO:  Generate/add dataset specific metadata
-
-        self.session.merge(template_clone)
-        return template_clone
-
 
     @view_config(route_name="delete_record")
     def delete_record_view(self):
@@ -1134,6 +1032,19 @@ class Workflows(Layouts):
 
         return {"page_title": self.find_menu()['page_title'], "form": display, "form_only": False, 'messages': self._get_messages(), 'page_help': page_help, 'readonly': readonly}
 
+    def generate_dataset_record(self, dataset_id):
+        metadata_id = self.session.query(Metadata.id).filter_by(dataset_id=dataset_id).first()
+
+        metadata_template = self.session.query(Metadata).join(Project).filter(Metadata.project_id==Project.id).join(Dataset).filter(Project.id==Dataset.project_id).filter(Dataset.id==dataset_id).first()
+
+        template_clone = self._clone_model(metadata_template)
+        template_clone.id = metadata_id
+        template_clone.project_id = None
+        template_clone.dataset_id = dataset_id
+        # TODO:  Generate/add dataset specific metadata
+
+        self.session.merge(template_clone)
+        return template_clone
 
 
     # --------------------WORKFLOW ACTION/SIDEBAR VIEWS-------------------------------------------

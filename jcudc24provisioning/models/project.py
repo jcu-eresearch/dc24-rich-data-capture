@@ -146,7 +146,7 @@ class FieldOfResearch(CAModel, Base):
     id = Column(Integer, primary_key=True, ca_order=next(order_counter), ca_force_required=False, nullable=False, ca_widget=deform.widget.HiddenWidget())
     metadata_id = Column(Integer, ForeignKey('metadata.id'),ca_order=next(order_counter),  nullable=False, ca_widget=deform.widget.HiddenWidget())
 
-    field_of_research_label = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget)
+    field_of_research_label = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
     field_of_research = Column(String(50), ca_order=next(order_counter), ca_title="Field Of Research", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
         ca_data=getFORCodes)
 
@@ -158,7 +158,7 @@ class SocioEconomicObjective(CAModel, Base):
     id = Column(Integer, primary_key=True, ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
     metadata_id = Column(Integer, ForeignKey('metadata.id'), ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
-    socio_economic_objective_label = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget)
+    socio_economic_objective_label = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
     socio_economic_objective = Column(String(50), ca_order=next(order_counter), ca_title="Socio-Economic Objective", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
         ca_data=getSEOCodes)
 
@@ -1317,8 +1317,8 @@ class Metadata(CAModel, Base):
         ca_requires_admin=True, ca_group_end="legality")
 
     #-------------citation--------------------
-    send_citation = Column(Boolean(), ca_order=next(order_counter), ca_default="on", ca_page="information",)
-    use_curation = Column(Boolean(), ca_order=next(order_counter), ca_default="on", ca_page="information",)
+    send_citation = Column(Boolean(), ca_order=next(order_counter), ca_default="on", ca_page="information", ca_widget=deform.widget.HiddenWidget())
+    use_curation = Column(Boolean(), ca_order=next(order_counter), ca_default="on", ca_page="information", ca_widget=deform.widget.HiddenWidget(),)
     # Autocomplete from project title
     citation_title = Column(String(512), ca_name="dc:biblioGraphicCitation.dc:hasPart.dc:title", ca_order=next(order_counter), ca_placeholder="", ca_missing="", ca_page="information",
         ca_group_collapsed=False, ca_group_start='citation', ca_group_title="Citation", ca_group_requires_admin=True,

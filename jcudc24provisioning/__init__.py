@@ -1,5 +1,7 @@
+from paste.deploy.converters import asint
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
+from controllers.sftp_filesend import SFTPFileSend
 from jcudc24provisioning.models import RootFactory
 from jcudc24provisioning.controllers.authentication import ShibbolethAuthenticationPolicy, get_user
 from models.metadata_exporters import create_json_config
@@ -107,8 +109,18 @@ def main(global_config, **settings):
     config.scan()
 
     json_config = create_json_config()
-    f = open(settings.get("redbox.config_file"), 'w')
+    f = open(settings.get("redbox.local_config_file"), 'w')
     f.write(json_config)
+
+    # Upload the json cofiguration to ReDBox
+#    hostname = global_settings.get("redbox.ssh_address") # remote hostname where SSH server is running
+#    port = asint(global_settings.get("redbox.ssh_port"))
+#    rsa_private_key = global_settings.get("redbox.rsa_private_key")
+#    username = global_settings.get("redbox.ssh_username")
+#    password = global_settings.get("redbox.ssh_password")
+#    file_send = SFTPFileSend(hostname, port, username, password=password, rsa_private_key=rsa_private_key)
+#    file_send.upload_file(settings.get("redbox.local_config_file"), settings.get("redbox.ssh_config_file"))
+#    file_send.close()
 
 #    try:
 #        InitialiseDatabase()

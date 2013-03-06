@@ -39,15 +39,15 @@ def initialise_all_db(settings):
     initialised = engine.dialect.has_table(engine.connect(), "project")
     Base.metadata.create_all(engine)
 
-#    if not initialised:
-    with transaction.manager:
-        session = DBSession
-        #        self.initialise_offset_locations_schema()
-        initialise_temperature_schema(session)
-        initialise_project_templates(session)
-        initialise_method_templates(session)
-        initialise_security(session)
-        transaction.commit()
+    if not initialised:
+        with transaction.manager:
+            session = DBSession
+            #        self.initialise_offset_locations_schema()
+            initialise_temperature_schema(session)
+            initialise_project_templates(session)
+            initialise_method_templates(session)
+            initialise_security(session)
+            transaction.commit()
 
 def initialise_security(session):
     defaults = DefaultPermissions()

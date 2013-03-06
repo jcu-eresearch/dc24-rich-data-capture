@@ -1,6 +1,4 @@
-import base64
-import random
-from beaker.util import sha1
+import hashlib
 import colander
 import itertools
 from colanderalchemy.declarative import Column, relationship
@@ -66,7 +64,7 @@ class User(CAModel, Base):
     __tablename__ = 'user'
     id = Column(Integer, primary_key=True, ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
     username = Column(String(80), ca_order=next(order_counter), nullable=False)
-    password = Column(String(80), ca_name="password", ca_order=next(order_counter), nullable=False)
+    _password = Column(String(80), ca_name="password", ca_order=next(order_counter), nullable=False)
     permissions = relationship("Permission", secondary=user_permissions_table, backref="users")
     roles = relationship("Role", secondary=user_roles_table, backref="users")
 
@@ -76,6 +74,11 @@ class User(CAModel, Base):
         self.permissions = permissions or []
         self.roles = roles or []
 
+    @property
+    def password(self):
+        return self._password
+
+    @password.setter
     def password(self, password):
         hashed_password = password
 
@@ -84,10 +87,8 @@ class User(CAModel, Base):
         else:
             password_8bit = password
 
-        salt = sha1()
-        salt.update(os.urandom(60))
-        hash = sha1()
-        hash.update(password_8bit + salt.hexdigest())
+        salt = hashlib.md5(os.urandom(60))
+        hash = hashlib.md5(password_8bit + salt.hexdigest())
         hashed_password = salt.hexdigest() + hash.hexdigest()
 
         if not isinstance(hashed_password, unicode):
@@ -96,8 +97,8 @@ class User(CAModel, Base):
         self.password = hashed_password
 
     def validate_password(self, password):
-        hashed_pass = sha1()
-        hashed_pass.update(password + self.password[:40])
+        test = self.password[:40]
+        hashed_pass = hashlib.md5(password + self.password[:40])
         return self.password[40:] == hashed_pass.hexdigest()
 
     @classmethod

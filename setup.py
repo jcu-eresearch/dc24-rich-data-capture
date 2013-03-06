@@ -21,7 +21,8 @@ requires = [
     "mysql-python",
     'webob',
     'paramiko',
-    'requests'
+    'requests',
+    'hashlib'
 ]
 
 setup(name='jcu.dc24.provisioning',
