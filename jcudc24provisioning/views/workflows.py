@@ -11,12 +11,13 @@ from string import split
 import string
 import urllib2
 from paste.deploy.converters import asint
-from pyramid.security import authenticated_userid
+from pyramid.security import authenticated_userid, NO_PERMISSION_REQUIRED
 import requests
 import sqlalchemy
 from sqlalchemy.orm.properties import ColumnProperty, RelationProperty
 from sqlalchemy.orm.util import object_mapper
 import colander
+from jcudc24provisioning.controllers.redbox_wrapper import ReDBoxWraper
 from jcudc24provisioning.controllers.sftp_filesend import SFTPFileSend
 import deform
 from deform.exception import ValidationFailure
@@ -45,6 +46,7 @@ from jcudc24provisioning.models.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.mint_lookup import MintLookup
 from pyramid.request import Request
 from jcudc24provisioning.models.metadata_exporters import create_json_config
+from jcudc24provisioning.models.website import User
 
 
 __author__ = 'Casey Bajema'
@@ -94,7 +96,7 @@ class ProjectStates(object):
     ACTIVE = 2
     DISABLED = 3
 
-@view_defaults(renderer="../templates/workflow_form.pt")
+@view_defaults(renderer="../templates/workflow_form.pt", permission="admin")
 class Workflows(Layouts):
     def __init__(self, context, request):
         self.request = request
@@ -127,6 +129,8 @@ class Workflows(Layouts):
     def project(self):
         if '_project' not in locals():
             self._project = self.session.query(Project).filter_by(id=self.project_id).first()
+            if self._project is None:
+                self.request.session.flash("Error: The project couldn't be found.")
         return self._project
 
     def find_errors(self, error, page=None):
@@ -162,6 +166,7 @@ class Workflows(Layouts):
     @property
     def page(self):
         if '_page' not in locals():
+            self._page = None
             for menu in WORKFLOW_STEPS + WORKFLOW_ACTIONS:
                 if self.request.url.endswith(menu['href']):
                     self._page = menu
@@ -217,7 +222,7 @@ class Workflows(Layouts):
             elif self.model_type.__tablename__ + '_id' in self.request.matchdict:
                 self._model_id = self.request.matchdict[self.model_type.__name__ + '_id']
             else:
-                self._model_id = self.request.POST.get(self.model_type.__name__ + ":id", None)
+                self._model_id = self.request.POST.get(self.model_type.__tablename__ + ":id", None)
         return self._model_id
 
 # --------------------MENU TEMPLATE METHODS-------------------------------------------
@@ -294,10 +299,13 @@ class Workflows(Layouts):
     def _save_form(self, appstruct=None, model_id=None, model_type=None):
         if appstruct is None:
             appstruct = self._get_post_appstruct()
-        if model_id is None:
-            model_id = self.model_id
         if model_type is None:
             model_type = self.model_type
+        if model_id is None:
+            model_id = self.model_id
+            model_id_field_name = "%s:id" % model_type.__tablename__
+            if model_id is None and model_id_field_name in appstruct:
+                model_id = appstruct[model_id_field_name]
 
          # In either of the below cases get the data as a dict and get the rendered form
 #        if 'POST' != self.request.method or len(self.request.POST) == 0 or self.readonly or \
@@ -392,7 +400,12 @@ class Workflows(Layouts):
                     display = e.render()
 
             else:
-                display = self.form.render(self._get_model_appstruct(), readonly=self.readonly)
+                try:
+                    appstruct = self._get_model_appstruct()
+                    appstruct = self.form.validate_pstruct(appstruct)
+                    display = self.form.render(appstruct, readonly=self.readonly)
+                except ValidationFailure, e:
+                    display = e.render()   # Validation failed, ignore that it isn't touched and display the error form
 
             return display
 
@@ -877,7 +890,9 @@ class Workflows(Layouts):
                     redbox_uri = metadata_record.redbox_uri
                 redbox_records.append((dataset.name, redbox_uri,
                                        self.request.route_url("view_record", project_id=self.project_id, dataset_id=dataset.id),
-                                       self.request.route_url("delete_record", project_id=self.project_id, dataset_id=dataset.id)))
+                                       self.request.route_url("delete_record", project_id=self.project_id, dataset_id=dataset.id),
+                                       self.session.query(Metadata).filter_by(dataset_id=dataset.id).count() > 0,
+                                       len(self.error) == 0))
 
             dataset_method = self.session.query(Method).filter_by(id=dataset.method_id).first()
             ingesters.append((dataset.name, dataset_method.data_source, dataset_method.data_type.name))
@@ -914,7 +929,7 @@ class Workflows(Layouts):
             return
 
         # Handle button presses and actual functionality.
-        if SUBMIT_TEXT in self.request.POST and 'id' in self.request.POST and (self.project.state == ProjectStates.OPEN or self.project.state is None) and len(self.error) <= 0:
+        if SUBMIT_TEXT in self.request.POST and (self.project.state == ProjectStates.OPEN or self.project.state is None) and len(self.error) <= 0:
             self.project.state = ProjectStates.SUBMITTED
             # TODO: fill citation data
 
@@ -928,20 +943,38 @@ class Workflows(Layouts):
             self.project.information.citation_url = "" # TODO:  CC-DAM Data Link
             self.project.information.citation_context = self.project.information.project_title
 
-        if REOPEN_TEXT in self.request.POST and 'id' in self.request.POST and self.project.state == ProjectStates.SUBMITTED:
+        if REOPEN_TEXT in self.request.POST and self.project.state == ProjectStates.SUBMITTED:
             self.project.state = ProjectStates.OPEN
 
-        if DISABLE_TEXT in self.request.POST and 'id' in self.request.POST and self.project.state == ProjectStates.ACTIVE:
+        if DISABLE_TEXT in self.request.POST and self.project.state == ProjectStates.ACTIVE:
             self.project.state = ProjectStates.DISABLED
             # TODO: Disable in CC-DAM
 
-        if DELETE_TEXT in self.request.POST and 'id' in self.request.POST and self.project.state == ProjectStates.DISABLED:
+        if DELETE_TEXT in self.request.POST and self.project.state == ProjectStates.DISABLED:
             # TODO: Delete
             pass
 
-        if APPROVE_TEXT in self.request.POST and 'id' in self.request.POST and self.project.state == ProjectStates.SUBMITTED:
+        if APPROVE_TEXT in self.request.POST and self.project.state == ProjectStates.SUBMITTED:
             try:
-                self.send_redbox_records()
+                # Set all redbox identifiers
+                self.project.information.redbox_identifier = self.config.get("redbox.identifier_pattern") + str(self.project.information.id)
+
+                for dataset in self.project.datasets:
+                    dataset.record_metadata.redbox_identifier = self.config.get("redbox.identifier_pattern") + str(dataset.record_metadata.id)
+
+                # Get Redbox conconfigurations
+                alert_url = self.config.get("redbox.alert_url")
+                host = self.config.get("redbox.ssh_host")
+                port = self.config.get("redbox.ssh_port")
+                private_key = self.config.get("redbox.rsa_private_key")
+                username = self.config.get("redbox.ssh_username")
+                password = self.config.get("redbox.ssh_password")
+                harvest_dir = self.config.get("redbox.ssh_harvest_dir")
+                tmp_dir = self.config.get("tmp_dir")
+
+                redbox = ReDBoxWraper(url=alert_url, ssh_host=host, ssh_port=port, tmp_dir=tmp_dir, harvest_dir=harvest_dir,
+                    ssh_username=username, rsa_private_key=private_key, ssh_password=password)
+                redbox.insert_project(self.project_id)
             except Exception as e:
                 logger.exception("Project failed to add to ReDBox: %s", self.project.id)
                 self.request.session.flash("Sorry, the project failed to generate or add metadata records to ReDBox, please try agiain.", 'error')
@@ -985,57 +1018,34 @@ class Workflows(Layouts):
 
         page_help=""
         schema = convert_schema(SQLAlchemyMapping(Metadata, unknown='raise',)).bind(request=self.request, settings=self.config)
-        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id, dataset_id=dataset_id), buttons=("Cancel", "Save & Close", "Save",), use_ajax=False)
-
-        readonly = (self.project is not None and not (self.project.state == ProjectStates.OPEN or self.project.state is None)) or self.request.matched_route == "view_dataset_record"
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id, dataset_id=dataset_id), buttons=("Cancel", "Save & Close", "Close",), use_ajax=False)
 
         # If the form is being saved (there would be 1 item in controls if it is a fresh page with a project id set)
         if len(self.request.POST) > 1 and not 'Cancel' in self.request.POST:
-            self.request.POST['metadata:dataset_id'] = dataset_id
-            controls = self.request.POST.items()
-
-            # In either of the below cases get the data as a dict and get the rendered form
-            try:
-                appstruct = self.form.validate(controls)
-                display = self.form.render(appstruct)
-            except ValidationFailure, e:
-                appstruct = e.cstruct
-                display = e.render()
-
-            # save the data even if it didn't validate - this allows the user to easily navigate and fill fields out as they get the info.
-            metadata_id = self._save_form(appstruct, appstruct['metadata:id'], Metadata)
+            self.request.POST['metadata:dataset_id'] = dataset_id # Make sure the dataset id is correct.
         else:
-            appstruct = {}
-
             model = self.session.query(Metadata).filter_by(dataset_id=dataset_id).first()
             if model is None:
                 model = self.generate_dataset_record(dataset_id)
+                self.session.add(model)
+                self.session.flush() # Update the id field so it is stored in the form!
 
-            appstruct = model.dictify(schema)
-
-
-            try:
-                appstruct = self.form.validate_pstruct(appstruct)
-                display = self.form.render(appstruct, readonly=readonly)
-            except ValidationFailure, e:
-                appstruct = e.cstruct
-                display = e.render()
-                # If there is a target workflow step set then change to that page.
-
+            self._model = model # Set the model to be rendered (this is needed to provide the default _render_form() with the created template data)
 
         if 'Cancel' in self.request.POST or 'Save_&_Close' in self.request.POST:
             target = 'submit'
-            if self.form.use_ajax:
-                pass
-            else:
-                return HTTPFound(self.request.route_url(target, project_id=self.project_id))
+            return HTTPFound(self.request.route_url(target, project_id=self.project_id))
 
-        return {"page_title": self.find_menu()['page_title'], "form": display, "form_only": False, 'messages': self._get_messages(), 'page_help': page_help, 'readonly': readonly}
+        # Ignore the redirect result as this page is never called to save other form data (comes from a readonly page)
+        self._handle_form()
+
+        return self._create_response(page_help=page_help)
+
 
     def generate_dataset_record(self, dataset_id):
         metadata_id = self.session.query(Metadata.id).filter_by(dataset_id=dataset_id).first()
 
-        metadata_template = self.session.query(Metadata).join(Project).filter(Metadata.project_id==Project.id).join(Dataset).filter(Project.id==Dataset.project_id).filter(Dataset.id==dataset_id).first()
+        metadata_template = self.session.query(Metadata).join(Project).filter(Metadata.project_id == Project.id).join(Dataset).filter(Project.id==Dataset.project_id).filter(Dataset.id==dataset_id).first()
 
         template_clone = self._clone_model(metadata_template)
         template_clone.id = metadata_id
@@ -1043,7 +1053,6 @@ class Workflows(Layouts):
         template_clone.dataset_id = dataset_id
         # TODO:  Generate/add dataset specific metadata
 
-        self.session.merge(template_clone)
         return template_clone
 
 
@@ -1166,7 +1175,7 @@ class Workflows(Layouts):
         return self.handle_form(self.form, schema, page_help)
 
     # --------------------WORKFLOW EXCEPTION VIEWS-------------------------------------------
-    @view_config(context=Exception, route_name="workflow_exception")
+    @view_config(context=Exception, route_name="workflow_exception", permission=NO_PERMISSION_REQUIRED)
     def exception_view(self):
         logger.exception("An exception occurred in global exception view: %s", self.context)
         if hasattr(self, self.request.matched_route.name + "_view"):
@@ -1204,7 +1213,7 @@ class Workflows(Layouts):
 #            return {"page_title": self.context, "form": 'This address is not valid, please don\'t directly edit the address bar: ' + str(self.context), "form_only": False}
 
     #    @view_config(context=sqlalchemy.orm.exc.SQLAlchemyError, renderer="../templates/exception.pt")
-    @view_config(context=sqlalchemy.exc.SQLAlchemyError, renderer="../templates/exception.pt")
+    @view_config(context=sqlalchemy.exc.SQLAlchemyError, renderer="../templates/exception.pt", permission=NO_PERMISSION_REQUIRED)
     def sqlalchemy_exception_view(self):
         self.session.rollback()
         logger.exception("A database exception occurred in global exception view: %s", self.context)

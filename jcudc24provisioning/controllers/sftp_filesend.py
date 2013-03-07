@@ -36,7 +36,7 @@ class SFTPFileSend(object):
         self.password = password
         self.rsa_private_key = rsa_private_key
         self.hostname = hostname
-        self.port = port
+        self.port = int(port)
 
         # get host key, if we know one
         hostkeytype = None
@@ -59,7 +59,7 @@ class SFTPFileSend(object):
 
         try:
             logger.info('Establishing SSH connection to: %s:%s' % (hostname, port))
-            self.transport = paramiko.Transport((hostname, port))
+            self.transport = paramiko.Transport((hostname, int(port)))
             self.transport.start_client()
 
             try:

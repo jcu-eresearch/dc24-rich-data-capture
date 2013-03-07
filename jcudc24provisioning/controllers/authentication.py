@@ -70,6 +70,7 @@ class ShibbolethAuthenticationPolicy(object):
             principals += [Authenticated, 'u:%s' % user.id]
             principals.extend(('g:%s' % r.name for r in user.roles))
             principals.extend((p.name for p in user.permissions))
+            principals.extend((p.name for p in (role for role in user.roles)))
         return principals
 
 def get_user(request):
@@ -80,4 +81,6 @@ def get_user(request):
 
     userid = unauthenticated_userid(request)
     if userid is not None:
-        return User.get_user(userid)
+        user = User.get_user(userid)
+        DBSession.expunge(user)
+        return user

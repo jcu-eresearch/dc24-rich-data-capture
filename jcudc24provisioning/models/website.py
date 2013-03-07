@@ -1,6 +1,7 @@
 import hashlib
 import colander
 import itertools
+from sqlalchemy.orm import subqueryload, subqueryload_all
 from colanderalchemy.declarative import Column, relationship
 from sqlalchemy import Integer, ForeignKey, String, Text, Table
 import deform
@@ -39,8 +40,8 @@ class Role(CAModel, Base):
     __tablename__ = 'role'
     id = Column(Integer, primary_key=True, ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
     name = Column(String(50), ca_order=next(order_counter))
-    description = Column(Text(), ca_order=next(order_counter))
-    permissions = relationship("Permission", secondary=role_permissions_table, backref="roles")
+    description = Column(Text(), ca_order=next(order_counter),)
+    permissions = relationship("Permission", cascade="all", secondary=role_permissions_table, backref="roles")
 
     def __init__(self, name, description=None, permissions=None):
         self.name = name
@@ -65,14 +66,14 @@ class User(CAModel, Base):
     id = Column(Integer, primary_key=True, ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
     username = Column(String(80), ca_order=next(order_counter), nullable=False)
     _password = Column(String(80), ca_name="password", ca_order=next(order_counter), nullable=False)
-    permissions = relationship("Permission", secondary=user_permissions_table, backref="users")
-    roles = relationship("Role", secondary=user_roles_table, backref="users")
+    permissions = relationship("Permission", lazy="joined", secondary=user_permissions_table, backref="users", cascade="all")
+    roles = relationship("Role", lazy="joined", secondary=user_roles_table, backref="users", cascade="all")
 
     def __init__(self, username, password, permissions=None, roles=None):
         self.username = username
-        self._password = password
         self.permissions = permissions or []
         self.roles = roles or []
+        self. password = password
 
     @property
     def password(self):
@@ -87,18 +88,22 @@ class User(CAModel, Base):
         else:
             password_8bit = password
 
-        salt = hashlib.md5(os.urandom(60))
-        hash = hashlib.md5(password_8bit + salt.hexdigest())
+        salt = hashlib.sha1(os.urandom(60))
+        hash = hashlib.sha1(password_8bit + salt.hexdigest())
         hashed_password = salt.hexdigest() + hash.hexdigest()
 
         if not isinstance(hashed_password, unicode):
             hashed_password = hashed_password.decode('UTF-8')
 
-        self.password = hashed_password
+        self._password = hashed_password
 
     def validate_password(self, password):
-        test = self.password[:40]
-        hashed_pass = hashlib.md5(password + self.password[:40])
+        if isinstance(password, unicode):
+            password_8bit = password.encode('UTF-8')
+        else:
+            password_8bit = password
+
+        hashed_pass = hashlib.sha1(password_8bit + self.password[:40])
         return self.password[40:] == hashed_pass.hexdigest()
 
     @classmethod
@@ -108,4 +113,3 @@ class User(CAModel, Base):
             return session.query(cls).filter_by(id=userid).first()
         elif username is not None:
             return session.query(cls).filter_by(username=username).first()
-

@@ -6,7 +6,7 @@
                     var next = $("[name='Next']");
                     var previous = $("[name='Previous']");
 
-                    <tal:block tal:condition="exists:next_page">
+                    <tal:block tal:condition="exists: next_page">
                         <tal:block tal:condition="next_page is None">
                             next.remove();
                         </tal:block>
@@ -15,7 +15,7 @@
                         </tal:block>
                     </tal:block>
 
-                    <tal:block tal:condition="exists:prev_page">
+                    <tal:block tal:condition="exists: prev_page">
                         <tal:block tal:condition="prev_page is None">
                             previous.remove();
                         </tal:block>

@@ -1,6 +1,7 @@
 from paste.deploy.converters import asint
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
+from pyramid.security import NO_PERMISSION_REQUIRED
 from controllers.sftp_filesend import SFTPFileSend
 from jcudc24provisioning.models import RootFactory
 from jcudc24provisioning.controllers.authentication import ShibbolethAuthenticationPolicy, get_user
@@ -70,9 +71,9 @@ def main(global_config, **settings):
     config.add_route('information', '/project/{project_id}/information')    # metadata or associated information
     config.add_route('methods', '/project/{project_id}/methods')            # Data collection methods
     config.add_route('datasets', '/project/{project_id}/datasets')          # Datasets or collections of data
-    config.add_route('view_record', '/project/{project_id}/datasets/view_record/{dataset_id}')          # Datasets or collections of data
-    config.add_route('edit_record', '/project/{project_id}/datasets/edit_record/{dataset_id}')          # Datasets or collections of data
-    config.add_route('delete_record', '/project/{project_id}/datasets/delete_record/{dataset_id}')          # Datasets or collections of data
+    config.add_route('view_record', '/project/{project_id}/datasets/{dataset_id}/view_record')          # Datasets or collections of data
+    config.add_route('edit_record', '/project/{project_id}/datasets/{dataset_id}/edit_record')          # Datasets or collections of data
+    config.add_route('delete_record', '/project/{project_id}/datasets/{dataset_id}/delete_record')          # Datasets or collections of data
     config.add_route('submit', '/project/{project_id}/submit')              # Submit, review and approval
     config.add_route('manage', '/project/{project_id}/manage')              # Manage projecct data, eg. change sample rates, add data values
 
@@ -103,7 +104,7 @@ def main(global_config, **settings):
     authz_policy = ACLAuthorizationPolicy()
     config.set_authentication_policy(authn_policy)
     config.set_authorization_policy(authz_policy)
-    config.set_default_permission("admin")
+    config.set_default_permission(NO_PERMISSION_REQUIRED)
     config.add_request_method(get_user, 'user', reify=True)
 
     config.scan()
