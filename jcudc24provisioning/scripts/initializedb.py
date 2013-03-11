@@ -160,7 +160,7 @@ def initialise_project_templates(session):
     if len(templates) <= 1:
         count = 0
         for name in placeholder_template_names:
-            for i in range(random.randint(2, 10)):
+            for i in range(random.randint(2, 5)):
                 template = ProjectTemplate()
                 template.template_id = blank_project.id
                 template.category = name
@@ -271,7 +271,7 @@ def initialise_method_templates(session):
     if len(templates) <= 1:
         count = 0
         for name in placeholder_template_names:
-            for i in range(random.randint(2, 10)):
+            for i in range(random.randint(2, 5)):
                 template = MethodTemplate()
                 template.template_id = blank_template.id
                 template.dataset_id = blank_template.dataset_id

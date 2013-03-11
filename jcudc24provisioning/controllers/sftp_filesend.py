@@ -137,11 +137,11 @@ class SFTPFileSend(object):
                     else:
                         logger.info("Remote file exists and is different: %s" % os.path.basename(local_file))
             except:
-                logger.info("New file created: %s" % os.path.basename(local_file),)
+                logger.info("New file created: %s" % os.path.basename(local_file))
 
             if not is_up_to_date:
                 logger.info('Copying %s to %s' % (local_file, remote_file))
-                self.sftp.put(local_file, remote_file)
+                self.sftp.put(local_file, remote_file, confirm=True)
                 return True # File was uploaded
 
         except Exception, e:
@@ -156,7 +156,6 @@ class SFTPFileSend(object):
         return False # File wasn't uploaded, may have already been up to date or there may have been an error.
         ## end of http://code.activestate.com/recipes/576810/ }}}
 
-
     def upload_directory(self, local_dir, remote_dir, glob_pattern=None, extension=None):
         files_copied = 0
 
@@ -166,9 +165,11 @@ class SFTPFileSend(object):
             #    print "Dirlist:", dirlist
 
             try:
+#                self.sftp.chdir("~/")
+#                test = self.sftp.getcwd()
                 self.sftp.mkdir(remote_dir)
             except IOError, e:
-                logger.exception('(assuming ', remote_dir, 'exists)')
+                logger.exception('(assuming %s exists' % remote_dir)
 
 
             if glob_pattern is None:
@@ -184,12 +185,12 @@ class SFTPFileSend(object):
 
         except Exception, e:
             logger.exception('*** Caught exception: %s: ' % (e.__class__))
-            try:
-                self.transport.close()
-            except:
-                pass
+#            try:
+##                self.transport.close()
+#            except:
+#                pass
         logger.info('=' * 60)
-        logger.info('Total files copied:',files_copied)
+        logger.info('Total files copied: %s' % str(files_copied))
         logger.info('All operations complete!')
         logger.info('=' * 60)
         ## end of http://code.activestate.com/recipes/576810/ }}}

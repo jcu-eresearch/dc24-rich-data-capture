@@ -5,7 +5,9 @@ from pyramid.security import NO_PERMISSION_REQUIRED
 from controllers.sftp_filesend import SFTPFileSend
 from jcudc24provisioning.models import RootFactory
 from jcudc24provisioning.controllers.authentication import ShibbolethAuthenticationPolicy, get_user
-from models.metadata_exporters import create_json_config
+from jcudc24provisioning.scripts.create_redbox_config import create_json_config
+
+import os
 
 global global_settings
 
@@ -128,6 +130,18 @@ def main(global_config, **settings):
 #    except Exception as e:
 #        logger.exception("Error initialising database: %s", e)
 #        sys.exit()
+
+    # Create the temporary folders if they don't already exist
+    if not os.path.exists(settings.get("tmpdir")):
+        os.mkdir(settings.get("tmpdir"))
+    if not os.path.exists(settings.get("pyramid_deform.tempdir")):
+        os.mkdir(settings.get("pyramid_deform.tempdir"))
+    if not os.path.exists(settings.get("mint.tmpdir")):
+        os.mkdir(settings.get("mint.tmpdir"))
+    if not os.path.exists(settings.get("redbox.tmpdir")):
+        os.mkdir(settings.get("redbox.tmpdir"))
+    if not os.path.exists(settings.get("workflows.files")):
+            os.mkdir(settings.get("workflows.files"))
 
     return config.make_wsgi_app()
 
