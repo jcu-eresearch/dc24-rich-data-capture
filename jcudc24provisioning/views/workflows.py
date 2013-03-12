@@ -21,7 +21,7 @@ from jcudc24provisioning.controllers.redbox_wrapper import ReDBoxWraper
 from jcudc24provisioning.controllers.sftp_filesend import SFTPFileSend
 import deform
 from deform.exception import ValidationFailure
-from deform.form import Form
+from deform.form import Form, Button
 from pyramid.url import route_url
 import inspect
 from sqlalchemy import create_engine
@@ -45,7 +45,7 @@ from jcudc24provisioning.views.ca_scripts import convert_schema, fix_schema_fiel
 from jcudc24provisioning.models.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.mint_lookup import MintLookup
 from pyramid.request import Request
-from jcudc24provisioning.models.metadata_exporters import create_json_config
+from jcudc24provisioning.scripts.create_redbox_config import create_json_config
 from jcudc24provisioning.models.website import User
 
 
@@ -580,19 +580,19 @@ class Workflows(Layouts):
             new_parties = []
             if 'data_manager' in appstruct:
                 data_manager = Party()
-                data_manager.party_relationship = "manager"
+                data_manager.party_relationship = "isManagedBy"
                 data_manager.identifier = appstruct['data_manager']
                 new_parties.append(data_manager)
 
             if 'project_lead' in appstruct:
                 project_lead = Party()
-                project_lead.party_relationship = "owner"
+                project_lead.party_relationship = "isOwnedBy"
                 project_lead.identifier = appstruct['project_lead']
                 new_parties.append(project_lead)
 
             if 'activity' in appstruct:
-                new_project.information.activity = appstruct['activity']
-                activity_results = MintLookup(None).get_from_identifier(appstruct['activity'])
+                new_project.information.activity = appstruct['grant']
+                activity_results = MintLookup(None).get_from_identifier(appstruct['grant'])
 
                 if activity_results is not None:
                     new_project.information.brief_description = activity_results['dc:description']
@@ -639,8 +639,8 @@ class Workflows(Layouts):
         if self._handle_form():
             return
 
-        self.project.information.to_xml()
-        create_json_config()
+#        self.project.information.to_xml()
+#        create_json_config()
 
         return self._create_response(page_help=page_help)
 
@@ -922,7 +922,7 @@ class Workflows(Layouts):
         elif self.project.state == ProjectStates.DISABLED:
             buttons += (DELETE_TEXT,)
 
-        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=buttons, use_ajax=False)
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, buttons=buttons, project_id=self.project_id), use_ajax=False)
 
         # If this page was only called for saving and a rendered response isn't needed, return now.
         if self._handle_form():
@@ -959,6 +959,12 @@ class Workflows(Layouts):
                 # Set all redbox identifiers
                 self.project.information.redbox_identifier = self.config.get("redbox.identifier_pattern") + str(self.project.information.id)
 
+                # Make sure all dataset record have been created
+                for dataset in self.project.datasets:
+                    if (dataset.record_metadata is None):
+                        dataset.record_metadata = self.generate_dataset_record(dataset.id)
+                self.session.flush()
+
                 for dataset in self.project.datasets:
                     dataset.record_metadata.redbox_identifier = self.config.get("redbox.identifier_pattern") + str(dataset.record_metadata.id)
 
@@ -970,7 +976,7 @@ class Workflows(Layouts):
                 username = self.config.get("redbox.ssh_username")
                 password = self.config.get("redbox.ssh_password")
                 harvest_dir = self.config.get("redbox.ssh_harvest_dir")
-                tmp_dir = self.config.get("tmp_dir")
+                tmp_dir = self.config.get("redbox.tmpdir")
 
                 redbox = ReDBoxWraper(url=alert_url, ssh_host=host, ssh_port=port, tmp_dir=tmp_dir, harvest_dir=harvest_dir,
                     ssh_username=username, rsa_private_key=private_key, ssh_password=password)
@@ -981,19 +987,31 @@ class Workflows(Layouts):
                 self.request.session.flash("Error: %s" % e, 'error')
                 return self._create_response(page_help=page_help)
 
-            try:
-                self.ingester_api.post(self.project)
-                self.ingester_api.close()
-                logger.info("Project has been added to ingesterplatform successfully: %s", self.project.id)
-            except Exception as e:
-                logger.exception("Project failed to add to ingesterplatform: %s", self.project.id)
-                self.request.session.flash("Failed to configure data storage and ingestion.", 'error')
-                self.request.session.flash("Error: %s" % e, 'error')
-                return self._create_response(page_help=page_help)
+#            try:
+#                self.ingester_api.post(self.project)
+#                self.ingester_api.close()
+#                logger.info("Project has been added to ingesterplatform successfully: %s", self.project.id)
+#            except Exception as e:
+#                logger.exception("Project failed to add to ingesterplatform: %s", self.project.id)
+#                self.request.session.flash("Failed to configure data storage and ingestion.", 'error')
+#                self.request.session.flash("Error: %s" % e, 'error')
+#                return self._create_response(page_help=page_help)
 
             # Change the state to active
             self.project.state = ProjectStates.ACTIVE
             logger.info("Project has been approved successfully: %s", self.project.id)
+
+
+        buttons=()
+        if (self.project.state == ProjectStates.OPEN or self.project.state is None) and len(self.error) <= 0:
+            buttons += (Button(SUBMIT_TEXT),)
+        elif self.project.state == ProjectStates.SUBMITTED:
+            buttons += (Button(REOPEN_TEXT), Button(APPROVE_TEXT))
+        elif self.project.state == ProjectStates.ACTIVE:
+            buttons += (Button(DISABLE_TEXT),)
+        elif self.project.state == ProjectStates.DISABLED:
+            buttons += (Button(DELETE_TEXT),)
+        self.form.buttons = buttons
 
         return self._create_response(page_help=page_help)
 

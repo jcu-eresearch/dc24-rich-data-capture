@@ -11,6 +11,7 @@ from jcudc24provisioning.models import DBSession, Base
 from jcudc24provisioning.models.project import Location, LocationOffset, MethodSchema, Project, Region, Dataset, Method, MethodSchemaField, PullDataSource,FormDataSource, PushDataSource, DatasetDataSource, SOSScraperDataSource, Metadata
 from jcudc24ingesterapi.schemas.data_types import DateTime, FileDataType, Integer, String, Double, Boolean
 from jcudc24ingesterapi.models.sampling import PeriodicSampling
+import os
 
 __author__ = 'Casey Bajema'
 
@@ -350,7 +351,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
                     url=model.pull_data_source.uri,
                     field=data_source_field.name,
                     pattern=model.pull_data_source.filename_pattern,
-                    mime_type=data_source_field.mime_type,
+                    mime_type=data_source_field.units,
                     sampling=sampling_object,
                     recursive=True
                 )
@@ -365,6 +366,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
                                 for param in params:
                                     param.strip()
                                 script = script % tuple(params)
+
                                 print script
                             data_source.processing_script = script
                     except IOError as e:

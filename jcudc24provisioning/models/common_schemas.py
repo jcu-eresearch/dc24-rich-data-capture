@@ -1,6 +1,6 @@
 import ast
 import types
-from deform.widget import filedict
+from deform.widget import filedict, FileUploadWidget
 from jcudc24provisioning.views.deform_widgets import SelectMappingWidget, ConditionalCheckboxMapping
 from beaker.cache import cache_region
 import colander
@@ -105,6 +105,9 @@ def preview_url(self, name):
     filepath = os.path.join(self.tempdir, self.tempstore[name]['randid'])
     return filepath
 
+
+
+
 # Customise the serialize method of FileUploadWidget to parse the string from DB into dict
 def file_upload_serialize(self, field, cstruct, readonly=False):
     if cstruct in (deform.widget.null, None):
@@ -130,67 +133,7 @@ def file_upload_serialize(self, field, cstruct, readonly=False):
     template = readonly and self.readonly_template or self.template
     return field.renderer(template, field=field, cstruct=cstruct)
 
-#def file_upoad_deserialize(self, field, pstruct):
-#        if pstruct is deform.widget.null:
-#            return deform.widget.null
-#
-#        upload = pstruct.get('upload')
-#        uid = pstruct.get('uid')
-#
-#        if hasattr(upload, 'file'):
-#            # the upload control had a file selected
-#            data = filedict()
-#            data['fp'] = upload.file
-#            filename = upload.filename
-#            # sanitize IE whole-path filenames
-#            filename = filename[filename.rfind('\\')+1:].strip()
-#            data['filename'] = filename
-#            data['mimetype'] = upload.type
-#            data['size']  = upload.length
-#            if uid is None:
-#                # no previous file exists
-#                while 1:
-#                    uid = self.random_id()
-#                    if self.tmpstore.get(uid) is None:
-#                        data['uid'] = uid
-#                        self.tmpstore[uid] = data
-#                        data['preview_url'] = self.tmpstore.preview_url(uid)
-#                        break
-#            else:
-#                # a previous file exists
-#                data['uid'] = uid
-#                self.tmpstore[uid] = data
-#                data['preview_url'] = self.tmpstore.preview_url(uid)
-#        else:
-#            # the upload control had no file selected
-#            if uid is None:
-#                # no previous file exists
-#                return deform.widget.null
-#            else:
-#                # a previous file should exist
-#                data = self.tmpstore.get(uid)
-#                # but if it doesn't, don't blow up
-#                if data is None:
-#                    return deform.widget.null
-#
-#        return data
 
-@colander.deferred
-def upload_widget(node, kw):
-    request = kw['request']
-    tmp_store = SessionFileUploadTempStore(request)
-    tmp_store.preview_url = types.MethodType(preview_url, tmp_store)
-    widget = deform.widget.FileUploadWidget(tmp_store)
-    widget.serialize = types.MethodType(file_upload_serialize, widget)
-#    widget.deserialize = types.MethodType(file_upoad_deserialize, widget)
-    return widget
-
-
-class Attachment(colander.SchemaNode):
-    def __init__(self, typ=deform.FileData(), *children, **kw):
-        if not "widget" in kw: kw["widget"] = upload_widget
-        if not "title" in kw: kw["title"] = "Attach File"
-        colander.SchemaNode.__init__(self, typ, *children, **kw)
 
 #def deferred_upload_widget(field, bindargs):
 #    request = bindargs['request']

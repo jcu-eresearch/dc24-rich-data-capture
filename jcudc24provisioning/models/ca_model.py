@@ -43,6 +43,8 @@ class CAModel(object):
     def _get_field_type(self, field_name, model_object):
         class_manager = model_object._sa_class_manager[field_name]
         parent = getattr(class_manager, 'parententity', getattr(class_manager, '_parententity', None)) # Seems to have either or?
+        if field_name not in parent.columns._data: # its a relationship with a value of none
+            return None
         return parent.columns._data[field_name].type.python_type
 #        return model_object._sa_class_manager[field_name]._parententity.columns._data[field_name].type.python_type
 
@@ -65,33 +67,33 @@ class CAModel(object):
         except Exception as e:
             logger.exception("Exception occurred while getting model's ca_registry: %s" % e)
 
-    def fileupload_to_filehandle(self, field_name, value, model_object):
-        try:
-            ca_registry = self._get_ca_registry(field_name, self.get_model_class(model_object))
-    
-            # This isn't a form
-            if ca_registry is None:
-                return value
-
-            # Handle file uploads
-            # If this is a file field
-            if 'type' in ca_registry and isinstance(ca_registry['type'], deform.FileData):
-                # If this is a new file
-                if isinstance(value, dict) and 'preview_url' in value:
-                    value = str(value['preview_url'])
-    
-                # If this is an already selected and uploaded file
-                elif isinstance(value, dict) and 'fp' in value and hasattr(value['fp'], 'name'):
-                    value = str(value['fp'].name)
-    
-                # File was previously uploaded and the user just removed it
-                else:
-                    value = None
-    
-            return value
-    
-        except Exception as e:
-            logger.exception("Exception occurred while converting file upload to filehandle: %s" % e)
+#    def fileupload_to_filehandle(self, field_name, value, model_object):
+#        try:
+#            ca_registry = self._get_ca_registry(field_name, self.get_model_class(model_object))
+#
+#            # This isn't a form
+#            if ca_registry is None:
+#                return value
+#
+##            Handle file uploads
+##            If this is a file field
+#            if 'type' in ca_registry and isinstance(ca_registry['type'], deform.FileData):
+#                # If this is a new file
+#                if isinstance(value, dict) and 'preview_url' in value:
+#                    value = str(value['preview_url'])
+#
+#                # If this is an already selected and uploaded file
+#                elif isinstance(value, dict) and 'fp' in value and hasattr(value['fp'], 'name'):
+#                    value = str(value['fp'].name)
+#
+#                # File was previously uploaded and the user just removed it
+#                else:
+#                    value = None
+#
+#            return value
+#
+#        except Exception as e:
+#            logger.exception("Exception occurred while converting file upload to filehandle: %s" % e)
 
     def normalize_form_value(self, field_name, value, model_object):
         try:
@@ -112,8 +114,8 @@ class CAModel(object):
                 if value is not None and isinstance(getattr(model_object, field_name), (int, long, float, str)):
                     value = (type(getattr(model_object, field_name)))(value)
     
-            elif (isinstance(value, dict) or value is None):
-                value = self.fileupload_to_filehandle(field_name, value, model_object)
+#            elif (isinstance(value, dict) or value is None):
+#                value = self.fileupload_to_filehandle(field_name, value, model_object)
     
             return value
         except Exception as e:
@@ -285,7 +287,7 @@ class CAModel(object):
                 if isinstance(value, date):
                     value = str(value)
     
-                if isinstance(value, bool)  and hasattr(node.widget, 'true_val'):
+                if isinstance(value, bool) and hasattr(node.widget, 'true_val'):
                     if value:
                         value = node.widget.true_val
                     elif hasattr(node.widget, 'false_val'):
@@ -300,15 +302,15 @@ class CAModel(object):
                         node_list.append(self.convert_sqlalchemy_model_to_data(node.children[0]._reg.cls(),  node.children[0], force_not_empty_lists))
     
                     data[node.name] = node_list
-                elif isinstance(node.typ, deform.FileData) and value is not None:
-                    tempstore = node.widget.tmpstore.tempstore
-                    data[node.name] = node.default
-                    if value is not None:
-                        randid = value.split("/")[-1]
-                        for file_uid in tempstore:
-                            if 'randid' in tempstore[file_uid] and (tempstore[file_uid]['randid']) == str(randid):
-                                data[node.name] = tempstore[file_uid]
-                                break
+#                elif isinstance(node.typ, deform.FileData) and value is not None:
+#                    tempstore = node.widget.tmpstore.tempstore
+#                    data[node.name] = node.default
+#                    if value is not None:
+#                        randid = value.split("/")[-1]
+#                        for file_uid in tempstore:
+#                            if 'randid' in tempstore[file_uid] and (tempstore[file_uid]['randid']) == str(randid):
+#                                data[node.name] = tempstore[file_uid]
+#                                break
     
                 elif len(node.children):
                     data[node.name] = self.convert_sqlalchemy_model_to_data(value,  node, force_not_empty_lists)
@@ -316,6 +318,16 @@ class CAModel(object):
                 elif value is None:
                     data[node.name] = node.default
                 else:
+                    if isinstance(node.widget, deform.widget.SelectWidget):
+                        label = None
+                        for select_value, select_label in node.widget.values:
+                            if select_value == value:
+                                label = select_label
+                                break
+                        # Give a best effor to set the redbox label fields that go along with all select fields
+                        if hasattr(model, name + "_label"):
+                            data[node.name + "_label"] = label
+
                     data[node.name] = value
             elif len(node.children) > 0:
                 node_data = self.convert_sqlalchemy_model_to_data(model, node.children, force_not_empty_lists)
@@ -332,16 +344,20 @@ class CAModel(object):
     def _add_xml_elements(self, root, data):
         for key, value in data.items():
             key = fix_schema_field_name(key)
-            element = etree.SubElement(root, key)
+
+            # Don't add empty items to the XML
             if value is colander.null or value is None or (isinstance(value, list) and len(value) == 0):
                 continue
+
+            element = etree.SubElement(root, key)
 
             if isinstance(value, dict):
                 self._add_xml_elements(element, value)
             elif isinstance(value, list):
                 for i in range(len(value)):
-                    child_element = etree.SubElement(element, key + ".%i" % i)
-                    self._add_xml_elements(child_element, value[i])
+                    if value is not None:
+                        child_element = etree.SubElement(element, key + ".%i" % i)
+                        self._add_xml_elements(child_element, value[i])
             else:
                 element.text = str(value)
         return element

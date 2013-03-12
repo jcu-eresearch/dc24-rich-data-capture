@@ -4,7 +4,7 @@ bin
 lib
 /include
 *.iml
-tmp_files/*
 /*.iml
 /data
+tmp
 /tmp

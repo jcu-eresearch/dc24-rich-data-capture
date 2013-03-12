@@ -83,7 +83,7 @@ class ReDBoxWraper(object):
         for record in records:
             identifier = record.xpath("%s" % Metadata.redbox_identifier.key)
             if len(identifier) == 1:
-                tmp_file_path = self.working_dir + (identifier[0].text).replace("\\", ".").replace("/", ".")
+                tmp_file_path = self.working_dir + (identifier[0].text).replace("\\", ".").replace("/", ".") + ".xml"
                 f = open(tmp_file_path, 'w')
                 f.write((etree.tostring(record.getroottree().getroot(), pretty_print=True)))
             else:
@@ -151,7 +151,7 @@ class ReDBoxWraper(object):
         related_record_node = etree.Element("related_record")
 
         identifier = etree.SubElement(related_record_node, "identifier")
-        identifier.text = unicode(record.xpath("%s" % Metadata.redbox_identifier.key))
+        identifier.text = unicode(record.xpath("/metadata/%s" % Metadata.redbox_identifier.key))
 
         relationship = etree.SubElement(related_record_node, "relationship")
         relationship.text = relationship_type
