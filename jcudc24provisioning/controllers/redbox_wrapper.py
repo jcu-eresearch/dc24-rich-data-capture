@@ -151,7 +151,7 @@ class ReDBoxWraper(object):
         related_record_node = etree.Element("related_record")
 
         identifier = etree.SubElement(related_record_node, "identifier")
-        identifier.text = unicode(record.xpath("%s" % Metadata.redbox_identifier.key))
+        identifier.text = unicode(record.xpath("/metadata/%s" % Metadata.redbox_identifier.key))
 
         relationship = etree.SubElement(related_record_node, "relationship")
         relationship.text = relationship_type

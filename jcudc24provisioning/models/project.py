@@ -138,7 +138,7 @@ class FieldOfResearch(CAModel, Base):
     metadata_id = Column(Integer, ForeignKey('metadata.id'),ca_order=next(order_counter),  nullable=False, ca_widget=deform.widget.HiddenWidget())
 
     field_of_research_label = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
-    field_of_research = Column(String(50), ca_order=next(order_counter), ca_title="Field Of Research", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
+    field_of_research = Column(String(128), ca_order=next(order_counter), ca_title="Field Of Research", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
         ca_data=getFORCodes)
 
 
@@ -150,7 +150,7 @@ class SocioEconomicObjective(CAModel, Base):
     metadata_id = Column(Integer, ForeignKey('metadata.id'), ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
     socio_economic_objective_label = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
-    socio_economic_objective = Column(String(50), ca_order=next(order_counter), ca_title="Socio-Economic Objective", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
+    socio_economic_objective = Column(String(128), ca_order=next(order_counter), ca_title="Socio-Economic Objective", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
         ca_data=getSEOCodes)
 
 class Person(CAModel, Base):
@@ -1091,8 +1091,7 @@ class Metadata(CAModel, Base):
     grant_number = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="foaf:fundedBy.vivo:Grant.1.redbox:grantNumber",)
     grant_label = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="foaf:fundedBy.vivo:Grant.1.skos:prefLabel",)
     grant = Column(String(256), ca_order=next(order_counter), ca_title="Research Grant", ca_page="general",
-        ca_missing="",
-        ca_help="Enter the associated research grant associated with this record (this field will autocomplete).",
+        ca_missing="", ca_help="Enter the associated research grant associated with this record (this field will autocomplete).",
         ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/activities/', template="mint_autocomplete_input", delay=10))
 
     #    services = Column(String(256), ca_title="Services - Remove this?", ca_order=next(order_counter), ca_placeholder="Autocomplete - Mint/Mint DB", ca_page="general",
@@ -1433,7 +1432,7 @@ class Project(CAModel, Base):
         ca_group_start="ingesters", ca_group_end="ingesters", ca_group_title="Summary of Data Ingesters", ca_group_collapsed=False, ca_page="submit",)
 
     project_notes = relationship("ProjectNote", ca_title="Project Note",  ca_order=next(order_counter), ca_page="submit",
-            cascade="all, delete-orphan",
+            cascade="all, delete-orphan", ca_widget=deform.widget.SequenceWidget(min_len=1),
             ca_help="Project comments that are only relevant to the provisioning system (eg. comments as to why the project was reopened after the creator submitted it).")
 
 

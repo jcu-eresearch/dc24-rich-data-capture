@@ -344,16 +344,20 @@ class CAModel(object):
     def _add_xml_elements(self, root, data):
         for key, value in data.items():
             key = fix_schema_field_name(key)
-            element = etree.SubElement(root, key)
+
+            # Don't add empty items to the XML
             if value is colander.null or value is None or (isinstance(value, list) and len(value) == 0):
                 continue
+
+            element = etree.SubElement(root, key)
 
             if isinstance(value, dict):
                 self._add_xml_elements(element, value)
             elif isinstance(value, list):
                 for i in range(len(value)):
-                    child_element = etree.SubElement(element, key + ".%i" % i)
-                    self._add_xml_elements(child_element, value[i])
+                    if value is not None:
+                        child_element = etree.SubElement(element, key + ".%i" % i)
+                        self._add_xml_elements(child_element, value[i])
             else:
                 element.text = str(value)
         return element
