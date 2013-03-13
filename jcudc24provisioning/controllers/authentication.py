@@ -20,7 +20,6 @@ class DefaultPermissions(object):
     ENABLE = "enable", "Allows enabling of ingesters (which effects data ingesters).",
     DELETE = "delete", "Allows deleting projects (Non-reversible).",
 
-    ADD_DATA = "add_data", "Allows adding of new data and calibrations.",
     EDIT_DATA = "edit_data", "Allows editing of current data and calibrations.",
     EDIT_INGESTERS = "edit_ingesters", "Allows editing of ingester configurations such as sampling rate or custom processors.",
 
@@ -30,7 +29,7 @@ class DefaultPermissions(object):
 
 class DefaultRoles(object):
     _permissions = DefaultPermissions()
-    CREATOR = "creator", "Creator of the project, this will be dynamically assigned based on the login credentials.", [DefaultPermissions.VIEW_PROJECT, DefaultPermissions.EDIT_PROJECT, DefaultPermissions.SUBMIT, DefaultPermissions.EDIT_DATA, DefaultPermissions.ADD_DATA, DefaultPermissions.EDIT_SHARE_PERMISSIONS]
+    CREATOR = "creator", "Creator of the project, this will be dynamically assigned based on the login credentials.", [DefaultPermissions.VIEW_PROJECT, DefaultPermissions.EDIT_PROJECT, DefaultPermissions.SUBMIT, DefaultPermissions.EDIT_DATA, DefaultPermissions.EDIT_SHARE_PERMISSIONS]
     AUTHENTICATED = ("authenticated", "Any logged in user.", [DefaultPermissions.CREATE_PROJECT])
     ADMIN = ("admin", "Standard administrators of the system.", [getattr(_permissions, name) for name in dir(_permissions) if name != DefaultPermissions.EDIT_PERMISSIONS[0] and not name.startswith("_")])
     SUPER_ADMIN = ("super_admin", "Has all permissions", [getattr(_permissions, name) for name in dir(_permissions) if not name.startswith("_")])

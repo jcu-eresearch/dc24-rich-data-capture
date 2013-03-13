@@ -22,7 +22,7 @@ class Permission(CAModel, Base):
 
     __tablename__ = 'permission'
     id = Column(Integer, primary_key=True, ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
-    name = Column(String(50), ca_order=next(order_counter))
+    name = Column(String(50), ca_order=next(order_counter),)
     description = Column(Text(), ca_order=next(order_counter))
 
     def __init__(self, name, description=None):
@@ -48,28 +48,38 @@ class Role(CAModel, Base):
         self.description = description
         self.permissions = permissions
 
-
 user_roles_table = Table('user_roles', Base.metadata,
     Column('role_id', Integer, ForeignKey('role.id')),
     Column('user_id', Integer, ForeignKey('user.id'))
 )
 
-user_permissions_table = Table('user_permissions', Base.metadata,
-    Column('permission_id', Integer, ForeignKey('permission.id')),
-    Column('user_id', Integer, ForeignKey('user.id'))
-)
+class ProjectPermissions(CAModel, Base):
+    __tablename__ = 'user_permissions'
+    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('project.id'))
+    permission_id = Column(Integer, ForeignKey('permission.id')),
+    user_id = Column(Integer, ForeignKey('user.id'))
+    permission = relationship("Permission", lazy="joined", backref="project_permissions", cascade="all")
+
+
+#user_permissions_table = Table('user_permissions', Base.metadata,
+#    Column('permission_id', Integer, ForeignKey('permission.id')),
+#    Column('user_id', Integer, ForeignKey('user.id'))
+#)
 
 class User(CAModel, Base):
     order_counter = itertools.count()
 
     __tablename__ = 'user'
     id = Column(Integer, primary_key=True, ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
+    display_name = Column(String(128), ca_order=next(order_counter), nullable=False)
     username = Column(String(80), ca_order=next(order_counter), nullable=False)
     _password = Column(String(80), ca_name="password", ca_order=next(order_counter), nullable=False)
-    permissions = relationship("Permission", lazy="joined", secondary=user_permissions_table, backref="users", cascade="all")
+    project_permissions = relationship("ProjectPermissions", lazy="joined", backref="users", cascade="all")
     roles = relationship("Role", lazy="joined", secondary=user_roles_table, backref="users", cascade="all")
 
-    def __init__(self, username, password, permissions=None, roles=None):
+    def __init__(self, display_name, username, password, permissions=None, roles=None):
+        self.display_name = display_name
         self.username = username
         self.permissions = permissions or []
         self.roles = roles or []
@@ -113,3 +123,5 @@ class User(CAModel, Base):
             return session.query(cls).filter_by(id=userid).first()
         elif username is not None:
             return session.query(cls).filter_by(username=username).first()
+
+

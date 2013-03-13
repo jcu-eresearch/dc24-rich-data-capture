@@ -86,6 +86,7 @@ def main(global_config, **settings):
     config.add_route('manage_data', '/project/{project_id}/manage_data')
     config.add_route('permissions', '/project/{project_id}/permissions')
     config.add_route('duplicate', '/project/{project_id}/duplicate')
+    config.add_route('create_template', '/project/{project_id}/create_template')
 
     # Exception handler
     config.add_route('workflow_exception', '/project/{route:.*}')

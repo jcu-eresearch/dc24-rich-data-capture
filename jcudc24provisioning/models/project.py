@@ -19,6 +19,7 @@ from jcudc24provisioning.models import Base
 from jcudc24provisioning.views.file_upload import upload_widget
 from jcudc24provisioning.views.deform_widgets import MethodSchemaWidget
 from jcudc24provisioning.views.mint_lookup import MintLookup
+from jcudc24provisioning.controllers.authentication import DefaultPermissions
 
 
 #config = ConfigParser.SafeConfigParser()
@@ -1237,9 +1238,9 @@ class Metadata(CAModel, Base):
         ca_help="The date that data started being collected.  Note that this is the actual data date not the finding date, recording date or other date.  For example, an old letter may be found in 2013 but it was actually written in 1900 - the date to use is 1900.", ca_force_required=True)
     date_to = Column(Date(), ca_name="dc:coverage.vivo:DateTimeInterval.vivo:end", ca_order=next(order_counter), ca_title="Date data stopped/will stop being collected", ca_page="information",
         ca_help='The date that data will stop being collected.  Note that this is the actual data date not the finding date, recording date or other date.  For example, an old letter may be found in 2013 but it was actually written in 1900 - the date to use is 1900.', ca_missing=colander.null)
-    location_description = Column(String(512), ca_order=next(order_counter), ca_title="Location (description)", ca_page="information",
-        ca_help="Textual description of the region covered such as Australian Wet Tropics."
-        , ca_missing="", ca_placeholder="eg. Australian Wet Tropics or Great Barrier Reef")
+#    location_description = Column(String(512), ca_order=next(order_counter), ca_title="Location (description)", ca_page="information",
+#        ca_help="Textual description of the region covered such as Australian Wet Tropics."
+#        , ca_missing="", ca_placeholder="eg. Australian Wet Tropics or Great Barrier Reef")
 
 
     locations = relationship('Location', ca_order=next(order_counter), ca_title="Location", ca_widget=deform.widget.SequenceWidget(template='map_sequence', error_class="error"), ca_page="information",
@@ -1474,7 +1475,7 @@ class CreatePage(colander.MappingSchema):
     no_activity = colander.SchemaNode(colander.Boolean(), help="Must be un-selected if a research grant isn't provided below.",
         title="There is an associated research grant", default=True, widget=deform.widget.CheckboxWidget(template="checked_conditional_input", inverted=True))
 
-    activity = colander.SchemaNode(colander.String(), title="Research Grant",
+    grant = colander.SchemaNode(colander.String(), title="Research Grant",
         missing=colander.null, required=False,
         help="Enter title of the research grant associated with this record (Autocomplete).  The grant will be looked up for additional information that can be pre-filled.",
         description="Un-Select 'There is an associated research grant' above if your project isn't associated with a research grant.",
@@ -1524,3 +1525,24 @@ class IngesterLogs(colander.MappingSchema):
         missing=colander.null)
     logs = colander.SchemaNode(colander.String(), title="", widget=deform.widget.HiddenWidget(template="ingester_logs"),
         help="TODO: Provide information on what logs mean",missing=colander.null)
+
+
+class SharedUser(colander.MappingSchema):
+    user_id = colander.SchemaNode(colander.Integer(),widget=deform.widget.HiddenWidget())
+    view_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.VIEW_PROJECT[0], default = True, title="View")
+    edit_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_PROJECT[0],default = False, title="Edit")
+    submit_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.SUBMIT[0],default = False, title="Submit")
+    edit_data_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_DATA[0],default = False, title="Manage Data")
+    edit_ingester_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_INGESTERS[0],default = False, title="Manage Ingesters")
+    disable_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.DISABLE[0],default = False, title="Disable")
+    enable_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.ENABLE[0],default = False, title="Re-Enable")
+
+class SharedUsers(colander.SequenceSchema):
+    user = SharedUser(widget=deform.widget.MappingWidget(template="inline_mapping", show_label=True))
+#
+#@colander.deferred
+#def get_users(node, kw):
+#    return kw['users']
+
+class Sharing(colander.MappingSchema):
+    shared_with = SharedUsers(title="Users Who This Project Is Shared With", widget=deform.widget.SequenceWidget(template="sharing_sequence"))
