@@ -1,4 +1,5 @@
 import os
+import os
 import sys
 import transaction
 
@@ -69,9 +70,9 @@ def initialise_security(session):
         session.add(role)
 
     session.flush()
-    user = User("user", "user")
+    user = User("A User", "user", "user")
     session.add(user)
-    admin = User("admin", "admin", roles=session.query(Role).filter(Role.name==DefaultRoles().ADMIN[0]).all())
+    admin = User("Administrator", "admin", "admin", roles=session.query(Role).filter(Role.name==DefaultRoles().ADMIN[0]).all())
     session.add(admin)
 
 

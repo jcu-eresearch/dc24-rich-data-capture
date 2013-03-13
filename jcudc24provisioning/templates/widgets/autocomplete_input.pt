@@ -17,8 +17,9 @@
             deform.addCallback(
                     '${field.oid}',
                     function (oid) {
-                        $('#' + oid).autocomplete({source: ${values});
+                        $('#' + oid).autocomplete({source: ${values}});
                         $('#' + oid).autocomplete("option", ${options});
+
                     }
             );
 

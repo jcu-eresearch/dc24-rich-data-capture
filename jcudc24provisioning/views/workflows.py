@@ -40,13 +40,13 @@ from jcudc24provisioning.views.views import Layouts
 from pyramid.renderers import get_renderer
 from jcudc24provisioning.models import DBSession, Base
 from jcudc24provisioning.models.project import PullDataSource, Metadata, UntouchedPages, IngesterLogs, Location, \
-    ProjectTemplate,method_template,DatasetDataSource, Project, project_validator, ProjectStates, CreatePage, Method, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
+    ProjectTemplate,method_template,DatasetDataSource, Project, project_validator, ProjectStates, Sharing, CreatePage, Method, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
 from jcudc24provisioning.views.ca_scripts import convert_schema, fix_schema_field_name
-from jcudc24provisioning.models.ingesterapi_wrapper import IngesterAPIWrapper
+from jcudc24provisioning.controllers.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.mint_lookup import MintLookup
 from pyramid.request import Request
 from jcudc24provisioning.scripts.create_redbox_config import create_json_config
-from jcudc24provisioning.models.website import User
+from jcudc24provisioning.models.website import User, user_permissions_table, Permission
 
 
 __author__ = 'Casey Bajema'
@@ -178,10 +178,11 @@ class Workflows(Layouts):
         if '_next' not in locals():
             self._next = None # Set as None if this is the last visible step or it isn't a workflow page.
 
-            for i in range(len(WORKFLOW_STEPS))[WORKFLOW_STEPS.index(self.page) + 1:]:
-                if 'hidden' not in WORKFLOW_STEPS[i] or not WORKFLOW_STEPS[i]['hidden']:
-                    self._next = WORKFLOW_STEPS[i]
-                    break
+            if (self.page in WORKFLOW_STEPS):
+                for i in range(len(WORKFLOW_STEPS))[WORKFLOW_STEPS.index(self.page) + 1:]:
+                    if 'hidden' not in WORKFLOW_STEPS[i] or not WORKFLOW_STEPS[i]['hidden']:
+                        self._next = WORKFLOW_STEPS[i]
+                        break
 
         return self._next
 
@@ -451,38 +452,6 @@ class Workflows(Layouts):
             else:
                 self._redirect_to_target(self.request.referrer)
 
-    @PendingDeprecationWarning
-    def handle_form(self, form, schema, page_help=None, appstruct=None, display=None, readonly=False):
-        # If the form is being saved (there would be 1 item in controls if it is a fresh page with a project id set)
-        if len(self.request.POST) > 1 and not readonly:
-            self.request.POST['id'] = self.project_id # Make sure the correct project is being saved (eg. user edits nav bar directly)
-            controls = self.request.POST.items()
-
-            # In either of the below cases get the data as a dict and get the rendered form
-            if appstruct is None or display is None:
-                try:
-                    appstruct = form.validate(controls)
-                    display = form.render(appstruct)
-                except ValidationFailure, e:
-                    appstruct = e.cstruct
-                    display = e.render()
-
-            # save the data even if it didn't validate - this allows the user to easily navigate and fill fields out as they get the info.
-            project_id = self._save_form(appstruct, self.project_id, Project)
-
-
-            # Set the page as edited so future visits will show the page with validation
-            self._touch_page()
-
-            return self._redirect_to_target()
-#            return {"page_title": self.find_menu()['title'], "form": display, "form_only": form.use_ajax, 'messages' : self.request.session.pop_flash() or ''}
-
-#        # If the page has just been opened but it is set to a specific project
-#        appstruct = self._get_model_appstruct()
-
-        return {"page_title": self.find_menu()['page_title'], "form": self._render_model(), "form_only": False, 'messages': self._get_messages(), 'page_help': page_help, 'readonly': readonly}
-
-
     def _clone_model(self, source):
         """
         Clone a database model
@@ -503,6 +472,8 @@ class Workflows(Layouts):
                 else:
                     setattr(new_object, prop.key, self._clone_model(getattr(source, prop.key)))
 
+        if hasattr(new_object, "id"):
+            new_object.id = None
 
         return new_object
 
@@ -591,8 +562,8 @@ class Workflows(Layouts):
                 new_parties.append(project_lead)
 
             if 'activity' in appstruct:
-                new_project.information.activity = appstruct['activity']
-                activity_results = MintLookup(None).get_from_identifier(appstruct['activity'])
+                new_project.information.grant = appstruct['grant']
+                activity_results = MintLookup(None).get_from_identifier(appstruct['grant'])
 
                 if activity_results is not None:
                     new_project.information.brief_description = activity_results['dc:description']
@@ -850,6 +821,11 @@ class Workflows(Layouts):
                     "<b>Approve:</b> Approve this project, generate metadata records and setup data ingestion<br/><br/>"\
                     "<b>Disable:</b> Stop data ingestion, this would usually occur once the project has finished."
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="submit").bind(request=self.request)
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), use_ajax=False)
+
+        # If this page was only called for saving and a rendered response isn't needed, return now.
+        if self._handle_form():
+            return
 
         # Get validation errors
         if self.project is not None:
@@ -905,7 +881,7 @@ class Workflows(Layouts):
             if schema.children[i].name[-len('ingesters'):] == 'ingesters':
                 schema.children[i].children[0].ingesters = ingesters
 
-        # Configure the available buttons based of the proect state.
+       # Configure the available buttons based of the proect state.
         SUBMIT_TEXT = "Submit"
         REOPEN_TEXT = "Reopen"
         DISABLE_TEXT = "Disable"
@@ -921,12 +897,7 @@ class Workflows(Layouts):
             buttons += (DISABLE_TEXT,)
         elif self.project.state == ProjectStates.DISABLED:
             buttons += (DELETE_TEXT,)
-
-        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, buttons=buttons, project_id=self.project_id), use_ajax=False)
-
-        # If this page was only called for saving and a rendered response isn't needed, return now.
-        if self._handle_form():
-            return
+        self.form.buttons = buttons
 
         # Handle button presses and actual functionality.
         if SUBMIT_TEXT in self.request.POST and (self.project.state == ProjectStates.OPEN or self.project.state is None) and len(self.error) <= 0:
@@ -1148,6 +1119,19 @@ class Workflows(Layouts):
 
         return {"page_title": self.find_menu()['page_title'], "form": display, "form_only": False, 'messages': self._get_messages(), 'page_help': page_help}
 
+    @view_config(route_name="duplicate")
+    def duplicate_view(self):
+        self._handle_form()
+
+        duplicate = self._clone_model(self.project)
+        self.session.add(duplicate)
+        self.session.flush()
+
+        if self.request.referer is not None:
+            return HTTPFound(self.request.route_url(self.request.referer.split("/")[-1], project_id=duplicate.id))
+        return HTTPFound(self.request.route_url("general", project_id=duplicate.id))
+
+
     @view_config(route_name="add_data")
     def add_data_view(self):
         raise NotImplementedError("This page hasn't been implemented yet.")
@@ -1172,25 +1156,36 @@ class Workflows(Layouts):
 
     @view_config(route_name="permissions")
     def permissions_view(self):
-        raise NotImplementedError("This page hasn't been implemented yet.")
-
         page_help=""
-        schema = IngesterLogs()
-        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Refresh',), use_ajax=False)
 
+        users = json.dumps([{"label": share.display_name, "identifier": share.id} for share in self.session.query(User).all()])
+        schema = Sharing()
+        schema['shared_with'].users=users
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False)
 
-        return self.handle_form(self.form, schema, page_help)
+        appstruct = self._get_post_appstruct()
+        if len(appstruct) > 0:
+            for share in appstruct['shared_with']:
+                user = self.session.query(User).filter_by(id=share['user_id']).first()
+                share.pop("user_id")
 
-    @view_config(route_name="duplicate")
-    def duplicate_view(self):
-        raise NotImplementedError("This page hasn't been implemented yet.")
+                if user is None:
+                    self.request.session.flash("You selected an invalid user, please use the autocomplete input and don't enter text manually.", "error")
+                    continue
 
-        page_help=""
-        schema = IngesterLogs()
-        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Refresh',), use_ajax=False)
+                for field_name, value in share.items():
+                    permission = self.session.query(Permission).filter_by(name=field_name).first()
 
+                    for user_permission in user.project_permissions:
+                        if user_permission.project_id == self.project_id:
+                            if user_permission.permission == permission and value == False:
+                                user.permissions.pop(permission)
+                                continue
+                            elif user_permission.permission != permission and value == True:
+                                user.permissions.append(permission)
+                                continue
 
-        return self.handle_form(self.form, schema, page_help)
+        return self._create_response()
 
     # --------------------WORKFLOW EXCEPTION VIEWS-------------------------------------------
     @view_config(context=Exception, route_name="workflow_exception", permission=NO_PERMISSION_REQUIRED)

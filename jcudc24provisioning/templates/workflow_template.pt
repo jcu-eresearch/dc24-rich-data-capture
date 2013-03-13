@@ -44,10 +44,13 @@
                           <ul>
                               <li tal:repeat="menu view.workflow_action">
                                   <tal:block tal:condition="menu.current">
-                                      <a class="current" value="${menu.title}">${menu.title}</a>
+                                      <a form="deform" onclick="false" class="current" value="${menu.title}">${menu.title}</a>
                                   </tal:block>
-                                  <tal:block tal:condition="not menu.current">
-                                      <a onclick="document.getElementById('workflow_target').value='${menu.href}'; $('#deform').submit();">${menu.title}</a>
+                                  <tal:block tal:condition="not menu.current and not readonly">
+                                      <a form="deform" onclick="$('#deform')[0].action='${view.get_address(menu.href)}'; window.onbeforeunload = null; $('#deform')[0].submit();" value="${menu.title}">${menu.title}</a>
+                                  </tal:block>
+                                  <tal:block tal:condition="readonly and not menu.current">
+                                      <a href="${menu.href}">${menu.title}</a>
                                   </tal:block>
                               </li>
                           </ul>
