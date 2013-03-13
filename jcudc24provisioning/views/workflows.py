@@ -42,7 +42,7 @@ from jcudc24provisioning.models import DBSession, Base
 from jcudc24provisioning.models.project import PullDataSource, Metadata, UntouchedPages, IngesterLogs, Location, \
     ProjectTemplate,method_template,DatasetDataSource, Project, project_validator, ProjectStates, CreatePage, Method, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
 from jcudc24provisioning.views.ca_scripts import convert_schema, fix_schema_field_name
-from jcudc24provisioning.models.ingesterapi_wrapper import IngesterAPIWrapper
+from jcudc24provisioning.controllers.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.mint_lookup import MintLookup
 from pyramid.request import Request
 from jcudc24provisioning.scripts.create_redbox_config import create_json_config
