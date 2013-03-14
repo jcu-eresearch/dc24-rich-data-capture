@@ -57,7 +57,7 @@ class ProjectPermissions(CAModel, Base):
     __tablename__ = 'user_permissions'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
     project_id = Column(Integer, ForeignKey('project.id'))
-    permission_id = Column(Integer, ForeignKey('permission.id')),
+    permission_id = Column(Integer, ForeignKey('permission.id'))
     user_id = Column(Integer, ForeignKey('user.id'))
     permission = relationship("Permission", lazy="joined", backref="project_permissions", cascade="all")
 

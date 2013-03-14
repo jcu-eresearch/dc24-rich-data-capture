@@ -253,7 +253,7 @@ class Attachment(CAModel, Base):
         ca_validator=colander.OneOf(
             [attachment_types[0][0], attachment_types[1][0], attachment_types[2][0]]),
         ca_title="Attachment type", ca_css_class="inline")
-    attachment = Column(String(512), ca_name="filename",  ca_widget=upload_widget, ca_type = deform.FileData(), ca_missing=colander.null)
+    attachment = Column(String(512), ca_name="filename",  ca_widget=upload_widget, ca_missing=colander.null)
 
     note = Column(Text(), ca_name="notes")
 #    ca_params={'widget' : deform.widget.HiddenWidget()}
@@ -1306,6 +1306,7 @@ class Metadata(CAModel, Base):
         ca_requires_admin=True, ca_group_end="legality")
 
     #-------------citation--------------------
+    custom_citation = Column(Boolean(), ca_order=next(order_counter), ca_default=False, ca_page="information", ca_group_requires_admin=True)
     send_citation = Column(String(100), ca_order=next(order_counter), ca_default="on", ca_page="information", ca_widget=deform.widget.HiddenWidget())
     use_curation = Column(String(100), ca_order=next(order_counter), ca_default="on", ca_page="information", ca_widget=deform.widget.HiddenWidget(),)
     # Autocomplete from project title
@@ -1447,12 +1448,12 @@ def grant_validator(form, value):
     mint = MintLookup(None)
 
     print value
-    if value['no_activity'] is True and value['activity'] == colander.null:
-        exc['activity'] = "'There is an associated research grant' must be un-selected if a research grant isn't provided."
+    if value['no_activity'] is True and value['grant'] == colander.null:
+        exc['grant'] = "'There is an associated research grant' must be un-selected if a research grant isn't provided."
         error = True
     elif value['no_activity'] is True:
-        if mint.get_from_identifier(value['activity']) is None:
-            exc['activity'] = "The entered activity isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
+        if mint.get_from_identifier(value['grant']) is None:
+            exc['grant'] = "The entered activity isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
             error = True
 
     if mint.get_from_identifier(value['project_lead']) is None:

@@ -46,7 +46,7 @@ from jcudc24provisioning.controllers.ingesterapi_wrapper import IngesterAPIWrapp
 from jcudc24provisioning.views.mint_lookup import MintLookup
 from pyramid.request import Request
 from jcudc24provisioning.scripts.create_redbox_config import create_json_config
-from jcudc24provisioning.models.website import User, user_permissions_table, Permission
+from jcudc24provisioning.models.website import User, ProjectPermissions, Permission
 
 
 __author__ = 'Casey Bajema'
@@ -902,17 +902,16 @@ class Workflows(Layouts):
         # Handle button presses and actual functionality.
         if SUBMIT_TEXT in self.request.POST and (self.project.state == ProjectStates.OPEN or self.project.state is None) and len(self.error) <= 0:
             self.project.state = ProjectStates.SUBMITTED
-            # TODO: fill citation data
 
-            # Fill citation fields
-            self.project.information.citation_title = self.project.information.project_title
-#            self.project.information.citation_creators = self.project.information.parties  TODO: Citation creators
-            self.project.information.citation_edition = None
-            self.project.information.citation_publisher = "James Cook University"
-            self.project.information.citation_place_of_publication = "James Cook University"
-            # Type of Data?
-            self.project.information.citation_url = "" # TODO:  CC-DAM Data Link
-            self.project.information.citation_context = self.project.information.project_title
+            # Only update the citation if it is empty
+            if self.project.information.custom_citation is False:
+                self._pre_fill_citation(self.project.information)
+
+
+            for dataset in self.project.datasets:
+                # Only update the citation if it is empty
+                if dataset.record_metadata is not None and dataset.record_metadata.custom_citation is False:
+                    self._pre_fill_citation(dataset.record_metadata)
 
         if REOPEN_TEXT in self.request.POST and self.project.state == ProjectStates.SUBMITTED:
             self.project.state = ProjectStates.OPEN
@@ -930,6 +929,12 @@ class Workflows(Layouts):
                 # Set all redbox identifiers
                 self.project.information.redbox_identifier = self.config.get("redbox.identifier_pattern") + str(self.project.information.id)
 
+                # Only update the citation if it is empty
+                if self.project.information.custom_citation is False:
+                    self._pre_fill_citation(self.project.information)
+
+                self.project.information.record_export_date = datetime.now()
+
                 # Make sure all dataset record have been created
                 for dataset in self.project.datasets:
                     if (dataset.record_metadata is None):
@@ -938,6 +943,12 @@ class Workflows(Layouts):
 
                 for dataset in self.project.datasets:
                     dataset.record_metadata.redbox_identifier = self.config.get("redbox.identifier_pattern") + str(dataset.record_metadata.id)
+
+                    # Only update the citation if it is empty
+                    if dataset.record_metadata.custom_citation is False:
+                        self._pre_fill_citation(dataset.record_metadata)
+
+                    dataset.record_metadata.record_export_date = datetime.now()
 
                 # Get Redbox conconfigurations
                 alert_url = self.config.get("redbox.alert_url")
@@ -985,6 +996,22 @@ class Workflows(Layouts):
         self.form.buttons = buttons
 
         return self._create_response(page_help=page_help)
+
+    def _pre_fill_citation(self, metadata):
+        if metadata is None:
+            raise ValueError("Updating citation on None metadata")
+
+        # TODO: fill citation data
+
+        # Fill citation fields
+        self.project.information.citation_title = self.project.information.project_title
+        #            self.project.information.citation_creators = self.project.information.parties  TODO: Citation creators
+        self.project.information.citation_edition = None
+        self.project.information.citation_publisher = "James Cook University"
+        self.project.information.citation_place_of_publication = "James Cook University"
+        # Type of Data?
+        self.project.information.citation_url = "" # TODO:  CC-DAM Data Link
+        self.project.information.citation_context = self.project.information.project_title
 
     @view_config(route_name="delete_record")
     def delete_record_view(self):

@@ -176,9 +176,9 @@ class CAModel(object):
                         if item is None or item is colander.null or not isinstance(item, dict) or len(item) <= 0:
                             continue
 
-                        if 'schema_select' in item and len(item) == 2:  # This is the custom developed select mapping - flatten the select out
-                            method = item.pop('schema_select')
-                            item = item.values()[0]
+#                        if 'schema_select' in item and len(item) == 2:  # This is the custom developed select mapping - flatten the select out
+#                            method = item.pop('schema_select')
+#                            item = item.values()[0]
 
                         current_object = None
 
@@ -333,8 +333,8 @@ class CAModel(object):
                 node_data = self.convert_sqlalchemy_model_to_data(model, node.children, force_not_empty_lists)
     
                 # Fix data for select mapping schemas
-                if not ':' in node.name:
-                    data['schema_select'] = str(getattr(model, 'method_id', None))
+#                if not ':' in node.name:
+#                    data['schema_select'] = str(getattr(model, 'method_id', None))
     
     
                 data[node.name] = node_data
@@ -349,16 +349,19 @@ class CAModel(object):
             if value is colander.null or value is None or (isinstance(value, list) and len(value) == 0):
                 continue
 
-            element = etree.SubElement(root, key)
-
+            # If this is a group node for the purpose of displaying data nicely, ignore it and just add its children.
             if isinstance(value, dict):
-                self._add_xml_elements(element, value)
+                self._add_xml_elements(root, value)
             elif isinstance(value, list):
+                element = etree.SubElement(root, key)
                 for i in range(len(value)):
                     if value is not None:
                         child_element = etree.SubElement(element, key + ".%i" % i)
                         self._add_xml_elements(child_element, value[i])
+                    else:
+                        test = 1
             else:
+                element = etree.SubElement(root, key)
                 element.text = str(value)
         return element
 

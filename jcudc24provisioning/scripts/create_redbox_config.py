@@ -103,7 +103,7 @@ def create_json_config():
                 Metadata.grant_number.key: "foaf:fundedBy.vivo:Grant.0.redbox:grantNumber",
                 Metadata.grant_label.key: "foaf:fundedBy.vivo:Grant.0.skos:prefLabel",
                 Metadata.grant.key: "foaf:fundedBy.vivo:Grant.0.dc:identifier",
-                Metadata.parties.key: {
+                Metadata.parties.key + "/*": {
                     Party.party_relationship_label.key: "dc:creator.foaf:Person.0.jcu:relationshipLabel",
                     Party.party_relationship.key: "dc:creator.foaf:Person.0.jcu:relationshipType",
                     Party.identifier.key: "dc:creator.foaf:Person.0.dc:identifier",
@@ -118,28 +118,30 @@ def create_json_config():
                     Party.organisation_label.key: "dc:creator.foaf:Person.0.foaf:Organization.skos:prefLabel",
                     Party.email.key: "locrel:prc.foaf:Person.foaf:email",
                 },
-                Metadata.collaborators.key: {
+                Metadata.collaborators.key + "/*": {
                     Metadata.collaborators.key: "dc:contributor.locrel:clb.0.foaf:Agent",
                 },
+#                "descriptions": {
                 Metadata.full_desc_label.key: "rif:description.0.label",
                 Metadata.full_desc_type.key: "rif:description.0.type",
+                Metadata.full_desc.key: "rif:description.0.value",
                 Metadata.breif_desc_label.key: "rif:description.0.label",
                 Metadata.breif_desc_type.key: "rif:description.0.type",
                 Metadata.brief_desc.key: ["description", "dc:description", "rif:description.0.value"],
-                Metadata.full_desc.key: "rif:description.0.value",
-                Metadata.notes.key: {
-                    MetadataNote.note.key: "rif:description.0.value",
+                Metadata.notes.key + "/*": {
                     MetadataNote.note_desc_label.key: "rif:description.0.label",
                     MetadataNote.note_desc_type.key: "rif:description.0.type",
+                    MetadataNote.note.key: "rif:description.0.value",
+#                    },
                 },
-                Metadata.keywords.key: {
+                Metadata.keywords.key + "/*": {
                     Keyword.keyword.key: "dc:subject.vivo:keyword.0.rdf:PlainLiteral",
                 },
-                Metadata.fieldOfResearch.key: {
-                    FieldOfResearch.field_of_research.key: "dc:subject.anzsrc:for.0.skos:prefLabel",
+                Metadata.fieldOfResearch.key + "/*": {
+                    FieldOfResearch.field_of_research.key: "dc:subject.anzsrc:for.0.skos:resource",
                     FieldOfResearch.field_of_research_label.key: "dc:subject.anzsrc:for.0.skos:prefLabel",
                 },
-                Metadata.socioEconomicObjective.key: {
+                Metadata.socioEconomicObjective.key + "/*": {
                     SocioEconomicObjective.socio_economic_objective.key: "dc:subject.anzsrc:seo.0.rdf:resource",
                     SocioEconomicObjective.socio_economic_objective_label.key: "dc:subject.anzsrc:seo.0.skos:prefLabel",
                 },
@@ -154,8 +156,8 @@ def create_json_config():
                 Metadata.date_from.key: "dc:coverage.vivo:DateTimeInterval.vivo:start",
                 Metadata.date_to.key: "dc:coverage.vivo:DateTimeInterval.vivo:end",
 
-                Metadata.location_description.key: "",
-                Metadata.locations.key: {
+#                Metadata.location_description.key: "",
+                Metadata.locations.key + "/*": {
                     Location.location_type.key: "dc:coverage.vivo:GeographicLocation.0.dc:type",
                     # TODO: create hidden field prefilled with text.
                     Location.name.key: "", #TODO: Do something with location names and elevations.
@@ -173,17 +175,17 @@ def create_json_config():
                 Metadata.other_license_name.key: "dc:license.rdf:Alt.skos:prefLabel",
                 Metadata.other_license_url.key: "dc:license.rdf:Alt.dc:identifier",
                 Metadata.citation_title.key: "dc:biblioGraphicCitation.dc:hasPart.dc:title",
-                Metadata.citation_creators.key: {
+                Metadata.citation_creators.key + "/*": {
                     Creator.title.key: "dc:biblioGraphicCitation.dc:hasPart.locrel:ctb.0.foaf:title",
                     Creator.given_name.key: "dc:biblioGraphicCitation.dc:hasPart.locrel:ctb.0.foaf:givenName",
                     Creator.family_name.key: "dc:biblioGraphicCitation.dc:hasPart.locrel:ctb.0.foaf:familyName",
                 },
                 Metadata.citation_edition.key: "dc:biblioGraphicCitation.dc:hasPart.dc:hasVersion.rdf:PlainLiteral",
                 Metadata.citation_publisher.key: "dc:biblioGraphicCitation.dc:hasPart.dc:publisher.rdf:PlainLiteral",
-                Metadata.citation_place_of_publication.key: [
+                Metadata.citation_place_of_publication.key + "/*": [
                     "dc:biblioGraphicCitation.dc:hasPart.vivo:Publisher.vivo:Location",
                     "dc:biblioGraphicCitation.dc:hasPart.dc:date.0.rdf:PlainLiteral"],
-                Metadata.citation_dates.key: {
+                Metadata.citation_dates.key + "/*": {
                     CitationDate.label.key: "dc:biblioGraphicCitation.dc:hasPart.dc:date.0.dc:type.skos:prefLabel",
                     # TODO: Get this label as the name in the dropdown (datetype is the value)
                     CitationDate.type.key: "dc:biblioGraphicCitation.dc:hasPart.dc:date.0.dc:type.rdf:PlainLiteral",
@@ -196,18 +198,18 @@ def create_json_config():
                 Metadata.use_curation.key: "dc:biblioGraphicCitation.dc:hasPart.dc:identifier.skos:note",
                 # TODO: Citation->use identifier provided during curation? - Ask if this should be on?
                 Metadata.retention_period.key: "redbox:retentionPeriod",
-                Metadata.related_publications.key: {
-                    RelatedPublication.title.key: "dc:relation.swrc:Publication.0.dc:title",
-                    RelatedPublication.url.key: "dc:relation.swrc:Publication.0.dc:identifier",
-                    RelatedPublication.notes.key: "dc:relation.swrc:Publication.0.skos:note",
+                Metadata.related_publications.key + "/*": {
+                        RelatedPublication.title.key: "dc:relation.swrc:Publication.0.dc:title",
+                        RelatedPublication.url.key: "dc:relation.swrc:Publication.0.dc:identifier",
+                        RelatedPublication.notes.key: "dc:relation.swrc:Publication.0.skos:note",
                 },
-                Metadata.related_websites.key: {
+                Metadata.related_websites.key + "/*": {
                     RelatedWebsite.title.key: "dc:relation.bibo:Website.0.dc:title",
                     RelatedWebsite.url.key: "dc:relation.bibo:Website.0.dc:identifier",
                     RelatedWebsite.notes.key: "dc:relation.bibo:Website.0.skos:note",
 
                 },
-                Metadata.attachments.key: {
+                Metadata.attachments.key + "/*": {
                     Attachment.type.key: "",
                     Attachment.attachment.key: "", # TODO: How to add attachments?
                     Attachment.note.key: "",
