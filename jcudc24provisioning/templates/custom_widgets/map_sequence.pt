@@ -15,7 +15,7 @@
                  now_len len(subfields);
                  prototype field.widget.prototype(field)">
 
-<div class="location_map" style="width: 100%; height: 300px;"></div>
+<div class="location_map"></div>
 
 <!-- sequence -->
 

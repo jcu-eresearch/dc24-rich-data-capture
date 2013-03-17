@@ -54,13 +54,17 @@ user_roles_table = Table('user_roles', Base.metadata,
 )
 
 class ProjectPermissions(CAModel, Base):
-    __tablename__ = 'user_permissions'
+    __tablename__ = 'project_permissions'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    project_id = Column(Integer, ForeignKey('project.id'))
-    permission_id = Column(Integer, ForeignKey('permission.id'))
-    user_id = Column(Integer, ForeignKey('user.id'))
+    project_id = Column(Integer, ForeignKey('project.id'), nullable=False)
+    permission_id = Column(Integer, ForeignKey('permission.id'), nullable=False)
+    user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
     permission = relationship("Permission", lazy="joined", backref="project_permissions", cascade="all")
 
+    def __init__(self, project_id, permission_id, user_id):
+        self.project_id = project_id
+        self.permission_id = permission_id
+        self.user_id = user_id
 
 #user_permissions_table = Table('user_permissions', Base.metadata,
 #    Column('permission_id', Integer, ForeignKey('permission.id')),

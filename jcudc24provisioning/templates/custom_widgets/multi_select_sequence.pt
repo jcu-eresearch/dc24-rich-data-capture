@@ -13,7 +13,7 @@
                  max_len field.widget.max_len or 100000;
                  now_len len(subfields);
                  prototype field.widget.prototype(field);
-                 data field.schema.__dict__['children'][0].children[3].data">
+                 data field.schema.children[0].children[3].data">
 
     <!-- sequence -->
     <select class="first_field half_width">
@@ -104,8 +104,8 @@
                         showAdd(oid, false);
                     };
                     second_select.onchange = function () {
-                        updateThirdFields(oid);
                         showAdd(oid, true);
+                        updateThirdFields(oid);
                     };
                     third_select.onchange = function () {
                         showAdd(oid, true);

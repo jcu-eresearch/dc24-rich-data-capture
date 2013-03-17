@@ -335,8 +335,7 @@ class CAModel(object):
                 # Fix data for select mapping schemas
 #                if not ':' in node.name:
 #                    data['schema_select'] = str(getattr(model, 'method_id', None))
-    
-    
+
                 data[node.name] = node_data
     
         return data

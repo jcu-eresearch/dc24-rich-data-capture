@@ -28,9 +28,10 @@ class MintLookup(object):
             raise ValueError("No Mint server configuration in defaults.cfg")
 
     @view_config(route_name="get_activities")
-    def get_grants(self):
-        assert 'search_terms' in self.request.matchdict, "Error: Trying to lookup grant/activities data from Mint without a search term."
-        search_terms = self.request.matchdict['search_terms']
+    def get_grants(self, search_terms=None):
+        assert search_terms is not None or 'search_terms' in self.request.matchdict, "Error: Trying to lookup grant/activities data from Mint without a search term."
+        if search_terms is None:
+            search_terms = self.request.matchdict['search_terms']
 
         if self.mint_url:
             url_template = self.mint_url + "Activities/opensearch/lookup?count=30&searchTerms=%(search)s"
@@ -51,9 +52,10 @@ class MintLookup(object):
             return {'values': grants}
 
     @view_config(route_name="get_parties")
-    def get_parties(self):
-        assert 'search_terms' in self.request.matchdict, "Error: Trying to lookup people/parties from Mint without a search term."
-        search_terms = self.request.matchdict['search_terms']
+    def get_parties(self, search_terms=None):
+        assert search_terms is not None or 'search_terms' in self.request.matchdict, "Error: Trying to lookup people/parties from Mint without a search term."
+        if search_terms is None:
+            search_terms = self.request.matchdict['search_terms']
 
         if self.mint_url:
             url_template = self.mint_url + "Parties_People/opensearch/lookup?count=30&searchTerms=%(search)s"

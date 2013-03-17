@@ -471,6 +471,12 @@ function showAdd(oid, show) {
 
     if (show) {
         oid_node.children("button")[0].style.display = "inline";
+        var original_color = oid_node.children("button").first().css('backgroundColor');
+        oid_node.children("button").animate({ backgroundColor: "#F7931E"}, 100);
+        oid_node.children("button").animate({ backgroundColor: original_color}, 100);
+        oid_node.children("button").animate({ backgroundColor: "#F7931E"}, 100);
+        oid_node.children("button").animate({ backgroundColor: original_color}, 100);
+
 //        alert('show');
     } else {
 //        alert('hide');
@@ -521,5 +527,6 @@ function updateThirdFields(oid) {
         third_select.innerHTML = "";
         third_select.style.display = "none";
         $(third_select).next().hide();
+        showAdd(oid, false)
     }
 }

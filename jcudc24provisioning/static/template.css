@@ -152,6 +152,18 @@ input[type=text].full_width, .full_width input[type=text] {
     width: 100%;
 }
 
+.deformMapSeq.location_map {
+    width: 100%;
+    height: 300px;
+    border-radius: 3px;
+    overflow: hidden;
+    box-shadow: 0 0 5px #b2b2b2;
+}
+
+.deformMapSeq.location_map:hover {
+    box-shadow: 0 0 7px #888;
+}
+
 .deformMapSeq.location_map input {
     width: 275px;
 }

@@ -24,7 +24,7 @@ from deform.exception import ValidationFailure
 from deform.form import Form, Button
 from pyramid.url import route_url
 import inspect
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, distinct
 from sqlalchemy.orm import scoped_session, sessionmaker, RelationshipProperty
 import time
 import transaction
@@ -40,7 +40,7 @@ from jcudc24provisioning.views.views import Layouts
 from pyramid.renderers import get_renderer
 from jcudc24provisioning.models import DBSession, Base
 from jcudc24provisioning.models.project import PullDataSource, Metadata, UntouchedPages, IngesterLogs, Location, \
-    ProjectTemplate,method_template,DatasetDataSource, Project, project_validator, ProjectStates, Sharing, CreatePage, Method, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
+    ProjectTemplate,method_template,DatasetDataSource, Project, project_validator, ProjectStates, Sharing, CreatePage, MetadataNote, Method, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
 from jcudc24provisioning.views.ca_scripts import convert_schema, fix_schema_field_name
 from jcudc24provisioning.controllers.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.mint_lookup import MintLookup
@@ -162,6 +162,24 @@ class Workflows(Layouts):
             api = self._ingester_api
         return self._ingester_api
 
+    @property
+    def redbox(self):
+        if '_redbox' not in locals():
+            # Get Redbox conconfigurations
+            alert_url = self.config.get("redbox.alert_url")
+            host = self.config.get("redbox.ssh_host")
+            port = self.config.get("redbox.ssh_port")
+            private_key = self.config.get("redbox.rsa_private_key")
+            username = self.config.get("redbox.ssh_username")
+            password = self.config.get("redbox.ssh_password")
+            harvest_dir = self.config.get("redbox.ssh_harvest_dir")
+            tmp_dir = self.config.get("redbox.tmpdir")
+            identifier_pattern = self.config.get("redbox.identifier_pattern")
+
+            self._redbox = ReDBoxWraper(url=alert_url, identifier_pattern=identifier_pattern, ssh_host=host, ssh_port=port, tmp_dir=tmp_dir, harvest_dir=harvest_dir,
+                ssh_username=username, rsa_private_key=private_key, ssh_password=password)
+
+        return self._redbox
 
     @property
     def page(self):
@@ -431,12 +449,13 @@ class Workflows(Layouts):
         return self._model
 
     def _get_model_appstruct(self):
-        if self._get_model() is not None:
-            if not hasattr(self, '_model_appstruct'):
+        if not hasattr(self, '_model_appstruct'):
+            if self._get_model() is not None:
                 self._model_appstruct = self._get_model().dictify(self.form.schema)
+            else:
+                return {}
 
-            return self._model_appstruct
-        return {}
+        return self._model_appstruct
 
     def _handle_form(self):
         if self.request.method == 'POST' and len(self.request.POST) > 0:
@@ -561,7 +580,7 @@ class Workflows(Layouts):
                 project_lead.identifier = appstruct['project_lead']
                 new_parties.append(project_lead)
 
-            if 'activity' in appstruct:
+            if 'grant' in appstruct:
                 new_project.information.grant = appstruct['grant']
                 activity_results = MintLookup(None).get_from_identifier(appstruct['grant'])
 
@@ -905,13 +924,13 @@ class Workflows(Layouts):
 
             # Only update the citation if it is empty
             if self.project.information.custom_citation is False:
-                self._pre_fill_citation(self.project.information)
+                self.redbox._pre_fill_citation(self.project.information)
 
 
             for dataset in self.project.datasets:
                 # Only update the citation if it is empty
                 if dataset.record_metadata is not None and dataset.record_metadata.custom_citation is False:
-                    self._pre_fill_citation(dataset.record_metadata)
+                    self.redbox._pre_fill_citation(dataset.record_metadata)
 
         if REOPEN_TEXT in self.request.POST and self.project.state == ProjectStates.SUBMITTED:
             self.project.state = ProjectStates.OPEN
@@ -926,43 +945,14 @@ class Workflows(Layouts):
 
         if APPROVE_TEXT in self.request.POST and self.project.state == ProjectStates.SUBMITTED:
             try:
-                # Set all redbox identifiers
-                self.project.information.redbox_identifier = self.config.get("redbox.identifier_pattern") + str(self.project.information.id)
-
-                # Only update the citation if it is empty
-                if self.project.information.custom_citation is False:
-                    self._pre_fill_citation(self.project.information)
-
-                self.project.information.record_export_date = datetime.now()
-
                 # Make sure all dataset record have been created
                 for dataset in self.project.datasets:
                     if (dataset.record_metadata is None):
                         dataset.record_metadata = self.generate_dataset_record(dataset.id)
                 self.session.flush()
 
-                for dataset in self.project.datasets:
-                    dataset.record_metadata.redbox_identifier = self.config.get("redbox.identifier_pattern") + str(dataset.record_metadata.id)
+                self.redbox.insert_project(self.project_id)
 
-                    # Only update the citation if it is empty
-                    if dataset.record_metadata.custom_citation is False:
-                        self._pre_fill_citation(dataset.record_metadata)
-
-                    dataset.record_metadata.record_export_date = datetime.now()
-
-                # Get Redbox conconfigurations
-                alert_url = self.config.get("redbox.alert_url")
-                host = self.config.get("redbox.ssh_host")
-                port = self.config.get("redbox.ssh_port")
-                private_key = self.config.get("redbox.rsa_private_key")
-                username = self.config.get("redbox.ssh_username")
-                password = self.config.get("redbox.ssh_password")
-                harvest_dir = self.config.get("redbox.ssh_harvest_dir")
-                tmp_dir = self.config.get("redbox.tmpdir")
-
-                redbox = ReDBoxWraper(url=alert_url, ssh_host=host, ssh_port=port, tmp_dir=tmp_dir, harvest_dir=harvest_dir,
-                    ssh_username=username, rsa_private_key=private_key, ssh_password=password)
-                redbox.insert_project(self.project_id)
             except Exception as e:
                 logger.exception("Project failed to add to ReDBox: %s", self.project.id)
                 self.request.session.flash("Sorry, the project failed to generate or add metadata records to ReDBox, please try agiain.", 'error')
@@ -997,21 +987,7 @@ class Workflows(Layouts):
 
         return self._create_response(page_help=page_help)
 
-    def _pre_fill_citation(self, metadata):
-        if metadata is None:
-            raise ValueError("Updating citation on None metadata")
 
-        # TODO: fill citation data
-
-        # Fill citation fields
-        self.project.information.citation_title = self.project.information.project_title
-        #            self.project.information.citation_creators = self.project.information.parties  TODO: Citation creators
-        self.project.information.citation_edition = None
-        self.project.information.citation_publisher = "James Cook University"
-        self.project.information.citation_place_of_publication = "James Cook University"
-        # Type of Data?
-        self.project.information.citation_url = "" # TODO:  CC-DAM Data Link
-        self.project.information.citation_context = self.project.information.project_title
 
     @view_config(route_name="delete_record")
     def delete_record_view(self):
@@ -1034,12 +1010,12 @@ class Workflows(Layouts):
 
         page_help=""
         schema = convert_schema(SQLAlchemyMapping(Metadata, unknown='raise',)).bind(request=self.request, settings=self.config)
-        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id, dataset_id=dataset_id), buttons=("Cancel", "Save & Close", "Close",), use_ajax=False)
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id, dataset_id=dataset_id), buttons=("Cancel", "Save & Close", "Save",), use_ajax=False)
 
         # If the form is being saved (there would be 1 item in controls if it is a fresh page with a project id set)
         if len(self.request.POST) > 1 and not 'Cancel' in self.request.POST:
             self.request.POST['metadata:dataset_id'] = dataset_id # Make sure the dataset id is correct.
-        else:
+        elif len(self.request.POST) == 0:
             model = self.session.query(Metadata).filter_by(dataset_id=dataset_id).first()
             if model is None:
                 model = self.generate_dataset_record(dataset_id)
@@ -1048,12 +1024,13 @@ class Workflows(Layouts):
 
             self._model = model # Set the model to be rendered (this is needed to provide the default _render_form() with the created template data)
 
+        if 'Cancel' not in self.request.POST:
+            # Ignore the redirect result as this page is never called to save other form data (comes from a readonly page)
+            self._handle_form()
+
         if 'Cancel' in self.request.POST or 'Save_&_Close' in self.request.POST:
             target = 'submit'
             return HTTPFound(self.request.route_url(target, project_id=self.project_id))
-
-        # Ignore the redirect result as this page is never called to save other form data (comes from a readonly page)
-        self._handle_form()
 
         return self._create_response(page_help=page_help)
 
@@ -1064,10 +1041,21 @@ class Workflows(Layouts):
         metadata_template = self.session.query(Metadata).join(Project).filter(Metadata.project_id == Project.id).join(Dataset).filter(Project.id==Dataset.project_id).filter(Dataset.id==dataset_id).first()
 
         template_clone = self._clone_model(metadata_template)
-        template_clone.id = metadata_id
+        template_clone.id = metadata_id     # It is valid for metadata_id to be None
         template_clone.project_id = None
         template_clone.dataset_id = dataset_id
-        # TODO:  Generate/add dataset specific metadata
+
+        # TODO:  Finalise generation of dataset specific metadata
+
+        dataset = self.session.query(Dataset).filter_by(id=dataset_id).first()
+        height_text =  (" - %sm high") % dataset.dataset_locations[0].elevation if dataset.dataset_locations[0].elevation is not None else ""
+        template_clone.project_title = "%s at %s (%s, %s%s) collected by %s" % \
+                               (template_clone.project_title, dataset.dataset_locations[0].name, dataset.dataset_locations[0].get_latitude(),
+                                dataset.dataset_locations[0].get_longitude(), height_text, dataset.method.method_name)
+
+        method_note = MetadataNote()
+        method_note.note_desc = dataset.method.method_description
+        template_clone.notes.append(method_note)
 
         return template_clone
 
@@ -1154,6 +1142,8 @@ class Workflows(Layouts):
         self.session.add(duplicate)
         self.session.flush()
 
+        self.request.session.flash("Project successfully duplicated.", "success")
+
         if self.request.referer is not None:
             return HTTPFound(self.request.route_url(self.request.referer.split("/")[-1], project_id=duplicate.id))
         return HTTPFound(self.request.route_url("general", project_id=duplicate.id))
@@ -1185,13 +1175,15 @@ class Workflows(Layouts):
     def permissions_view(self):
         page_help=""
 
-        users = json.dumps([{"label": share.display_name, "identifier": share.id} for share in self.session.query(User).all()])
+        users = json.dumps([{"label": user.display_name, "identifier": user.id} for user in self.session.query(User).all()])
         schema = Sharing()
         schema['shared_with'].users=users
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False)
 
         appstruct = self._get_post_appstruct()
         if len(appstruct) > 0:
+            users_to_delete = [user_id for user_id, in self.session.query(distinct(ProjectPermissions.user_id)).filter_by(project_id=self.project_id).all()]
+
             for share in appstruct['shared_with']:
                 user = self.session.query(User).filter_by(id=share['user_id']).first()
                 share.pop("user_id")
@@ -1200,18 +1192,48 @@ class Workflows(Layouts):
                     self.request.session.flash("You selected an invalid user, please use the autocomplete input and don't enter text manually.", "error")
                     continue
 
+                if user.id in users_to_delete:
+                    users_to_delete.remove(user.id)
+
+                has_permission = False
                 for field_name, value in share.items():
                     permission = self.session.query(Permission).filter_by(name=field_name).first()
 
-                    for user_permission in user.project_permissions:
-                        if user_permission.project_id == self.project_id:
-                            if user_permission.permission == permission and value == False:
-                                user.permissions.pop(permission)
-                                continue
-                            elif user_permission.permission != permission and value == True:
-                                user.permissions.append(permission)
-                                continue
+                    for i in range(len(user.project_permissions)):
+                        if user.project_permissions[i].project_id == long(self.project_id) and user.project_permissions[i].permission_id == permission.id:  # If the user already has this permission
+                            if value == 'false' or value is False:
+                                del user.project_permissions[i]
 
+                            has_permission = True
+                            break
+
+                    if not has_permission and value is True:
+                        user.project_permissions.append(ProjectPermissions(self.project_id, permission.id, user.id))
+
+            for user_id in users_to_delete:
+                del_permissions = self.session.query(ProjectPermissions).filter_by(project_id=self.project_id).filter_by(user_id=user_id).all()
+                self.session.query(ProjectPermissions).filter_by(project_id=self.project_id).filter_by(user_id=user_id).delete()
+
+            self.session.flush()
+
+        # Create the initial form data from the current state
+        appstruct = {'shared_with': []}
+        last_user_id = -1
+        current_user = None
+        project_permissions = self.session.query(ProjectPermissions).filter_by(project_id=self.project_id).order_by(ProjectPermissions.user_id).all()
+        for project_permission in project_permissions:
+            if project_permission.user_id != last_user_id:
+                last_user_id = project_permission.user_id
+                current_user = {}
+                appstruct['shared_with'].append(current_user)
+                current_user['user_id'] = project_permission.user_id
+
+            current_user[project_permission.permission.name] = 'true'
+
+        # Directly set the model appstruct by-passing the usual workflow appstruct generation (because this view isn't directly mapped to an ColanderAlchemy model)
+        self._model_appstruct = appstruct
+
+        # Create the response and display the form
         return self._create_response()
 
     # --------------------WORKFLOW EXCEPTION VIEWS-------------------------------------------

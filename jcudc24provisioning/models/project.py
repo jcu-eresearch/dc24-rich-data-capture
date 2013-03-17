@@ -137,8 +137,8 @@ class FieldOfResearch(CAModel, Base):
     id = Column(Integer, primary_key=True, ca_order=next(order_counter), ca_force_required=False, nullable=False, ca_widget=deform.widget.HiddenWidget())
     metadata_id = Column(Integer, ForeignKey('metadata.id'),ca_order=next(order_counter),  nullable=False, ca_widget=deform.widget.HiddenWidget())
 
-    field_of_research_label = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
-    field_of_research = Column(String(128), ca_order=next(order_counter), ca_title="Field Of Research", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
+    field_of_research = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+    field_of_research_label = Column(String(128), ca_order=next(order_counter), ca_title="Field Of Research", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
         ca_data=getFORCodes)
 
 
@@ -149,8 +149,8 @@ class SocioEconomicObjective(CAModel, Base):
     id = Column(Integer, primary_key=True, ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
     metadata_id = Column(Integer, ForeignKey('metadata.id'), ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
 
-    socio_economic_objective_label = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
-    socio_economic_objective = Column(String(128), ca_order=next(order_counter), ca_title="Socio-Economic Objective", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
+    socio_economic_objective = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+    socio_economic_objective_label = Column(String(128), ca_order=next(order_counter), ca_title="Socio-Economic Objective", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
         ca_data=getSEOCodes)
 
 class Person(CAModel, Base):
@@ -878,26 +878,12 @@ def dataset_validator(form, value):
     error = False
     exc = colander.Invalid(form) # Uncomment to add a block message: , 'At least 1 research theme or Not aligned needs to be selected')
 
-    mint = MintLookup(None)
-
-    if value['publish_dataset'] is True and value['publish_date'] == colander.null:
-     exc['publish_date'] = "Required"
-     error = True
-    elif value['no_activity'] is True:
-     if mint.get_from_identifier(value['activity']) is None:
-         exc['activity'] = "The entered activity isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
-         error = True
-
-    if mint.get_from_identifier(value['project_lead']) is None:
-         exc['project_lead'] = "The entered project lead isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
-         error = True
-
-    if mint.get_from_identifier(value['data_manager']) is None:
-         exc['data_manager'] = "The entered data manager isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
-         error = True
+    if value['dataset:publish_dataset'] is True and value['dataset:publish_date'] is None:
+        exc['dataset:publish_date'] = "Required"
+        error = True
 
     if error:
-     raise exc
+        raise exc
 
 class Dataset(CAModel, Base):
     order_counter = itertools.count()
@@ -918,7 +904,7 @@ class Dataset(CAModel, Base):
     mint_service_id = Column(String(256), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
     mint_service_uri = Column(String(256), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 
-    name = Column(Text(), ca_name="dc:relation.vivo:Dataset.0.dc:title", ca_title="Dataset Name", ca_order=next(order_counter),
+    name = Column(Text(), ca_name="dc:relation.vivo:Dataset.0.dc:title", ca_title="Dataset Name (For ingesters not metadata/ReDBox records)", ca_order=next(order_counter),
         ca_placeholder="Provide a textual description of this dataset.",
         ca_help="Provide a dataset specific name that is easily identifiable within this system.", ca_force_required=True)
 
@@ -927,7 +913,7 @@ class Dataset(CAModel, Base):
         ca_help="Publish a metadata record to ReDBox for this dataset - leave this selected unless the data isn't relevant to anyone else (eg. Raw data where other users " \
                        "will only search for the processed data).")
 
-    publish_date = Column(Date(), ca_order=next(order_counter), ca_title="Date to make ReDBox record publicly available",
+    publish_date = Column(Date(), ca_order=next(order_counter), ca_title="Date to make ReDBox record publicly available*",
         ca_help='The date that data will start being collected.')
 
 #    description = Column(Text(),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(rows=6),
@@ -968,6 +954,10 @@ class Dataset(CAModel, Base):
 
     method_template = relationship("MethodTemplate", ca_order=next(order_counter), ca_missing=colander.null,
         cascade="all, delete-orphan", ca_widget=deform.widget.HiddenWidget(), ca_exclude=True)
+
+    method = relationship("Method", ca_order=next(order_counter), ca_missing=colander.null, uselist=False, single_parent=True,
+           cascade="all, delete-orphan", ca_widget=deform.widget.HiddenWidget(), ca_exclude=True)
+
 
 
 class ProjectNote(CAModel, Base):
@@ -1034,7 +1024,7 @@ class MetadataNote(CAModel, Base):
 
     note_desc_type = Column(String(100), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), ca_default="note")
     note_desc_label = Column(String(100), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), ca_default="Note:",)
-    note = Column(Text(), ca_order=next(order_counter),
+    note_desc = Column(Text(), ca_order=next(order_counter),
             ca_placeholder="eg. TODO",
             ca_widget=deform.widget.TextAreaWidget(rows=3), ca_title="Note",)
 
@@ -1130,8 +1120,8 @@ class Metadata(CAModel, Base):
         ca_herlp="<b>TODO: This should give good definitions and edge cases etc...</b>", ca_missing="")
 
     #---------------------description---------------------
-    breif_desc_type = Column(String(100), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), ca_default="brief", ca_page="description",)
-    breif_desc_label = Column(String(100), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), ca_default="Brief:", ca_page="description",)
+    brief_desc_type = Column(String(100), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), ca_default="brief", ca_page="description",)
+    brief_desc_label = Column(String(100), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), ca_default="Brief:", ca_page="description",)
     brief_desc = Column(Text(), ca_order=next(order_counter), ca_page="description", ca_force_required=True,
         ca_placeholder="eg.  TODO: Get a well written brief description for the artificial tree project.",
         ca_widget=deform.widget.TextAreaWidget(rows=6), ca_title="Brief Description",
@@ -1165,7 +1155,7 @@ class Metadata(CAModel, Base):
         ca_group_description="",
         ca_help="Enter keywords that users are likely to search on when looking for this projects data.")
 
-    fieldOfResearch = relationship('FieldOfResearch', ca_name="dc:subject.anzsrc:for.0.rdf:resource", ca_order=next(order_counter), ca_title="Fields of Research", ca_page="information",
+    field_of_research = relationship('FieldOfResearch', ca_name="dc:subject.anzsrc:for.0.rdf:resource", ca_order=next(order_counter), ca_title="Fields of Research", ca_page="information",
         cascade="all, delete-orphan", ca_validator=sequence_required_validator,
         ca_force_required=True,
         ca_widget=deform.widget.SequenceWidget(template='multi_select_sequence', max_len=3, error_class="error"),
@@ -1175,7 +1165,7 @@ class Metadata(CAModel, Base):
     #    colander.SchemaNode(colander.String(), title="Fields of Research",
     #        placeholder="To be redeveloped similar to ReDBox", description="Select relevant FOR code/s. ")
     #
-    socioEconomicObjective = relationship('SocioEconomicObjective', ca_name="dc:subject.anzsrc:seo.0.rdf:resource", ca_order=next(order_counter), ca_title="Socio-Economic Objectives", ca_page="information",
+    socio_economic_objective = relationship('SocioEconomicObjective', ca_name="dc:subject.anzsrc:seo.0.rdf:resource", ca_order=next(order_counter), ca_title="Socio-Economic Objectives", ca_page="information",
         cascade="all, delete-orphan",
         ca_widget=deform.widget.SequenceWidget(template='multi_select_sequence'),
         ca_child_title="Socio-Economic Objective",
@@ -1253,7 +1243,7 @@ class Metadata(CAModel, Base):
     #-------------legal--------------------
     # TODO: Make this into a drop down - still need the list of options though.
     access_rights = Column(String(256), ca_name="dc:accessRights.skos:prefLabel", ca_order=next(order_counter), ca_title="Access Rights", ca_page="information",
-        ca_widget=deform.widget.SelectWidget(values=(("open", "Open Access"),)),
+        ca_widget=deform.widget.SelectWidget(values=(("open", "Open Access"),("contact_manager","Contact project manager"), ("contact_owner", "Contact project owner"))),
         ca_group_start="legality", ca_group_collapsed=False, ca_group_title="Licenses & Access Rights",
         ca_help="Information how to access the records data, including access restrictions or embargoes based on privacy, security or other policies. A URI is optional.<br/>TODO: Update the list of access rights.")
     # TODO: Pre-populate with a url - still waiting on URL to use
@@ -1306,9 +1296,6 @@ class Metadata(CAModel, Base):
         ca_requires_admin=True, ca_group_end="legality")
 
     #-------------citation--------------------
-    custom_citation = Column(Boolean(), ca_order=next(order_counter), ca_default=False, ca_page="information", ca_group_requires_admin=True)
-    send_citation = Column(String(100), ca_order=next(order_counter), ca_default="on", ca_page="information", ca_widget=deform.widget.HiddenWidget())
-    use_curation = Column(String(100), ca_order=next(order_counter), ca_default="on", ca_page="information", ca_widget=deform.widget.HiddenWidget(),)
     # Autocomplete from project title
     citation_title = Column(String(512), ca_name="dc:biblioGraphicCitation.dc:hasPart.dc:title", ca_order=next(order_counter), ca_placeholder="", ca_missing="", ca_page="information",
         ca_group_collapsed=False, ca_group_start='citation', ca_group_title="Citation", ca_group_requires_admin=True,
@@ -1316,6 +1303,11 @@ class Metadata(CAModel, Base):
                              "</b><br/>Provide metadata that should be used for the purposes of citing this record. Providing a "
                              "citation is optional, but if you choose to enable this there are quite specific mandatory "
                              "fields that will be required.")
+
+    custom_citation = Column(Boolean(), ca_order=next(order_counter), ca_default=False, ca_page="information")
+    send_citation = Column(String(100), ca_order=next(order_counter), ca_default="on", ca_page="information", ca_widget=deform.widget.HiddenWidget())
+    use_curation = Column(String(100), ca_order=next(order_counter), ca_default="on", ca_page="information", ca_widget=deform.widget.HiddenWidget(),)
+
     # Autocomplete from all people
     citation_creators = relationship('Creator', ca_order=next(order_counter), ca_missing=None, ca_page="information",cascade="all, delete-orphan",)
     # Dont know?
@@ -1419,7 +1411,7 @@ class Project(CAModel, Base):
     #   * Dynamically alter the generated schema in the view
     datasets = relationship('Dataset', ca_widget=deform.widget.SequenceWidget(min_len=0, template="dataset_sequence"), ca_order=next(order_counter), ca_page="datasets",
         ca_child_widget=deform.widget.MappingWidget(template="dataset_mapping"),
-        ca_child_title="Dataset", ca_child_collapsed=False,cascade="all, delete-orphan",)
+        ca_child_title="Dataset", ca_child_collapsed=False,cascade="all, delete-orphan", ca_child_validator=dataset_validator)
 
     #-----------------------------------------Submit page---------------------------------------------------
 

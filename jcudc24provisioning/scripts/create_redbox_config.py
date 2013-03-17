@@ -122,26 +122,18 @@ def create_json_config():
                     Metadata.collaborators.key: "dc:contributor.locrel:clb.0.foaf:Agent",
                 },
 #                "descriptions": {
-                Metadata.full_desc_label.key: "rif:description.0.label",
-                Metadata.full_desc_type.key: "rif:description.0.type",
-                Metadata.full_desc.key: "rif:description.0.value",
-                Metadata.breif_desc_label.key: "rif:description.0.label",
-                Metadata.breif_desc_type.key: "rif:description.0.type",
-                Metadata.brief_desc.key: ["description", "dc:description", "rif:description.0.value"],
-                Metadata.notes.key + "/*": {
-                    MetadataNote.note_desc_label.key: "rif:description.0.label",
-                    MetadataNote.note_desc_type.key: "rif:description.0.type",
-                    MetadataNote.note.key: "rif:description.0.value",
-#                    },
-                },
+                Metadata.full_desc_label.key + " | " + Metadata.brief_desc_label.key + " | " + Metadata.notes.key + "/*/" + MetadataNote.note_desc_label.key: "rif:description.0.label",
+                Metadata.full_desc_type.key + " | " + Metadata.brief_desc_type.key + " | " + Metadata.notes.key + "/*/" + MetadataNote.note_desc_type.key: "rif:description.0.type",
+                Metadata.full_desc.key + " | " + Metadata.brief_desc.key + " | " + Metadata.notes.key + "/*/" + MetadataNote.note_desc.key: "rif:description.0.value",
+                Metadata.brief_desc.key: ["description", "dc:description"],
                 Metadata.keywords.key + "/*": {
                     Keyword.keyword.key: "dc:subject.vivo:keyword.0.rdf:PlainLiteral",
                 },
-                Metadata.fieldOfResearch.key + "/*": {
+                Metadata.field_of_research.key + "/*": {
                     FieldOfResearch.field_of_research.key: "dc:subject.anzsrc:for.0.skos:resource",
                     FieldOfResearch.field_of_research_label.key: "dc:subject.anzsrc:for.0.skos:prefLabel",
                 },
-                Metadata.socioEconomicObjective.key + "/*": {
+                Metadata.socio_economic_objective.key + "/*": {
                     SocioEconomicObjective.socio_economic_objective.key: "dc:subject.anzsrc:seo.0.rdf:resource",
                     SocioEconomicObjective.socio_economic_objective_label.key: "dc:subject.anzsrc:seo.0.skos:prefLabel",
                 },

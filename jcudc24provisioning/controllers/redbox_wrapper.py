@@ -1,3 +1,4 @@
+from datetime import datetime
 import random
 import shutil
 import string
@@ -6,6 +7,7 @@ import requests
 from jcudc24provisioning.controllers.sftp_filesend import SFTPFileSend
 from jcudc24provisioning.models.project import PullDataSource, Metadata, UntouchedPages, IngesterLogs, Location, \
     ProjectTemplate,method_template,DatasetDataSource, Project, project_validator, ProjectStates, CreatePage, Method, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
+from jcudc24provisioning.views.mint_lookup import MintLookup
 
 from lxml import etree
 import os
@@ -14,7 +16,7 @@ from jcudc24provisioning.models import DBSession
 __author__ = 'casey'
 
 class ReDBoxWraper(object):
-    def __init__(self, url, ssh_host, ssh_port, tmp_dir, harvest_dir, ssh_username, rsa_private_key=None, ssh_password=None):
+    def __init__(self, url, identifier_pattern, ssh_host, ssh_port, tmp_dir, harvest_dir, ssh_username, rsa_private_key=None, ssh_password=None):
         self.url = url
         self.ssh_host = ssh_host
         self.ssh_port = ssh_port
@@ -23,6 +25,7 @@ class ReDBoxWraper(object):
         self.rsa_private_key = rsa_private_key
         self.ssh_password = ssh_password
         self.tmp_dir = tmp_dir
+        self.identifier_pattern = identifier_pattern
 
         self.session = DBSession
 
@@ -54,9 +57,9 @@ class ReDBoxWraper(object):
         # 2. Create relationships between each service record and it's dataset.
 
         # 3. Create all dataset records (the project itself creates 1 dataset record).
-        project_record = self.session.query(Metadata).filter_by(id=project.information.id).first().to_xml().getroot()
+        project_record = self._prepare_record(self.session.query(Metadata).filter_by(id=project.information.id).first()).to_xml().getroot()
 
-        dataset_metadata = [dataset.record_metadata for dataset in project.datasets if dataset.publish_dataset]
+        dataset_metadata = [self._prepare_record(dataset.record_metadata) for dataset in project.datasets if dataset.publish_dataset]
         dataset_records = [metadata.to_xml().getroot() for metadata in dataset_metadata]
 
         # 4. Add relationships between all dataset records.
@@ -78,6 +81,63 @@ class ReDBoxWraper(object):
         shutil.rmtree(self.working_dir)
 
         return True
+
+    def _prepare_record(self, record):
+        # Split the FOR and SEO codes into value/label pairs.
+        for field_of_research in record.field_of_research:
+            field_of_research.field_of_research = field_of_research.field_of_research_label.split(" ")[0]
+
+        for socio_economic_objective in record.socio_economic_objective:
+            socio_economic_objective.socio_economic_objective = socio_economic_objective.socio_economic_objective_label.split(" ")[0]
+
+        # Set the redbox identifier
+        record.redbox_identifier = self.identifier_pattern + str(record.id)
+
+        # Only update the citation if it is empty
+        if record.custom_citation is False:
+            self.pre_fill_citation(record)
+
+        # Set the record export date.
+        record.record_export_date = datetime.now()
+
+        mint_lookup = MintLookup(None)
+
+        if record.grant is not None:
+            mint_grant = mint_lookup.get_from_identifier(record.grant)
+            record.grant_number = record.grant.split("/")[-1]
+            record.grant_label = mint_grant['rdfs:label']
+
+        for person in record.parties:
+            mint_person = mint_lookup.get_from_identifier(person.identifier)
+
+            person.name = str(mint_person['result-metadata']['all']['Honorific'][0]) + " " + str(mint_person['result-metadata']['all']['Given_Name'][0]) \
+                                                    + " " + str(mint_person['result-metadata']['all']['Family_Name'][0])
+            person.title = mint_person['Honorific']
+            person.given_name = mint_person['Given_Name']
+            person.family_name = mint_person['Family_Name']
+#            person.organisation = mint_person['dc:title']
+#            person.organisation_label = mint_person['dc:title']
+            person.email = mint_person['Email']
+            pass
+
+
+        return record
+
+    def pre_fill_citation(self, metadata):
+       if metadata is None:
+           raise ValueError("Updating citation on None metadata")
+
+       # TODO: fill citation data
+
+       # Fill citation fields
+       self.project.information.citation_title = self.project.information.project_title
+       #            self.project.information.citation_creators = self.project.information.parties  TODO: Citation creators
+       self.project.information.citation_edition = None
+       self.project.information.citation_publisher = "James Cook University"
+       self.project.information.citation_place_of_publication = "James Cook University"
+       # Type of Data?
+       self.project.information.citation_url = "" # TODO:  CC-DAM Data Link
+       self.project.information.citation_context = self.project.information.project_title
 
     def _write_to_tmp(self, records):
         for record in records:
