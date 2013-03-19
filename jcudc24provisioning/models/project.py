@@ -318,10 +318,16 @@ class Location(CAModel, Base):
         return self.location[:5] == "POINT"
 
     def get_latitude(self):
-        return 0.0
+        if self.is_point():
+            return float(self.location[6:-1].split(",")[0].strip())
+
+        raise NotImplementedError("Get location latitude is not implemented for anything other than points.")
 
     def get_longitude(self):
-        return 0.0
+        if self.is_point():
+            return float(self.location[6:-1].split(",")[1].strip())
+
+        raise NotImplementedError("Get location longitude is not implemented for anything other than points.")
 
     def get_points(self):
         return [[]]
@@ -515,7 +521,7 @@ class MethodSchema(CAModel, Base):
 
 
     name = Column(String(256), ca_order=next(order_counter), ca_title="Schema Name", ca_placeholder="eg. Temperature with sensor XYZ calibration data",
-        ca_widget=deform.widget.TextInputWidget(size=40),
+        ca_widget=deform.widget.HiddenWidget(),
         ca_help="Try to enter a unique name that easily identifies this schema.")
 #    nominate_as_template = Column(Boolean, ca_order=next(order_counter), ca_default=False, ca_title="Nominate this schema as a template",
 #        ca_help="Use this checkbox to suggest to admins that it would be helpful for this schema to be added as a template") # These are system schemas that users are encouraged to extend.
@@ -823,7 +829,7 @@ class Method(CAModel, Base):
 
     method_name = Column(String(256), ca_order=next(order_counter),
             ca_placeholder="Searchable identifier for this input method (eg. Invertebrate observations)",
-            ca_description="Descriptive, human readable name for this data collection method.  The name is used for selecting this method in the <i>Datasets</i> step.")
+            ca_description="The name is used for selecting this method in the <i>Datasets</i> step, for example Artificial Tree Sensor")
     method_description = Column(Text(), ca_order=next(order_counter), ca_title="Description", ca_widget=deform.widget.TextAreaWidget(),
         ca_description="Provide a description of this method, this should include what, why and how the data is being collected but <b>Don\'t enter where or when</b> as this information is relevant to the dataset, not the method.",
         ca_placeholder="Enter specific details for this method, users of your data will need to know how reliable your data is and how it was collected.")

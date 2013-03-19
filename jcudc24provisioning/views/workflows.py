@@ -351,6 +351,8 @@ class Workflows(Layouts):
             if model.update(appstruct):
                 self.session.merge(model)
 
+        self._model = model
+
         try:
             self.session.flush()
             return model.id
@@ -722,6 +724,7 @@ class Workflows(Layouts):
         # If a new method was just added update it with data from the chosen template.
         # Because the same appstruct
         appstruct = self._get_post_appstruct()
+
         if len(appstruct) > 0:
             for new_method_data in appstruct['project:methods']:
                 if not new_method_data['method:id'] and 'method:method_template_id' in new_method_data and new_method_data['method:method_template_id']:
@@ -742,6 +745,11 @@ class Workflows(Layouts):
         # If this page was only called for saving and a rendered response isn't needed, return now.
         if self._handle_form():
             return
+
+
+        if self.model is not None:
+            for method in self.model.methods:
+                method.data_type.name = method.method_name
 
         return self._create_response(page_help=page_help)
 
@@ -890,7 +898,7 @@ class Workflows(Layouts):
                                        len(self.error) == 0))
 
             dataset_method = self.session.query(Method).filter_by(id=dataset.method_id).first()
-            ingesters.append((dataset.name, dataset_method.data_source, dataset_method.data_type.name))
+            ingesters.append((dataset.name, dataset_method.data_source, dataset_method.method_name))
 
         for i in range(len(schema.children)):
             if schema.children[i].name[-len('validation'):] == 'validation':
