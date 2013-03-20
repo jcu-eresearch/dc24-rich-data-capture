@@ -59,6 +59,7 @@ def main(global_config, **settings):
 
     config.add_route('dashboard', '/')                                      # Home page/user dashboard
     config.add_route('login', '/login')                                     # Login page
+    config.add_route('login_shibboleth', '/login/shibboleth')                                     # Login page
     config.add_route('logout', '/logout')                                     # logout and redirect page
     config.add_route('search', '/search_page')                                   # Search and manage projects and data
     config.add_route('browse', '/project')                                     # administer user permissions + view admin required items

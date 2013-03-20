@@ -169,7 +169,7 @@
 
                <div id="top_menu">
                    <div id="help_menu">Help &#x25BC;</div>
-                   <div id="login"><a href="/login">Log in</a></div>
+                   <div id="login"><a href="/login/shibboleth">Log in</a></div>
                </div>
 
                <div id="search">

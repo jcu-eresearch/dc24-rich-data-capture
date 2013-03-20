@@ -70,9 +70,9 @@ def initialise_security(session):
         session.add(role)
 
     session.flush()
-    user = User("A User", "user", "user")
+    user = User("A User", "user", "user", "user@host.com")
     session.add(user)
-    admin = User("Administrator", "admin", "admin", roles=session.query(Role).filter(Role.name==DefaultRoles().ADMIN[0]).all())
+    admin = User("Administrator", "admin", "admin", "admin@host.com", roles=session.query(Role).filter(Role.name==DefaultRoles().ADMIN[0]).all())
     session.add(admin)
 
 
