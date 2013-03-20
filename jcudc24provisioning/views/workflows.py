@@ -1072,7 +1072,7 @@ class Workflows(Layouts):
     @view_config(route_name="dataset_logs")
     def dataset_logs_view(self):
         dataset_id = int(self.request.matchdict['dataset_id'])
-        logs = self.ingester_api.getIngesterEvents(dataset_id)
+        logs = self.ingester_api.getIngesterLogs(dataset_id)
 
         content = ''.join(["%s - %s - %s - %s - %s - %s.\n" % (log['id'], log['dataset_id'], log['timestamp'], log['class'], log['level'], log['message'].strip()) for log in logs])
         res = Response(content_type="text")
@@ -1093,7 +1093,7 @@ class Workflows(Layouts):
                 dataset.logs_error = ["Ingester hasn't been activated yet: %s" % dataset.title]
             else:
                 try:
-                    dataset.logs = self.ingester_api.getIngesterEvents(dataset.dam_id)
+                    dataset.logs = self.ingester_api.getIngesterLogs(dataset.dam_id)
 #                    print dataset.logs
 #                    print range(len(dataset.logs)).reverse()
                     for i in reversed(range(len(dataset.logs))):
