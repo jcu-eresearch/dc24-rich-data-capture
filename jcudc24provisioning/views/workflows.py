@@ -747,8 +747,8 @@ class Workflows(Layouts):
             return
 
 
-        if self.model is not None:
-            for method in self.model.methods:
+        if self._get_model() is not None:
+            for method in self._get_model().methods:
                 method.data_type.name = method.method_name
 
         return self._create_response(page_help=page_help)
