@@ -5,6 +5,9 @@ from pyramid.security import Everyone, Authenticated
 from jcudc24provisioning.models import DBSession
 from jcudc24provisioning.models.website import User
 
+from zope.interface import implementer
+from pyramid.interfaces import IAuthenticationPolicy
+
 __author__ = 'casey'
 
 class DefaultPermissions(object):
@@ -36,41 +39,27 @@ class DefaultRoles(object):
 
 
 # TODO: Update this for shibboleth when more details are known
+@implementer(IAuthenticationPolicy)
 class ShibbolethAuthenticationPolicy(object):
-    def __init__(self, settings):
-        self.cookie = AuthTktCookieHelper(
-            settings.get('auth.secret'),
-            cookie_name=settings.get('auth.token') or 'auth_tkt',
-            secure=asbool(settings.get('auth.secure')),
-            timeout=asint(settings.get('auth.timeout')),
-            reissue_time=asint(settings.get('auth.reissue_time')),
-            max_age=asint(settings.get('auth.max_age')),
-        )
+    def __init__(self, settings, prefix="auth."):
+        self.prefix = prefix
+        self.userid_key = self.prefix + ".userid"
 
     def remember(self, request, principal, **kw):
-        return self.cookie.remember(request, principal, **kw)
+        request.session[self.userid_key] = principal
+        return []
 
     def forget(self, request):
-        return self.cookie.forget(request)
-
-    def unauthenticated_userid(self, request):
-        result = self.cookie.identify(request)
-        if result:
-            return result['userid']
+        if self.userid_key in request.session:
+            del request.session[self.userid_key]
+        return []
 
     def authenticated_userid(self, request):
-        if request.user:
-            return request.user.id
+        # FIXME this needs to check the DB
+        return request.session.get(self.userid_key)
 
-    def effective_principals(self, request):
-        principals = [Everyone]
-        user = request.user
-        if user:
-            principals += [Authenticated, 'u:%s' % user.id]
-            principals.extend(('g:%s' % r.name for r in user.roles))
-            principals.extend((p.name for p in user.permissions))
-            principals.extend((p.name for p in (role for role in user.roles)))
-        return principals
+    def unauthenticated_userid(self, request):
+        return request.session.get(self.userid_key)
 
 def get_user(request):
     # the below line is just an example, use your own method of

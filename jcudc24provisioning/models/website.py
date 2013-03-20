@@ -79,12 +79,16 @@ class User(CAModel, Base):
     display_name = Column(String(128), ca_order=next(order_counter), nullable=False)
     username = Column(String(80), ca_order=next(order_counter), nullable=False)
     _password = Column(String(80), ca_name="password", ca_order=next(order_counter), nullable=False)
+    email = Column(String(80), ca_name="email", ca_order=next(order_counter), nullable=False)
+    auth_type = Column(String(80), ca_name="auth_type", ca_order=next(order_counter), nullable=False)
     project_permissions = relationship("ProjectPermissions", lazy="joined", backref="users", cascade="all")
     roles = relationship("Role", lazy="joined", secondary=user_roles_table, backref="users", cascade="all")
 
-    def __init__(self, display_name, username, password, permissions=None, roles=None):
+    def __init__(self, display_name, username, password, email, auth_type="passwd", permissions=None, roles=None):
         self.display_name = display_name
         self.username = username
+        self.email = email
+        self.auth_type = auth_type
         self.permissions = permissions or []
         self.roles = roles or []
         self. password = password
@@ -121,11 +125,11 @@ class User(CAModel, Base):
         return self.password[40:] == hashed_pass.hexdigest()
 
     @classmethod
-    def get_user(cls, userid=None, username=None):
+    def get_user(cls, userid=None, username=None, auth_type="passwd"):
         session = DBSession
         if userid is not None:
-            return session.query(cls).filter_by(id=userid).first()
+            return session.query(cls).filter_by(id=userid, auth_type=auth_type).first()
         elif username is not None:
-            return session.query(cls).filter_by(username=username).first()
+            return session.query(cls).filter_by(username=username, auth_type=auth_type).first()
 
 

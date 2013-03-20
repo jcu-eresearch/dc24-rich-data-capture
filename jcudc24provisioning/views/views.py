@@ -3,11 +3,12 @@ import logging
 from string import split
 import urllib2
 import pyramid
-from pyramid.httpexceptions import HTTPNotFound, HTTPFound
+from pyramid.httpexceptions import HTTPNotFound, HTTPFound, HTTPClientError
 from pyramid.view import view_config, forbidden_view_config, view_defaults
 from pyramid.security import remember, forget, authenticated_userid
 from deform.form import Form
 from jcudc24provisioning.models.website import Login, User
+from jcudc24provisioning.models import DBSession
 
 
 __author__ = 'Casey Bajema'
@@ -24,6 +25,7 @@ PAGES = [
         {'route_name': 'search', 'title': 'Search Website', 'page_title': 'Search Website', 'hidden': True},
         {'route_name': 'admin', 'title': 'Administrator', 'page_title': 'Administrator', 'hidden': False},
         {'route_name': 'login', 'title': 'Log in', 'page_title': 'Log in', 'hidden': True},
+        {'route_name': 'login_shibboleth', 'title': 'Log in', 'page_title': 'Log in', 'hidden': True},
 ]
 
 @view_defaults(permission=pyramid.security.NO_PERMISSION_REQUIRED)
@@ -176,6 +178,39 @@ class Layouts(object):
                 password = password,
                 form=display
             )
+
+    @view_config(route_name='login_shibboleth', renderer='../templates/form.pt')
+    def login_shibboleth(self):
+        request = self.request
+        logged_in = authenticated_userid(self.request)
+
+        login_url = self.request.resource_url(self.request.context, 'login')
+        referrer = self.request.url
+        if referrer == login_url:
+            referrer = '/' # never use the login form itself as came_from
+        came_from = self.request.params.get('came_from', referrer)
+
+        try:
+            common_name = self.request.headers['commonName']
+            first_name = self.request.headers['givenName']
+            surname = self.request.headers['surname']
+            email = self.request.headers['email']
+            identifier = self.request.headers['auEduPersonSharedToken']
+        except KeyError as e:
+            return HTTPClientError("Missing Shibboleth headers")
+
+        user = User.get_user(username=identifier, auth_type="shibboleth")
+        if not user:
+            # Create the user
+            logger.info("Adding: %s %s %s"%(first_name, surname, email))
+            user = User(common_name, identifier, "", email, auth_type="shibboleth")
+            session = DBSession()
+            session.add(user)
+            session.flush()
+
+        headers = remember(self.request, user.id)
+
+        return HTTPFound(location = came_from)
 
     @view_config(route_name='logout')
     def logout(self):
