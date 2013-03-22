@@ -830,7 +830,7 @@ class Method(CAModel, Base):
     method_name = Column(String(256), ca_order=next(order_counter),
             ca_placeholder="Searchable identifier for this input method (eg. Invertebrate observations)",
             ca_description="The name is used for selecting this method in the <i>Datasets</i> step, for example Artificial Tree Sensor")
-    method_description = Column(Text(), ca_order=next(order_counter), ca_title="Description", ca_widget=deform.widget.TextAreaWidget(),
+    method_description = Column(Text(), ca_order=next(order_counter), ca_title="Description", ca_widget=deform.widget.TextAreaWidget(rows=15),
         ca_description="Provide a description of this method, this should include what, why and how the data is being collected but <b>Don\'t enter where or when</b> as this information is relevant to the dataset, not the method.",
         ca_placeholder="Enter specific details for this method, users of your data will need to know how reliable your data is and how it was collected.")
 

@@ -112,12 +112,12 @@ class ReDBoxWraper(object):
 
             person.name = str(mint_person['result-metadata']['all']['Honorific'][0]) + " " + str(mint_person['result-metadata']['all']['Given_Name'][0]) \
                                                     + " " + str(mint_person['result-metadata']['all']['Family_Name'][0])
-            person.title = mint_person['Honorific']
-            person.given_name = mint_person['Given_Name']
-            person.family_name = mint_person['Family_Name']
+            person.title = mint_person['result-metadata']['all']['Honorific'][0]
+            person.given_name = mint_person['result-metadata']['all']['Given_Name'][0]
+            person.family_name = mint_person['result-metadata']['all']['Family_Name'][0]
 #            person.organisation = mint_person['dc:title']
 #            person.organisation_label = mint_person['dc:title']
-            person.email = mint_person['Email']
+            person.email = mint_person['result-metadata']['all']['Email'][0]
             pass
 
 
