@@ -1,5 +1,5 @@
 from paste.deploy.converters import asint, asbool
-from pyramid.security import ALL_PERMISSIONS, Everyone, Allow, unauthenticated_userid
+from pyramid.security import ALL_PERMISSIONS, Everyone, Allow, unauthenticated_userid, authenticated_userid
 from pyramid.authentication import AuthTktCookieHelper
 from pyramid.security import Everyone, Authenticated
 from jcudc24provisioning.models import DBSession
@@ -61,13 +61,24 @@ class ShibbolethAuthenticationPolicy(object):
     def unauthenticated_userid(self, request):
         return request.session.get(self.userid_key)
 
-def get_user(request):
-    # the below line is just an example, use your own method of
-    # accessing a database connection here (this could even be another
-    # request property such as request.db, implemented using this same
-    # pattern).
+    def effective_principals(self, request):
+        principals = [Everyone]
+        user = request.user
 
-    userid = unauthenticated_userid(request)
+        if user:
+            principals += [Authenticated, 'u:%s' % user.id]
+            principals.extend(('g:%s' % r.name for r in user.roles))
+            principals.extend((p.name for p in user.permissions))
+            principals.extend((p.name for p in (role for role in user.roles)))
+        return principals
+
+def get_user(request):
+    """
+    Get the user from a request, this is used to bind user as a attribute of request so that request.user returns the full, authenticated user object.
+    :param request: The request to get the authenticated user for (basically just get the remembered principle/user id) and look up the database for the user.
+    :return: An un-attached User object, it is unattached so that it still works if there are internal changes in the database session.
+    """
+    userid = authenticated_userid(request)
     if userid is not None:
         user = User.get_user(userid)
         DBSession.expunge(user)
