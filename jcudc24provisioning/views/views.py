@@ -184,7 +184,7 @@ class Layouts(object):
         request = self.request
         logged_in = authenticated_userid(self.request)
 
-        login_url = self.request.resource_url(self.request.context, 'login')
+        login_url = self.request.route_url('login_shibboleth')
         referrer = self.request.url
         if referrer == login_url:
             referrer = '/' # never use the login form itself as came_from
@@ -210,7 +210,7 @@ class Layouts(object):
 
         headers = remember(self.request, user.id)
 
-        return HTTPFound(location = came_from)
+        return HTTPFound(location = came_from, headers = headers)
 
     @view_config(route_name='logout')
     def logout(self):
