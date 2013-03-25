@@ -17,7 +17,7 @@ import sqlalchemy
 from sqlalchemy.orm.properties import ColumnProperty, RelationProperty
 from sqlalchemy.orm.util import object_mapper
 import colander
-from jcudc24provisioning.controllers.redbox_wrapper import ReDBoxWraper
+from jcudc24provisioning.controllers.redbox_mint import ReDBoxWraper
 from jcudc24provisioning.controllers.sftp_filesend import SFTPFileSend
 import deform
 from deform.exception import ValidationFailure
@@ -166,7 +166,7 @@ class Workflows(Layouts):
     def redbox(self):
         if '_redbox' not in locals():
             # Get Redbox conconfigurations
-            alert_url = self.config.get("redbox.alert_url")
+            alert_url = self.config.get("redbox.url") + self.config.get("redbox.alert_url")
             host = self.config.get("redbox.ssh_host")
             port = self.config.get("redbox.ssh_port")
             private_key = self.config.get("redbox.rsa_private_key")
@@ -175,8 +175,9 @@ class Workflows(Layouts):
             harvest_dir = self.config.get("redbox.ssh_harvest_dir")
             tmp_dir = self.config.get("redbox.tmpdir")
             identifier_pattern = self.config.get("redbox.identifier_pattern")
+            data_portal = self.config.get("ingesterapi.portal_url")
 
-            self._redbox = ReDBoxWraper(url=alert_url, identifier_pattern=identifier_pattern, ssh_host=host, ssh_port=port, tmp_dir=tmp_dir, harvest_dir=harvest_dir,
+            self._redbox = ReDBoxWraper(url=alert_url, data_portal=data_portal, identifier_pattern=identifier_pattern, ssh_host=host, ssh_port=port, tmp_dir=tmp_dir, harvest_dir=harvest_dir,
                 ssh_username=username, rsa_private_key=private_key, ssh_password=password)
 
         return self._redbox
@@ -624,7 +625,7 @@ class Workflows(Layouts):
     @view_config(route_name="general")
     def general_view(self):
         page_help = ""
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description=""), page='general').bind(request=self.request)
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description=""), page='general', restrict_admin=True).bind(request=self.request)
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', ), use_ajax=False, ajax_options=redirect_options)
 
         # If this page was only called for saving and a rendered response isn't needed, return now.
@@ -645,7 +646,7 @@ class Workflows(Layouts):
                     "<li>Focus on what is being researched, why it is being researched and who is doing the research. " \
                     "The research locations and how the research is being conducted will be covered in the <i>Methods</i>" \
                     " and <i>Datasets</i> steps later on.</li></ul>"
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="description").bind(
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="description", restrict_admin=True).bind(
             request=self.request)
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
 
@@ -671,7 +672,7 @@ class Workflows(Layouts):
                                    "<li>If specific datasets require additional metadata that cannot be entered through " \
                                    "these forms, you can enter it directly in the ReDBox-Mint records once the project " \
                                    "is submitted and accepted (Look under <i>[to be worked out]</i> for a link).</li></ul>"
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page='information').bind(request=self.request, settings=self.config)
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page='information', restrict_admin=True).bind(request=self.request, settings=self.config)
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
 
         # If this page was only called for saving and a rendered response isn't needed, return now.
@@ -691,7 +692,7 @@ class Workflows(Layouts):
                     "<ul><li>Ways of collecting data - data sources</li>" \
                     "<li>What the data actually is - its 'data schema' - what fields there are, field types and associated information.</li>" \
                     "<li>Any additional information about this data collection methods - websites or attachments</li></ul>"
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="methods").bind(request=self.request)
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="methods", restrict_admin=True).bind(request=self.request)
 
         templates = self.session.query(MethodTemplate).order_by(MethodTemplate.category).all()
         categories = []
@@ -749,8 +750,9 @@ class Workflows(Layouts):
 
         if self._get_model() is not None:
             for method in self._get_model().methods:
-                if method.data_type is not None:
-                    method.data_type.name = method.method_name
+                if method.data_type is None:
+                    method.data_type = MethodSchema()
+                method.data_type.name = method.method_name
 
         return self._create_response(page_help=page_help)
 
@@ -779,7 +781,7 @@ class Workflows(Layouts):
                     " and should be set-up in this step for each site it is used at.</i></p>"
 
         datasets = self.session.query(Dataset).filter_by(project_id=self.project_id).all()
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="datasets").bind(request=self.request, datasets=datasets)
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="datasets", restrict_admin=True).bind(request=self.request, datasets=datasets)
 
         PREFIX_SEPARATOR = ":"
         DATASETS_INDEX = string.join([schema.name, Project.datasets.key], PREFIX_SEPARATOR)
@@ -848,7 +850,7 @@ class Workflows(Layouts):
                     "<b>Reopen:</b> Reopen the project for editing, this can only occur when the project has been submitted but not yet accepted (eg. the project may require updates before being approved)<br/><br/>"\
                     "<b>Approve:</b> Approve this project, generate metadata records and setup data ingestion<br/><br/>"\
                     "<b>Disable:</b> Stop data ingestion, this would usually occur once the project has finished."
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="submit").bind(request=self.request)
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="submit", restrict_admin=True).bind(request=self.request)
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), use_ajax=False)
 
         # If this page was only called for saving and a rendered response isn't needed, return now.
@@ -891,7 +893,7 @@ class Workflows(Layouts):
                 metadata_record = self.session.query(Metadata).filter_by(dataset_id=dataset.id).first()
                 redbox_uri = None
                 if metadata_record is not None:
-                    redbox_uri = metadata_record.redbox_uri
+                    redbox_uri = self.config.get("redbox.url") + self.config.get("redbox.search_url") + str(metadata_record.redbox_identifier)
                 redbox_records.append((dataset.name, redbox_uri,
                                        self.request.route_url("view_record", project_id=self.project_id, dataset_id=dataset.id),
                                        self.request.route_url("delete_record", project_id=self.project_id, dataset_id=dataset.id),
@@ -932,14 +934,14 @@ class Workflows(Layouts):
             self.project.state = ProjectStates.SUBMITTED
 
             # Only update the citation if it is empty
-            if self.project.information.custom_citation is False:
-                self.redbox._pre_fill_citation(self.project.information)
+            if self.project.information.custom_citation is not True:
+                self.redbox.pre_fill_citation(self.project.information)
 
 
             for dataset in self.project.datasets:
                 # Only update the citation if it is empty
                 if dataset.record_metadata is not None and dataset.record_metadata.custom_citation is False:
-                    self.redbox._pre_fill_citation(dataset.record_metadata)
+                    self.redbox.pre_fill_citation(dataset.record_metadata)
 
         if REOPEN_TEXT in self.request.POST and self.project.state == ProjectStates.SUBMITTED:
             self.project.state = ProjectStates.OPEN
@@ -1018,7 +1020,7 @@ class Workflows(Layouts):
         dataset_id = self.request.matchdict['dataset_id']
 
         page_help=""
-        schema = convert_schema(SQLAlchemyMapping(Metadata, unknown='raise',)).bind(request=self.request, settings=self.config)
+        schema = convert_schema(SQLAlchemyMapping(Metadata, unknown='raise',), restrict_admin=True).bind(request=self.request, settings=self.config)
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id, dataset_id=dataset_id), buttons=("Cancel", "Save & Close", "Save",), use_ajax=False)
 
         # If the form is being saved (there would be 1 item in controls if it is a fresh page with a project id set)

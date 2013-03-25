@@ -2,7 +2,7 @@
 
 <div tal:condition="exists:field.schema.validation_errors" class="submit_validation">
     <div tal:condition="len(field.schema.validation_errors) <= 0">
-        <p class="success_messages">Validation successful.  No Errors.</p>
+        <p class="success_messages">Validation successful.</p>
         <input id="${field.oid}" name="${field.name}" type="hidden" value="field.schema.widget.true_val">
     </div>
     <div tal:condition="len(field.schema.validation_errors) > 0">

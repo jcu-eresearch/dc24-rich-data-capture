@@ -341,11 +341,13 @@ class CAModel(object):
         return data
 
     def _add_xml_elements(self, root, data):
+        element = None
+
         for key, value in data.items():
             key = fix_schema_field_name(key)
 
             # Don't add empty items to the XML
-            if value is colander.null or value is None or (isinstance(value, list) and len(value) == 0):
+            if value is colander.null or value is None or (isinstance(value, list) and len(value) == 0) or value is False or value == 'false':
                 continue
 
             # If this is a group node for the purpose of displaying data nicely, ignore it and just add its children.
@@ -362,6 +364,7 @@ class CAModel(object):
             else:
                 element = etree.SubElement(root, key)
                 element.text = str(value)
+
         return element
 
     def to_xml(self):

@@ -299,7 +299,7 @@ __author__ = 'Casey Bajema'
 def fix_schema_field_name(field_name):
     return field_name.split(":")[-1]
 
-def convert_schema(schema, **kw):
+def convert_schema(schema, restrict_admin=False, **kw):
     schema.title = ''
 
     if kw.has_key('page'):
@@ -313,11 +313,12 @@ def convert_schema(schema, **kw):
 
     schema = _prevent_duplicate_fields(schema)
 
-    _remove_admin_fields(schema, "TODO")
+    if restrict_admin:
+        _remove_admin_fields(schema)
 
     return schema
 
-def _remove_admin_fields(schema, user_rights):
+def _remove_admin_fields(schema):
     denied_nodes = []
     for node in schema.children:
         if hasattr(node, 'requires_admin') and node.requires_admin:
@@ -325,7 +326,7 @@ def _remove_admin_fields(schema, user_rights):
             denied_nodes.append(node)
         else:
             if len(node.children) > 0:
-                _remove_admin_fields(node, user_rights)
+                _remove_admin_fields(node)
 
     for node in denied_nodes:
         schema.children.remove(node)

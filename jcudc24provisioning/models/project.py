@@ -207,6 +207,12 @@ class Creator(CAModel, Base):
     given_name = Column(String(256), ca_name="dc:biblioGraphicCitation.dc:hasPart.locrel:ctb.0.foaf:givenName", ca_order=next(order_counter), ca_title="Given name")
     family_name = Column(String(256), ca_name="dc:biblioGraphicCitation.dc:hasPart.locrel:ctb.0.foaf:familyName", ca_order=next(order_counter), ca_title="Family name")
 
+    def __init__(self, title, given_name, family_name):
+        super(Creator, self).__init__()
+        self.title = title
+        self.given_name = given_name
+        self.family_name = family_name
+
 class Keyword(CAModel, Base):
     order_counter = itertools.count()
 
@@ -239,6 +245,12 @@ class CitationDate(CAModel, Base):
     type = Column(String(100), ca_name="sourced from citationDateType.json", ca_title="Date type",
         ca_widget=deform.widget.TextInputWidget(size="40", css_class="full_width"))
     date = Column(Date(), ca_name="dc:biblioGraphicCitation.dc:hasPart.dc:date.0.dc:type.skos:prefLabel", ca_title="Date")
+
+    def __init__(self, date, type, label):
+        super(CitationDate, self).__init__()
+        self.date = date
+        self.type = type
+        self.label = label
 
 
 attachment_types = (("data", "Data file"), ("supporting", "Supporting material"), ("readme", "Readme"))
@@ -319,13 +331,13 @@ class Location(CAModel, Base):
 
     def get_latitude(self):
         if self.is_point():
-            return float(self.location[6:-1].split(",")[0].strip())
+            return float(self.location[6:-1].split(" ")[0].strip())
 
         raise NotImplementedError("Get location latitude is not implemented for anything other than points.")
 
     def get_longitude(self):
         if self.is_point():
-            return float(self.location[6:-1].split(",")[1].strip())
+            return float(self.location[6:-1].split(" ")[1].strip())
 
         raise NotImplementedError("Get location longitude is not implemented for anything other than points.")
 
@@ -836,6 +848,8 @@ class Method(CAModel, Base):
     __tablename__ = 'method'
     project_id = Column(Integer, ForeignKey('project.id'), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
     id = Column(Integer, ca_order=next(order_counter), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+
+    mint_identifier = Column(String(256), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 
     method_template_id = Column(Integer, ForeignKey('method_template.id', ForeignKey('method_template.id'), use_alter=True, name="fk_method_template_id"), nullable=True, ca_order=next(order_counter), ca_title="Select a template to base this method off (Overrides all fields)",
         ca_widget=deform.widget.TextInputWidget(template="method_template_mapping", strip=False),
@@ -1371,7 +1385,7 @@ class Metadata(CAModel, Base):
         ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"), ca_child_title="Related Website",
         ca_help="Please provide details on any websites that are related to this project including their title and URL with an optional note.")
 
-    attachments = relationship('Attachment', ca_order=next(order_counter),
+    attachments = relationship('Attachment', ca_order=next(order_counter), ca_title="Attachments (Uploading to ReDBox isn't supported at this time)",
         ca_missing=None, ca_page="information", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
         cascade="all, delete-orphan",
         ca_help="Optionally provide additional information as attachments.")

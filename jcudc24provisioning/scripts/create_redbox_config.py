@@ -107,19 +107,18 @@ def create_json_config():
                     Party.party_relationship_label.key: "dc:creator.foaf:Person.0.jcu:relationshipLabel",
                     Party.party_relationship.key: "dc:creator.foaf:Person.0.jcu:relationshipType",
                     Party.identifier.key: "dc:creator.foaf:Person.0.dc:identifier",
-                    Party.name.key: ["dc:creator.foaf:Person.0.foaf:name", "locrel:prc.foaf:Person.foaf:name"],
+                    Party.name.key: "dc:creator.foaf:Person.0.foaf:name",
                     Party.title.key: ["dc:creator.foaf:Person.0.foaf:title", "locrel:prc.foaf:Person.foaf:title"],
                     #                Party.coprimary: "dc:creator.foaf:Person.0.redbox:isCoPrimaryInvestigator",       # TODO: Are these needed?
                     #                Party.primary: "dc:creator.foaf:Person.0.redbox:isPrimaryInvestigator",
-                    Party.given_name.key: ["dc:creator.foaf:Person.0.foaf:givenName", "locrel:prc.foaf:Person.foaf:title"],
-                    Party.family_name.key: ["dc:creator.foaf:Person.0.foaf:familyName",
-                                            "locrel:prc.foaf:Person.foaf:familyName"],
+                    Party.given_name.key: ["dc:creator.foaf:Person.0.foaf:givenName", "locrel:prc.foaf:Person.foaf:givenName"],
+                    Party.family_name.key: ["dc:creator.foaf:Person.0.foaf:familyName", "locrel:prc.foaf:Person.foaf:familyName"],
                     Party.organisation.key: "dc:creator.foaf:Person.0.foaf:Organization.dc:identifier",
                     Party.organisation_label.key: "dc:creator.foaf:Person.0.foaf:Organization.skos:prefLabel",
-                    Party.email.key: "locrel:prc.foaf:Person.foaf:email",
+                    Party.email.key: "locrel:prc.foaf:Person.foaf:email",            # Primary contact
                 },
                 Metadata.collaborators.key + "/*": {
-                    Metadata.collaborators.key: "dc:contributor.locrel:clb.0.foaf:Agent",
+                    Collaborator.collaborator.key: "dc:contributor.locrel:clb.0.foaf:Agent",
                 },
 #                "descriptions": {
                 Metadata.full_desc_label.key + " | " + Metadata.brief_desc_label.key + " | " + Metadata.notes.key + "/*/" + MetadataNote.note_desc_label.key: "rif:description.0.label",
@@ -130,7 +129,7 @@ def create_json_config():
                     Keyword.keyword.key: "dc:subject.vivo:keyword.0.rdf:PlainLiteral",
                 },
                 Metadata.field_of_research.key + "/*": {
-                    FieldOfResearch.field_of_research.key: "dc:subject.anzsrc:for.0.skos:resource",
+                    FieldOfResearch.field_of_research.key: "dc:subject.anzsrc:for.0.rdf:resource",
                     FieldOfResearch.field_of_research_label.key: "dc:subject.anzsrc:for.0.skos:prefLabel",
                 },
                 Metadata.socio_economic_objective.key + "/*": {
@@ -174,7 +173,7 @@ def create_json_config():
                 },
                 Metadata.citation_edition.key: "dc:biblioGraphicCitation.dc:hasPart.dc:hasVersion.rdf:PlainLiteral",
                 Metadata.citation_publisher.key: "dc:biblioGraphicCitation.dc:hasPart.dc:publisher.rdf:PlainLiteral",
-                Metadata.citation_place_of_publication.key + "/*": [
+                Metadata.citation_place_of_publication.key: [
                     "dc:biblioGraphicCitation.dc:hasPart.vivo:Publisher.vivo:Location",
                     "dc:biblioGraphicCitation.dc:hasPart.dc:date.0.rdf:PlainLiteral"],
                 Metadata.citation_dates.key + "/*": {
@@ -207,15 +206,15 @@ def create_json_config():
                     Attachment.note.key: "",
 
                 },
-
-                #             # TODO: Prefill this with project dataset + each sibling dataset
-                #            "dc:relation.vivo:Dataset.0.dc:identifier": "",
-                #            "dc:relation.vivo:Dataset.0.vivo:Relationship.rdf:PlainLiteral": "isDescribedBy",
-                #            "dc:relation.vivo:Dataset.0.vivo:Relationship.skos:prefLabel": "Described by:",
-                #            "dc:relation.vivo:Dataset.0.dc:title": "test related attachment",
-                #            "dc:relation.vivo:Dataset.0.skos:note": "test",
-                #            "dc:relation.vivo:Dataset.0.redbox:origin": "on",
-                #            "dc:relation.vivo:Dataset.0.redbox:publish": "on",
+                "related_records/*": {
+                    "identifier": "dc:relation.vivo:Dataset.0.dc:identifier",
+                    "relationship": "dc:relation.vivo:Dataset.0.vivo:Relationship.rdf:PlainLiteral",
+                    "preflabel": "dc:relation.vivo:Dataset.0.vivo:Relationship.skos:prefLabel",
+                    "title": "dc:relation.vivo:Dataset.0.dc:title",
+                    "notes": "dc:relation.vivo:Dataset.0.skos:note",
+                    "origin": "dc:relation.vivo:Dataset.0.redbox:origin",
+                    "publish": "dc:relation.vivo:Dataset.0.redbox:publish",
+                }
                 #
                 #
                 #            # TODO: This is the related servces fields
