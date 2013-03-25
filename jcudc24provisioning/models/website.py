@@ -8,9 +8,11 @@ import deform
 from jcudc24provisioning.models import Base, DBSession
 from jcudc24provisioning.models.ca_model import CAModel
 import os
+import logging
 
 __author__ = 'casey'
 
+logger = logging.getLogger(__name__)
 
 class Login(colander.MappingSchema):
     user_name = colander.SchemaNode(colander.String())
@@ -128,8 +130,7 @@ class User(CAModel, Base):
     def get_user(cls, userid=None, username=None, auth_type="passwd"):
         session = DBSession
         if userid is not None:
-            return session.query(cls).filter_by(id=userid, auth_type=auth_type).first()
+            return session.query(cls).filter_by(id=userid).first()
         elif username is not None:
             return session.query(cls).filter_by(username=username, auth_type=auth_type).first()
-
 

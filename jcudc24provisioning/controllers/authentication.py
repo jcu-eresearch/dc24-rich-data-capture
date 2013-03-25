@@ -1,3 +1,5 @@
+import logging
+
 from paste.deploy.converters import asint, asbool
 from pyramid.security import ALL_PERMISSIONS, Everyone, Allow, unauthenticated_userid
 from pyramid.authentication import AuthTktCookieHelper
@@ -9,6 +11,8 @@ from zope.interface import implementer
 from pyramid.interfaces import IAuthenticationPolicy
 
 __author__ = 'casey'
+
+logger = logging.getLogger(__name__)
 
 class DefaultPermissions(object):
     CREATE_PROJECT = ("create_project", "User is allowed to create new projects.")
@@ -61,12 +65,21 @@ class ShibbolethAuthenticationPolicy(object):
     def unauthenticated_userid(self, request):
         return request.session.get(self.userid_key)
 
+    def effective_principals(self, request):
+        principals = [Everyone]
+        user = request.user
+        if user:
+            principals += [Authenticated, 'u:%s' % user.id]
+            principals.extend(('g:%s' % r.name for r in user.roles))
+            principals.extend((p.name for p in user.project_permissions))
+            principals.extend((p.name for p in (role for role in user.roles)))
+        return principals
+
 def get_user(request):
     # the below line is just an example, use your own method of
     # accessing a database connection here (this could even be another
     # request property such as request.db, implemented using this same
     # pattern).
-
     userid = unauthenticated_userid(request)
     if userid is not None:
         user = User.get_user(userid)
