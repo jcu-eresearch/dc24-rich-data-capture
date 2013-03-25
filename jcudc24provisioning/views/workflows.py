@@ -484,7 +484,7 @@ class Workflows(Layouts):
         for prop in object_mapper(source).iterate_properties:
             if (isinstance(prop, ColumnProperty) or isinstance(prop, RelationshipProperty) and prop.secondary is not None) and not prop.key == "id":
                 setattr(new_object, prop.key, getattr(source, prop.key))
-            elif isinstance(prop, RelationshipProperty):
+            elif isinstance(prop, RelationshipProperty) and 'exclude' not in prop.ca_registry:
                 if isinstance(getattr(source, prop.key), list):
                     items = []
                     for item in getattr(source, prop.key):
@@ -747,9 +747,10 @@ class Workflows(Layouts):
             return
 
 
-        if self.model is not None:
-            for method in self.model.methods:
-                method.data_type.name = method.method_name
+        if self._get_model() is not None:
+            for method in self._get_model().methods:
+                if method.data_type is not None:
+                    method.data_type.name = method.method_name
 
         return self._create_response(page_help=page_help)
 

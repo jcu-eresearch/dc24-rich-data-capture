@@ -529,7 +529,7 @@ class MethodSchema(CAModel, Base):
         secondary=method_schema_to_schema,
         primaryjoin=id==method_schema_to_schema.c.child_id,
         secondaryjoin=id==method_schema_to_schema.c.parent_id,
-        ca_title="Template(s) to CAModel, Base/extend your data schema from (Recommended)",
+        ca_title="Template(s) to base/extend your data type from (Recommended)",
         ca_widget=deform.widget.SequenceWidget(template="method_schema_parents_sequence"),
         ca_child_title = "Parent Schema",
         ca_child_widget=deform.widget.MappingWidget(template="ca_sequence_mapping", item_template="method_schema_parents_item"),
@@ -541,6 +541,12 @@ class MethodSchema(CAModel, Base):
         ca_child_widget=deform.widget.MappingWidget(item_template="method_schema_field_item"),
         ca_description="Provide details of the schema field and how it should be displayed.",
         ca_help="TODO:  This needs to be displayed better - I'm thinking a custom template that has a sidebar for options and the fields are displayed 1 per line.  All fields will be shown here (including fields from parent/extended schemas selected above).")
+
+
+def method_schema_validator(form, value):
+    pass # TODO
+#    if len(value.custom_fields) == 0 and len(value.parents) == 0:
+#        return colander.Invalid(form, 'A valid data type needs to be entered, add a template data type and/or add custom fields')
 
 def custom_processing_validator(form, value):
     pass
@@ -812,6 +818,18 @@ class MethodTemplate(CAModel, Base):
     category = Column(String(100),ca_order=next(order_counter), ca_description="Category of template, this is a flexible way of grouping templates such as DRO, SEMAT or other organisational groupings.")
 
 
+def method_validator(form, value):
+    pass # TODO
+#    error = False
+#    exc = colander.Invalid(form) # Uncomment to add a block message: , 'At least 1 research theme or Not aligned needs to be selected')
+#
+#    if value['method:publish_dataset'] is True and value['dataset:publish_date'] is None:
+#        exc['dataset:publish_date'] = "Required"
+#        error = True
+#
+#    if error:
+#        raise exc
+
 class Method(CAModel, Base):
     order_counter = itertools.count()
 
@@ -830,12 +848,12 @@ class Method(CAModel, Base):
     method_name = Column(String(256), ca_order=next(order_counter),
             ca_placeholder="Searchable identifier for this input method (eg. Invertebrate observations)",
             ca_description="The name is used for selecting this method in the <i>Datasets</i> step, for example Artificial Tree Sensor")
-    method_description = Column(Text(), ca_order=next(order_counter), ca_title="Description", ca_widget=deform.widget.TextAreaWidget(),
+    method_description = Column(Text(), ca_order=next(order_counter), ca_title="Description", ca_widget=deform.widget.TextAreaWidget(rows=15),
         ca_description="Provide a description of this method, this should include what, why and how the data is being collected but <b>Don\'t enter where or when</b> as this information is relevant to the dataset, not the method.",
         ca_placeholder="Enter specific details for this method, users of your data will need to know how reliable your data is and how it was collected.")
 
     data_type = relationship("MethodSchema", ca_order=next(order_counter), uselist=False, ca_widget=MethodSchemaWidget(),
-        cascade="all, delete-orphan",ca_title="Type of data being collected",
+        cascade="all, delete-orphan",ca_title="Type of data being collected", ca_child_validator=method_schema_validator,
         ca_collapsed=False,
         ca_help="The type of data that is being collected - <b>Please extend the provided schemas where possible only use the custom fields for additional information</b> (eg. specific calibration data).</br></br>" \
                     "Extending the provided schemas allows your data to be found in a generic search (eg. if you use the temperature schema then users will find your data " \
@@ -1406,7 +1424,7 @@ class Project(CAModel, Base):
 #                "<p><i>If you aren't sure what a method is return to this description after completing the Methods page.</i></p>")
 
     methods = relationship('Method', ca_title="", ca_widget=deform.widget.SequenceWidget(min_len=0, template="method_sequence"), ca_order=next(order_counter), ca_page="methods",
-        cascade="all, delete-orphan",
+        cascade="all, delete-orphan", ca_child_validator=method_validator,
         ca_child_collapsed=False,)
 #        ca_description="Add one method for each type of data collection method (eg. temperature sensors, manually entered field observations using a form or files retrieved by polling a server...)")
 
