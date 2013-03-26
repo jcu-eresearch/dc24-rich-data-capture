@@ -169,7 +169,7 @@ class SFTPFileSend(object):
 #                test = self.sftp.getcwd()
                 self.sftp.mkdir(remote_dir)
             except IOError, e:
-                logger.exception('(assuming %s exists' % remote_dir)
+                logger.info('(assuming %s exists' % remote_dir)
 
 
             if glob_pattern is None:

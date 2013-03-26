@@ -165,7 +165,7 @@ class Person(CAModel, Base):
     email = Column(String(256), ca_order=next(order_counter), ca_missing="", ca_validator=colander.Email())
 
 relationship_types = (
-        ("select", "---Select One---"), ("isOwnedBy", "Owned by"), ("isManagedBy", "Managed by"), ("hasAssocationWith", "Associated with"),
+        ("select", "---Select One---"), ("hasCollector", "Owned by"), ("isManagedBy", "Managed by"), ("hasAssocationWith", "Associated with"),
         ("hasCollector", "Aggregated by")
         , ("isEnrichedBy'", "Enriched by"))
 
@@ -207,7 +207,7 @@ class Creator(CAModel, Base):
     given_name = Column(String(256), ca_name="dc:biblioGraphicCitation.dc:hasPart.locrel:ctb.0.foaf:givenName", ca_order=next(order_counter), ca_title="Given name")
     family_name = Column(String(256), ca_name="dc:biblioGraphicCitation.dc:hasPart.locrel:ctb.0.foaf:familyName", ca_order=next(order_counter), ca_title="Family name")
 
-    def __init__(self, title, given_name, family_name):
+    def __init__(self, title=None, given_name=None, family_name=None):
         super(Creator, self).__init__()
         self.title = title
         self.given_name = given_name
@@ -246,7 +246,7 @@ class CitationDate(CAModel, Base):
         ca_widget=deform.widget.TextInputWidget(size="40", css_class="full_width"))
     date = Column(Date(), ca_name="dc:biblioGraphicCitation.dc:hasPart.dc:date.0.dc:type.skos:prefLabel", ca_title="Date")
 
-    def __init__(self, date, type, label):
+    def __init__(self, date=None, type=None, label=None):
         super(CitationDate, self).__init__()
         self.date = date
         self.type = type
@@ -280,7 +280,7 @@ class Note(CAModel, Base):
 
     note = Column(Text(), ca_widget=deform.widget.TextAreaWidget())
 
-    def __init__(self, note):
+    def __init__(self, note=None):
         self.note = note
 
 class Region(CAModel, Base):
@@ -848,8 +848,7 @@ class Method(CAModel, Base):
     __tablename__ = 'method'
     project_id = Column(Integer, ForeignKey('project.id'), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
     id = Column(Integer, ca_order=next(order_counter), primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-
-    mint_identifier = Column(String(256), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+#    service_metadata_id = Column(Integer, ForeignKey('service_metadata.id'), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 
     method_template_id = Column(Integer, ForeignKey('method_template.id', ForeignKey('method_template.id'), use_alter=True, name="fk_method_template_id"), nullable=True, ca_order=next(order_counter), ca_title="Select a template to base this method off (Overrides all fields)",
         ca_widget=deform.widget.TextInputWidget(template="method_template_mapping", strip=False),
@@ -1067,6 +1066,61 @@ class MetadataNote(CAModel, Base):
             ca_widget=deform.widget.TextAreaWidget(rows=3), ca_title="Note",)
 
 
+# TODO: Deemed too hard/confusing for the end, but this should be most of the code + MintWrapper in controllers/redbox_mint.  The most difficult part will be providing a user friendly way of getting service information.
+#class ServiceMetadata(CAModel, Base):
+#    order_counter = itertools.count()
+#
+#    __tablename__ = 'service_metadata'
+#
+#    id = Column(Integer, ca_order=next(order_counter), ca_force_required=False, primary_key=True, ca_widget=deform.widget.HiddenWidget())
+#    project_id = Column(Integer, ForeignKey('project.id'), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+#    method_id = Column(Integer, ForeignKey('method.id'), unique=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+#
+#    date_added_to_mint = Column(Date, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+#
+#    mint_id = Column(String(256), ca_order=next(order_counter))
+#    name = Column(String(256), ca_order=next(order_counter))
+#    type = Column(String(256), ca_order=next(order_counter))
+#    related_party_1 = Column(String(256), ca_order=next(order_counter))
+#    related_relationship_1 = Column(String(256), ca_order=next(order_counter))
+#    related_party_2 = Column(String(256), ca_order=next(order_counter))
+#    related_relationship_2 = Column(String(256), ca_order=next(order_counter))
+#    field_of_research = relationship('FieldOfResearch', ca_name="dc:subject.anzsrc:for.0.rdf:resource", ca_order=next(order_counter), ca_title="Fields of Research", ca_page="information",
+#        cascade="all, delete-orphan", ca_validator=sequence_required_validator,
+#        ca_force_required=True,
+#        ca_widget=deform.widget.SequenceWidget(template='multi_select_sequence', max_len=3, error_class="error"),
+#        ca_child_title="Field of Research",
+#        ca_help="Select the most applicable Fields of Research (FoR) from the drop-down menus, and click the 'Add Field Of Research' button (which is hidden until a code is selected)."
+#        , ca_missing="")
+#    keywords = Column(String(256), ca_order=next(order_counter))
+#    license = Column(String(256), ca_order=next(order_counter))
+#    license_url = Column(String(256), ca_order=next(order_counter))
+#    access_rights = Column(String(256), ca_order=next(order_counter))
+#    delivery_method = Column(String(256), ca_order=next(order_counter))
+#    description = Column(String(256), ca_order=next(order_counter))
+#    website = Column(String(256), ca_order=next(order_counter))
+#    website_title = Column(String(256), ca_order=next(order_counter))
+
+
+
+
+# TODO: If relationships to other metadata records are required, this could be uncommented and finalised with minor changes in _add_relationships (redbox_mint.py).
+#class RelatedMetadata(CAModel, Base):
+#    order_counter = itertools.count()
+#
+#    __tablename__ = 'related_metadata'
+#
+#    id = Column(Integer, ca_order=next(order_counter), ca_force_required=False, primary_key=True, ca_widget=deform.widget.HiddenWidget())
+#    metadata_id = Column(Integer, ForeignKey('metadata.id'), unique=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+#
+#    identifier = Column(String(256), ca_order=next(order_counter), ca_requires_admin=True)
+#    relationship = Column(String(256), ca_order=next(order_counter), ca_requires_admin=True)
+#    preflabel = Column(String(256), ca_order=next(order_counter), ca_requires_admin=True)
+#    title = Column(String(256), ca_order=next(order_counter), ca_requires_admin=True)
+#    notes = Column(String(256), ca_order=next(order_counter), ca_requires_admin=True)
+#    origin = Column(String(256), ca_order=next(order_counter), ca_requires_admin=True)
+#    publish = Column(String(256), ca_order=next(order_counter), ca_requires_admin=True)
+
 class Metadata(CAModel, Base):
     order_counter = itertools.count()
 
@@ -1077,7 +1131,8 @@ class Metadata(CAModel, Base):
     dataset_id = Column(Integer, ForeignKey('dataset.id'), unique=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
     #----------------------Static fields for ReDBox integration-------------------------
-    record_export_date = Column(Date, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(), name="dc:created") # TODO: set this b4 exported.
+    record_export_date = Column(Date, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(), name="dc:created")
+    date_added_to_redbox = Column(Date, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 
     dc_spec = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="xmlns:dc", ca_default="http://dublincore.org/documents/2008/01/14/dcmi-terms/")
     foaf_spec = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="xmlns:foaf", ca_default="http://xmlns.com/foaf/spec/",)
@@ -1238,8 +1293,8 @@ class Metadata(CAModel, Base):
     researchTypes = (
         ('applied', 'Applied research'),
         ('experimental', 'Experimental development'),
-        ('pure_basic', 'Pure basic research'),
-        ('pure_strategic', 'Strategic basic research'))
+        ('pure', 'Pure basic research'),
+        ('strategic', 'Strategic basic research'))
 
     type_of_research_label = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
     type_of_research = Column(String(50), ca_name="dc:subject.anzsrc:toa.rdf:resource", ca_order=next(order_counter), ca_page="information",

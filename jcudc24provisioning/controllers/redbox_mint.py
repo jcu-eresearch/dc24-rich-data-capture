@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import datetime
 import random
 import shutil
@@ -15,44 +16,100 @@ from jcudc24provisioning.models import DBSession
 
 __author__ = 'casey'
 
+# TODO: Deemed too hard/confusing for the end, but this should be most of the code + ServiceMetadata in project.  The most difficult part will be providing a user freindly way of getting service informtaion.
 #class MintWrapper(object):
-#    def __init__(self):
-#        pass
+#    def __init__(self, tmp_dir, identifier_pattern, ssh_host, ssh_port, harvest_file, ssh_username, rsa_private_key=None, ssh_password=None):
+#        self.session = DBSession
+#        self.tmp_dir = tmp_dir
+#        self.identifier_pattern = identifier_pattern
+#        self.ssh_host = ssh_host
+#        self.ssh_port = ssh_port
+#        self.harvest_file = harvest_file
+#        self.ssh_username = ssh_username
+#        self.rsa_private_key = rsa_private_key
+#        self.ssh_password = ssh_password
 #
-#    def dataset_to_mint_service_csv(self, dataset):
-#        file_path = self.mint_tmp_dir + "services_emas.csv"
+#
+#    def generate_mint_metadata(self, method):
+#        project = self.session.query(Project).filter_by(id=method.project_id).first()
+#
+#        service = ServiceMetadata()
+#        service.name = method.method_name
+#        service.type = "Services"
+#        service.related_party_1 = project.information.parties[0].identifier
+#        service.related_relationship_1 = project.information.parties[0].party_relationship
+#        service.related_party_2 = project.information.parties[1].identifier
+#        service.related_relationship_2 = project.information.parties[1].party_relationship
+#
+#        service.field_of_research = project.information.fieldsOfResearch[:]
+#
+#        service.keywords = project.information.keywords.join(" ")
+#        service.license = project.information.license_name
+#        service.license_url = project.information.license
+#        service.access_rights = project.information.access_rights_url
+#        service.delivery_method = "Download"
+#        service.description = method.method_description
+##        service.website =
+##        service.website_title = self.identifier_pattern + method.id
+#
+#        return service
+#
+#    def insert(self, project_id):
+#        project = self.session.query(Project).filter_by(id=project_id).first()
+#
+#        file_path = self.tmp_dir + "services_emas.csv"
 #
 #        # If this is the first service being created, add the header row.
-#        if not os.path.exists(file):
+#        if not os.path.exists(file_path):
 #            with open(file_path, "w") as f:
 #                f.write("ID, Name, Type, Related_party1, Related_relationship1, Related_party2, Related_relationship2, "
 #                        "ANZSRC_FOR_1, ANZSRC_FOR_2, ANZSRC_FOR_3, Keywords, licence, licence_URL, "
 #                        "access_rights, deliverymethod, description, Website, Website_Title")
 #
-#        with open(file_path, "w") as f:
-#            f.write("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s" % (
-#                self.mindataset.method.id,
-#                dataset.method.method_name,
-#                dataset.record_metadata.parties[0].identifier,
-#                dataset.record_metadata.parties[0].type,
-#                dataset.record_metadata.parties[1].identifier,
-#                dataset.record_metadata.parties[1].type,
-#                dataset.record_metadata.fieldsOfResearch[0],
-#                dataset.record_metadata.fieldsOfResearch[0] or "",
-#                dataset.record_metadata.fieldsOfResearch[0] or "",
-#                dataset.record_metadata.keywords.join(" "),
-#                dataset.record_metadata.license_name,
-#                dataset.record_metadata.license,
-#                dataset.record_metadata.access_rights_url,
-#                "Website/Download",
-#                dataset.method.method_description,
-#                dataset.method.method_website[0].url or "",
-#                dataset.method.method_website[0].title or ""
-#                ))
+#        with open(file_path, "a") as f:
+#            for method in project.methods:
+#                if method.service_metadata_id is None:
+#                    service = self.generate_mint_metadata(method)
+#                else:
+#                    service = self.session.query(ServiceMetadata).filter_by(id=method.service_metadata_id).first()
+#
+#                csv_line = self._to_csv(service)
+#
+#                f.write(csv_line)
+#
+#        self._upload_services()
+#
+#    def _upload_services(self):
+#        local_file = self.tmp_dir + "services_emas.csv"
+#
+#        file_send = SFTPFileSend(self.ssh_host, self.ssh_port, self.ssh_username, password=self.ssh_password, rsa_private_key=self.rsa_private_key)
+#        file_send.upload_file(local_file, self.harvest_file)
+#        file_send.close()
 #
 #
-#        return service_csv
-
+#    def _to_csv(self, service):
+#        service_csv = "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n" % (
+#                service.mint_id,
+#                service.name,
+#                service.type,
+#                service.related_party_1,
+#                service.related_relationship_1,
+#                service.related_party_2,
+#                service.related_relationship_2,
+#                service.field_of_research[0] or "",
+#                service.field_of_research[1] or "",
+#                service.field_of_research[2] or "",
+#                service.keywords,
+#                service.license,
+#                service.license_url,
+#                service.access_rights,
+#                service.delivery_method,
+#                service.description,
+#                service.website,
+#                service.website_title,
+#        )
+#
+#        return service
 
 
 class ReDBoxWraper(object):
@@ -70,35 +127,16 @@ class ReDBoxWraper(object):
 
         self.session = DBSession
 
-    def insert(self, project_id=None, dataset_id=None):
-        if project_id is None and dataset_id is None:
-            raise ValueError("Trying to insert nothing into ReDBox, either project_id or dataset_id needs to be set.")
-
-        if project_id is not None:
-            return self.insert_project(project_id)
-
-        if dataset_id is not None:
-            return self.insert_dataset(dataset_id)
-
-#    def insert_service(self, dataset_id):
-#
-#
-#
-#    def insert_dataset(self, dataset_id):
-
 
     def insert_project(self, project_id):
         project = self.session.query(Project).filter_by(id=project_id).first()
 
-        # 1. Create service records.
-#        dataset_services_xml = [self.dataset_to_mint_service(dataset.id) for dataset in self.project.datasets]
-        # TODO: Upload service csv files to Mint and get mint url and identifier
-        service_records = []
+        # 1. TODO: Create service records.
 
-        # 2. Create relationships between each service record and it's dataset.
+        # 2. TODO: Create relationships between each service record and it's dataset.
 
         # 3. Create all dataset records (the project itself creates 1 dataset record).
-        project_record = self._prepare_record(self.session.query(Metadata).filter_by(id=project.information.id).first()).to_xml().getroot()
+        project_record = self._prepare_record(project.information).to_xml().getroot()
 
         dataset_metadata = [self._prepare_record(dataset.record_metadata) for dataset in project.datasets if dataset.publish_dataset]
         dataset_records = [metadata.to_xml().getroot() for metadata in dataset_metadata]
@@ -110,13 +148,20 @@ class ReDBoxWraper(object):
         self._create_working_dir()
 
         # 6. Write all records (dataset and service) to a tmp directory ready for upload.
-        self._write_to_tmp([project_record] + dataset_records + service_records)
+        self._write_to_tmp([project_record] + dataset_records)
 
         # 7. Upload all files in the
         self._upload_record_files()
 
         #8. Alert ReDBox that there are new records
         self._alert_redbox()
+
+        #9. Set the date that the records were added to ReDBox
+        project.information.date_added_to_redbox = datetime.now()
+
+        for dataset in project.datasets:
+            if dataset.publish_dataset:
+                dataset.record_metadata.date_added_to_redbox = datetime.now()
 
         #9. Remove the tmp directory
         shutil.rmtree(self.working_dir)
@@ -165,6 +210,9 @@ class ReDBoxWraper(object):
         # Only update the citation if it is empty
         if record.custom_citation is not True:
             self.pre_fill_citation(record)
+
+        if len(record.parties) > 1 and record.parties[0].identifier == record.parties[1].identifier:
+            del record.parties[1]
 
         return record
 
@@ -220,41 +268,41 @@ class ReDBoxWraper(object):
 
         related_parent = self._create_relationship_node(project_record, "isPartOf")
 
-        # Create the relationships for related data
-        related_siblings = []
-        related_children = []
-        for related_record in dataset_records:
-            sibling = self._create_relationship_node(related_record, "hasAssociationWith")
-            child = self._create_relationship_node(related_record, "hasPart")
-
-            original_records[related_record] = sibling
-
-            related_siblings.append(sibling)
-            related_children.append(child)
-
-        # Add all records generated from datasets as related data for the project record.
-        related_records = etree.SubElement(project_record, "related_records")
-        for child in related_children:
-            related_records.append(child)
+#        # Create the relationships for related data
+#        related_siblings = []
+#        related_children = []
+#        for related_record in dataset_records:
+##            sibling = self._create_relationship_node(related_record, "hasAssociationWith") - Don't do this, circular relationships!
+#            child = self._create_relationship_node(related_record, "hasPart")
+#
+##            original_records[related_record] = sibling
+#
+##            related_siblings.append(sibling)
+#            related_children.append(child)
+#
+#        # Add all records generated from datasets as related data for the project record.
+#        related_records = etree.SubElement(project_record, "related_records")
+#        for child in related_children:
+#            related_records.append(child)
 
         for record in dataset_records:
             # Add a data relationship to the project for on dataset records.
             related_records = etree.SubElement(record, "related_records")
-            related_records.append(related_parent)
+            related_records.append(deepcopy(related_parent))
 
-           # Add data relationships between all datasets within the project.
-            for related_record in related_siblings:
-               # Don't add a relationship to itself.
-                if related_record != original_records[record]:
-                    record.append(related_record)
-
-
-        #            # TODO: This is the related servces fields
-        #            "dc:relation.vivo:Service.0.dc:identifier": "some_identifier",
-        #            "dc:relation.vivo:Service.0.vivo:Relationship.rdf:PlainLiteral": "isProducedBy",
-        #            "dc:relation.vivo:Service.0.vivo:Relationship.skos:prefLabel": "Is produced by:",
-        #            "dc:relation.vivo:Service.0.dc:title": "Artificial tree sensor",
-        #            "dc:relation.vivo:Service.0.skos:note": "test notes",
+#           # Add data relationships between all datasets within the project.
+#            for related_record in related_siblings:
+#               # Don't add a relationship to itself.
+#                if related_record != original_records[record]:
+#                    record.append(related_record)
+#
+#
+#        #            # TODO: This is the related services fields
+#        #            "dc:relation.vivo:Service.0.dc:identifier": "some_identifier",
+#        #            "dc:relation.vivo:Service.0.vivo:Relationship.rdf:PlainLiteral": "isProducedBy",
+#        #            "dc:relation.vivo:Service.0.vivo:Relationship.skos:prefLabel": "Is produced by:",
+#        #            "dc:relation.vivo:Service.0.dc:title": "Artificial tree sensor",
+#        #            "dc:relation.vivo:Service.0.skos:note": "test notes",
 
 
     def _create_relationship_node(self, record, relationship_type):

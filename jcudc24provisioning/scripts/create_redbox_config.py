@@ -121,9 +121,9 @@ def create_json_config():
                     Collaborator.collaborator.key: "dc:contributor.locrel:clb.0.foaf:Agent",
                 },
 #                "descriptions": {
-                Metadata.full_desc_label.key + " | " + Metadata.brief_desc_label.key + " | " + Metadata.notes.key + "/*/" + MetadataNote.note_desc_label.key: "rif:description.0.label",
-                Metadata.full_desc_type.key + " | " + Metadata.brief_desc_type.key + " | " + Metadata.notes.key + "/*/" + MetadataNote.note_desc_type.key: "rif:description.0.type",
-                Metadata.full_desc.key + " | " + Metadata.brief_desc.key + " | " + Metadata.notes.key + "/*/" + MetadataNote.note_desc.key: "rif:description.0.value",
+                Metadata.brief_desc_label.key + " | " + Metadata.full_desc_label.key  + " | " + Metadata.notes.key + "/*/" + MetadataNote.note_desc_label.key: "rif:description.0.label",
+                Metadata.brief_desc_type.key + " | " + Metadata.full_desc_type.key + " | " + Metadata.notes.key + "/*/" + MetadataNote.note_desc_type.key: "rif:description.0.type",
+                Metadata.brief_desc.key + " | " + Metadata.full_desc.key + " | " + Metadata.notes.key + "/*/" + MetadataNote.note_desc.key: "rif:description.0.value",
                 Metadata.brief_desc.key: ["description", "dc:description"],
                 Metadata.keywords.key + "/*": {
                     Keyword.keyword.key: "dc:subject.vivo:keyword.0.rdf:PlainLiteral",

@@ -893,7 +893,7 @@ class Workflows(Layouts):
                 metadata_record = self.session.query(Metadata).filter_by(dataset_id=dataset.id).first()
                 redbox_uri = None
                 if metadata_record is not None:
-                    redbox_uri = self.config.get("redbox.url") + self.config.get("redbox.search_url") + str(metadata_record.redbox_identifier)
+                    redbox_uri = metadata_record.redbox_uri
                 redbox_records.append((dataset.name, redbox_uri,
                                        self.request.route_url("view_record", project_id=self.project_id, dataset_id=dataset.id),
                                        self.request.route_url("delete_record", project_id=self.project_id, dataset_id=dataset.id),
@@ -1059,7 +1059,7 @@ class Workflows(Layouts):
         # TODO:  Finalise generation of dataset specific metadata
 
         dataset = self.session.query(Dataset).filter_by(id=dataset_id).first()
-        height_text =  (" - %sm high") % dataset.dataset_locations[0].elevation if dataset.dataset_locations[0].elevation is not None else ""
+        height_text =  (", %sm above MSL") % dataset.dataset_locations[0].elevation if dataset.dataset_locations[0].elevation is not None else ""
         template_clone.project_title = "%s at %s (%s, %s%s) collected by %s" % \
                                (template_clone.project_title, dataset.dataset_locations[0].name, dataset.dataset_locations[0].get_latitude(),
                                 dataset.dataset_locations[0].get_longitude(), height_text, dataset.method.method_name)
