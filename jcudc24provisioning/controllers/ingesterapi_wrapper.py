@@ -25,7 +25,7 @@ def model_id_listener(self, attr, var):
             session = DBSession
             metadata = session.query(Metadata).filter_by(dataset_id=self.provisioning_model.id)
             config = jcudc24provisioning.global_settings
-            metadata.ccdam_identifier = config.get("ingesterapi.portal_url") % var
+            metadata.ccdam_identifier = config.get("ingesterapi.portal_url") + str(var)
 
 #        print "Model id set: " + str(var) + " : " + str(self.provisioning_model)
 
@@ -356,22 +356,10 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
                     recursive=True
                 )
 
-                if model.pull_data_source.custom_processor_script is not None:
-                    try:
-                        script_path = model.dataset_data_source.custom_processor_script
-                        with open(script_path) as f:
-                            script = f.read()
-                            if model.pull_data_source.custom_processing_parameters is not None:
-                                params = model.pull_data_source.custom_processing_parameters.split(",")
-                                for param in params:
-                                    param.strip()
-                                script = script % tuple(params)
+                if model.pull_data_source.custom_processor is not None:
+                    script = self._create_custom_processing_script(model.dataset_data_source.custom_processor)
+                    data_source.processing_script = script
 
-                                print script
-                            data_source.processing_script = script
-                    except IOError as e:
-                        logger.exception("Could not read custom processing script for dataset: %s" % model.name)
-                        raise ValueError("Could not read custom processing script for dataset: %s" % model.name)
             except Exception as e:
                 logger.exception("Trying to create an ingester pull data source with invalid parameters: %s, Error: %s" % (model.name, e))
                 raise ValueError("Trying to create an ingester pull data source with invalid parameters: %s, Error: %s" % (model.name, e))
@@ -422,20 +410,11 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
                     version=model.sos_scraper_data_source.version,
                 )
 
-                if model.sos_scraper_data_source.custom_processor_script is not None:
-                    try:
-                        script_path = model.dataset_data_source.custom_processor_script
-                        with open(script_path) as f:
-                            script = f.read()
-                            if model.sos_scraper_data_source.custom_processing_parameters is not None:
-                                params = model.sos_scraper_data_source.custom_processing_parameters.split(",")
-                                for param in params:
-                                    param.strip()
-                                script = script % tuple(params)
-                            data_source.processing_script = script
-                    except IOError as e:
-                        logger.exception("Could not read custom processing script for dataset: %s" % model.name)
-                        raise ValueError("Could not read custom processing script for dataset: %s" % model.name)
+                if model.sos_scraper_data_source.custom_processor is not None:
+                    if model.sos_scraper_data_source.custom_processor is not None:
+                        script = self._create_custom_processing_script(model.dataset_data_source.custom_processor)
+                        data_source.processing_script = script
+
             except Exception as e:
                 logger.exception("Trying to create an ingester pull data source with invalid parameters: %s, Error: %s" % (model.name, e))
                 raise ValueError("Trying to create an ingester pull data source with invalid parameters: %s, Error: %s" % (model.name, e))
@@ -465,31 +444,9 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
                logger.exception("Trying to create an ingester dataset data source with invalid parameters: %s" % model.name)
                raise ValueError("Trying to create an ingester dataset data source with invalid parameters: %s" % model.name)
 
-            if model.dataset_data_source.custom_processor_script is not None:
-                try:
-                    script_path = model.dataset_data_source.custom_processor_script
-                    with open(script_path) as f:
-                        script = f.read()
-                        if model.dataset_data_source.custom_processing_parameters is not None:
-                            temp_params = [param.strip() for param in model.dataset_data_source.custom_processing_parameters.split(",")]
-                            named_params = {'args': model.dataset_data_source.custom_processing_parameters}
-                            unnamed_params = []
-                            for param in temp_params:
-                                if '=' in param:
-                                    param_parts = param.split("=")
-                                    named_params[param_parts[0]] = param_parts[1]
-                                else:
-                                    unnamed_params.append(param)
-
-                            try:
-                                script = script.format(*unnamed_params, **named_params)
-                            except KeyError as e:
-                                raise ValueError("Invalid custom processing parameters for {} dataset: {}".format(model.name, e.message))
-                        data_source.processing_script = script
-                except IOError as e:
-                    logger.exception("Could not read custom processing script for dataset: %s" % model.name)
-                    raise ValueError("Could not read custom processing script for dataset: %s" % model.name)
-
+            if model.dataset_data_source.custom_processor is not None:
+                script = self._create_custom_processing_script(model.dataset_data_source.custom_processor)
+                data_source.processing_script = script
 
         new_dataset.data_source = data_source
 
@@ -512,6 +469,32 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
         pass # TODO: metadata
 
 
+    def _create_custom_processing_script(self, custom_processor):
+        script = None
+        try:
+            script_path = custom_processor.custom_processor_script
+            with open(script_path) as f:
+                script = f.read()
+                if custom_processor.custom_processing_parameters is not None:
+                    temp_params = [param.strip() for param in custom_processor.custom_processing_parameters.split(",")]
+                    named_params = {'args': custom_processor.custom_processing_parameters}
+                    unnamed_params = []
+                    for param in temp_params:
+                        if '=' in param:
+                            param_parts = param.split("=")
+                            named_params[param_parts[0]] = param_parts[1]
+                        else:
+                            unnamed_params.append(param)
+
+                    try:
+                        script = script.format(*unnamed_params, **named_params)
+                    except KeyError as e:
+                        raise ValueError("Invalid custom processing parameters for {}".format(custom_processor.custom_processor_script))
+        except IOError as e:
+            logger.exception("Could not read custom processing script: %s" % custom_processor.custom_processor_script)
+            raise ValueError("Could not read custom processing script: %s" % custom_processor.custom_processor_script)
+
+        return script
 
 
 

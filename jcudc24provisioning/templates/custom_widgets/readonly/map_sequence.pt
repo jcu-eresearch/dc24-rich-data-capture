@@ -1,0 +1,141 @@
+<!--
+    map_sequence is a template for a sequenceSchema that provides an openlayers map with the ability to add,
+    delete, edit and modify an expandable list of features (lines, points or polygons) either on using the map or by
+    editing the text.
+
+    This template is based directly off the sequence.pt (after modifications - see the modified sequence.pt for details)
+-->
+
+<div class="deformMapSeq"
+     id="${field.oid}"
+     tal:define="rndr field.renderer;
+                 item_tmpl field.widget.readonly_item_template;
+                 min_len field.widget.min_len or 0;
+                 max_len field.widget.max_len or 100000;
+                 now_len len(subfields);
+                 prototype field.widget.prototype(field)">
+
+<div class="location_map"></div>
+
+<!-- sequence -->
+
+<input type="hidden" name="__start__" value="${field.name}:sequence"
+       class="deformProto"
+       tal:attributes="prototype prototype"/>
+
+<ul id="seq_items-${field.oid}" class="full_width">
+
+    <div tal:repeat="tup subfields"
+         tal:replace="structure rndr(item_tmpl, field=tup[1], cstruct=tup[0],
+                      parent=field)"/>
+
+    <span class="deformInsertBefore"
+          tal:attributes="min_len min_len;
+                          max_len max_len;
+                          now_len now_len"></span>
+
+</ul>
+
+<input tal:condition="exists:field.schema.widget.points_only" class="points_only" value="${field.schema.widget.points_only}" type="hidden" />
+
+<script type="text/javascript">
+deform.addCallback(
+        '${field.oid}',
+        function (oid) {
+            var map_div = $('#' + oid).children('.location_map')[0];
+
+            var map = new OpenLayers.Map(map_div, {
+                projection:"EPSG:900913",
+                displayProjection:"EPSG:4326",
+                units:'m',
+                numZoomLevels:18
+            });
+
+            if (!document.location_maps) {
+                document.location_maps = [];
+            }
+
+            document.location_maps.push(map);
+
+            // create Google Mercator layers
+            var gphy = new OpenLayers.Layer.Google(
+                    "Google Physical",
+                    {type:google.maps.MapTypeId.TERRAIN}
+            );
+
+            var gmap = new OpenLayers.Layer.Google(
+                    "Google Streets", // the default
+                    {numZoomLevels:20}
+            );
+            var ghyb = new OpenLayers.Layer.Google(
+                    "Google Hybrid",
+                    {type:google.maps.MapTypeId.HYBRID, numZoomLevels:20}
+            );
+            var gsat = new OpenLayers.Layer.Google(
+                    "Google Satellite",
+                    {type:google.maps.MapTypeId.SATELLITE, numZoomLevels:22}
+            );
+
+            // create a vector layer for drawing
+            var vector = new OpenLayers.Layer.Vector("Research Locations");
+            vector.events.register("featuremodified", vector, modifyFeature);
+            vector.events.register("featureadded", vector, featureInserted);
+
+            map.addLayers([
+                gphy, gmap, gsat, ghyb, vector
+            ]);
+            map.addControl(new OpenLayers.Control.LayerSwitcher());
+            //        map.addControl(new OpenLayers.Control.EditingToolbar(vector));
+            //                            map.addControl(new OpenLayers.Control.Permalink());
+            map.addControl(new OpenLayers.Control.MousePosition());
+
+//            if ($("#" + oid).children(".points_only").length > 0 && $("#" + oid).children(".points_only")[0].value == 'True') {
+//                var panelControls = [
+//                    new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.Point, {title:"Draw points", 'displayClass':'olControlDrawFeaturePoint'}),
+//                    new OpenLayers.Control.Navigation({title:"Navigate only"})
+//                ];
+//            } else {
+//                var panelControls = [
+//                    new OpenLayers.Control.SelectFeature(vector, {title:"Delete", onSelect:deleteFeature, 'displayClass':'olControlDeleteFeature'}),
+//                    new OpenLayers.Control.ModifyFeature(vector, {title:"Move points", mode:OpenLayers.Control.ModifyFeature.RESHAPE}),
+//                    new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.Point, {title:"Draw points", 'displayClass':'olControlDrawFeaturePoint'}),
+//                    new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.RegularPolygon, {handlerOptions: {sides: 4, irregular: true}, title:"Draw box", 'displayClass':'olControlDrawFeatureBox'}),
+//                    new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.Path, {title:"Draw lines", 'displayClass':'olControlDrawFeaturePath'}),
+//                    new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.Polygon, {title:"Draw shapes", 'displayClass':'olControlDrawFeaturePolygon'}),
+//                    new OpenLayers.Control.Navigation({title:"Navigate only"})
+//                ];
+//            }
+//            var toolbar = new OpenLayers.Control.Panel({
+//                displayClass:'olControlEditingToolbar',
+//                defaultControl:panelControls[0]
+//            });
+//            toolbar.addControls(panelControls);
+//            map.addControl(toolbar);
+
+            var proj = new OpenLayers.Projection("EPSG:4326");
+            var point = new OpenLayers.LonLat(135, -25);
+            map.setCenter(point.transform(proj, map.getProjectionObject()), 3);
+
+            addMapFeatures(oid);
+
+        }
+);
+
+deform.addCallback(
+        '${field.oid}',
+        function (oid) {
+            oid_node = $('#' + oid);
+            deform.processSequenceButtons(oid_node, ${min_len},
+                    ${max_len}, ${now_len});
+        }
+);
+
+</script>
+
+<input type="hidden" name="__end__" value="${field.name}:sequence"/>
+
+<!-- /sequence -->
+
+</div>
+
+

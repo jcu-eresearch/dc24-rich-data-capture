@@ -196,4 +196,5 @@ class SFTPFileSend(object):
         ## end of http://code.activestate.com/recipes/576810/ }}}
 
     def close(self):
-        self.transport.close()
+        if self.transport is not None:
+            self.transport.close()

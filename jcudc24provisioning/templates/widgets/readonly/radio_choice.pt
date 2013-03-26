@@ -1,7 +1,19 @@
-<ul i18n:domain="deform">
-<li tal:repeat="(value, description) field.widget.values">
-  <span>${description}</span>
-  <em tal:condition="value == cstruct" i18n:translate="">Selected</em>
-  <em tal:condition="value != cstruct" i18n:translate="">Not Selected</em>
-</li>
+<ul class="deformSet">
+    <input type="hidden" name="__start__" value="${field.name}:rename"/>
+    <tal:loop tal:repeat="choice field.widget.values">
+      <tal:def tal:define="(value, title) choice">
+        <li class="deformSet-item">
+            <input tal:attributes="checked value == cstruct;
+                                   class field.widget.css_class;
+                                   disabled 'disabled'; readonly 'readonly'"
+                   type="radio"
+                   name="${field.oid}"
+                   value="${value}"
+                   id="${field.oid}-${repeat.choice.index}"/>
+            <label for="${field.oid}-${repeat.choice.index}" tal:content="structure title" style="display: inline;"></label>
+        </li>
+      </tal:def>
+    </tal:loop>
+    <input type="hidden" name="__end__"/>
 </ul>
+

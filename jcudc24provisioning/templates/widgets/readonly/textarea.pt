@@ -1,1 +1,19 @@
-<p id="${field.oid}">${cstruct}</p>
+<tal:block define="placeholder field.schema.__dict__.get('placeholder') or nothing;
+                   default_text cstruct or field.schema.default or placeholder">
+    <textarea tal:attributes="rows field.widget.rows;
+                          cols field.widget.cols;
+                          class (field.widget.css_class or '') + (default_text == field.schema.__dict__.get('placeholder') and ' placeholder_text' or '');
+                          disabled 'disabled'; readonly 'readonly'"
+              id="${field.oid}" name="${field.name}"
+              onfocus="if (value == '${field.schema.__dict__.get('placeholder')}') {className = className.replace( /(?:^|\s)placeholder_text(?!\S)/g , '' ); value='';}"
+              onblur="if (value == '') {value='${placeholder}'; className += ' placeholder_text';}">${default_text}</textarea>
+
+    <script tal:condition="field.schema.__dict__.get('placeholder')" type="text/javascript">
+        type = "text/javascript" >
+                deform.addCallback(
+                        '${field.oid}',
+                        function (oid) {
+                            submitClearsDefaultValues(oid, "${field.schema.__dict__.get('placeholder')}");
+                        });
+    </script>
+</tal:block>

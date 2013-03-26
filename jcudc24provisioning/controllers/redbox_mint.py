@@ -3,6 +3,7 @@ from datetime import datetime
 import random
 import shutil
 import string
+import colander
 from paste.deploy.converters import asint
 import requests
 from jcudc24provisioning.controllers.sftp_filesend import SFTPFileSend
@@ -189,7 +190,7 @@ class ReDBoxWraper(object):
 
         mint_lookup = MintLookup(None)
 
-        if record.grant is not None:
+        if record.grant is not None and record.grant != str(colander.null):
             mint_grant = mint_lookup.get_from_identifier(record.grant)
             record.grant_number = record.grant.split("/")[-1]
             record.grant_label = mint_grant['rdfs:label']

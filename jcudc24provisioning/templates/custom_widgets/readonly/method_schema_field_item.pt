@@ -1,10 +1,4 @@
-<!--
-Modified:
- * Structural titles
- * Structural descriptions
- * Toggleable help
- * Checkboxes go in front of label
--->
+<!--This template is based off mapping_item to conditionally display custom field configuration fields-->
 
 <li class="field${field.error and ' ' + (field.widget.error_class or '')}"
     id="item-${field.oid}"
@@ -16,27 +10,19 @@ Modified:
           tal:condition="field.schema.__dict__.get('placeholder')"
           tal:content="structure field.schema.__dict__.get('placeholder')"></span>
 
-    <span tal:condition="'CheckboxWidget' in str(field.widget)" tal:replace="structure field.serialize(cstruct, readonly=True)" />
-
-    <span class="help_icon"
-          onclick="toggleHelp(this);"
-          tal:condition="not (field.widget.hidden or field.widget.category == 'structural') and field.schema.__dict__.get('help')">
-        ?
-    </span>
-
     <!-- mapping_item -->
     <label tal:condition="not (field.widget.hidden or
                              field.widget.category == 'structural')"
-           tal:attributes="field_type field.widget.readonly_template"
-           style="display: inline;"
            class="desc"
            for="${field.oid}">
+        <span class="help_icon" onclick="toggleHelp(this);" tal:condition="field.schema.__dict__.get('help')">?</span>
         ${field.title}<span tal:condition="field.required" class="req" id="req-${field.oid}">*</span>
+
     </label>
 
 
     <div id="help-${field.oid}" tal:condition="field.schema.__dict__.get('help') and not (field.widget.hidden or
-         field.widget.category == 'structural')"
+                           field.widget.category == 'structural')"
          class="help_text hidden"
          tal:content="structure field.schema.__dict__.get('help')">
     </div>
@@ -47,11 +33,10 @@ Modified:
          tal:content="structure field.description">
     </div>
 
-    <span tal:condition="not 'CheckboxWidget' in str(field.widget)" tal:replace="structure field.serialize(cstruct, readonly=True)"
-            style="display: block;"/>
+    <span tal:content="structure field.serialize(cstruct, readonly=True)"/>
 
 
-    <p tal:condition="field.error and not field.widget.hidden and not field.typ.__class__.__name__=='Mapping' and field.widget.error_class"
+    <p tal:condition="field.error and not field.widget.hidden and not field.typ.__class__.__name__=='Mapping'"
        tal:define="errstr 'error-%s' % field.oid"
        tal:repeat="msg field.error.messages()"
        tal:attributes="id repeat.msg.index==0 and errstr or
@@ -59,18 +44,6 @@ Modified:
        class="${field.widget.error_class}"
        i18n:translate="">${msg}</p>
 
-    <script type="text/javascript">
-        deform.addCallback(
-                '${field.oid}',
-                function (oid) {
-                    var list_item = $("#item-" + oid);
-                    if (list_item.children(".structural_title_content").length > 0) {
-                        var structural_element = list_item.children(".structural_title_content")[0];
-                        var title_text = structural_element.innerHTML;
-                        list_item[0].title = title_text;
-                    }
-                });
-    </script>
 
     <!-- /mapping_item -->
 </li>

@@ -166,7 +166,7 @@ class Workflows(Layouts):
     def redbox(self):
         if '_redbox' not in locals():
             # Get Redbox conconfigurations
-            alert_url = self.config.get("redbox.url") + self.config.get("redbox.alert_url")
+            alert_url = self.config.get("redbox.alert_url") + self.config.get("redbox.alert_url")
             host = self.config.get("redbox.ssh_host")
             port = self.config.get("redbox.ssh_port")
             private_key = self.config.get("redbox.rsa_private_key")
@@ -579,7 +579,7 @@ class Workflows(Layouts):
 
             if 'project_lead' in appstruct:
                 project_lead = Party()
-                project_lead.party_relationship = "isOwnedBy"
+                project_lead.party_relationship = "hasCollector"
                 project_lead.identifier = appstruct['project_lead']
                 new_parties.append(project_lead)
 
@@ -956,21 +956,6 @@ class Workflows(Layouts):
 
         if APPROVE_TEXT in self.request.POST and self.project.state == ProjectStates.SUBMITTED:
             try:
-                # Make sure all dataset record have been created
-                for dataset in self.project.datasets:
-                    if (dataset.record_metadata is None):
-                        dataset.record_metadata = self.generate_dataset_record(dataset.id)
-                self.session.flush()
-
-                self.redbox.insert_project(self.project_id)
-
-            except Exception as e:
-                logger.exception("Project failed to add to ReDBox: %s", self.project.id)
-                self.request.session.flash("Sorry, the project failed to generate or add metadata records to ReDBox, please try agiain.", 'error')
-                self.request.session.flash("Error: %s" % e, 'error')
-                return self._create_response(page_help=page_help)
-
-            try:
                 self.ingester_api.post(self.project)
                 self.ingester_api.close()
                 logger.info("Project has been added to ingesterplatform successfully: %s", self.project.id)
@@ -979,6 +964,22 @@ class Workflows(Layouts):
                 self.request.session.flash("Failed to configure data storage and ingestion.", 'error')
                 self.request.session.flash("Error: %s" % e, 'error')
                 return self._create_response(page_help=page_help)
+
+#            try:
+#                # Make sure all dataset record have been created
+#                for dataset in self.project.datasets:
+#                    if (dataset.record_metadata is None):
+#                        dataset.record_metadata = self.generate_dataset_record(dataset.id)
+#                self.session.flush()
+#
+#                self.redbox.insert_project(self.project_id)
+#
+#            except Exception as e:
+#                logger.exception("Project failed to add to ReDBox: %s", self.project.id)
+#                self.request.session.flash("Sorry, the project failed to generate or add metadata records to ReDBox, please try agiain.", 'error')
+#                self.request.session.flash("Error: %s" % e, 'error')
+#                return self._create_response(page_help=page_help)
+
 
             # Change the state to active
             self.project.state = ProjectStates.ACTIVE
@@ -1101,12 +1102,12 @@ class Workflows(Layouts):
 #                    print range(len(dataset.logs)).reverse()
                     for i in reversed(range(len(dataset.logs))):
 #                        print "Level filter: " + str(dataset.logs[i]['level']) + " : " + str(self.request.POST['level'])
-                        if 'level' in self.request.POST and str(self.request.POST['level']) != "ALL" and str(dataset.logs[i]['level']) != str(self.request.POST['level']):
+                        if 'level' in self.request.POST and str(self.request.POST['level']) != "ALL" and str(dataset.logs[i].level) != str(self.request.POST['level']):
                             del dataset.logs[i]
                             continue
 #                        print "data: %s" % dataset.logs[i]['timestamp'].partition('T')[0]
                         try:
-                            log_date = datetime.strptime(str(dataset.logs[i]['timestamp']).partition('T')[0], '%Y-%m-%d').date()
+                            log_date = dataset.logs[i].timestamp.date()
                         except Exception as e:
                             logger.exception("Log date wasn't parsable: %s" % e)
                             continue
@@ -1129,21 +1130,26 @@ class Workflows(Layouts):
 
         schema.children[1].datasets = datasets
 
-        if 'target' in self.request.POST and self.request.POST['target']:
-            target = self.request.POST['target']
-            return HTTPFound(self.request.route_url(target, project_id=self.project_id))
+        # If this page was only called for saving and a rendered response isn't needed, return now.
+        if self._handle_form():
+            return
 
-        appstruct = {}
-        if self.request.POST.items() > 0:
-            try:
-                appstruct = self.form.validate(self.request.POST.items())
-                display = self.form.render(appstruct)
-            except ValidationFailure, e:
-                appstruct = e.cstruct
-                display = e.render()
-
-
-        return {"page_title": self.find_menu()['page_title'], "form": display, "form_only": False, 'messages': self._get_messages(), 'page_help': page_help}
+        return self._create_response(page_help=page_help)
+#        if 'target' in self.request.POST and self.request.POST['target']:
+#            target = self.request.POST['target']
+#            return HTTPFound(self.request.route_url(target, project_id=self.project_id))
+#
+#        appstruct = {}
+#        if self.request.POST.items() > 0:
+#            try:
+#                appstruct = self.form.validate(self.request.POST.items())
+#                display = self.form.render(appstruct)
+#            except ValidationFailure, e:
+#                appstruct = e.cstruct
+#                display = e.render()
+#
+#
+#        return {"page_title": self.find_menu()['page_title'], "form": display, "form_only": False, 'messages': self._get_messages(), 'page_help': page_help}
 
     @view_config(route_name="duplicate")
     def duplicate_view(self):
@@ -1173,14 +1179,17 @@ class Workflows(Layouts):
 
     @view_config(route_name="manage_data")
     def manage_data_view(self):
-        raise NotImplementedError("This page hasn't been implemented yet.")
 
         page_help=""
         schema = IngesterLogs()
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Refresh',), use_ajax=False)
 
 
-        return self.handle_form(self.form, schema, page_help)
+        # If this page was only called for saving and a rendered response isn't needed, return now.
+        if self._handle_form():
+            return
+
+        return self._create_response(page_help=page_help)
 
     @view_config(route_name="permissions")
     def permissions_view(self):

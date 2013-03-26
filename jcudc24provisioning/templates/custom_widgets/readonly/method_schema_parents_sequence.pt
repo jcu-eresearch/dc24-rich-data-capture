@@ -1,0 +1,91 @@
+<!--
+    This template has been modified by removing the href from the add link, this stops the page from jumping to the
+    top whenever an item is added.
+-->
+<div  tal:condition="not hasattr(field.schema, 'template_schemas')">
+    <i>No template schemas have been defined by the admins!</i>
+</div>
+<div class="deformSeq-schema_parents"
+     id="${field.oid}"
+     tal:define="rndr field.renderer;
+                 item_tmpl field.widget.readonly_item_template;
+                 min_len field.widget.min_len or 0;
+                 max_len field.widget.max_len or 100000;
+                 now_len len(subfields);
+                 prototype field.widget.prototype(field)"
+     tal:condition="hasattr(field.schema, 'template_schemas')">
+
+    <!-- sequence -->
+
+    <select class="method_schema_parents_item">
+        <tal:block tal:repeat="schema field.schema.template_schemas">
+
+            <option tal:content="schema.name"
+                    tal:attributes="value schema.id"/>
+
+        </tal:block>
+    </select>
+    <input type="hidden" name="__start__" value="${field.name}:sequence"
+           class="deformProto"
+           tal:attributes="prototype prototype"/>
+
+    <a
+            class="deformSeqAdd"
+            id="${field.oid}-seqAdd"
+            onclick="deform.appendSequenceItem(this); updateParentItem(this)">
+        <small id="${field.oid}-addtext">${add_subitem_text}</small>
+    </a>
+
+    <ul id="seq_items-${field.oid}">
+        <div tal:repeat="tup subfields"
+             tal:replace="structure rndr(item_tmpl, field=tup[1], cstruct=tup[0],
+                      parent=field)"/>
+
+    <span class="deformInsertBefore"
+          tal:attributes="min_len min_len; 
+                          max_len max_len; 
+                          now_len now_len"></span>
+
+    </ul>
+
+
+    <script type="text/javascript">
+        function updateParentItem(add_button) {
+            var select_element=$(add_button.parentNode).children('select').first()[0];
+            var selected_option = select_element.options[select_element.selectedIndex];
+
+            var fields = $(add_button.parentNode).find('ul').first().find('input[readonly=readonly]');
+            var name_element = fields.last()[0];
+            name_element.value=selected_option.innerHTML;
+//            $(add_button.parentNode).find('ul').first().find('span input:first')[0].value=selected_option.value;
+
+//            $(selected_option.parentNode).find("option").attr({disabled: ''});
+//            $(selected_option.parentNode).find("option").show(0);
+            for (var i = 0; i < fields.length; i++) {
+//                $(selected_option.parentNode).find("option:contains('"+fields[i].value+"')").attr({disabled: 'disabled'});
+//                $(selected_option.parentNode).find("option:contains('"+fields[i].value+"')").hide(0)
+
+                if (fields[i].value == name_element.value && fields[i] != name_element) {
+                    var sequence_item = $(fields[i]).parents(".deformSeq-schema_parents li");
+                    sequence_item.find("li").first().replaceWith("Cannot add duplicate parent schemas.");
+                    sequence_item.delay(2000);
+                    sequence_item.hide(500, function(){$(fields[i]).parents(".deformSeq-schema_parents li").remove();});
+                }
+            }
+        }
+
+        deform.addCallback(
+                '${field.oid}',
+                function (oid) {
+                    oid_node = $('#' + oid);
+                    deform.processSequenceButtons(oid_node, ${min_len},
+                            ${max_len}, ${now_len});
+                }
+        )
+    </script>
+
+    <input type="hidden" name="__end__" value="${field.name}:sequence"/>
+
+    <!-- /sequence -->
+
+</div>

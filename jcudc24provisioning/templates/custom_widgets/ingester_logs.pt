@@ -3,12 +3,12 @@
 
     <p tal:condition="len(field.schema.datasets) <=0" class="error">There are no datasets configured for this project.</p>
     <div tal:repeat="dataset field.schema.datasets" class="logs_dataset content_container" style="position: relative">
-        <h3>${dataset.title}</h3>
+        <h3>${dataset.name}</h3>
         <a href="./dataset_${dataset.id}_logs.txt" style="position: absolute; right: 5px; top: 0;">dataset_${dataset.id}_logs.txt</a>
-        <p class="error" tal:condition="exists:dataset.logs_error">${dataset.logs_error}</p>
+        <p class="error" tal:condition="hasattr(dataset, 'logs_error')">${dataset.logs_error}</p>
         <div tal:condition="exists:dataset.logs">
             <p tal:condition="len(dataset.logs) <= 0"><i>This dataset has no ingester logs.</i></p>
-            <p tal:repeat="log dataset.logs" class="level-${log['level']}">${log['timestamp']} ${log['message']}</p>
+            <p tal:repeat="log dataset.logs" class="level-${log.level}">${log.timestamp} ${log.message}</p>
         </div>
     </div>
 

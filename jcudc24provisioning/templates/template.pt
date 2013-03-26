@@ -110,9 +110,8 @@
            });
        }); */
 
-
         $(function () {
-            if ($("#deform").length <= 0) {
+            if ($("#deform").length <= 0 ||$("#deform").attr('readonly') == 'readonly') {
                 window.onbeforeunload = null;
             }
         });

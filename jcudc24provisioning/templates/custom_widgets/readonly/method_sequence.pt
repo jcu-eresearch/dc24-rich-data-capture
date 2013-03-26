@@ -1,9 +1,6 @@
 <!--
-    This template has been modified by removing the href from the add link, this stops the page from jumping to the
-    top whenever an item is added.
--->
-<!--If remove stops working update deform.js
-    line 129    var $before_node = $oid_node.children('ul').first().children('.deformInsertBefore').first();
+    This template has been modified from sequence.pt specifically for the methods page
+    The intent is to provide template selection and AJAX autocomplete when adding methods.
 -->
 
 <div class="deformSeq"
@@ -19,7 +16,9 @@
 
     <input type="hidden" name="__start__" value="${field.name}:sequence"
            class="deformProto"
-           tal:attributes="prototype prototype"/>
+           tal:attributes="prototype prototype
+                         disabled 'disabled';
+                         readonly 'readonly'"/>
 
     <ul id="seq_items-${field.oid}">
 
@@ -34,16 +33,6 @@
 
     </ul>
 
-    <script type="text/javascript">
-        deform.addCallback(
-                '${field.oid}',
-                function (oid) {
-                    oid_node = $('#' + oid);
-                    deform.processSequenceButtons(oid_node, ${min_len},
-                            ${max_len}, ${now_len});
-                }
-        )
-    </script>
 
     <input type="hidden" name="__end__" value="${field.name}:sequence"/>
 

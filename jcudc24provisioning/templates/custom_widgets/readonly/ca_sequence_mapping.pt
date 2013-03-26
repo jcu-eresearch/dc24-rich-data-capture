@@ -1,26 +1,12 @@
 <fieldset id="mapping-${field.oid}" i18n:domain="deform"
           tal:attributes="class 'deformMappingFieldset ' + str((field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and ('collapsible-'+str(field.schema.__dict__.get('collapse_group')) or nothing))">
     <!-- mapping -->  <!--<legend 1tal:condition="field.schema.__dict__.get('collapsed')"><span class="collapse_icon">+ </span>${field.title}</legend>-->
-    <legend class="collapsible"
-            tal:condition="(field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and field.title"
-            tal:define="symbol (field.schema.__dict__.get('collapsed') == True and '+') or '-'">
-            <span class="help_icon" onclick="toggleHelp(this);" tal:condition="field.schema.__dict__.get('help')">?</span>
-            <span onclick="toggleCollapse(this.parentNode, '${field.schema.__dict__.get('collapse_group')}');" class="collapse_icon">${symbol}</span> ${field.title}
-        <!--#[<a class="expand_all" onclick="expandAll('${field.schema.__dict__.get('collapse_group')}');">Expand All</a>/<a onclick="collapseAll('${field.schema.__dict__.get('collapse_group')}');" class="collapse_all">Collapse All</a>]-->
-    </legend>
-    <legend tal:condition="not (field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and field.title">
-        <span class="help_icon" onclick="$(this.parentNode.parentNode).find('.help_text').first().toggle(200)" tal:condition="field.schema.__dict__.get('help')">?</span>
-        ${field.title}
-    </legend>
     <ul tal:attributes="style ('display: ' + str(field.schema.__dict__.get('collapsed') == True and 'none'));
                       class str((field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and 'collapsible_items' or nothing)">
         <li class="errorLi" tal:condition="field.errormsg">
             <h3 class="errorMsgLbl" i18n:translate="">There was a problem with this section</h3>
 
             <p class="errorMsg">${field.errormsg}</p>
-        </li>
-        <li class="help_text hidden section" tal:condition="field.schema.__dict__.get('help')">
-             <div id="help-${field.oid}" tal:content="structure field.schema.__dict__.get('help')"></div>
         </li>
         <li class="section description" tal:condition="field.description">
             <div id="desc-${field.oid}" tal:content="structure field.description"></div>

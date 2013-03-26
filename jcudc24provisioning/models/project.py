@@ -621,7 +621,7 @@ class CustomProcessor(CAModel, Base):
             ca_description="Comma separated list of parameters.",
             ca_help="Parameters are added via python string formatting syntax, simply add %s or %(<i>name</i>)s wherever you want a parameter inserted (parameters must either be added in the correct order or be named).")
 
-    custom_processor_script = Column(String(512), ca_type = deform.FileData(), ca_missing=colander.null ,ca_order=next(order_counter),ca_widget=upload_widget,
+    custom_processor_script = Column(String(512), ca_missing=colander.null ,ca_order=next(order_counter),ca_widget=upload_widget,
         ca_title="Upload custom processing script",
         ca_group_end="method",
         ca_description="Upload a custom Python script to "\
@@ -685,7 +685,7 @@ class PullDataSource(CAModel, Base):
         ca_title="Describe custom sampling needs", ca_missing="",
         ca_description="Describe your sampling requirements and what your uploaded script does, or what you will need help with.")
 
-    custom_sampling_script = Column(String(512), ca_type = deform.FileData(), ca_missing=colander.null ,ca_order=next(order_counter),ca_widget=upload_widget,
+    custom_sampling_script = Column(String(512), ca_missing=colander.null ,ca_order=next(order_counter),ca_widget=upload_widget,
         ca_title="Upload custom sampling script",
         ca_group_end="sampling",
         ca_description="Upload a custom Python script to "\
@@ -699,6 +699,7 @@ class PullDataSource(CAModel, Base):
         ca_placeholder="eg. Extract he humidity and temperature values from the raw data file received in another dataset.",
         ca_title="Describe custom processing needs", ca_missing="", ca_description="Describe your processing "\
                                    "requirements and what your uploaded script does (or what you will need help with).")
+
 
 
 class PushDataSource(CAModel, Base):
@@ -756,23 +757,24 @@ class SOSScraperDataSource(CAModel, Base):
                 "<p>If you require something more advanced you can provide your own cron string or any filtering can be achieved by adding a custom "\
                 "sampling script below.</p><p>The sampling script API can be found <a href="">here</a></p>.")
 
-    custom_processor_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
-        ca_group_start="processing", ca_group_collapsed=False, ca_group_title="Custom Data Processing",  ca_group_validator=custom_processing_validator,
-        ca_placeholder="eg. Extract he humidity and temperature values from the raw data file received in another dataset.",
-        ca_title="Describe custom processing needs", ca_missing="", ca_description="Describe your processing "\
-                                                                                   "requirements and what your uploaded script does (or what you will need help with).")
+#    custom_processor_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
+#        ca_group_start="processing", ca_group_collapsed=False, ca_group_title="Custom Data Processing",  ca_group_validator=custom_processing_validator,
+#        ca_placeholder="eg. Extract he humidity and temperature values from the raw data file received in another dataset.",
+#        ca_title="Describe custom processing needs", ca_missing="", ca_description="Describe your processing "\
+#                                                                                   "requirements and what your uploaded script does (or what you will need help with).")
+#
+#    custom_processing_parameters = Column(String(512),ca_order=next(order_counter),
+#        ca_description="Comma separated list of parameters.",
+#        ca_help="Parameters are added via python string formatting syntax, simply add %s or %(<i>name</i>)s wherever you want a parameter inserted (parameters must either be added in the correct order or be named).")
 
-    custom_processing_parameters = Column(String(512),ca_order=next(order_counter),
-        ca_description="Comma separated list of parameters.",
-        ca_help="Parameters are added via python string formatting syntax, simply add %s or %(<i>name</i>)s wherever you want a parameter inserted (parameters must either be added in the correct order or be named).")
 
+    custom_processor_id = Column(Integer, ForeignKey('custom_processor.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    custom_processor = relationship("CustomProcessor", uselist=False, ca_order=next(order_counter), ca_group_collapsed=False,
+            ca_group_title="Custom Data Processing",  ca_group_validator=custom_processing_validator,
+            ca_placeholder="eg. Extract he humidity and temperature values from the raw data file received in another dataset.",
+            ca_title="Describe custom processing needs", ca_missing="", ca_description="Describe your processing "\
+                                       "requirements and what your uploaded script does (or what you will need help with).")
 
-    custom_processor_script = Column(String(512), ca_type = deform.FileData(), ca_missing=colander.null ,ca_order=next(order_counter),ca_widget=upload_widget,
-        ca_title="Upload custom processing script",
-        ca_group_end="method",
-        ca_description="Upload a custom Python script to "\
-                       "process the data in some way.  The processing script API can be found "\
-                       "<a title=\"Python processing script API\"href=\"\">here</a>.")
 
 @colander.deferred
 def dataset_select_widget(node, kw):
@@ -795,22 +797,22 @@ class DatasetDataSource(CAModel, Base):
     dataset_data_source_id = Column(Text(), ca_title="Source Dataset", ca_order=next(order_counter), ca_widget=dataset_select_widget,
         ca_description="The dataset to retrieve processed data from.  If there are no items to select from - there must be other datasets already setup!")
 
-    custom_processor_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
-        ca_group_start="processing", ca_group_collapsed=False, ca_group_title="Custom Data Processing",  ca_group_validator=custom_processing_validator,
-        ca_placeholder="eg. Extract he humidity and temperature values from the raw data file received in another dataset.",
-        ca_title="Describe custom processing needs", ca_missing="", ca_description="Describe your processing "\
-                    "requirements and what your uploaded script does (or what you will need help with).")
+#    custom_processor_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
+#        ca_group_start="processing", ca_group_collapsed=False, ca_group_title="Custom Data Processing",  ca_group_validator=custom_processing_validator,
+#        ca_placeholder="eg. Extract he humidity and temperature values from the raw data file received in another dataset.",
+#        ca_title="Describe custom processing needs", ca_missing="", ca_description="Describe your processing "\
+#                    "requirements and what your uploaded script does (or what you will need help with).")
+#
+#    custom_processing_parameters = Column(String(512),ca_order=next(order_counter),
+#            ca_description="Comma separated list of parameters.",
+#            ca_help="Parameters are added via python string formatting syntax, simply add %s or %(<i>name</i>)s wherever you want a parameter inserted (parameters must either be added in the correct order or be named).")
 
-    custom_processing_parameters = Column(String(512),ca_order=next(order_counter),
-            ca_description="Comma separated list of parameters.",
-            ca_help="Parameters are added via python string formatting syntax, simply add %s or %(<i>name</i>)s wherever you want a parameter inserted (parameters must either be added in the correct order or be named).")
-
-    custom_processor_script = Column(String(512), ca_type = deform.FileData(), ca_missing=colander.null ,ca_order=next(order_counter),ca_widget=upload_widget,
-        ca_title="Upload custom processing script",
-        ca_description="Upload a custom Python script to "\
-            "process the data in some way.  The processing script API can be found "\
-            "<a title=\"Python processing script API\"href=\"\">here</a>.")
-
+    custom_processor_id = Column(Integer, ForeignKey('custom_processor.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    custom_processor = relationship("CustomProcessor", uselist=False, ca_order=next(order_counter), ca_group_collapsed=False,
+            ca_group_title="Custom Data Processing",  ca_group_validator=custom_processing_validator,
+            ca_placeholder="eg. Extract he humidity and temperature values from the raw data file received in another dataset.",
+            ca_title="Describe custom processing needs", ca_missing="", ca_description="Describe your processing "\
+                                       "requirements and what your uploaded script does (or what you will need help with).")
 
 class MethodTemplate(CAModel, Base):
     """
@@ -901,7 +903,7 @@ class Method(CAModel, Base):
 
     method_website = relationship("MethodWebsite", ca_order=next(order_counter), ca_missing=colander.null,
         cascade="all, delete-orphan",ca_title="Further information website (Such as manufacturers website or supporting web resources)",
-        ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"), ca_child_title="Website",
+        ca_child_widget=deform.widget.MappingWidget(template="inline_mapping", readonly_template="readonly/inline_mapping"), ca_child_title="Website",
         ca_help="If there are web addresses that can provide more information on your data collection method, add them here.  Examples may include manufacturers of your equipment or an article on the calibration methods used.")
 
     datasets = relationship("Dataset", ca_order=next(order_counter), ca_missing=colander.null,
@@ -970,14 +972,14 @@ class Dataset(CAModel, Base):
 #        , ca_missing="", ca_placeholder="eg. Australian Wet Tropics or Great Barrier Reef")
 
     dataset_locations = relationship('Location', ca_order=next(order_counter), ca_title="Location",
-        cascade="all, delete-orphan",ca_widget=deform.widget.SequenceWidget(template='map_sequence', max_len=1, min_len=1, points_only=True, error_class="error"),
+        cascade="all, delete-orphan",ca_widget=deform.widget.SequenceWidget(template='map_sequence', readonly_template='readonly/map_sequence', max_len=1, min_len=1, points_only=True, error_class="error"),
         ca_force_required=True,
-        ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
+        ca_child_widget=deform.widget.MappingWidget(template="inline_mapping", readonly_template="readonly/inline_mapping"),
         ca_missing="", ca_help="<p>Use the drawing tools on the map and/or edit the text representations below.</p><p>Locations are represented using <a href='http://en.wikipedia.org/wiki/Well-known_text#Geometric_Objects'>Well-known Text (WKT) markup</a> in the WGS 84 coordinate system (coordinate system used by GPS).</p>")
 
     location_offset = relationship('LocationOffset', uselist=False, ca_order=next(order_counter), ca_title="Location Offset (optional)",
         cascade="all, delete-orphan",
-        ca_group_end="coverage", ca_widget=deform.widget.MappingWidget(template="inline_mapping", show_label=True),
+        ca_group_end="coverage", ca_widget=deform.widget.MappingWidget(template="inline_mapping", readonly_template="readonly/inline_mapping", show_label=True),
         ca_missing=colander.null, ca_help="Use an offset from the current location where the current location is the project location if valid, else the dataset location (eg. such as the artificial tree location is known so use z offsets for datasets).")
 
     form_data_source = relationship("FormDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False, cascade="all, delete-orphan",ca_collapsed=False)
@@ -1198,7 +1200,7 @@ class Metadata(CAModel, Base):
     parties = relationship('Party', ca_title="People", ca_order=next(order_counter),
         cascade="all, delete-orphan",
         ca_widget=deform.widget.SequenceWidget(min_len=1), ca_missing="", ca_page="general",
-        ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
+        ca_child_widget=deform.widget.MappingWidget(template="inline_mapping", readonly_template="readonly/inline_mapping"),
         ca_child_title="Person",
         ca_help="Enter the details of all associated people.  There will already be some pre-filled:"
                 "<ul><li>Project lead and data manager from the project creation wizard.</li>"
@@ -1326,10 +1328,10 @@ class Metadata(CAModel, Base):
 #        , ca_missing="", ca_placeholder="eg. Australian Wet Tropics or Great Barrier Reef")
 
 
-    locations = relationship('Location', ca_order=next(order_counter), ca_title="Location", ca_widget=deform.widget.SequenceWidget(template='map_sequence', error_class="error"), ca_page="information",
+    locations = relationship('Location', ca_order=next(order_counter), ca_title="Location", ca_widget=deform.widget.SequenceWidget(template='map_sequence', readonly_template='readonly/map_sequence', error_class="error"), ca_page="information",
         cascade="all, delete-orphan", ca_validator=sequence_required_validator,
         ca_force_required=True,
-        ca_group_end="coverage", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
+        ca_group_end="coverage", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping", readonly_template="readonly/inline_mapping"),
         ca_missing=colander.null, ca_help="<p>Use the drawing tools on the map and/or edit the text representations below.</p><p>Locations are represented using <a href='http://en.wikipedia.org/wiki/Well-known_text#Geometric_Objects'>Well-known Text (WKT) markup</a> in the WGS 84 coordinate system (coordinate system used by GPS).</p>")
 
 
@@ -1432,16 +1434,16 @@ class Metadata(CAModel, Base):
 
     related_publications = relationship('RelatedPublication', ca_order=next(order_counter), ca_title="Related Publications", ca_page="information",
         cascade="all, delete-orphan",
-        ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"), ca_child_title="Related Publication",
+        ca_child_widget=deform.widget.MappingWidget(template="inline_mapping", readonly_template="readonly/inline_mapping"), ca_child_title="Related Publication",
         ca_help="Please provide details on any publications that are related to this project including their title and URL with an optional note.")
 
     related_websites = relationship('RelatedWebsite', ca_order=next(order_counter), ca_title="Related Websites", ca_page="information",
         cascade="all, delete-orphan",
-        ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"), ca_child_title="Related Website",
+        ca_child_widget=deform.widget.MappingWidget(template="inline_mapping", readonly_template="readonly/inline_mapping"), ca_child_title="Related Website",
         ca_help="Please provide details on any websites that are related to this project including their title and URL with an optional note.")
 
     attachments = relationship('Attachment', ca_order=next(order_counter), ca_title="Attachments (Uploading to ReDBox isn't supported at this time)",
-        ca_missing=None, ca_page="information", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping"),
+        ca_missing=None, ca_page="information", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping", readonly_template="readonly/inline_mapping"),
         cascade="all, delete-orphan",
         ca_help="Optionally provide additional information as attachments.")
 #    notes = relationship('Note', ca_order=next(order_counter), ca_description="Enter administrative notes as required.", ca_missing=None, ca_page="information",
@@ -1502,9 +1504,9 @@ class Project(CAModel, Base):
     # ColanderAlchemy schema will not be able to generate the required deform schemas:
     #   * Setup the ColanderAlchemy schema to correctly create the database
     #   * Dynamically alter the generated schema in the view
-    datasets = relationship('Dataset', ca_widget=deform.widget.SequenceWidget(min_len=0, template="dataset_sequence"), ca_order=next(order_counter), ca_page="datasets",
-        ca_child_widget=deform.widget.MappingWidget(template="dataset_mapping"),
-        ca_child_title="Dataset", ca_child_collapsed=False,cascade="all, delete-orphan", ca_child_validator=dataset_validator)
+    datasets = relationship('Dataset', ca_widget=deform.widget.SequenceWidget(min_len=0, template="dataset_sequence", readonly_template="readonly/dataset_sequence"), ca_order=next(order_counter), ca_page="datasets",
+        ca_child_widget=deform.widget.MappingWidget(template="dataset_mapping", readonly_template="readonly/dataset_mapping"),
+        ca_child_title="Dataset", ca_child_collapsed=False, cascade="all, delete-orphan", ca_child_validator=dataset_validator)
 
     #-----------------------------------------Submit page---------------------------------------------------
 
@@ -1605,7 +1607,7 @@ class IngesterLogsFiltering(colander.MappingSchema):
         multiple=False),missing=colander.null)
 
 class IngesterLogs(colander.MappingSchema):
-    filtering = IngesterLogsFiltering(widget=deform.widget.MappingWidget(template="inline_mapping", show_label=True),
+    filtering = IngesterLogsFiltering(widget=deform.widget.MappingWidget(template="inline_mapping", readonly_template="readonly/inline_mapping", show_label=True),
         title="Filter Logs",
         help='Filter the ingester event logs based on level (multple seletion) as well as date start, end or range.',
         missing=colander.null)
@@ -1624,7 +1626,7 @@ class SharedUser(colander.MappingSchema):
     enable_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.ENABLE[0],default = False, title="Re-Enable")
 
 class SharedUsers(colander.SequenceSchema):
-    user = SharedUser(widget=deform.widget.MappingWidget(template="inline_mapping", show_label=True))
+    user = SharedUser(widget=deform.widget.MappingWidget(template="inline_mapping", readonly_template="readonly/inline_mapping", show_label=True))
 #
 #@colander.deferred
 #def get_users(node, kw):

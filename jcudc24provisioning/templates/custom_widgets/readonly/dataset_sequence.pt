@@ -1,0 +1,65 @@
+<!--
+    This template has been modified from sequence.pt specifically for the methods page
+    The intent is to provide template selection and AJAX autocomplete when adding methods.
+-->
+<div class="deformSeq"
+     id="${field.oid}"
+     tal:define="rndr field.renderer;
+                 item_tmpl field.widget.readonly_item_template;
+                 min_len field.widget.min_len or 0;
+                 max_len field.widget.max_len or 100000;
+                 now_len len(subfields);
+                 prototype field.widget.prototype(field)" xmlns="http://www.w3.org/1999/html">
+
+
+    <div id="${field.oid}-template_panel" class="wizard hidden">
+        <h2>Create New Dataset</h2>
+        <p>Select the method that this dataset is for, this will pre-fill the dataset with the correct data schema (how the data is stored), data source as well as any data setup within the method template.</p>
+        <p>If you don't want to use any of the available methods, go back to the previous <i>Methods</i> step and make the changes you require.</p>
+        <ol>
+            <li>Select the method that this dataset should be based off.</li>
+            <li>Click the Create Dataset button.</li>
+        </ol>
+
+        <div class="dataset_select">
+            <div onclick="$(this).siblings().removeClass('selected'); $(this).addClass('selected');"
+                 tal:repeat="method field.schema.children[0].methods">
+                <h3 tal:condition="method.method_name">${method.method_name}</h3>
+                <h3 tal:condition="not method.method_name"><i>Un-named method</i></h3>
+                <p tal:condition="method.method_description" tal:content="structure method.method_description"></p>
+                <p tal:condition="not method.method_description"><i>No description has been provided for this method.</i></p>
+                <input class="method_id" type="hidden" value="${method.id}" />
+            </div>
+        </div>
+
+
+        <div style="clear: both; position: relative; height: 60px;">
+            <div class="button_text submit" onclick="stopAddMethod(this);">Cancel</div>
+            <div class="button_text submit" onclick="preFillMethod(this);">Create Dataset</div>
+        </div>
+    </div>
+    <!-- sequence -->
+
+    <input type="hidden" name="__start__" value="${field.name}:sequence"
+           class="deformProto"
+           tal:attributes="prototype prototype"/>
+
+    <ul id="seq_items-${field.oid}">
+
+        <div tal:repeat="tup subfields"
+             tal:replace="structure rndr(item_tmpl, field=tup[1], cstruct=tup[0],
+                      parent=field)"/>
+
+    <span class="deformInsertBefore"
+          tal:attributes="min_len min_len; 
+                          max_len max_len; 
+                          now_len now_len"></span>
+
+    </ul>
+
+
+    <input type="hidden" name="__end__" value="${field.name}:sequence"/>
+
+    <!-- /sequence -->
+
+</div>

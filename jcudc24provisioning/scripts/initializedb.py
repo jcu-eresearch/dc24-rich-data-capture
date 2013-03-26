@@ -216,7 +216,7 @@ def initialise_method_templates(session):
         tree_dataset.name = "Raw Artificial Tree Data"
         tree_datasource = PullDataSource()
         tree_datasource.uri = "http://emu.hpc.jcu.edu.au/tree/split/"
-        tree_datasource.filename_pattern = "\\.*\\"
+        tree_datasource.filename_pattern = ""
         tree_datasource.selected_sampling = PullDataSource.periodic_sampling.key
         tree_datasource.periodic_sampling = "1"
         tree_dataset.pull_data_source = tree_datasource

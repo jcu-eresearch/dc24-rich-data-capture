@@ -1,12 +1,19 @@
-<div>
+<input type="hidden" name="__start__" value="${field.name}:sequence"/>
+  <ul class="deformSet">
     <tal:loop tal:repeat="choice values">
-     <tal:def tal:define="(value, description) choice">
-      <span>${description}</span>
-        <em id="${field.oid}-${repeat.choice.index}"
-            tal:condition="value in cstruct">Yes</em>
-        <em id="${field.oid}-${repeat.choice.index}"
-            tal:condition="value not in cstruct">No</em>
-     </tal:def>
+      <tal:def tal:define="(value, title) choice">
+        <li class="deformSet-item">
+          <input tal:attributes="checked value in cstruct;
+                                 class field.widget.css_class;
+                                 disabled 'disabled'; readonly 'readonly'"
+                 type="checkbox"
+                 name="checkbox"
+                 value="${value}"
+                 id="${field.oid}-${repeat.choice.index}"/>
+          <label for="${field.oid}-${repeat.choice.index}">${title}</label>
+        </li>
+      </tal:def>
     </tal:loop>
-</div>
+  </ul>
+<input type="hidden" name="__end__" value="${field.name}:sequence"/>
 
