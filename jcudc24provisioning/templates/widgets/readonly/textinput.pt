@@ -3,8 +3,7 @@
                        default_text cstruct or field.schema.default or placeholder">
 
         <input type="text" name="${field.name}" value="${default_text}"
-               tal:attributes="disabled 'disabled';
-                               readonly 'readonly';
+               tal:attributes="readonly 'readonly';
                                size field.widget.size;
                                class (field.widget.css_class or '') + (default_text == field.schema.__dict__.get('placeholder') and ' placeholder_text' or '')"
                onfocus="if (value == '${field.schema.__dict__.get('placeholder')}') {className = className.replace( /(?:^|\s)placeholder_text(?!\S)/g , '' ); value='';}"

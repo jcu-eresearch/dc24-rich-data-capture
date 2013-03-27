@@ -166,7 +166,7 @@ class Workflows(Layouts):
     def redbox(self):
         if '_redbox' not in locals():
             # Get Redbox conconfigurations
-            alert_url = self.config.get("redbox.alert_url") + self.config.get("redbox.alert_url")
+            alert_url = self.config.get("redbox.url") + self.config.get("redbox.alert_url")
             host = self.config.get("redbox.ssh_host")
             port = self.config.get("redbox.ssh_port")
             private_key = self.config.get("redbox.rsa_private_key")
@@ -955,30 +955,30 @@ class Workflows(Layouts):
             pass
 
         if APPROVE_TEXT in self.request.POST and self.project.state == ProjectStates.SUBMITTED:
-            try:
-                self.ingester_api.post(self.project)
-                self.ingester_api.close()
-                logger.info("Project has been added to ingesterplatform successfully: %s", self.project.id)
-            except Exception as e:
-                logger.exception("Project failed to add to ingesterplatform: %s", self.project.id)
-                self.request.session.flash("Failed to configure data storage and ingestion.", 'error')
-                self.request.session.flash("Error: %s" % e, 'error')
-                return self._create_response(page_help=page_help)
-
 #            try:
-#                # Make sure all dataset record have been created
-#                for dataset in self.project.datasets:
-#                    if (dataset.record_metadata is None):
-#                        dataset.record_metadata = self.generate_dataset_record(dataset.id)
-#                self.session.flush()
-#
-#                self.redbox.insert_project(self.project_id)
-#
+#                self.ingester_api.post(self.project)
+#                self.ingester_api.close()
+#                logger.info("Project has been added to ingesterplatform successfully: %s", self.project.id)
 #            except Exception as e:
-#                logger.exception("Project failed to add to ReDBox: %s", self.project.id)
-#                self.request.session.flash("Sorry, the project failed to generate or add metadata records to ReDBox, please try agiain.", 'error')
+#                logger.exception("Project failed to add to ingesterplatform: %s", self.project.id)
+#                self.request.session.flash("Failed to configure data storage and ingestion.", 'error')
 #                self.request.session.flash("Error: %s" % e, 'error')
 #                return self._create_response(page_help=page_help)
+
+            try:
+                # Make sure all dataset record have been created
+                for dataset in self.project.datasets:
+                    if (dataset.record_metadata is None):
+                        dataset.record_metadata = self.generate_dataset_record(dataset.id)
+                self.session.flush()
+
+                self.redbox.insert_project(self.project_id)
+
+            except Exception as e:
+                logger.exception("Project failed to add to ReDBox: %s", self.project.id)
+                self.request.session.flash("Sorry, the project failed to generate or add metadata records to ReDBox, please try agiain.", 'error')
+                self.request.session.flash("Error: %s" % e, 'error')
+                return self._create_response(page_help=page_help)
 
 
             # Change the state to active

@@ -44,7 +44,7 @@ def initialise_all_db(settings):
         with transaction.manager:
             session = DBSession
             #        self.initialise_offset_locations_schema()
-            initialise_temperature_schema(session)
+            initialise_default_schemas(session)
             initialise_project_templates(session)
             initialise_method_templates(session)
             initialise_security(session)
@@ -112,23 +112,125 @@ def initialise_offset_locations_schema(session):
 
         # TODO: Add the offset schema to CC-DAM as well
 
-def initialise_temperature_schema(session):
-    temp_schema = session.query(MethodSchema).filter_by(name="Temperature").first()
-    if not temp_schema:
-        temp_schema = MethodSchema()
-        temp_schema.name = "Temperature"
-        temp_schema.template_schema = True
-        temp_schema.schema_type = "DataEntryMetadataSchema"
+def initialise_default_schemas(session):
+    #----------Temperature schema--------------
+    temp_schema = MethodSchema()
+    temp_schema.name = "Temperature"
+    temp_schema.template_schema = True
+    temp_schema.schema_type = "DataEntryMetadataSchema"
 
-        temp_field = MethodSchemaField()
-        temp_field.type = "decimal"
-        temp_field.units = "Celcius"
-        temp_field.name = "Temperature"
-        temp_field.validators = "decimal" # TODO: Auto schema validators
-        temp_schema.custom_fields.append(temp_field)
+    temp_field = MethodSchemaField()
+    temp_field.type = "decimal"
+    temp_field.units = "Celcius"
+    temp_field.name = "Temperature"
+    temp_field.validators = "decimal" # TODO: Auto schema validators
+    temp_schema.custom_fields.append(temp_field)
+    session.add(temp_schema)
 
-        session.add(temp_schema)
-        session.flush()
+    #----------Humidity schema--------------
+    humidity_schema = MethodSchema()
+    humidity_schema.name = "Humidity"
+    humidity_schema.template_schema = True
+    humidity_schema.schema_type = "DataEntryMetadataSchema"
+
+    humidity_field = MethodSchemaField()
+    humidity_field.type = "decimal"
+    humidity_field.units = "%"
+    humidity_field.name = "Humidity"
+    humidity_field.validators = "decimal" # TODO: Auto schema validators
+    humidity_schema.custom_fields.append(humidity_field)
+    session.add(humidity_schema)
+
+    #----------Moisture schema--------------
+    moisture_schema = MethodSchema()
+    moisture_schema.name = "Moisture"
+    moisture_schema.template_schema = True
+    moisture_schema.schema_type = "DataEntryMetadataSchema"
+
+    moisture_field = MethodSchemaField()
+    moisture_field.type = "decimal"
+    moisture_field.units = "%"
+    moisture_field.name = "Moisture"
+    moisture_field.validators = "decimal" # TODO: Auto schema validators
+    moisture_schema.custom_fields.append(moisture_field)
+    session.add(moisture_schema)
+
+    #----------Altitude schema--------------
+    altitude_schema = MethodSchema()
+    altitude_schema.name = "Altitude"
+    altitude_schema.template_schema = True
+    altitude_schema.schema_type = "DataEntryMetadataSchema"
+
+    altitude_field = MethodSchemaField()
+    altitude_field.type = "decimal"
+    altitude_field.units = "Meters above Mean Sea Level (MSL)"
+    altitude_field.name = "Altitude"
+    altitude_field.validators = "decimal" # TODO: Auto schema validators
+    altitude_schema.custom_fields.append(altitude_field)
+    session.add(altitude_schema)
+
+    #----------Distance schema--------------
+    distance_schema = MethodSchema()
+    distance_schema.name = "Distance"
+    distance_schema.template_schema = True
+    distance_schema.schema_type = "DataEntryMetadataSchema"
+
+    distance_field = MethodSchemaField()
+    distance_field.type = "decimal"
+    distance_field.units = "Meters"
+    distance_field.name = "Distance"
+    distance_field.validators = "decimal" # TODO: Auto schema validators
+    distance_schema.custom_fields.append(distance_field)
+    session.add(distance_schema)
+
+
+    #----------Light Intensity schema--------------
+    luminosity_schema = MethodSchema()
+    luminosity_schema.name = "Luminosity"
+    luminosity_schema.template_schema = True
+    luminosity_schema.schema_type = "DataEntryMetadataSchema"
+
+    luminosity_field = MethodSchemaField()
+    luminosity_field.type = "decimal"
+    luminosity_field.units = "candela (cd)"
+    luminosity_field.name = "Luminosity"
+    luminosity_field.validators = "decimal" # TODO: Auto schema validators
+    luminosity_schema.custom_fields.append(luminosity_field)
+    session.add(luminosity_schema)
+
+
+    #----------Weight schema--------------
+    weight_schema = MethodSchema()
+    weight_schema.name = "Weight"
+    weight_schema.template_schema = True
+    weight_schema.schema_type = "DataEntryMetadataSchema"
+
+    weight_field = MethodSchemaField()
+    weight_field.type = "decimal"
+    weight_field.units = "kg"
+    weight_field.name = "Weight"
+    weight_field.validators = "decimal" # TODO: Auto schema validators
+    weight_schema.custom_fields.append(weight_field)
+    session.add(weight_schema)
+
+
+    #----------Density schema--------------
+    density_schema = MethodSchema()
+    density_schema.name = "Density"
+    density_schema.template_schema = True
+    density_schema.schema_type = "DataEntryMetadataSchema"
+
+    density_field = MethodSchemaField()
+    density_field.type = "decimal"
+    density_field.units = "kg/m^3"
+    density_field.name = "Density"
+    density_field.validators = "decimal" # TODO: Auto schema validators
+    density_schema.custom_fields.append(density_field)
+    session.add(density_schema)
+
+
+
+    session.flush()
 
 def initialise_project_templates(session):
     blank_template = session.query(ProjectTemplate).filter_by(name="Blank Template").first()

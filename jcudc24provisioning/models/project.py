@@ -1337,8 +1337,9 @@ class Metadata(CAModel, Base):
 
     #-------------legal--------------------
     # TODO: Make this into a drop down - still need the list of options though.
+#    access_rights_label = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
     access_rights = Column(String(256), ca_name="dc:accessRights.skos:prefLabel", ca_order=next(order_counter), ca_title="Access Rights", ca_page="information",
-        ca_widget=deform.widget.SelectWidget(values=(("open", "Open Access"),("contact_manager","Contact project manager"), ("contact_owner", "Contact project owner"))),
+        ca_widget=deform.widget.SelectWidget(values=(("Open Access", "Open Access"),("Contact Manager","Contact project manager"), ("Contact Owner", "Contact project owner"))),
         ca_group_start="legality", ca_group_collapsed=False, ca_group_title="Licenses & Access Rights",
         ca_help="Information how to access the records data, including access restrictions or embargoes based on privacy, security or other policies. A URI is optional.<br/>TODO: Update the list of access rights.")
     # TODO: Pre-populate with a url - still waiting on URL to use
