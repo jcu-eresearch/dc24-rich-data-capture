@@ -49,12 +49,13 @@
                 '${field.oid}',
                 function (oid) {
                         var list_item = $("#item-" + oid)[0];
+//                    alert  fsdasdfasfasdasdfsda
                         if (list_item) {
                             var list = list_item.parentNode;
                             var type = $(list).children("li").first().find("select")[0];
                             type.setAttribute("onchange", "conditional_display('"+oid+"');");
 //                            alert(type.onchange);
-//                            conditional_display(oid);
+                            conditional_display(oid);
                         }
                     }
                 );

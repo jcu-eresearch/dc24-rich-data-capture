@@ -222,8 +222,11 @@ class ReDBoxWraper(object):
            raise ValueError("Updating citation on None metadata")
 
        del metadata.citation_creators[:]
+       added_parties = []
        for party in metadata.parties:
-           metadata.citation_creators.append(Creator(party.title, party.given_name, party.family_name))
+            if party.identifier not in added_parties:
+                added_parties.append(party.identifier)
+                metadata.citation_creators.append(Creator(party.title, party.given_name, party.family_name))
 
        del metadata.citation_dates[:]
        metadata.citation_dates.append(CitationDate(metadata.record_export_date, "created", "Date Created"))
