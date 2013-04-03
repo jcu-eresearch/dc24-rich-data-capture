@@ -1111,6 +1111,11 @@ div.more_info_panel {
     color: rgb(233, 79, 53);
 }
 
+.deform label.desc {
+    margin-bottom: 6px;
+    display: inline-block !important;
+}
+
 /*.ui-tabs-anchor {border: 1px solid blue; !important;}*/
 .ui-widget-content {border-color: #FFCC00 !important;}
 .ui-tabs.ui-widget.ui-widget-content {border-color: #FFCC00 !important;}

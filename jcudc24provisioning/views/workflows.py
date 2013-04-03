@@ -40,7 +40,7 @@ from jcudc24provisioning.views.views import Layouts
 from pyramid.renderers import get_renderer
 from jcudc24provisioning.models import DBSession, Base
 from jcudc24provisioning.models.project import PullDataSource, Metadata, UntouchedPages, IngesterLogs, Location, \
-    ProjectTemplate,method_template,DatasetDataSource, Project, project_validator, ProjectStates, Sharing, CreatePage, MetadataNote, Method, Party, Dataset, MethodSchema, grant_validator, MethodTemplate
+    ProjectTemplate,method_template,DatasetDataSource, Project, project_validator, ProjectStates, Sharing, CreatePage, MetadataNote, Method, Party, Dataset, MethodSchema, grant_validator, MethodTemplate, ManageData
 from jcudc24provisioning.views.ca_scripts import convert_schema, fix_schema_field_name
 from jcudc24provisioning.controllers.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.mint_lookup import MintLookup
@@ -55,27 +55,27 @@ logger = logging.getLogger(__name__)
 
 # Workflow page href needs to be synchronised with UntouchedPages table in project.py
 WORKFLOW_STEPS = [
-        {'href': 'create', 'title': 'Create', 'page_title': 'Create a New Project', 'hidden': True},
-        {'href': 'general', 'title': 'Details', 'page_title': 'General Details'},
-        {'href': 'description', 'title': 'Description', 'page_title': 'Description'},
-        {'href': 'information', 'title': 'Information', 'page_title': 'Associated Information'},
-        {'href': 'methods', 'title': 'Methods', 'page_title': 'Data Collection Methods'},
-        {'href': 'datasets', 'title': 'Datasets', 'page_title': 'Datasets (Collections of Data)'},
-        {'href': 'view_record', 'title': 'Generated Dataset Record', 'page_title': 'Generated Dataset Record', 'hidden': True},
-        {'href': 'edit_record', 'title': 'Generated Dataset Record', 'page_title': 'Generated Dataset Record', 'hidden': True},
-        {'href': 'delete_record', 'title': 'Generated Dataset Record', 'page_title': 'Generated Dataset Record', 'hidden': True},
-        {'href': 'submit', 'title': 'Submit', 'page_title': 'Submit & Approval'},
-        {'href': 'template', 'title': 'Template', 'page_title': 'Template Details', 'hidden': True},
+        {'href': 'create', 'title': 'Create', 'page_title': 'Create a New Project', 'hidden': True, 'tooltip': ''},
+        {'href': 'general', 'title': 'Details', 'page_title': 'General Details', 'tooltip': 'Title, grants, people and collaborators'},
+        {'href': 'description', 'title': 'Description', 'page_title': 'Description', 'tooltip': 'Project descriptions used for publishing records'},
+        {'href': 'information', 'title': 'Information', 'page_title': 'Associated Information', 'tooltip': 'Collects metadata for publishing records'},
+        {'href': 'methods', 'title': 'Methods', 'page_title': 'Data Collection Methods', 'tooltip': 'Ways of collecting data'},
+        {'href': 'datasets', 'title': 'Datasets', 'page_title': 'Datasets (Collections of Data)', 'tooltip': 'Configure each individual data collection location'},
+        {'href': 'view_record', 'title': 'Generated Dataset Record', 'page_title': 'Generated Dataset Record', 'hidden': True, 'tooltip': 'View datasets generated metadata record'},
+        {'href': 'edit_record', 'title': 'Generated Dataset Record', 'page_title': 'Generated Dataset Record', 'hidden': True, 'tooltip': 'Edit datasets generated metadata record'},
+        {'href': 'delete_record', 'title': 'Generated Dataset Record', 'page_title': 'Generated Dataset Record', 'hidden': True, 'tooltip': 'Delete datasets generated metadata record'},
+        {'href': 'submit', 'title': 'Submit', 'page_title': 'Submit & Approval', 'tooltip': 'Overview, errors and project submission for administrator approval'},
+        {'href': 'template', 'title': 'Template', 'page_title': 'Template Details', 'hidden': True, 'tooltip': 'Edit template specific details such as category'},
 ]
 
 WORKFLOW_ACTIONS = [
-        {'href': 'general', 'title': 'Configuration', 'page_title': 'General Details'},
-        {'href': 'logs', 'title': 'View Logs', 'page_title': 'Ingester Event Logs', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED]},
-        {'href': 'add_data', 'title': 'Add Data', 'page_title': 'Add Data', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED]},
-        {'href': 'manage_data', 'title': 'Manage Data', 'page_title': 'Manage Data', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED]},
-        {'href': 'permissions', 'title': 'Sharing', 'page_title': 'Sharing & Permissions'},
-        {'href': 'duplicate', 'title': 'Duplicate Project', 'page_title': 'Duplicate Project'},
-        {'href': 'create_template', 'title': 'Make into Template', 'page_title': 'Create Project Template'},
+        {'href': 'general', 'title': 'Configuration', 'page_title': 'General Details', 'tooltip': 'Project settings used to create this project'},
+        {'href': 'logs', 'title': 'View Logs', 'page_title': 'Ingester Event Logs', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Event logs received from the data ingester'},
+#        {'href': 'add_data', 'title': 'Add Data', 'page_title': 'Add Data', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': ''},
+        {'href': 'manage_data', 'title': 'Manage Data', 'page_title': 'Manage Data', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Allows viewing, editing or adding of data and ingester configurations'},
+        {'href': 'permissions', 'title': 'Sharing', 'page_title': 'Sharing & Permissions', 'tooltip': 'Change who can access and edit this project'},
+        {'href': 'duplicate', 'title': 'Duplicate Project', 'page_title': 'Duplicate Project', 'tooltip': 'Create a new project using this project as a template'},
+        {'href': 'create_template', 'title': 'Make into Template', 'page_title': 'Create Project Template', 'tooltip': 'Suggest to the administrators that this project should be a template'},
 ]
 
 redirect_options = """
@@ -525,7 +525,8 @@ class Workflows(Layouts):
             "next_page": kwargs.pop("next_page",self.next),
             "prev_page": kwargs.pop("prev_page",self.previous),
             "page_help": kwargs.pop("page_help", ""),
-            "logged_in": authenticated_userid(self.request)
+            "logged_in": authenticated_userid(self.request),
+            "page_help_hidden": kwargs.pop("page_help_hidden", True),
         }
         # Lazy default initialisation as this has high overheads.
         if response_dict['form'] is None:
@@ -536,7 +537,22 @@ class Workflows(Layouts):
     # --------------------WORKFLOW STEP VIEWS-------------------------------------------
     @view_config(route_name="create")
     def create_view(self):
-        page_help = "This project creation wizard helps pre-fill as many fields as possible to make the process as painless as possible!"
+        page_help = "<p>There are unique challenges associated with creating metadata (information about your data - eg. where,  when or why) and organising persistent storage for large scale projects.\
+                            Data is often output in a variety of ways and requires unique handling, this tool enables you to:\
+                            <ul>\
+                                <li>Store your data persistently (<b>your data is backed up!</b>).</li>\
+                                <li>Your data can be automatically processed when added (<b>100% customisable</b>).</li>\
+                                <li>Specific data that is indexed is searchable (<b>you tell us how your data should be searched</b>).</li>\
+                                <li>Fine grained metadata records are generated with almost no more work than a single record (<b>Creates high quality advertisements/publications for your data so you gain recognition</b>).</li>\
+                                <li>Flexible methods of inputting data, you may manually input data through a form, simply upload files into a folder or even stream the data directly from your sensors.</li>\
+                            </ul></p> \
+                            <p>This project creation wizard helps pre-fill as many fields as possible to make the process as fast as possible:\
+                            <ul>\
+                                <li><b>New users can pre-fill many fields related to the data by selecting an associated grant.</b></li>\
+                                <li><b>If you (or your department) are already in the system, select a Project Template.  Templates have been constructed for a number of research groups and their large-scale sensor projects.</b></li>\
+                            </ul></p>\
+                            <p><i>Tip:  To be added to the system please send a request using the contact form.</i> <br />\
+                            <i>Tip:  Find a wealth of help by looking for the '?' symbols next to each page's headings and field names.</i></p>"
 
         schema = CreatePage(validator=grant_validator)
         templates = self.session.query(ProjectTemplate).order_by(ProjectTemplate.category).all()
@@ -545,8 +561,8 @@ class Workflows(Layouts):
             if not template.category in categories:
                 categories.append(template.category)
 
-        schema.children[0].templates_data = templates
-        schema.children[0].template_categories = categories
+        schema.children[1].templates_data = templates
+        schema.children[1].template_categories = categories
 
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id),
             buttons=('Create Project',), use_ajax=False, ajax_options=redirect_options)
@@ -620,7 +636,7 @@ class Workflows(Layouts):
 
             return HTTPFound(self.request.route_url('general', project_id=new_project.id))
 
-        return self._create_response(page_help=page_help, form=self._render_post())
+        return self._create_response(page_help=page_help, page_help_hidden=False, form=self._render_post())
 
     @view_config(route_name="general")
     def general_view(self):
@@ -1181,7 +1197,7 @@ class Workflows(Layouts):
     def manage_data_view(self):
 
         page_help=""
-        schema = IngesterLogs()
+        schema = ManageData()
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Refresh',), use_ajax=False)
 
 

@@ -93,8 +93,7 @@ def create_json_config():
 
                 #    "dc:identifier.dc:type.rdf:PlainLiteral": "",   # TODO: Set the redbox identifier - What should the type be?
                 #    "dc:identifier.dc:type.skos:prefLabel": "",
-                Metadata.redbox_identifier.key: "dc:identifier.rdf:PlainLitera",
-
+                Metadata.redbox_identifier.key: ["dc:identifier.rdf:PlainLiteral", "known_ids"],
 
                 Metadata.data_storage_location.key: "vivo:Location.vivo:GeographicLocation.gn:name",
                 Metadata.ccdam_identifier.key: "bibo:Website.0.dc:identifier",

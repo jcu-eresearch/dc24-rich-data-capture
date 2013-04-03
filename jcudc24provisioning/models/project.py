@@ -165,7 +165,7 @@ class Person(CAModel, Base):
     email = Column(String(256), ca_order=next(order_counter), ca_missing="", ca_validator=colander.Email())
 
 relationship_types = (
-        ("select", "---Select One---"), ("hasCollector", "Owned by"), ("isManagedBy", "Managed by"), ("hasAssocationWith", "Associated with"),
+        ("select", "---Select One---"), ("isManagedBy", "Managed by"), ("hasCollector", "Project Lead"), ("hasAssocationWith", "Associated with"),
         ("hasCollector", "Aggregated by")
         , ("isEnrichedBy'", "Enriched by"))
 
@@ -180,7 +180,12 @@ class Party(CAModel, Base):
     party_relationship_label = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(),)
     party_relationship = Column(String(100), ca_order=next(order_counter), ca_title="This project is",
         ca_widget=deform.widget.SelectWidget(values=relationship_types),
-        ca_validator=OneOfDict(relationship_types[1:]),)
+        ca_validator=OneOfDict(relationship_types[1:]),
+        ca_help="<b>Managed by</b>: Primary contact<br />"
+                "<b>Project Lead</b>: Secondary contact<br />"
+                "<b>Aggregated by</b>: Helped with collecting data<br />"
+                "<b>Enriched by</b>: Helped the project in some other way<br />"
+                "<b>Associated With</b>: The project has something to do with this person<br />")
 
     name = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(),)              # TODO: Pre-fill these fields when a party is selected.
     title = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(),)
@@ -192,8 +197,9 @@ class Party(CAModel, Base):
     organisation_label = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(),)
     email = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(),)
 
-    identifier = Column(String(100), ca_order=next(order_counter), ca_title="Persistent Identifier", ca_force_required=True,
-        ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/parties/', template="mint_autocomplete_input", size="70", delay=10))
+    identifier = Column(String(100), ca_order=next(order_counter), ca_title="Person", ca_force_required=True,
+        ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/parties/', template="mint_autocomplete_input", size="70", delay=10),
+        )
 #    person = relationship('Person', ca_order=next(order_counter), uselist=False)
 
 class Creator(CAModel, Base):
@@ -318,7 +324,7 @@ class Location(CAModel, Base):
     dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
     location_type = Column(String(10), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(), default="text")
-    name = Column(String(256), ca_force_required=True,ca_order=next(order_counter))
+    name = Column(String(256), ca_force_required=True,ca_order=next(order_counter), ca_help="What do you call this location?")
     location = Column(String(512), ca_validator=location_validator, ca_name="dc:coverage.vivo:GeographicLocation.0.redbox:wktRaw", ca_widget=deform.widget.TextInputWidget(css_class='map_location'),ca_order=next(order_counter),
         ca_force_required=True, ca_child_widget=deform.widget.TextInputWidget(regex_mask="^(POINT\([+-]?\d*\.?\d* [+-]?\d*\.?\d*\)) |(POLYGON\(\(([+-]?\d*\.?\d*\s[+-]?\d*\.?\d*,?\s?)*\)\))|(LINESTRING\(([+-]?\d*\.?\d*\s[+-]?\d*\.?\d*,?\s?)*\))$"),
         ca_help="<a href='http://en.wikipedia.org/wiki/Well-known_text#Geometric_Objects' title='Well-known Text (WKT) markup reference'>WTK format reference</a>")
@@ -880,6 +886,27 @@ class Method(CAModel, Base):
         ca_description="Provide a description of this method, this should include what, why and how the data is being collected but <b>Don\'t enter where or when</b> as this information is relevant to the dataset, not the method.",
         ca_placeholder="Enter specific details for this method, users of your data will need to know how reliable your data is and how it was collected.")
 
+    data_sources=(
+        (FormDataSource.__tablename__,"Web form/manual only"),
+        (PullDataSource.__tablename__,"Pull from external file system"),
+        (SOSScraperDataSource.__tablename__,"Sensor Observation Service"),
+        (PushDataSource.__tablename__,"<i>(Advanced)</i> Push to this website through the API"),
+        (DatasetDataSource.__tablename__,"<i>(Advanced)</i> Output from other dataset"),
+        )
+
+    data_source =  Column(String(50), ca_order = next(order_counter), ca_widget=deform.widget.RadioChoiceWidget(values=data_sources),
+        ca_title="Data Source (How the data gets transferred into this system)", ca_force_required=True,
+        ca_help="<p>'Web form/manual' is the default and included in all others, 'Output from other dataset' provides advanced "
+                "processing features and the other three methods allow automatic ingestion from compatible sensors or devices:</p>"
+                "<p><i>The chosen data source may require per dataset configurtation in the datasets step.</i></p>"\
+                "<ul><li><b>Web form/manual only:</b> Only use an online form accessible through this interface to manually upload data (Other data sources also include this option).</li>"\
+                "<li><b>Pull from external file system:</b> Setup automatic polling of an external file system from a URL location, when new files of the correct type and naming convention are found they are ingested.</li>"\
+                "<li><b><i>(Advanced)</i> Push to this website through the API:</b> Use the XMLRPC API to directly push data into persistent storage, on project acceptance you will be emailed your API key and instructions.</li>"\
+                "<li><b>Sensor Observation Service:</b> Set-up a sensor that implements the Sensor Observation Service (SOS) to push data into this systems SOS server.</li>"\
+                "<li><b><i>(Advanced)</i> Output from other dataset:</b> Output from other dataset: </b>This allows for advanced/chained processing of data, where the results of another dataset can be further processed and stored as required.</li></ul>"\
+                "<p><i>Please refer to the help section or contact the administrators if you need additional information.</i></p>",
+        ca_placeholder="Select the easiest method for your project.  If all else fails, manual file uploads will work for all data types.")
+
     data_type = relationship("MethodSchema", ca_order=next(order_counter), uselist=False, ca_widget=MethodSchemaWidget(),
         cascade="all, delete-orphan",ca_title="Type of data being collected", ca_child_validator=method_schema_validator,
         ca_collapsed=False,
@@ -888,25 +915,6 @@ class Method(CAModel, Base):
                     "when searching for temperatures, but if you make the schema using custom fields (even if it is the same), then it won't show up in the temperature search results).",
         ca_description="Extend existing data types wherever possible - only create custom fields or schemas if you cannot find an existing schema.")
 
-    data_sources=(
-        (FormDataSource.__tablename__,"Web form/manual only"),
-        (PullDataSource.__tablename__,"Pull from external file system"),
-        (SOSScraperDataSource.__tablename__,"Sensor Observation Service"),
-        (PushDataSource.__tablename__,"<i>(Advanced)</i> Push to this website through the API"),
-        (DatasetDataSource.__tablename__,"<i>(Advanced)</i> Output from other dataset"),
-    )
-
-    data_source =  Column(String(50), ca_order = next(order_counter), ca_widget=deform.widget.RadioChoiceWidget(values=data_sources),
-        ca_title="Data Source (How the data gets transferred into this system)", ca_force_required=True,
-        ca_help="<p>'Web form/manual' is the default and included in all others anyway, 'Output from other dataset' provides advanced "
-                "processing features and the other three methods allow automatic ingestion from compatible sensors or devices:</p>" \
-                "<ul><li><b>Web form/manual only:</b> Only use an online form accessible through this interface to manually upload data (Other data sources also include this option).</li>" \
-                "<li><b>Pull from external file system:</b> Setup automatic polling of an external file system from a URL location, when new files of the correct type and naming convention are found they are ingested.</li>" \
-                "<li><b><i>(Advanced)</i> Push to this website through the API:</b> Use the XMLRPC API to directly push data into persistent storage, on project acceptance you will be emailed your API key and instructions.</li>" \
-                "<li><b>Sensor Observation Service:</b> Set-up a sensor that implements the Sensor Observation Service (SOS) to push data into this systems SOS server.</li>" \
-                "<li><b><i>(Advanced)</i> Output from other dataset:</b> Output from other dataset: </b>This allows for advanced/chained processing of data, where the results of another dataset can be further processed and stored as required.</li></ul>" \
-                "<p><i>Please refer to the help section or contact the administrators if you need additional information.</i></p>",
-        ca_placeholder="Select the easiest method for your project.  If all else fails, manual file uploads will work for all data types.")
 
     method_attachments = relationship('MethodAttachment', ca_order=next(order_counter), ca_missing=colander.null, ca_child_title="Attachment",
         cascade="all, delete-orphan",
@@ -960,12 +968,12 @@ class Dataset(CAModel, Base):
         ca_placeholder="Provide a textual description of this dataset.",
         ca_help="Provide a dataset specific name that is easily identifiable within this system.", ca_force_required=True)
 
-    publish_dataset = Column(Boolean, ca_title="Publish Dataset to ReDBox", ca_default=True, ca_order=next(order_counter),
+    publish_dataset = Column(Boolean, ca_title="Publish Metadata Record (Publicly advertise that this data exists)", ca_default=True, ca_order=next(order_counter),
         ca_widget=deform.widget.CheckboxWidget(template="checked_conditional_input", inverted=True),
         ca_help="Publish a metadata record to ReDBox for this dataset - leave this selected unless the data isn't relevant to anyone else (eg. Raw data where other users " \
                        "will only search for the processed data).")
 
-    publish_date = Column(Date(), ca_order=next(order_counter), ca_title="Date to make ReDBox record publicly available*",
+    publish_date = Column(Date(), ca_order=next(order_counter), ca_title="Date to publish*",
         ca_help='The date that data will start being collected.')
 
 #    description = Column(Text(),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(rows=6),
@@ -1008,7 +1016,7 @@ class Dataset(CAModel, Base):
         cascade="all, delete-orphan", ca_widget=deform.widget.HiddenWidget(), ca_exclude=True)
 
     method = relationship("Method", ca_order=next(order_counter), ca_missing=colander.null, uselist=False, single_parent=True,
-           cascade="all, delete-orphan", ca_widget=deform.widget.HiddenWidget(), ca_exclude=True)
+           ca_widget=deform.widget.HiddenWidget(), ca_exclude=True)
 
 
 
@@ -1341,7 +1349,7 @@ class Metadata(CAModel, Base):
 #        , ca_missing="", ca_placeholder="eg. Australian Wet Tropics or Great Barrier Reef")
 
 
-    locations = relationship('Location', ca_order=next(order_counter), ca_title="Location", ca_widget=deform.widget.SequenceWidget(template='map_sequence', readonly_template='readonly/map_sequence', error_class="error"), ca_page="information",
+    locations = relationship('Location', ca_order=next(order_counter), ca_title="Location", ca_widget=deform.widget.SequenceWidget(template='map_sequence', readonly_template='readonly/map_sequence', error_class="error", min_len=1), ca_page="information",
         cascade="all, delete-orphan", ca_validator=sequence_required_validator,
         ca_force_required=True,
         ca_group_end="coverage", ca_child_widget=deform.widget.MappingWidget(template="inline_mapping", readonly_template="readonly/inline_mapping"),
@@ -1360,11 +1368,10 @@ class Metadata(CAModel, Base):
         ca_requires_admin=True)
 
     rights = Column(String(256), ca_order=next(order_counter), ca_name="dc:accessRights.dc:RightsStatement.skos:prefLabel", ca_missing="", ca_title="Usage Rights", ca_page="information",
-        ca_requires_admin=True,
         ca_placeholder=" eg. Made available under the Public Domain Dedication and License v1.0",
         ca_help="Information about rights held over the collection such as copyright, licences and other intellectual property rights.  A URI is optional.",
         ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
-    rights_url = Column(String(256), ca_validator=colander.url, ca_name="dc:accessRights.dc:RightsStatement.dc:identifier", ca_order=next(order_counter), ca_title="URL", ca_missing="", ca_page="information",ca_requires_admin=True,)
+    rights_url = Column(String(256), ca_validator=colander.url, ca_name="dc:accessRights.dc:RightsStatement.dc:identifier", ca_order=next(order_counter), ca_title="URL", ca_missing="", ca_page="information",)
     #    TODO: Link to external sources
 
     licenses = (
@@ -1548,7 +1555,10 @@ def grant_validator(form, value):
 
     mint = MintLookup(None)
 
-    print value
+    if value['use_template'] is True and value['template'] == colander.null:
+        exc['template'] = "Please select the template to use."
+        error = True
+
     if value['no_activity'] is True and value['grant'] == colander.null:
         exc['grant'] = "'There is an associated research grant' must be un-selected if a research grant isn't provided."
         error = True
@@ -1569,7 +1579,12 @@ def grant_validator(form, value):
         raise exc
 
 class CreatePage(colander.MappingSchema):
+    use_template = colander.SchemaNode(colander.Boolean(), help="",
+        title="Use a project template (only select if your project is similar to a previous one)", default=False,
+        widget=deform.widget.CheckboxWidget(template="checked_conditional_input", inverted=True))
+
     template = colander.SchemaNode(colander.Integer(), title="Select a Project Template",
+        missing=colander.null, required=False,
         widget=deform.widget.TextInputWidget(template="project_template_mapping"),
         help="<p>Templates pre-fill the project with as much information as possible to make this process as quick and easy as possible.</p><ul><li>If you don't want to use any template, select the general category and Blank template.</li><li>Please contact the administrators to request new templates.</li>",
         description="<ol><li>First select the category or organisational group on the left hand side.</li><li>Then select the most relevant template from the list on the right hand side.</li>")
@@ -1648,3 +1663,7 @@ class SharedUsers(colander.SequenceSchema):
 
 class Sharing(colander.MappingSchema):
     shared_with = SharedUsers(title="Users Who This Project Is Shared With", widget=deform.widget.SequenceWidget(template="sharing_sequence"))
+
+
+class ManageData(colander.MappingSchema):
+    user_id = colander.SchemaNode(colander.Integer())

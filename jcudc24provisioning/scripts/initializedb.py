@@ -233,20 +233,18 @@ def initialise_default_schemas(session):
     session.flush()
 
 def initialise_project_templates(session):
-    blank_template = session.query(ProjectTemplate).filter_by(name="Blank Template").first()
     blank_project = Project()
     blank_project.template_only = True
-    if not blank_template:
-        session.add(blank_project) # Add an empty project as a blank template
-        session.flush()
+    session.add(blank_project) # Add an empty project as a blank template
+    session.flush()
 
-        blank_template = ProjectTemplate()
-        blank_template.template_id = blank_project.id
-        blank_template.category = "Blank (No auto-fill)"
-        blank_template.name = "Blank Template"
-        blank_template.description = "An empty template that allows you to start from scratch (only for advanced "\
-                                     "users or if no other template is relevent)."
-        session.add(blank_template) # Add an empty project as a blank template
+    blank_template = ProjectTemplate()
+    blank_template.template_id = blank_project.id
+    blank_template.category = "Blank (No auto-fill)"
+    blank_template.name = "Blank Template"
+    blank_template.description = "An empty template that allows you to start from scratch (only for advanced "\
+                                 "users or if no other template is relevent)."
+    session.add(blank_template) # Add an empty project as a blank template
 
 
     #       add blank templates for testing, delete when production ready
@@ -258,20 +256,17 @@ def initialise_project_templates(session):
         "Tropical Futures",
         ]
 
-    templates = session.query(ProjectTemplate).all()
-    print len(templates)
-    if len(templates) <= 1:
-        count = 0
-        for name in placeholder_template_names:
-            for i in range(random.randint(2, 5)):
-                template = ProjectTemplate()
-                template.template_id = blank_project.id
-                template.category = name
-                template.name = name + " Placeholder Template " + str(count) + " (Testing Only)"
-                count += 1
-                template.description = "An empty template that allows you to start from scratch (only for advanced "\
-                                       "users or if no other template is relevent)."
-                session.add(template) # Add an empty project as a blank template
+    count = 0
+    for name in placeholder_template_names:
+        for i in range(random.randint(2, 5)):
+            template = ProjectTemplate()
+            template.template_id = blank_project.id
+            template.category = name
+            template.name = name + " Placeholder Template " + str(count) + " (Testing Only)"
+            count += 1
+            template.description = "An empty template that allows you to start from scratch (only for advanced "\
+                                   "users or if no other template is relevent)."
+            session.add(template) # Add an empty project as a blank template
 
 
 def initialise_method_templates(session):

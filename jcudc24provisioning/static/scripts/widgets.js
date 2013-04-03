@@ -285,7 +285,7 @@ function featureInserted(object) {
     var layer = feature.layer; //findMapLayerFromFeature(feature, map);
 
     var oid_node = $(map.div.parentNode);
-    var fields = oid_node.children('ul').first().find("input[type=text]");
+    var fields = oid_node.children('ul').first().find("input[type=text].map_location");
 
     // Check if this feature already has an associated input
     var i = 0;
@@ -309,8 +309,14 @@ function featureInserted(object) {
 //            }
     /*   alert(vertices);*/
 
-    /* Add the feature */
-    appendSequenceItem(oid_node.children(".deformSeqAdd")[0]);
+
+    // Only add a new feature if the last item in the list isn't blank
+    var last_field = fields[fields.length - 1];
+    var siblings = $(last_field.parentNode.parentNode).siblings().find("input[type=text]");
+    if (last_field.value != '' || last_field.feature !== undefined || siblings[0].value != '' || siblings[1].value != '') {
+        /* Add the feature */
+        appendSequenceItem(oid_node.children(".deformSeqAdd")[0]);
+    }
 
     fields = oid_node.children('ul').first().find("input[type=text].map_location");
 

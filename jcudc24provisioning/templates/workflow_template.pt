@@ -33,7 +33,9 @@
                      <span tal:condition="exists: page_title" tal:replace="structure page_title" />
                  </h1>
                  <tal:block tal:condition="exists: page_help">
-                     <div tal:condition="page_help" class="help_text hidden" tal:content="structure page_help"></div>
+                     <div tal:condition="page_help"
+                          tal:attributes="class 'help_text' + (page_help_hidden and ' hidden' or '')"
+                          tal:content="structure page_help"></div>
                  </tal:block>
              </div>
 
@@ -44,13 +46,13 @@
                           <ul>
                               <li tal:repeat="menu view.workflow_action">
                                   <tal:block tal:condition="menu.current">
-                                      <a form="deform" onclick="false" class="current" value="${menu.title}">${menu.title}</a>
+                                      <a title="${menu.tooltip}" form="deform" onclick="false" class="current" value="${menu.title}">${menu.title}</a>
                                   </tal:block>
                                   <tal:block tal:condition="not menu.current and not readonly">
-                                      <a form="deform" onclick="$('#deform')[0].action='${view.get_address(menu.href)}'; window.onbeforeunload = null; $('#deform')[0].submit();" value="${menu.title}">${menu.title}</a>
+                                      <a title="${menu.tooltip}" form="deform" onclick="$('#deform')[0].action='${view.get_address(menu.href)}'; window.onbeforeunload = null; $('#deform')[0].submit();" value="${menu.title}">${menu.title}</a>
                                   </tal:block>
                                   <tal:block tal:condition="readonly and not menu.current">
-                                      <a href="${menu.href}">${menu.title}</a>
+                                      <a title="${menu.tooltip}" href="${menu.href}">${menu.title}</a>
                                   </tal:block>
                               </li>
                           </ul>
@@ -83,10 +85,10 @@
                              <ul>
                                  <li tal:repeat="menu view.workflow_step">
                                      <tal:block tal:condition="menu.current">
-                                         <button name="nav-${menu.href}" form="deform" onclick="false" class="current" value="${menu.title}">${menu.title}</button>
+                                         <button title="${menu.tooltip}" name="nav-${menu.href}" form="deform" onclick="false" class="current" value="${menu.title}">${menu.title}</button>
                                      </tal:block>
                                      <tal:block tal:condition="not menu.current and not readonly">
-                                         <button name="nav-${menu.href}" form="deform" href="${view.request.matched_route.name}" onclick="$('#deform')[0].action='${view.get_address(menu.href)}';" value="${menu.title}">${menu.title}</button>
+                                         <button title="${menu.tooltip}" name="nav-${menu.href}" form="deform" href="${view.request.matched_route.name}" onclick="$('#deform')[0].action='${view.get_address(menu.href)}';" value="${menu.title}">${menu.title}</button>
                                      </tal:block>
                                      <tal:block tal:condition="readonly and not menu.current">
                                          <a href="${menu.href}">${menu.title}</a>
