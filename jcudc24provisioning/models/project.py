@@ -813,7 +813,7 @@ def dataset_select_widget(node, kw):
                 if dataset.dataset_locations[0].location is not None:
                     location_text = "%s (%s, %s%s)" % (dataset.dataset_locations[0].name, dataset.dataset_locations[0].get_latitude(),
                                                        dataset.dataset_locations[0].get_longitude(), height_text)
-                dataset_name = "%s at  collected by %s" %\
+                dataset_name = "%s at %s collected by %s" %\
                    (project.information.project_title, location_text, dataset.method.method_name)
             dataset_values.append((dataset.id, dataset_name))
         return deform.widget.SelectWidget(values=dataset_values, template="source_dataset_select")
@@ -1390,10 +1390,11 @@ class Metadata(CAModel, Base):
         ca_requires_admin=True)
 
     rights = Column(String(256), ca_order=next(order_counter), ca_name="dc:accessRights.dc:RightsStatement.skos:prefLabel", ca_missing="", ca_title="Usage Rights", ca_page="information",
-        ca_placeholder=" eg. Made available under the Public Domain Dedication and License v1.0",
+        ca_placeholder=" eg. Made available under the Public Domain Dedication and License v1.0", ca_requires_admin=True,
         ca_help="Information about rights held over the collection such as copyright, licences and other intellectual property rights.  A URI is optional.",
         ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
-    rights_url = Column(String(256), ca_validator=colander.url, ca_name="dc:accessRights.dc:RightsStatement.dc:identifier", ca_order=next(order_counter), ca_title="URL", ca_missing="", ca_page="information",)
+    rights_url = Column(String(256), ca_validator=colander.url,  ca_requires_admin=True,
+        ca_name="dc:accessRights.dc:RightsStatement.dc:identifier", ca_order=next(order_counter), ca_title="URL", ca_missing="", ca_page="information",)
     #    TODO: Link to external sources
 
     licenses = (

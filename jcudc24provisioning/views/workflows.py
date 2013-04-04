@@ -803,17 +803,6 @@ class Workflows(Layouts):
         PREFIX_SEPARATOR = ":"
         DATASETS_INDEX = string.join([schema.name, Project.datasets.key], PREFIX_SEPARATOR)
 
-        if self.project_id is not None:
-            methods = self.session.query(Method).filter_by(project_id=self.project_id).all()
-
-            if len(methods) <= 0:
-                self.request.session.flash('You must configure at least one method before adding dataset\'s', 'warning')
-                return HTTPFound(self.request.route_url('methods', project_id=self.project_id))
-
-            # Add method data to the field for information to create new templates.
-            schema[DATASETS_INDEX].children[0].methods = methods
-            schema[DATASETS_INDEX].children[0].widget.get_file_fields = get_file_fields
-
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
 
         # If a new dataset was added through the wizard - Update the appstruct with that datasets' template's data
@@ -850,6 +839,27 @@ class Workflows(Layouts):
         # If this page was only called for saving and a rendered response isn't needed, return now.
         if self._handle_form():
             return
+
+        if self.project_id is not None:
+            methods = self.session.query(Method).filter_by(project_id=self.project_id).all()
+
+            if len(methods) <= 0:
+                self.request.session.flash('You must configure at least one method before adding dataset\'s', 'warning')
+                return HTTPFound(self.request.route_url('methods', project_id=self.project_id))
+
+            # Add method data to the field for information to create new templates.
+            schema[DATASETS_INDEX].children[0].methods = methods
+            schema[DATASETS_INDEX].children[0].widget.get_file_fields = get_file_fields
+
+        # Pass the method names into the schema so it can be displayed
+        appstruct = self._get_model_appstruct()
+        method_names = {}
+        if len(appstruct) > 0:
+            for dataset_data in appstruct['project:datasets']:
+                method_id = dataset_data["dataset:method_id"]
+                method_name = self.session.query(Method.method_name).filter_by(id=method_id).first()[0]
+                method_names[method_id] = method_name
+        schema[DATASETS_INDEX].children[0].method_names = method_names
 
         return self._create_response(page_help=page_help)
 
