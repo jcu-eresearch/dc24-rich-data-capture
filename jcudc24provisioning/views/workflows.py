@@ -924,7 +924,7 @@ class Workflows(Layouts):
                 metadata_record = self.session.query(Metadata).filter_by(dataset_id=dataset.id).first()
                 redbox_uri = None
                 if metadata_record is not None:
-                    redbox_uri = metadata_record.redbox_uri
+                    redbox_uri = "%s%s%s" % (self.config['redbox.url'], self.config['redbox.search_url'], metadata_record.redbox_identifier)
 
                 redbox_records.append((dataset_name, redbox_uri,
                        self.request.route_url("view_record", project_id=self.project_id, dataset_id=dataset.id),
