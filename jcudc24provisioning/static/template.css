@@ -780,6 +780,9 @@ div#footer img {
     margin: 0px;
     padding: 2px;
     list-style-position: outside;
+}
+
+.description ul li, .help_text ul li {
     list-style-type: disc;
 }
 

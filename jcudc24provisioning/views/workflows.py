@@ -704,9 +704,10 @@ class Workflows(Layouts):
     def methods_view(self):
         page_help = "<p>Setup methods the project uses for collecting data (not individual datasets themselves as they will " \
                     "be setup in the next step).</p>" \
-                    "<br /><p>This page sets up:</p>" \
-                    "<ul><li>Ways of collecting data - data sources</li>" \
-                    "<li>What the data actually is - its 'data schema' - what fields there are, field types and associated information.</li>" \
+                    "<p>Each method sets up:</p>"\
+                    "<ul><li>Name and description of the collection method.</li>"\
+                    "<li>Ways of collecting data (data sources), these may require additional configuration on each dataset (datasets page).</li>" \
+                    "<li>Type of data being collected which tells the system how data should be stored, displayed and searched (what fields there are, field types and associated information).</li>" \
                     "<li>Any additional information about this data collection methods - websites or attachments</li></ul>"
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="methods", restrict_admin=True).bind(request=self.request)
 
@@ -971,6 +972,12 @@ class Workflows(Layouts):
             pass
 
         if APPROVE_TEXT in self.request.POST and self.project.state == ProjectStates.SUBMITTED:
+            # Make sure all dataset record have been created
+            for dataset in self.project.datasets:
+                if (dataset.record_metadata is None):
+                    dataset.record_metadata = self.generate_dataset_record(dataset.id)
+            self.session.flush()
+
 #            try:
 #                self.ingester_api.post(self.project)
 #                self.ingester_api.close()
@@ -982,12 +989,6 @@ class Workflows(Layouts):
 #                return self._create_response(page_help=page_help)
 
             try:
-                # Make sure all dataset record have been created
-                for dataset in self.project.datasets:
-                    if (dataset.record_metadata is None):
-                        dataset.record_metadata = self.generate_dataset_record(dataset.id)
-                self.session.flush()
-
                 self.redbox.insert_project(self.project_id)
 
             except Exception as e:

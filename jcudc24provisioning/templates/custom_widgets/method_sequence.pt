@@ -16,15 +16,18 @@
 
         <h2>Create New Method</h2>
         <p>Method templates provide pre-configured data collection methods and pre-fill as much information as possible to make this process as quick and easy as possible.</p>
-        <ul>
-            <li>If you don't want to use any template, select the general category and Blank template.</li>
-            <li>Please contact the administrators to request new templates.</li>
-        </ul>
-        <ol>
-            <li>First select the category or organisational group on the left hand side.</li>
-            <li>Then select the most relevant template from the list on the right hand side.</li>
-        </ol>
-        <div tal:content="structure rndr(field.schema.templates_data.widget.template, field=field.schema.templates_data, cstruct='', parent=field)"></div>
+
+        <input type="checkbox" id="use_template" onclick="$('#${field.oid}-template_selection').toggle()"/>
+        <label for="use_template">Use a method template</label>
+        <div id="${field.oid}-template_selection" style="display: none;">
+            <ol>
+                <li>First select the category or organisational group on the left hand side.</li>
+                <li>Then select the most relevant template from the list on the right hand side.</li>
+            </ol>
+            <div tal:content="structure rndr(field.schema.templates_data.widget.template, field=field.schema.templates_data, cstruct='', parent=field)"></div>
+        </div>
+        <br />
+        <p><i>Please contact the administrators to request new templates.</i></p>
         <div style="clear: both; position: relative; height: 60px;">
             <div class="button_text submit" onclick="stopAddMethod(this);">Cancel</div>
             <div class="button_text submit" onclick="preFillMethod(this);">Create Method</div>
@@ -110,11 +113,17 @@
         function preFillMethod(create_button) {
             var oid = create_button.parentNode.parentNode.id.replace('-template_panel', '');
             var new_oid = $("#" + oid).children("ul").first().children(".deformInsertBefore").prev()[0].id;
-            var method_id = $(create_button.parentNode.parentNode).find(".selected input")[0].value;
-            $("#" + new_oid + " [name='method:method_template_id']")[0].value = method_id;
-            var project_id = $("[name='project:id']")[0].value;
-            $("#" + new_oid + " [name='method:project_id']")[0].value = project_id;
 
+//            alert($('#' + oid + '-template_panel').find('#use_template').prop('checked'));
+            var use_template = $('#' + oid + '-template_panel').find('#use_template').prop('checked');
+            if (use_template == true) {
+                var method_id = $(create_button.parentNode.parentNode).find(".selected input")[0].value;
+                $("#" + new_oid + " [name='method:method_template_id']")[0].value = method_id;
+                var project_id = $("[name='project:id']")[0].value;
+                $("#" + new_oid + " [name='method:project_id']")[0].value = project_id;
+            } else {
+                $("#" + new_oid + " [name='method:project_id']")[0].value = project_id;
+            }
             $("#deformSave").click();
         }
 

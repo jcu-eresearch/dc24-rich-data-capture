@@ -15,7 +15,7 @@ from colanderalchemy.declarative import Column, relationship
 from jcudc24provisioning.models.ca_model import CAModel
 import deform
 from jcudc24provisioning.models.common_schemas import OneOfDict
-from jcudc24provisioning.models import Base
+from jcudc24provisioning.models import Base, DBSession
 from jcudc24provisioning.views.file_upload import upload_widget
 from jcudc24provisioning.views.deform_widgets import MethodSchemaWidget
 from jcudc24provisioning.views.mint_lookup import MintLookup
@@ -165,7 +165,7 @@ class Person(CAModel, Base):
     email = Column(String(256), ca_order=next(order_counter), ca_missing="", ca_validator=colander.Email())
 
 relationship_types = (
-        ("select", "---Select One---"), ("isManagedBy", "Managed by"), ("hasCollector", "Project Lead"), ("hasAssocationWith", "Associated with"),
+        ("select", "---Select One---"), ("isManagedBy", "Managed by"), ("hasAssocationWith", "Associated with"),
         ("hasCollector", "Aggregated by")
         , ("isEnrichedBy'", "Enriched by"))
 
@@ -333,7 +333,7 @@ class Location(CAModel, Base):
     # regions = relationship("Region", ca_widget=deform.widget.HiddenWidget())
 
     def is_point(self):
-        return self.location[:5] == "POINT"
+        return self.location is not None and self.location[:5] == "POINT"
 
     def get_latitude(self):
         if self.is_point():
@@ -432,7 +432,7 @@ field_types = (
     ('checkbox', 'Checkbox'),
     ('select', 'Select/Dropdown box'),
     ('radio', 'Radio buttons/Multiple choice'),
-    ('file', 'File upload'),
+    ('file', 'File'),
     ('website', 'Website'),
     ('email', 'Email'),
     ('phone', 'Phone'),
@@ -560,18 +560,18 @@ class MethodSchema(CAModel, Base):
         secondary=method_schema_to_schema,
         primaryjoin=id==method_schema_to_schema.c.child_id,
         secondaryjoin=id==method_schema_to_schema.c.parent_id,
-        ca_title="Template(s) to base/extend your data type from (Recommended)",
+        ca_title="Standardised data fields (Recommended where possible)",
         ca_widget=deform.widget.SequenceWidget(template="method_schema_parents_sequence"),
-        ca_child_title = "Parent Schema",
+        ca_child_title = "Standard Data Field",
         ca_child_widget=deform.widget.MappingWidget(template="ca_sequence_mapping", item_template="method_schema_parents_item"),
-        ca_help="Add existing schemas to use or extend from.  This makes it both easier to create the data schema (data "
-                "formats) and re-use existing schemas making cross project searching possible.")
+        ca_help="<p>Using standardised data fields makes your data more compatible and searchable within the system.</p>",
+        ca_description="<i>Please request additional standardised data fields through the contact form.</i>")
 
     custom_fields = relationship("MethodSchemaField", ca_order=next(order_counter), ca_child_title="Custom Field",
         cascade="all, delete-orphan",
         ca_child_widget=deform.widget.MappingWidget(item_template="method_schema_field_item"),
-        ca_description="Provide details of the schema field and how it should be displayed.",
-        ca_help="TODO:  This needs to be displayed better - I'm thinking a custom template that has a sidebar for options and the fields are displayed 1 per line.  All fields will be shown here (including fields from parent/extended schemas selected above).")
+        ca_help="Data that needs to be searchable but isn't a common measurement.",
+        )
 
 
 def method_schema_validator(form, value):
@@ -801,7 +801,21 @@ def dataset_select_widget(node, kw):
         datasets = kw['datasets']
         dataset_values = []
         for dataset in datasets:
-            dataset_values.append((dataset.id, dataset.name))
+            if dataset.method is None:
+                continue
+
+            if dataset.record_metadata is not None:
+                dataset_name = dataset.record_metadata.project_title
+            else:
+                project = DBSession.query(Project).filter_by(id=dataset.project_id).first()
+                height_text =  (", %sm above MSL") % dataset.dataset_locations[0].elevation if dataset.dataset_locations[0].elevation is not None else ""
+                location_text = "none"
+                if dataset.dataset_locations[0].location is not None:
+                    location_text = "%s (%s, %s%s)" % (dataset.dataset_locations[0].name, dataset.dataset_locations[0].get_latitude(),
+                                                       dataset.dataset_locations[0].get_longitude(), height_text)
+                dataset_name = "%s at  collected by %s" %\
+                   (project.information.project_title, location_text, dataset.method.method_name)
+            dataset_values.append((dataset.id, dataset_name))
         return deform.widget.SelectWidget(values=dataset_values, template="source_dataset_select")
 
 
@@ -874,15 +888,16 @@ class Method(CAModel, Base):
     method_template_id = Column(Integer, ForeignKey('method_template.id', ForeignKey('method_template.id'), use_alter=True, name="fk_method_template_id"), nullable=True, ca_order=next(order_counter), ca_title="Select a template to base this method off (Overrides all fields)",
         ca_widget=deform.widget.TextInputWidget(template="method_template_mapping", strip=False),
         ca_help="<p>Method templates provide pre-configured data collection methods and pre-fill as much information as possible to make this process as quick and easy as possible.</p>"
-             "<ul><li>If you don't want to use any template, select the general category and Blank template."
-             "</li><li>Please contact the administrators to request new templates.</li>",
+             "<i>Please contact the administrators to request new templates.</i>",
         ca_description="<ol><li>First select the category or organisational group on the left hand side.</li>"
-                    "<li>Then select the most relevant template from the list on the right hand side.</li>")
+                    "<li>Then select the most relevant template from the list on the right hand side.</li></ol>")
 
     method_name = Column(String(256), ca_order=next(order_counter),
             ca_placeholder="Searchable identifier for this input method (eg. Invertebrate observations)",
-            ca_description="The name is used for selecting this method in the <i>Datasets</i> step, for example Artificial Tree Sensor")
-    method_description = Column(Text(), ca_order=next(order_counter), ca_title="Description", ca_widget=deform.widget.TextAreaWidget(rows=15),
+            ca_description="Give the data collection method a name, this will be used in the title of the generated dataset records.",
+            ca_help="<p>The entered name will be used in the generated dataset record as: &lt;project title&gt; at &lt;location name&gt;(&lt;lat, long, height&gt;) collected by &lt;method name&gt;</p>"
+                    "<p>The name and description will also be used to identify the method used in the <i>datasets</i> step</p>")
+    method_description = Column(Text(), ca_order=next(order_counter), ca_title="Description", ca_widget=deform.widget.TextAreaWidget(rows=10),
         ca_description="Provide a description of this method, this should include what, why and how the data is being collected but <b>Don\'t enter where or when</b> as this information is relevant to the dataset, not the method.",
         ca_placeholder="Enter specific details for this method, users of your data will need to know how reliable your data is and how it was collected.")
 
@@ -896,25 +911,32 @@ class Method(CAModel, Base):
 
     data_source =  Column(String(50), ca_order = next(order_counter), ca_widget=deform.widget.RadioChoiceWidget(values=data_sources),
         ca_title="Data Source (How the data gets transferred into this system)", ca_force_required=True,
-        ca_help="<p>'Web form/manual' is the default and included in all others, 'Output from other dataset' provides advanced "
-                "processing features and the other three methods allow automatic ingestion from compatible sensors or devices:</p>"
-                "<p><i>The chosen data source may require per dataset configurtation in the datasets step.</i></p>"\
-                "<ul><li><b>Web form/manual only:</b> Only use an online form accessible through this interface to manually upload data (Other data sources also include this option).</li>"\
-                "<li><b>Pull from external file system:</b> Setup automatic polling of an external file system from a URL location, when new files of the correct type and naming convention are found they are ingested.</li>"\
-                "<li><b><i>(Advanced)</i> Push to this website through the API:</b> Use the XMLRPC API to directly push data into persistent storage, on project acceptance you will be emailed your API key and instructions.</li>"\
-                "<li><b>Sensor Observation Service:</b> Set-up a sensor that implements the Sensor Observation Service (SOS) to push data into this systems SOS server.</li>"\
-                "<li><b><i>(Advanced)</i> Output from other dataset:</b> Output from other dataset: </b>This allows for advanced/chained processing of data, where the results of another dataset can be further processed and stored as required.</li></ul>"\
+        ca_description="<i>Additional configurations may be required on the datasets page (eg. each dataset for a pull from external file system method will need it's location set on a per dataset basis).</i>",
+        ca_help="<p>'Web form/manual' is the default (other data sources also allow adding data through a web form), 'Output from other dataset' provides advanced "
+                "processing features and the other three methods allow automatic ingestion from compatible sensors or services:</p>"
+                "<ul><li><b>Web form/manual only:</b> Only use an online form accessible through this interface to manually upload data (No configuration required).</li>"\
+                "<li><b>Pull from external file system:</b> Setup automatic polling of an external file system from a URL location, when new files of the correct type and naming convention are found they are ingested (Configuration required on datasets page).</li>"\
+                "<li><b><i>(Advanced)</i> Push to this website through the API:</b> Use the XMLRPC API to directly push data into persistent storage, on project acceptance you will be emailed your API key and instructions (No configuration required).</li>"\
+                "<li><b>Sensor Observation Service:</b> Set-up a sensor that implements the Sensor Observation Service (SOS) to push data into this systems SOS server (Configuration required on datasets page).</li>"\
+                "<li><b><i>(Advanced)</i> Output from other dataset:</b> Output from other dataset: </b>This allows for advanced/chained processing of data, where the results of another dataset can be further processed and stored as required (Configuration required on datasets page).</li></ul>"\
                 "<p><i>Please refer to the help section or contact the administrators if you need additional information.</i></p>",
         ca_placeholder="Select the easiest method for your project.  If all else fails, manual file uploads will work for all data types.")
 
     data_type = relationship("MethodSchema", ca_order=next(order_counter), uselist=False, ca_widget=MethodSchemaWidget(),
         cascade="all, delete-orphan",ca_title="Type of data being collected", ca_child_validator=method_schema_validator,
         ca_collapsed=False,
-        ca_help="The type of data that is being collected - <b>Please extend the provided schemas where possible only use the custom fields for additional information</b> (eg. specific calibration data).</br></br>" \
-                    "Extending the provided schemas allows your data to be found in a generic search (eg. if you use the temperature schema then users will find your data " \
-                    "when searching for temperatures, but if you make the schema using custom fields (even if it is the same), then it won't show up in the temperature search results).",
-        ca_description="Extend existing data types wherever possible - only create custom fields or schemas if you cannot find an existing schema.")
+        ca_help="<i>Configuration of the type of data being collected is an advanced topic, help can be requested through the contact forms.</i>"
+                "<ol>"
+                "<li>Think about what data is being collected, how the data is originally stored and what needs to be searchable.</li>"
+                "<li>(Skip if using 'web form/manual') In most cases data is originally stored as a file of some kind, if this is the case add a custom field of type file (it is good practice to permenently store the raw data for future needs).</li>"
+                "<li>Identify which of your data needs to be searchable and is also a common measurement (eg. temperature, weight, humidity - not calibrations or anything project specific), where available add these in the standardised data fields section.</li>"
+                "<li>Add fields that need to be searchable but aren't common measurements in the custom fields section.</li>"
+                "</ol>",
+        ca_description="Configure how collected data should be stored, displayed and searched."
+                       "<ul><li>Each field added to the the data type will be fields on the data entry form, these fields will be searchable.</li></ul>"
 
+#                       "<p>Extend existing data types wherever possible - only create custom fields or schemas if you cannot find an existing schema.</p>"
+                        )
 
     method_attachments = relationship('MethodAttachment', ca_order=next(order_counter), ca_missing=colander.null, ca_child_title="Attachment",
         cascade="all, delete-orphan",
@@ -964,9 +986,9 @@ class Dataset(CAModel, Base):
     mint_service_id = Column(String(256), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
     mint_service_uri = Column(String(256), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 
-    name = Column(Text(), ca_name="dc:relation.vivo:Dataset.0.dc:title", ca_title="Dataset Name (For ingesters not metadata/ReDBox records)", ca_order=next(order_counter),
-        ca_placeholder="Provide a textual description of this dataset.",
-        ca_help="Provide a dataset specific name that is easily identifiable within this system.", ca_force_required=True)
+#    name = Column(Text(), ca_name="dc:relation.vivo:Dataset.0.dc:title", ca_title="Dataset Name (For ingesters not metadata/ReDBox records)", ca_order=next(order_counter),
+#        ca_placeholder="Provide a textual description of this dataset.",
+#        ca_help="Provide a dataset specific name that is easily identifiable within this system.", ca_force_required=True)
 
     publish_dataset = Column(Boolean, ca_title="Publish Metadata Record (Publicly advertise that this data exists)", ca_default=True, ca_order=next(order_counter),
         ca_widget=deform.widget.CheckboxWidget(template="checked_conditional_input", inverted=True),
@@ -1003,10 +1025,10 @@ class Dataset(CAModel, Base):
         ca_group_end="coverage", ca_widget=deform.widget.MappingWidget(template="inline_mapping", readonly_template="readonly/inline_mapping", show_label=True),
         ca_missing=colander.null, ca_help="Use an offset from the current location where the current location is the project location if valid, else the dataset location (eg. such as the artificial tree location is known so use z offsets for datasets).")
 
-    form_data_source = relationship("FormDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False, cascade="all, delete-orphan",ca_collapsed=False)
+    form_data_source = relationship("FormDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False, cascade="all, delete-orphan",ca_collapsed=False, ca_widget=deform.widget.HiddenWidget())
     pull_data_source = relationship("PullDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False)
     sos_scraper_data_source = relationship("SOSScraperDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False,)
-    push_data_source = relationship("PushDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False,)
+    push_data_source = relationship("PushDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False, ca_widget=deform.widget.HiddenWidget(),)
     dataset_data_source = relationship("DatasetDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False)
 
     record_metadata = relationship("Metadata", uselist=False, ca_order=next(order_counter), ca_missing=colander.null,
