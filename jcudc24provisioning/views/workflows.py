@@ -917,18 +917,23 @@ class Workflows(Layouts):
         ingesters = []
         for dataset in self.project.datasets:
             if dataset.publish_dataset:
+                dataset_name = "dataset for %s method" % dataset.method.method_name
+                if dataset.record_metadata is not None:
+                    dataset_name = dataset.record_metadata.project_title
+
                 metadata_record = self.session.query(Metadata).filter_by(dataset_id=dataset.id).first()
                 redbox_uri = None
                 if metadata_record is not None:
                     redbox_uri = metadata_record.redbox_uri
-                redbox_records.append((dataset.name, redbox_uri,
-                                       self.request.route_url("view_record", project_id=self.project_id, dataset_id=dataset.id),
-                                       self.request.route_url("delete_record", project_id=self.project_id, dataset_id=dataset.id),
-                                       self.session.query(Metadata).filter_by(dataset_id=dataset.id).count() > 0,
-                                       len(self.error) == 0))
+
+                redbox_records.append((dataset_name, redbox_uri,
+                       self.request.route_url("view_record", project_id=self.project_id, dataset_id=dataset.id),
+                       self.request.route_url("delete_record", project_id=self.project_id, dataset_id=dataset.id),
+                       self.session.query(Metadata).filter_by(dataset_id=dataset.id).count() > 0,
+                       len(self.error) == 0))
 
             dataset_method = self.session.query(Method).filter_by(id=dataset.method_id).first()
-            ingesters.append((dataset.name, dataset_method.data_source, dataset_method.method_name))
+            ingesters.append((dataset_name, dataset_method.data_source, dataset_method.method_name))
 
         for i in range(len(schema.children)):
             if schema.children[i].name[-len('validation'):] == 'validation':
