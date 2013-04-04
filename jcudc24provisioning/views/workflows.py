@@ -1125,7 +1125,7 @@ class Workflows(Layouts):
         schema = IngesterLogs()
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Refresh',), use_ajax=False)
 
-        datasets = self.session.query(Dataset).filter_by(project_id=self.project_id).order_by(Dataset.name).all()
+        datasets = self.session.query(Dataset).filter_by(project_id=self.project_id).order_by(Dataset.record_metadata.project_title).all()
 
         for dataset in datasets:
             if dataset.dam_id is None:
