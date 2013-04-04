@@ -517,7 +517,7 @@ class MethodSchemaField(CAModel, Base):
     name = Column(String(256), ca_title="Name", ca_placeholder="eg. Temperature", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_name"),ca_force_required=True)
     description = Column(Text(), ca_title="Description", ca_placeholder="eg. Calibrated temperature reading", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_description"))
 
-    units = Column(String(256), ca_placeholder="eg. mm", ca_widget=deform.widget.TextInputWidget(css_class="custom_field_units"),)#ca_force_required=True)
+    units = Column(String(256), ca_placeholder="eg. mm", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_units"),)#ca_force_required=True)
 
     placeholder = Column(String(256), ca_title="Example", ca_placeholder="eg. 26.3", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_example"))
     default = Column(String(256), ca_title="Default Value", ca_placeholder="Use appropriately where the user will usually enter the same value.", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_default"))
@@ -552,7 +552,7 @@ class MethodSchema(CAModel, Base):
 
 
     name = Column(String(256), ca_order=next(order_counter), ca_title="Schema Name", ca_placeholder="eg. Temperature with sensor XYZ calibration data",
-        ca_widget=deform.widget.HiddenWidget(),
+        ca_widget=deform.widget.TextInputWidget(template="hidden"),
         ca_help="Try to enter a unique name that easily identifies this schema.")
 #    nominate_as_template = Column(Boolean, ca_order=next(order_counter), ca_default=False, ca_title="Nominate this schema as a template",
 #        ca_help="Use this checkbox to suggest to admins that it would be helpful for this schema to be added as a template") # These are system schemas that users are encouraged to extend.
