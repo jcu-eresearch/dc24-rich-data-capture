@@ -915,7 +915,13 @@ class Workflows(Layouts):
         # + Get a summary of all ingesters to be setup
         redbox_records = []
         ingesters = []
+        datasets = []
         for dataset in self.project.datasets:
+            portal_url = None
+            if dataset.dam_id is not None:
+                portal_url = "%s%s" % (self.config['ingesterapi.portal_url'], dataset.dam_id)
+            dataset_method = self.session.query(Method).filter_by(id=dataset.method_id).first()
+
             if dataset.publish_dataset:
                 dataset_name = "dataset for %s method" % dataset.method.method_name
                 if dataset.record_metadata is not None:
@@ -926,22 +932,19 @@ class Workflows(Layouts):
                 if metadata_record is not None:
                     redbox_uri = "%s%s%s" % (self.config['redbox.url'], self.config['redbox.search_url'], metadata_record.redbox_identifier)
 
-                redbox_records.append((dataset_name, redbox_uri,
-                       self.request.route_url("view_record", project_id=self.project_id, dataset_id=dataset.id),
-                       self.request.route_url("delete_record", project_id=self.project_id, dataset_id=dataset.id),
-                       self.session.query(Metadata).filter_by(dataset_id=dataset.id).count() > 0,
-                       len(self.error) == 0))
+                datasets.append((dataset_name, portal_url, redbox_uri,
+                                 self.request.route_url("view_record", project_id=self.project_id, dataset_id=dataset.id),
+                                 self.request.route_url("delete_record", project_id=self.project_id, dataset_id=dataset.id),
+                                 self.session.query(Metadata).filter_by(dataset_id=dataset.id).count() > 0, len(self.error) == 0))
 
-            dataset_method = self.session.query(Method).filter_by(id=dataset.method_id).first()
-            ingesters.append((dataset_name, dataset_method.data_source, dataset_method.method_name))
 
         for i in range(len(schema.children)):
             if schema.children[i].name[-len('validation'):] == 'validation':
                 schema.children[i].children[0].validation_errors = self.error
-            if schema.children[i].name[-len('records'):] == 'records':
-                schema.children[i].children[0].records = redbox_records
-            if schema.children[i].name[-len('ingesters'):] == 'ingesters':
-                schema.children[i].children[0].ingesters = ingesters
+            if schema.children[i].name[-len('overview'):] == 'overview':
+                schema.children[i].children[0].datasets = datasets
+#            if schema.children[i].name[-len('ingesters'):] == 'ingesters':
+#                schema.children[i].children[0].ingesters = ingesters
 
        # Configure the available buttons based of the proect state.
         SUBMIT_TEXT = "Submit"
@@ -993,15 +996,15 @@ class Workflows(Layouts):
                     dataset.record_metadata = self.generate_dataset_record(dataset.id)
             self.session.flush()
 
-#            try:
-#                self.ingester_api.post(self.project)
-#                self.ingester_api.close()
-#                logger.info("Project has been added to ingesterplatform successfully: %s", self.project.id)
-#            except Exception as e:
-#                logger.exception("Project failed to add to ingesterplatform: %s", self.project.id)
-#                self.request.session.flash("Failed to configure data storage and ingestion.", 'error')
-#                self.request.session.flash("Error: %s" % e, 'error')
-#                return self._create_response(page_help=page_help)
+            try:
+                self.ingester_api.post(self.project)
+                self.ingester_api.close()
+                logger.info("Project has been added to ingesterplatform successfully: %s", self.project.id)
+            except Exception as e:
+                logger.exception("Project failed to add to ingesterplatform: %s", self.project.id)
+                self.request.session.flash("Failed to configure data storage and ingestion.", 'error')
+                self.request.session.flash("Error: %s" % e, 'error')
+                return self._create_response(page_help=page_help)
 
             try:
                 self.redbox.insert_project(self.project_id)

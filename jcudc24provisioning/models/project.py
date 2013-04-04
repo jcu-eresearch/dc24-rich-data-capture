@@ -1025,10 +1025,10 @@ class Dataset(CAModel, Base):
         ca_group_end="coverage", ca_widget=deform.widget.MappingWidget(template="inline_mapping", readonly_template="readonly/inline_mapping", show_label=True),
         ca_missing=colander.null, ca_help="Use an offset from the current location where the current location is the project location if valid, else the dataset location (eg. such as the artificial tree location is known so use z offsets for datasets).")
 
-    form_data_source = relationship("FormDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False, cascade="all, delete-orphan",ca_collapsed=False, ca_widget=deform.widget.HiddenWidget())
+    form_data_source = relationship("FormDataSource", ca_title=None, ca_order=next(order_counter), uselist=False, ca_force_required=False, cascade="all, delete-orphan",ca_collapsed=False,)
     pull_data_source = relationship("PullDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False)
     sos_scraper_data_source = relationship("SOSScraperDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False,)
-    push_data_source = relationship("PushDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False, ca_widget=deform.widget.HiddenWidget(),)
+    push_data_source = relationship("PushDataSource", ca_title=None, ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False, )
     dataset_data_source = relationship("DatasetDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False)
 
     record_metadata = relationship("Metadata", uselist=False, ca_order=next(order_counter), ca_missing=colander.null,
@@ -1557,11 +1557,8 @@ class Project(CAModel, Base):
     validated = Column(Boolean, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(template="submit_validation"), default=False,
         ca_group_start="validation", ca_group_end="validation", ca_group_title="Validation", ca_group_collapsed=False, ca_page="submit",)
 
-    records_ready = Column(Boolean, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(template="submit_records"), default=False,
-        ca_group_start="records", ca_group_end="records", ca_group_title="Generated ReDBox Records", ca_group_collapsed=False, ca_page="submit",)
-
-    ingesters_ready = Column(Boolean, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(template="submit_ingesters"), default=False,
-        ca_group_start="ingesters", ca_group_end="ingesters", ca_group_title="Summary of Data Ingesters", ca_group_collapsed=False, ca_page="submit",)
+    datasets_ready = Column(Boolean(), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(template="submit_overview", true_val='true', false_val='false'), default=False,
+        ca_group_start="overview", ca_group_end="overview", ca_group_title="Summary of Datasets & Records", ca_group_collapsed=False, ca_page="submit",)
 
     project_notes = relationship("ProjectNote", ca_title="Project Note",  ca_order=next(order_counter), ca_page="submit",
             cascade="all, delete-orphan", ca_widget=deform.widget.SequenceWidget(min_len=1),

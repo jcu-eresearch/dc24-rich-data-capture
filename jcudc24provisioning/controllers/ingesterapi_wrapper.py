@@ -313,8 +313,8 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             raise ValueError("Trying to provision a dataset with an undefined data source type.  Go back to the methods step and select the data source, then configure the data source in the datasets step.")
 
         if method.data_source == FormDataSource.__tablename__:
-            if model.form_data_source is None:
-                raise ValueError("Trying to provision a dataset with no data source.  Go back to the dataset step and configure the data source.")
+#            if model.form_data_source is None:
+#                raise ValueError("Trying to provision a dataset with no data source.  Go back to the dataset step and configure the data source.")
             data_source = jcudc24ingesterapi.models.data_sources.FormDataSource()
             # TODO: Update datasource configuration
         if method.data_source == PullDataSource.__tablename__:
@@ -365,8 +365,8 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
                 raise ValueError("Trying to create an ingester pull data source with invalid parameters: %s, Error: %s" % (model.record_metadata.project_title, e))
 
         if method.data_source == PushDataSource.__tablename__:
-            if model.push_data_source is None:
-                raise ValueError("Trying to provision a dataset with no data source.  Go back to the dataset step and configure the data source: %s" % model.record_metadata.project_title)
+#            if model.push_data_source is None:
+#                raise ValueError("Trying to provision a dataset with no data source.  Go back to the dataset step and configure the data source: %s" % model.record_metadata.project_title)
             data_source = jcudc24ingesterapi.models.data_sources.PushDataSource()
             # TODO: Update datasource configuration
         if method.data_source == SOSScraperDataSource.__tablename__:

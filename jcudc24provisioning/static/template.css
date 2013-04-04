@@ -1030,12 +1030,12 @@ div.more_info_panel {
     color: rgb(233, 79, 53);
 }
 
-.submit_ingesters table, .submit_records table {
+.submit_overview table {
     border-collapse:collapse;
     margin: 10px 0;
 }
 
-.submit_ingesters table td, .submit_ingesters table th, .submit_records table td, .submit_records table th {
+.submit_overview table td, .submit_overview table th {
     padding: 5px 15px;
     border: 1px solid rgb(253, 185, 19);
 }
