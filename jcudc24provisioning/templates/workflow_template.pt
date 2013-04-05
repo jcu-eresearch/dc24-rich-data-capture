@@ -26,18 +26,7 @@
                 });
             </script>
 
-            <div id="page_title">
-                 <h1><tal:block tal:condition="exists: page_help">
-                     <span tal:condition="page_help" class="help_icon"
-                           onclick="toggleHelp(this)">?</span></tal:block>
-                     <span tal:condition="exists: page_title" tal:replace="structure page_title" />
-                 </h1>
-                 <tal:block tal:condition="exists: page_help">
-                     <div tal:condition="page_help"
-                          tal:attributes="class 'help_text' + (page_help_hidden and ' hidden' or '')"
-                          tal:content="structure page_help"></div>
-                 </tal:block>
-             </div>
+
 
              <div id="sidebar">
                  <div id="sidebar_contextual_options">

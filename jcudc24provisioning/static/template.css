@@ -173,13 +173,21 @@ input[type=text]:not(.hasDatepicker), input[type=text].half_width, input[type=pa
 }
 
 #page_title {
-    padding: 0 20px;
+    padding: 0px 20px;
+    padding-top: 20px;
 }
 
 #page_title h1 {
     color: #0066cc;
     margin-top: 0px;
     padding-top: 0px;
+    float: left;
+    margin-left: 30px;
+}
+
+.page_help_text {
+    clear: both;
+    margin-top: 10px;
 }
 
 body {
@@ -871,7 +879,7 @@ span.collapse_icon {
     margin-left: -15px;
 }
 
-.error_messages, #no_javascript {
+.error_messages, #no_javascript, #ie_browser {
     background: rgba(255, 0, 0, 0.19);
     border: 1px solid #ffcc00;
     margin-bottom: 10px;

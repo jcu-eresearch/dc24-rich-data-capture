@@ -180,6 +180,21 @@
                <div id="title">
                    <img src="/static/images/tdh_logo.gif" alt="TDH Tropical Data Hub" />
                </div>
+               <div id="page_title">
+                   <h1><tal:block tal:condition="exists: page_help">
+                     <span tal:condition="page_help" class="help_icon"
+                           onclick="toggleHelp(this)">?</span></tal:block>
+                       <span tal:condition="exists: page_title" tal:replace="structure page_title" />
+                   </h1>
+
+
+                   <tal:block tal:condition="exists: page_help">
+                       <div tal:condition="page_help"
+                            tal:attributes="class 'help_text page_help_text' + (page_help_hidden and ' hidden' or '')"
+                            tal:content="structure page_help"></div>
+                   </tal:block>
+               </div>
+
 
                 <div id="nav">
                     <ul>
@@ -196,6 +211,7 @@
                     <!--<a href="/">Browse Projects</a>-->
                     <!--<a href="/">Help</a>-->
                 </div>
+
             </div>
 
             <div id="center">
@@ -203,9 +219,15 @@
                      <!--Messages panel-->
                      <noscript>
                          <div id="no_javascript">
-                             Please enable javascript for full usability.
+                             <p>Please enable javascript for full usability.</p>
                          </div>
                      </noscript>
+
+                     <!--[if IE]>
+                         <div id="ie_browser" >
+                             <p>Internet Explorer isn't supported please use another browser (<a href="http://www.mozilla.org/en-US/firefox/new/">Firefox</a>, <a href="https://www.google.com/intl/en/chrome/browser/">Chrome</a> or <a href="https://www.apple.com/au/safari/">Safari</a>) or you can try the <a href="http://www.google.com/chromeframe?quickenable=true">Chrome frame plugin</a>.</p>
+                         </div>
+                     <![endif]-->
 
                      <!--Panel for each type of message-->
                      <tal:block tal:repeat="msg_type messages">
