@@ -182,7 +182,6 @@ class Party(CAModel, Base):
         ca_widget=deform.widget.SelectWidget(values=relationship_types),
         ca_validator=OneOfDict(relationship_types[1:]),
         ca_help="<b>Managed by</b>: Primary contact<br />"
-                "<b>Project Lead</b>: Secondary contact<br />"
                 "<b>Aggregated by</b>: Helped with collecting data<br />"
                 "<b>Enriched by</b>: Helped the project in some other way<br />"
                 "<b>Associated With</b>: The project has something to do with this person<br />")
@@ -522,7 +521,7 @@ class MethodSchemaField(CAModel, Base):
     placeholder = Column(String(256), ca_title="Example", ca_placeholder="eg. 26.3", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_example"))
     default = Column(String(256), ca_title="Default Value", ca_placeholder="Use appropriately where the user will usually enter the same value.", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_default"))
     values = Column(Text(), ca_title="List of Values", ca_placeholder="Provide possible selections", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_values"))
-    validators = Column(String(256), ca_title="Validator", ca_placeholder="eg. Numerical value with decimal places or what values are expected such as for a dropdown box", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_validators"))
+#    validators = Column(String(256), ca_title="Validator", ca_placeholder="eg. Numerical value with decimal places or what values are expected such as for a dropdown box", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_validators"))
     notes = Column(String(256), ca_title="Admin Notes", ca_placeholder="eg. Please read this field from the uploaded files, it will follow a pattern like temp:xxx.xx", ca_widget=deform.widget.TextAreaWidget(css_class="full_width custom_field_notes"))
 
 
@@ -551,9 +550,9 @@ class MethodSchema(CAModel, Base):
     schema_type = Column(String(256), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 
 
-    name = Column(String(256), ca_order=next(order_counter), ca_title="Schema Name", ca_placeholder="eg. Temperature with sensor XYZ calibration data",
-        ca_widget=deform.widget.TextInputWidget(template="hidden"),
-        ca_help="Try to enter a unique name that easily identifies this schema.")
+    name = Column(String(256), ca_order=next(order_counter), ca_title="", ca_placeholder="eg. Temperature with sensor XYZ calibration data",
+        ca_widget=deform.widget.TextInputWidget(template="hidden"), )
+#        ca_help="Try to enter a unique name that easily identifies this schema.")
 #    nominate_as_template = Column(Boolean, ca_order=next(order_counter), ca_default=False, ca_title="Nominate this schema as a template",
 #        ca_help="Use this checkbox to suggest to admins that it would be helpful for this schema to be added as a template") # These are system schemas that users are encouraged to extend.
     parents = relationship("MethodSchema",ca_order=next(order_counter),
@@ -563,7 +562,7 @@ class MethodSchema(CAModel, Base):
         ca_title="Standardised data fields (Recommended where possible)",
         ca_widget=deform.widget.SequenceWidget(template="method_schema_parents_sequence"),
         ca_child_title = "Standard Data Field",
-        ca_child_widget=deform.widget.MappingWidget(template="ca_sequence_mapping", item_template="method_schema_parents_item"),
+        ca_child_widget=deform.widget.MappingWidget(template="method_schema_parents_mapping", item_template="method_schema_parents_item"),
         ca_help="<p>Using standardised data fields makes your data more compatible and searchable within the system.</p>",
         ca_description="<i>Please request additional standardised data fields through the contact form.</i>")
 
@@ -631,21 +630,23 @@ class CustomProcessor(CAModel, Base):
     __tablename__ = 'custom_processor'
     id = Column(Integer, primary_key=True, nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
-    custom_processor_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
-        ca_placeholder="eg. Extract he humidity and temperature values from the raw data file received in another dataset.",
-        ca_title="Describe custom processing needs", ca_missing="", ca_description="Describe your processing "\
-                    "requirements and what your uploaded script does (or what you will need help with).")
+    have_script = Column(Boolean, ca_title="I already have a processing script and know what I'm doing", ca_default=False, ca_order=next(order_counter),
+        ca_widget=deform.widget.CheckboxWidget(template="checked_conditional_input", inverted=True),)
 
     custom_processing_parameters = Column(String(512),ca_order=next(order_counter),
-            ca_description="Comma separated list of parameters.",
-            ca_help="Parameters are added via python string formatting syntax, simply add %s or %(<i>name</i>)s wherever you want a parameter inserted (parameters must either be added in the correct order or be named).")
+        ca_group_start="custom_script", ca_group_title="Custom Processing Script",
+        ca_description="Comma separated list of script specific parameters.",
+        ca_help="Parameters are added via python string formatting syntax, in your script add %s or %(<i>name</i>)s wherever you want a parameter inserted (parameters must either be added in the correct order or be named).")
 
     custom_processor_script = Column(String(512), ca_missing=colander.null ,ca_order=next(order_counter),ca_widget=upload_widget,
-        ca_title="Upload custom processing script",
-        ca_group_end="method",
+        ca_title="Upload custom processing script", ca_group_end="custom_script",
         ca_description="Upload a custom Python script to "\
-            "process the data in some way.  The processing script API can be found "\
-            "<a title=\"Python processing script API\"href=\"\">here</a>.")
+                       "process the data in some way.  The processing script API can be found "\
+                       "<a title=\"Python processing script API\"href=\"\">here</a>.")
+
+    custom_processor_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
+        ca_placeholder="eg. Extract the humidity and temperature values from the raw data file and add them to the humidity and temperature fields setup in the data configuration.",
+        ca_title="Describe custom processing requirements (or describe your script)", ca_missing="",)
 
 
 class FormDataSource(CAModel, Base):
@@ -663,62 +664,71 @@ class PullDataSource(CAModel, Base):
     id = Column(Integer, primary_key=True, nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
-    uri = Column(Text(), ca_order=next(order_counter), ca_validator=colander.url,
+    uri = Column(Text(), ca_order=next(order_counter), ca_title="Folder Address (URL)", ca_validator=colander.url,
         ca_placeholder="eg. http://example.com.au/folder/",
-        ca_description="Provide the url that should be polled for data - files will be ingested that follow the name convention of <i>TODO</i>")
+        ca_help="Provide the url that should be polled for data, all files in the folder will be used unless they are excluded by the filename pattern."
+                "<i>(Advanced) The filename will be passed into the custom processing script so that information can be read from it (eg. a timestamp).</i>")
 
     # Id of the data_entry schema field used for the datasource file
-    file_field = Column(Integer, ca_order=next(order_counter),
-            ca_widget=deform.widget.SelectWidget(),
-            ca_description="<i>Select the schema field (field within the data type in methods) that the data source will use</i>")
+    file_field = Column(Integer, ca_order=next(order_counter), ca_title="File Field",
+        ca_widget=deform.widget.SelectWidget(),
+        ca_help="Select the custom field (setup in data configuration on the methods page) that the file read from the above folder address will be saved to (this is the raw data).<br />",
+        ca_description="<i>This will be empty if the methods, data configuration doesn't have a custom field of type file.</i>")
 
 
     # TODO: filename_patterns
-    filename_pattern=Column(String(100),ca_order=next(order_counter), ca_title="Filename Pattern (Regex)",)
+    filename_pattern=Column(String(100),ca_order=next(order_counter), ca_title="(Advanced) Filename Pattern (Regex)",
+        ca_description="<i>Unless you know how to use this or that you need this, just leave it blank.</i><br />",
+        ca_help="Allows filtering of file names, <b>it is recommended that you seek help</b>.  For the brave, <a href='http://docs.python.org/2/library/re.html'> here is the the programmer documentation</a>.")
 #            ca_group_help="Provide a filename pattern (Regex) that identifies which files should be ingested.")
 #     mime_type=Column(String(100),ca_order=next(order_counter), ca_title="File MIME Type",
 #                ca_group_help="Provide a file MIME type that identifies the file content type.")
 
-    selected_sampling = Column(String(64), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter),
-        ca_group_start="sampling", ca_group_title="Data Sampling/Filtering", ca_group_collapsed=False, ca_group_validator=custom_processing_validator,
-        ca_group_widget=deform.widget.MappingWidget(item_template="choice_mapping_item", template="choice_mapping"),
-        ca_group_missing=colander.null)
+#    selected_sampling = Column(String(64), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter),
+#        ca_group_start="sampling", ca_group_title="Data Sampling (How often/when should new files be looked for)", ca_group_collapsed=False, ca_group_validator=custom_processing_validator,
+#        ca_group_widget=deform.widget.MappingWidget(item_template="choice_mapping_item", template="choice_mapping"),
+#        ca_group_missing=colander.null,
+#        ca_group_description="<i>Select one of the below.</i>")
 
-    periodic_sampling = Column(INTEGER(),ca_order=next(order_counter), ca_title="Periodic Sampling (Collect data every X minutes)",
+    periodic_sampling = Column(INTEGER(),ca_order=next(order_counter), ca_title="Periodic Sampling (How often should new files be looked for)",
         ca_widget=deform.widget.TextInputWidget(regex_mask="^(\\\\d*)$", strip=False),
-        ca_help="Provide the number of minutes between checks for new data.  If you require something more advanced any filtering can be achieved by adding a custom "\
-                "sampling script below.</br></br>  The sampling script API can be found <a href="">here</a>.")
+        ca_help="Provide the number of minutes between checks for new files."
+                "<i>(Advanced) If you require something more advanced almost any custom needs can be implemented with a custom processing script (below).</i>")
 
-    cron_sampling = Column(String(100),ca_order=next(order_counter), ca_title="Cron Based Sampling (When data is collected)",
-        ca_widget=deform.widget.TextInputWidget(template="chron_textinput"),
-        ca_help="<p>Provide repetitive filtering condition for retrieving data using the selectors below.</p>" \
-                "<p>If you require something more advanced you can provide your own cron string or any filtering can be achieved by adding a custom "\
-                "sampling script below.</p><p>The sampling script API can be found <a href="">here</a></p>.")
-
-
-    #    stop_conditions = Column(String(100),ca_order=next(order_counter), ca_title="Stop conditions (TODO)", ca_child_title="todo")
-
-    custom_sampling_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
-        ca_group_start="custom_sampling", ca_group_title="Custom Data Sampling/Filtering",
-        ca_placeholder="eg. Only ingest the first data value of every hour.",
-        ca_title="Describe custom sampling needs", ca_missing="",
-        ca_description="Describe your sampling requirements and what your uploaded script does, or what you will need help with.")
-
-    custom_sampling_script = Column(String(512), ca_missing=colander.null ,ca_order=next(order_counter),ca_widget=upload_widget,
-        ca_title="Upload custom sampling script",
-        ca_group_end="sampling",
-        ca_description="Upload a custom Python script to "\
-                       "sample the data in some way.  The sampling script API can be found "\
-                       "<a title=\"Python sampling script API\"href=\"\">here</a>.")
+#    cron_sampling = Column(String(100),ca_order=next(order_counter), ca_title="Cron Based Sampling (When data is collected)",
+#        ca_widget=deform.widget.TextInputWidget(template="chron_textinput"),
+#        ca_help="<p>Provide repetitive filtering condition for retrieving data using the selectors below.</p>" \
+#                "<p>If you require something more advanced you can provide your own cron string or any filtering can be achieved by adding a custom "\
+#                "sampling script below.</p><p>The sampling script API can be found <a href="">here</a></p>.")
+#
+#
+#    #    stop_conditions = Column(String(100),ca_order=next(order_counter), ca_title="Stop conditions (TODO)", ca_child_title="todo")
+#
+#    custom_sampling_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
+#        ca_group_start="custom_sampling", ca_group_title="Custom Data Sampling/Filtering",
+#        ca_placeholder="eg. Only ingest the first data value of every hour.",
+#        ca_title="Describe custom sampling needs", ca_missing="",
+#        ca_description="Describe your sampling requirements and what your uploaded script does, or what you will need help with.")
+#
+#    custom_sampling_script = Column(String(512), ca_missing=colander.null ,ca_order=next(order_counter),ca_widget=upload_widget,
+#        ca_title="Upload custom sampling script",
+#        ca_group_end="sampling",
+#        ca_description="Upload a custom Python script to "\
+#                       "sample the data in some way.  The sampling script API can be found "\
+#                       "<a title=\"Python sampling script API\"href=\"\">here</a>.")
 
 
     custom_processor_id = Column(Integer, ForeignKey('custom_processor.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    custom_processor = relationship("CustomProcessor", uselist=False, ca_order=next(order_counter), ca_group_collapsed=False,
-        ca_group_title="Custom Data Processing",  ca_group_validator=custom_processing_validator,
-        ca_placeholder="eg. Extract he humidity and temperature values from the raw data file received in another dataset.",
-        ca_title="Describe custom processing needs", ca_missing="", ca_description="Describe your processing "\
-                                   "requirements and what your uploaded script does (or what you will need help with).")
-
+    custom_processor = relationship("CustomProcessor", uselist=False, ca_order=next(order_counter), ca_collapsed=False,
+        ca_title="Custom Data Processing (Read data from the found file)",  ca_validator=custom_processing_validator,
+        ca_help="Custom data processing is a flexible method of adding data to this system without knowing what that data will be in advance:"
+                "<ul>"
+                "<li>Pull data sources read a file from the folder address entered above</li>"
+                "<li>Data configuration provided in the methods step sets up what data is important/searchable and how it is stored.</li>"
+                "<li>Custom data processing configures how data is read from the file and added to this system as indexed data.</li>"
+                "</ul>",
+        ca_description="<i>If you haven't used this system before you will need help to create a processing script, "
+                       "describe your requirements as best you can below and an administrator will contact you.</i>")
 
 
 class PushDataSource(CAModel, Base):
@@ -728,12 +738,9 @@ class PushDataSource(CAModel, Base):
     id = Column(Integer, primary_key=True, nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
-    api_key = Column(Text(), ca_title="API Key (Password to use this functionality)", ca_order=next(order_counter),
+    api_key = Column(Text(), ca_title="(Advanced) API Key (Password to use this functionality)", ca_order=next(order_counter),
         ca_default="TODO: Auto-generate key",
-        ca_description="The password that is needed to push your data into to this system.")
-
-    file_field = Column(String(100), ca_order=next(order_counter),
-            ca_description="<b>TODO: Redevelop into dropdown selection from schema fields that are of type file</b>")
+        ca_description="The password that is needed to push your data into to this systems API, the API documentation can be found <a href=''>here</a>.")
 
 sos_variants = (("52North", "52 North"),)
 sos_versions = ((SOSVersions.v_1_0_0, "1.0.0"),)
@@ -745,36 +752,38 @@ class SOSScraperDataSource(CAModel, Base):
     id = Column(Integer, primary_key=True, nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
-    uri = Column(Text(), ca_order=next(order_counter), ca_validator=colander.url,
+    uri = Column(Text(), ca_title="SOS Address (URL)", ca_order=next(order_counter), ca_validator=colander.url,
         ca_placeholder="eg. http://example.com.au/folder/",
-        ca_description="Provide the url of the external Sensor Observation Service.")
+        ca_help="Provide the url of the external Sensor Observation Service.")
 
     # Id of the data_entry schema field used for the datasource file
     data_field = Column(Integer, ca_order=next(order_counter),
-        ca_widget=deform.widget.SelectWidget(),
-        ca_description="<i>Select the schema field (field within the data type in methods) that the raw SOS data will be saved to.</i>")
+        ca_widget=deform.widget.SelectWidget(), ca_title="Data File Field (Raw data is read as a file)",
+        ca_help="Select the custom field (see data configuration in methods) that the raw SOS data will be saved to.",
+         ca_description="<i>If there is no selection available you need to add a custom field of type file to this datasets method.</i>")
 
     variant = Column(String(64), ca_order=next(order_counter), ca_widget=deform.widget.SelectWidget(values=sos_variants),
-        ca_description="Select the external Sensor Observation Service (SOS) implementation variant, please contact the administrators if you require a different variant.")
+        ca_description="<i>If you are unsure what this means leave it as the default</i>",
+        ca_help="Select the external Sensor Observation Service (SOS) implementation variant, please contact the administrators if you require a different variant.")
     version = Column(String(64), ca_order=next(order_counter), ca_widget=deform.widget.SelectWidget(values=sos_versions),
-        ca_description="Select the external Sensor Observation Service (SOS) implementation version, please contact the administrators if you require a different version.")
+        ca_help="Select the external Sensor Observation Service (SOS) implementation version, please contact the administrators if you require a different version.",
+        ca_description="<i>If you are unsure what this means leave it as the default</i>")
 
+#    selected_sampling = Column(String(64), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter),
+#        ca_group_start="sampling", ca_group_title="Data Sampling/Filtering", ca_group_collapsed=False,
+#        ca_group_widget=deform.widget.MappingWidget(item_template="choice_mapping_item", template="choice_mapping"),
+#        ca_group_missing=colander.null)
 
-    selected_sampling = Column(String(64), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter),
-        ca_group_start="sampling", ca_group_title="Data Sampling/Filtering", ca_group_collapsed=False,
-        ca_group_widget=deform.widget.MappingWidget(item_template="choice_mapping_item", template="choice_mapping"),
-        ca_group_missing=colander.null)
-
-    periodic_sampling = Column(INTEGER(),ca_order=next(order_counter), ca_title="Periodic Sampling (Collect data every X minutes)",
+    periodic_sampling = Column(INTEGER(),ca_order=next(order_counter), ca_title="Periodic Sampling (How often should new data be looked for)",
         ca_widget=deform.widget.TextInputWidget(regex_mask="^(\\\\d*)$", strip=False),
-        ca_help="Provide the number of minutes between checks for new data.  If you require something more advanced any filtering can be achieved by adding a custom "\
-                "sampling script below.</br></br>  The sampling script API can be found <a href="">here</a>.")
+        ca_help="Provide the number of minutes between checks for new data."
+                "<i>(Advanced) If you require something more advanced almost any custom needs can be implemented with a custom processing script (below).</i>")
 
-    cron_sampling = Column(String(100),ca_order=next(order_counter), ca_title="Cron Based Sampling (When data is collected)",
-        ca_widget=deform.widget.TextInputWidget(template="chron_textinput"),
-        ca_help="<p>Provide repetitive filtering condition for retrieving data using the selectors below.</p>"\
-                "<p>If you require something more advanced you can provide your own cron string or any filtering can be achieved by adding a custom "\
-                "sampling script below.</p><p>The sampling script API can be found <a href="">here</a></p>.")
+    #    cron_sampling = Column(String(100),ca_order=next(order_counter), ca_title="Cron Based Sampling (When data is collected)",
+#        ca_widget=deform.widget.TextInputWidget(template="chron_textinput"),
+#        ca_help="<p>Provide repetitive filtering condition for retrieving data using the selectors below.</p>"\
+#                "<p>If you require something more advanced you can provide your own cron string or any filtering can be achieved by adding a custom "\
+#                "sampling script below.</p><p>The sampling script API can be found <a href="">here</a></p>.")
 
 #    custom_processor_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
 #        ca_group_start="processing", ca_group_collapsed=False, ca_group_title="Custom Data Processing",  ca_group_validator=custom_processing_validator,
@@ -788,12 +797,16 @@ class SOSScraperDataSource(CAModel, Base):
 
 
     custom_processor_id = Column(Integer, ForeignKey('custom_processor.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    custom_processor = relationship("CustomProcessor", uselist=False, ca_order=next(order_counter), ca_group_collapsed=False,
-            ca_group_title="Custom Data Processing",  ca_group_validator=custom_processing_validator,
-            ca_placeholder="eg. Extract he humidity and temperature values from the raw data file received in another dataset.",
-            ca_title="Describe custom processing needs", ca_missing="", ca_description="Describe your processing "\
-                                       "requirements and what your uploaded script does (or what you will need help with).")
-
+    custom_processor = relationship("CustomProcessor", uselist=False, ca_order=next(order_counter), ca_collapsed=False,
+        ca_title="Custom Data Processing (Read data from the found file)",  ca_validator=custom_processing_validator,
+        ca_help="Custom data processing is a flexible method of adding data to this system without knowing what that data will be in advance:"
+                "<ul>"
+                "<li>SOS data sources read a file from the SOS at the address entered above</li>"
+                "<li>Data configuration provided in the methods step sets up what data is important/searchable and how it is stored.</li>"
+                "<li>Custom data processing configures how data is read from the file and added to this system as indexed data.</li>"
+                "</ul>",
+        ca_description="<i>If you haven't used this system before you will need help to create a processing script, "
+                       "describe your requirements as best you can below and an administrator will contact you.</i>")
 
 @colander.deferred
 def dataset_select_widget(node, kw):
@@ -828,7 +841,13 @@ class DatasetDataSource(CAModel, Base):
 
     # TODO: Selection of datasets
     dataset_data_source_id = Column(Text(), ca_title="Source Dataset", ca_order=next(order_counter), ca_widget=dataset_select_widget,
-        ca_description="The dataset to retrieve processed data from.  If there are no items to select from - there must be other datasets already setup!")
+        ca_help="The dataset to retrieve processed data from.  This allows chaining of data and processing such that:"
+                "<ul>"
+                "<li>A dataset could be configured to use a pull datasource to read files from an external folder and save the file as raw data.</li>"
+                "<li>The results of that could then be read by n other dataset using a dataset data source and further processed the data into seperate, processed results.</li>"
+                "</ul>"
+                "This allows separating and processing of aggregated data, such as data from many sensors in a single file.",
+        ca_description="<i>If there are no items to select from then no other datasets have been setup yet!</i>")
 
 #    custom_processor_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
 #        ca_group_start="processing", ca_group_collapsed=False, ca_group_title="Custom Data Processing",  ca_group_validator=custom_processing_validator,
@@ -841,11 +860,16 @@ class DatasetDataSource(CAModel, Base):
 #            ca_help="Parameters are added via python string formatting syntax, simply add %s or %(<i>name</i>)s wherever you want a parameter inserted (parameters must either be added in the correct order or be named).")
 
     custom_processor_id = Column(Integer, ForeignKey('custom_processor.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    custom_processor = relationship("CustomProcessor", uselist=False, ca_order=next(order_counter), ca_group_collapsed=False,
-            ca_group_title="Custom Data Processing",  ca_group_validator=custom_processing_validator,
-            ca_placeholder="eg. Extract he humidity and temperature values from the raw data file received in another dataset.",
-            ca_title="Describe custom processing needs", ca_missing="", ca_description="Describe your processing "\
-                                       "requirements and what your uploaded script does (or what you will need help with).")
+    custom_processor = relationship("CustomProcessor", uselist=False, ca_order=next(order_counter), ca_collapsed=False,
+        ca_title="Custom Data Processing (Read data from the found file)",  ca_validator=custom_processing_validator,
+        ca_help="Custom data processing is a flexible method of adding data to this system without knowing what that data will be in advance:"
+                "<ul>"
+                "<li>Dataset data sources read the output data from another dataset as configured above.</li>"
+                "<li>Data configuration provided in the methods step sets up what data is important/searchable and how it is stored.</li>"
+                "<li>Custom data processing configures how data is read from the other datasets output and added to this system as indexed data.</li>"
+                "</ul>",
+        ca_description="<i>If you haven't used this system before you will need help to create a processing script, "
+                       "describe your requirements as best you can below and an administrator will contact you.</i>")
 
 class MethodTemplate(CAModel, Base):
     """
@@ -909,7 +933,7 @@ class Method(CAModel, Base):
         (DatasetDataSource.__tablename__,"<i>(Advanced)</i> Output from other dataset"),
         )
 
-    data_source =  Column(String(50), ca_order = next(order_counter), ca_widget=deform.widget.RadioChoiceWidget(values=data_sources),
+    data_source =  Column(String(50), ca_order = next(order_counter), ca_widget=deform.widget.RadioChoiceWidget(values=data_sources, template="datasource_radio_choice"),
         ca_title="Data Source (How the data gets transferred into this system)", ca_force_required=True,
         ca_description="<i>Additional configurations may be required on the datasets page (eg. each dataset for a pull from external file system method will need it's location set on a per dataset basis).</i>",
         ca_help="<p>'Web form/manual' is the default (other data sources also allow adding data through a web form), 'Output from other dataset' provides advanced "
@@ -923,7 +947,7 @@ class Method(CAModel, Base):
         ca_placeholder="Select the easiest method for your project.  If all else fails, manual file uploads will work for all data types.")
 
     data_type = relationship("MethodSchema", ca_order=next(order_counter), uselist=False, ca_widget=MethodSchemaWidget(),
-        cascade="all, delete-orphan",ca_title="Type of data being collected", ca_child_validator=method_schema_validator,
+        cascade="all, delete-orphan",ca_title="Data Configuration", ca_child_validator=method_schema_validator,
         ca_collapsed=False,
         ca_help="<i>Configuration of the type of data being collected is an advanced topic, help can be requested through the contact forms.</i>"
                 "<ol>"
@@ -933,7 +957,7 @@ class Method(CAModel, Base):
                 "<li>Add fields that need to be searchable but aren't common measurements in the custom fields section.</li>"
                 "</ol>",
         ca_description="Configure how collected data should be stored, displayed and searched."
-                       "<ul><li>Each field added to the the data type will be fields on the data entry form, these fields will be searchable.</li></ul>"
+#                       "<ul><li>Each field added to the the data type will be fields on the data entry form, these fields will be searchable.</li></ul>"
 
 #                       "<p>Extend existing data types wherever possible - only create custom fields or schemas if you cannot find an existing schema.</p>"
                         )
@@ -1027,7 +1051,7 @@ class Dataset(CAModel, Base):
 
     form_data_source = relationship("FormDataSource", ca_title=None, ca_order=next(order_counter), uselist=False, ca_force_required=False, cascade="all, delete-orphan",ca_collapsed=False,)
     pull_data_source = relationship("PullDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False)
-    sos_scraper_data_source = relationship("SOSScraperDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False,)
+    sos_scraper_data_source = relationship("SOSScraperDataSource", ca_title="Sensor Observation Service (SOS) Data Source", ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False,)
     push_data_source = relationship("PushDataSource", ca_title=None, ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False, )
     dataset_data_source = relationship("DatasetDataSource", ca_order=next(order_counter), uselist=False, ca_force_required=False,cascade="all, delete-orphan",ca_collapsed=False)
 

@@ -10,14 +10,15 @@
           tal:condition="field.schema.__dict__.get('placeholder')"
           tal:content="structure field.schema.__dict__.get('placeholder')"></span>
 
+
     <!-- mapping_item -->
     <label tal:condition="not (field.widget.hidden or
-                             field.widget.category == 'structural')"
+                             field.widget.category == 'structural'
+                             or len(field.title) == 0)"
            class="desc"
            for="${field.oid}">
         <span class="help_icon" onclick="toggleHelp(this);" tal:condition="field.schema.__dict__.get('help')">?</span>
         ${field.title}<span tal:condition="field.required" class="req" id="req-${field.oid}">*</span>
-
     </label>
 
 
@@ -49,11 +50,12 @@
                 '${field.oid}',
                 function (oid) {
                         var list_item = $("#item-" + oid)[0];
-//                    alert  fsdasdfasfasdasdfsda
                         if (list_item) {
                             var list = list_item.parentNode;
                             var type = $(list).children("li").first().find("select")[0];
+//                            alert(type);
                             type.setAttribute("onchange", "conditional_display('"+oid+"');");
+
 //                            alert(type.onchange);
                             conditional_display(oid);
                         }
@@ -73,7 +75,7 @@
                 var units = $(list).find('.custom_field_units')[0].parentNode.parentNode;
                 var example = $(list).find('.custom_field_example')[0].parentNode.parentNode;
                 var default_item = $(list).find('.custom_field_default')[0].parentNode.parentNode;
-                var validator = $(list).find('.custom_field_validators')[0].parentNode.parentNode;
+//                var validator = $(list).find('.custom_field_validators')[0].parentNode.parentNode;
                 var values = $(list).find('.custom_field_values')[0].parentNode.parentNode;
 
                 $(units).find('label')[0].innerHTML = 'Units'
@@ -84,7 +86,7 @@
                     case "hidden":
                         example.className += " hidden";
                         default_item.className = values.className.replace( / hidden/g , '');
-                        validator.className = values.className.replace( /\shidden/g , '');
+//                        validator.className = values.className.replace( /\shidden/g , '');
                         units.className = values.className.replace( /\shidden/g , '');
                         values.className += " hidden";
                         break;
@@ -92,7 +94,7 @@
                     case "text_area":
                         example.className = values.className.replace( / hidden/g , '');
                         default_item.className = values.className.replace( / hidden/g , '');
-                        validator.className = values.className.replace( / hidden/g , '');
+//                        validator.className = values.className.replace( / hidden/g , '');
                         units.className += " hidden";
                         values.className += " hidden";
                         break;
@@ -101,7 +103,7 @@
                     case "radio":
                         example.className += " hidden";
                         default_item.className = values.className.replace( / hidden/g , '');
-                        validator.className = values.className.replace( / hidden/g , '');
+//                        validator.className = values.className.replace( / hidden/g , '');
                         units.className += " hidden";
                         values.className = values.className.replace( / hidden/g , '');
                         break;
@@ -112,7 +114,7 @@
                     case "date":
                         example.className += " hidden";
                         default_item.className = values.className.replace( / hidden/g , '');
-                        validator.className += " hidden";
+//                        validator.className += " hidden";
                         units.className += " hidden";
                         values.className += " hidden";
                         break;
@@ -120,7 +122,7 @@
                     case "file":
                         example.className = values.className.replace( / hidden/g , '');
                         default_item.className += " hidden";
-                        validator.className += " hidden";
+//                        validator.className += " hidden";
                         units.className = values.className.replace( / hidden/g , '');
                         $(units).find('label')[0].innerHTML = 'Mime Type';
                         values.className += " hidden";
@@ -129,7 +131,7 @@
                     case "checkbox":
                         example.className += " hidden";
                         default_item.className = values.className.replace( / hidden/g , '');
-                        validator.className = values.className.replace( / hidden/g , '');
+//                        validator.className = values.className.replace( / hidden/g , '');
                         units.className += " hidden";
                         values.className += " hidden";
                         break;

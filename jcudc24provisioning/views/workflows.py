@@ -4,6 +4,7 @@ import copy
 from datetime import datetime, date
 import json
 import logging
+from jcudc24provisioning.controllers.method_schema_scripts import get_method_schema_form
 import os
 from lxml import etree
 import random
@@ -735,7 +736,9 @@ class Workflows(Layouts):
         DATA_SCHEMA_INDEX = string.join([schema[METHODS_INDEX].children[0].name, Method.data_type.key], PREFIX_SEPARATOR)
         METHOD_SCHEMA_PARENTS_INDEX = string.join([schema[METHODS_INDEX].children[0].name, Method.data_type.key, MethodSchema.parents.key], PREFIX_SEPARATOR)
         schema[METHODS_INDEX].children[0][DATA_SCHEMA_INDEX][METHOD_SCHEMA_PARENTS_INDEX].template_schemas = self.get_template_schemas()
-#        assert False
+        schema[METHODS_INDEX].children[0][DATA_SCHEMA_INDEX][METHOD_SCHEMA_PARENTS_INDEX].children[0].get_form = get_method_schema_form
+        schema[METHODS_INDEX].children[0][DATA_SCHEMA_INDEX].get_form = get_method_schema_form
+        #        assert False
 
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
 
@@ -996,15 +999,15 @@ class Workflows(Layouts):
                     dataset.record_metadata = self.generate_dataset_record(dataset.id)
             self.session.flush()
 
-            try:
-                self.ingester_api.post(self.project)
-                self.ingester_api.close()
-                logger.info("Project has been added to ingesterplatform successfully: %s", self.project.id)
-            except Exception as e:
-                logger.exception("Project failed to add to ingesterplatform: %s", self.project.id)
-                self.request.session.flash("Failed to configure data storage and ingestion.", 'error')
-                self.request.session.flash("Error: %s" % e, 'error')
-                return self._create_response(page_help=page_help)
+#            try:
+#                self.ingester_api.post(self.project)
+#                self.ingester_api.close()
+#                logger.info("Project has been added to ingesterplatform successfully: %s", self.project.id)
+#            except Exception as e:
+#                logger.exception("Project failed to add to ingesterplatform: %s", self.project.id)
+#                self.request.session.flash("Failed to configure data storage and ingestion.", 'error')
+#                self.request.session.flash("Error: %s" % e, 'error')
+#                return self._create_response(page_help=page_help)
 
             try:
                 self.redbox.insert_project(self.project_id)

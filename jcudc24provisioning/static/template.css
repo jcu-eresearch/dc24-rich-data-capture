@@ -919,10 +919,14 @@ span.collapse_icon {
     box-shadow: -1px -1px 1px rgb(253, 185, 19), -5px -5px 3px rgba(253, 185, 19, 0.32);
 }
 
-div.more_info_panel div {
+.parent_schema_preview_button {
+    float: none !important;
+}
+
+div.more_info_panel div, .parent_schema_preview_panel div {
     padding: 5px;
 }
-div.more_info_panel {
+div.more_info_panel, .parent_schema_preview_panel {
     max-width: 500px;
     padding: 10px;
     border: 1px solid #b6b6b6;
@@ -931,6 +935,11 @@ div.more_info_panel {
     border-radius: 0 0 5px 5px;
     box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.48);
     /*top: 50%; left: 50%*/
+}
+
+.parent_schema_preview_panel {
+    max-width: 80% !important;
+    left: 65px;
 }
 
 .help_icon {
@@ -1165,3 +1174,22 @@ div.more_info_panel {
 .ui-tabs-panel div.selected:not(.selectable) {border: 1px solid rgb(233, 79, 53);}
 .template_selection h3 {margin: 0px; padding: 0px; font-size: 1em;}
 .template_selection div {padding: 10px;}
+
+
+.datasource-selected_text {padding-left: 30px; font-style: italic;}
+
+#data_configuration {
+    width: 48%;
+    display: inline-block !important;
+    float: left;
+}
+
+#data_configuration_preview {
+    width: 40%;
+    display: inline-block;
+    float: right;
+}
+
+.deform #data_configuration_preview form {
+    min-height: 0px !important;
+}

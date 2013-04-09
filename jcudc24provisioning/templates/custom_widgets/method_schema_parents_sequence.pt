@@ -37,9 +37,10 @@
     </a>
 
     <ul id="seq_items-${field.oid}">
-        <div tal:repeat="tup subfields"
-             tal:replace="structure rndr(item_tmpl, field=tup[1], cstruct=tup[0],
-                      parent=field)"/>
+        <tal:block tal:repeat="tup subfields">
+            <div tal:replace="structure rndr(item_tmpl, field=tup[1], cstruct=tup[0],
+                      parent=field)" />
+        </tal:block>
 
     <span class="deformInsertBefore"
           tal:attributes="min_len min_len; 

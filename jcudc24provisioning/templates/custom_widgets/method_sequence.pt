@@ -10,12 +10,23 @@
                  min_len field.widget.min_len or 0;
                  max_len field.widget.max_len or 100000;
                  now_len len(subfields);
-                 prototype field.widget.prototype(field)">
+                 prototype field.widget.prototype(field)" xmlns="http://www.w3.org/1999/html">
 
     <div id="${field.oid}-template_panel" class="wizard hidden">
 
         <h2>Create New Method</h2>
-        <p>Method templates provide pre-configured data collection methods and pre-fill as much information as possible to make this process as quick and easy as possible.</p>
+
+        <p>Working out how to fit your data into this system can be a bit complicated, we recommend you follow the below process:</p>
+        <ol>
+            <li>Split the output data into separate result types.</li>
+            <li>Identify what collects the data for each result type (eg. there could be a sensor + obs form).</li>
+            <li>Create 1 method for each result type.</li>
+            <li>Create 1 dataset for each thing that collects data.</li>
+        </ol>
+
+        <h4>(Optional) Pre-Configured Template</h4>
+        <p>Templates allow for pre-configured data collection methods where as much information is pre-filled as possible.  Feel free to have a browse for something appropriate, if you use a template that is incorrect you can easily delete the method and re-create it.</p>
+        <p><i>Please let us know through the contact forms if your project or department doesn't have templates and you think they would be beneficial (eg. you keep having to fill the same thing out).</i></p>
 
         <input type="checkbox" id="use_template" onclick="$('#${field.oid}-template_selection').toggle()"/>
         <label for="use_template">Use a method template</label>
@@ -27,7 +38,6 @@
             <div tal:content="structure rndr(field.schema.templates_data.widget.template, field=field.schema.templates_data, cstruct='', parent=field)"></div>
         </div>
         <br />
-        <p><i>Please contact the administrators to request new templates.</i></p>
         <div style="clear: both; position: relative; height: 60px;">
             <div class="button_text submit" onclick="stopAddMethod(this);">Cancel</div>
             <div class="button_text submit" onclick="preFillMethod(this);">Create Method</div>

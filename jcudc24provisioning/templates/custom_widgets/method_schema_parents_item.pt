@@ -8,6 +8,8 @@
 
     <!-- mapping_item -->
     <span tal:content="structure field.serialize(cstruct, readonly=True)" />
+    <a tal:condition="name == 'name'" class="buttonText parent_schema_preview_button"
+            onclick="$(parentNode.parentNode.parentNode).find('.parent_schema_preview_panel').toggle(200); $(this).toggleClass('current')">View Fields</a>
 
 
     <p tal:condition="field.error and not field.widget.hidden and not field.typ.__class__.__name__=='Mapping'"

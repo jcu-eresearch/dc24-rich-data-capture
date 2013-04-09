@@ -8,7 +8,6 @@
         tal:condition="field.schema.__dict__.get('placeholder')"
         tal:content="structure field.schema.__dict__.get('placeholder')"></span>
 
-
   <span class="deformClosebutton"
         id="${field.oid}-close"
         tal:condition="not field.widget.hidden"

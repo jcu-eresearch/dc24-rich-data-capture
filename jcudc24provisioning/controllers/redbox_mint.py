@@ -157,6 +157,7 @@ class ReDBoxWraper(object):
         #8. Alert ReDBox that there are new records
         self._alert_redbox()
 
+
         #9. Set the date that the records were added to ReDBox
         project.information.date_added_to_redbox = datetime.now()
 
@@ -245,7 +246,10 @@ class ReDBoxWraper(object):
         for record in records:
             identifier = record.xpath("%s" % Metadata.redbox_identifier.key)
             if len(identifier) == 1:
-                tmp_file_path = self.working_dir + (identifier[0].text).replace("\\", ".").replace("/", ".") + ".xml"
+                identifier = (identifier[0].text).replace("\\", ".").replace("/", ".")
+                number = int(identifier[identifier.rindex('.')+1:])
+                formatted_identifier = (identifier[:identifier.rindex('.')] + '.{:0>9}').format(number)
+                tmp_file_path = self.working_dir + formatted_identifier + ".xml"
                 f = open(tmp_file_path, 'w')
                 f.write(self._process_xml((etree.tostring(record.getroottree().getroot(), pretty_print=True))))
             else:
