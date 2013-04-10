@@ -23,7 +23,7 @@
 
     <!-- /mapping -->
     <div class="parent_schema_preview_panel hidden" tal:define="schema_form field.schema.get_form(cstruct['methodschema:id'])">
-        <div tal:replace="structure schema_form.render({})" />
+        <div tal:replace="structure schema_form" />
 
         <a class='close_button buttonText' onclick="$(parentNode.parentNode).find('.parent_schema_preview_button').removeClass('current'); $(parentNode).toggle(200);" >Close</a>
     </div>

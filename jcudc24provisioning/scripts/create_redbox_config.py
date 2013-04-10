@@ -113,8 +113,8 @@ def create_json_config():
                     #                Party.primary: "dc:creator.foaf:Person.0.redbox:isPrimaryInvestigator",
                     Party.given_name.key: ["dc:creator.foaf:Person.0.foaf:givenName", "locrel:prc.foaf:Person.foaf:givenName"],
                     Party.family_name.key: ["dc:creator.foaf:Person.0.foaf:familyName", "locrel:prc.foaf:Person.foaf:familyName"],
-                    Party.organisation.key: "dc:creator.foaf:Person.0.foaf:Organization.dc:identifier",
-                    Party.organisation_label.key: "dc:creator.foaf:Person.0.foaf:Organization.skos:prefLabel",
+                    Party.association.key: "dc:creator.foaf:Person.0.foaf:Organization.dc:identifier",
+                    Party.association_label.key: "dc:creator.foaf:Person.0.foaf:Organization.skos:prefLabel",
                     Party.email.key: "locrel:prc.foaf:Person.foaf:email",            # Primary contact
                     Party.short_display_name.key: "locrel:prc.foaf:Person.foaf:name",
                 },
@@ -177,7 +177,7 @@ def create_json_config():
                 Metadata.citation_place_of_publication.key: [
                     "dc:biblioGraphicCitation.dc:hasPart.vivo:Publisher.vivo:Location",
                     "dc:biblioGraphicCitation.dc:hasPart.dc:date.0.rdf:PlainLiteral"],
-                Metadata.citation_publish_date.key: "publication-date-citation",
+#                Metadata.citation_publish_date.key: "publication-date-citation",
                 Metadata.citation_dates.key + "/*": {
                     CitationDate.label.key: "dc:biblioGraphicCitation.dc:hasPart.dc:date.0.dc:type.skos:prefLabel",
                     # TODO: Get this label as the name in the dropdown (datetype is the value)

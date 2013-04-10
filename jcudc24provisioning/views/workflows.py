@@ -4,7 +4,7 @@ import copy
 from datetime import datetime, date
 import json
 import logging
-from jcudc24provisioning.controllers.method_schema_scripts import get_method_schema_form
+from jcudc24provisioning.controllers.method_schema_scripts import get_method_schema_preview
 import os
 from lxml import etree
 import random
@@ -736,8 +736,8 @@ class Workflows(Layouts):
         DATA_SCHEMA_INDEX = string.join([schema[METHODS_INDEX].children[0].name, Method.data_type.key], PREFIX_SEPARATOR)
         METHOD_SCHEMA_PARENTS_INDEX = string.join([schema[METHODS_INDEX].children[0].name, Method.data_type.key, MethodSchema.parents.key], PREFIX_SEPARATOR)
         schema[METHODS_INDEX].children[0][DATA_SCHEMA_INDEX][METHOD_SCHEMA_PARENTS_INDEX].template_schemas = self.get_template_schemas()
-        schema[METHODS_INDEX].children[0][DATA_SCHEMA_INDEX][METHOD_SCHEMA_PARENTS_INDEX].children[0].get_form = get_method_schema_form
-        schema[METHODS_INDEX].children[0][DATA_SCHEMA_INDEX].get_form = get_method_schema_form
+        schema[METHODS_INDEX].children[0][DATA_SCHEMA_INDEX][METHOD_SCHEMA_PARENTS_INDEX].children[0].get_form = get_method_schema_preview
+        schema[METHODS_INDEX].children[0][DATA_SCHEMA_INDEX].get_form = get_method_schema_preview
         #        assert False
 
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)

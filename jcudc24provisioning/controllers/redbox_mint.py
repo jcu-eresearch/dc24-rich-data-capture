@@ -216,10 +216,14 @@ class ReDBoxWraper(object):
                     person.association = mint_person['result-metadata']['all']['GroupID_2'][0]
                 if re.match(school_group_match, str(mint_person['result-metadata']['all']['GroupID_3'][0])):
                     person.association = mint_person['result-metadata']['all']['GroupID_3'][0]
+            person.association = "jcu.edu.au/parties/group/%s" % person.association
 
-            person.association_label = person.association
+            mint_association = mint_lookup.get_from_identifier(person.association)
+            person.association_label = mint_association['dc:title']
 
             person.short_display_name = mint_person['dc:title']
+
+        record.data_storage_location = self.data_portal + str(record.ccdam_identifier)
 
         # Only update the citation if it is empty
         if record.custom_citation is not True:
@@ -241,33 +245,37 @@ class ReDBoxWraper(object):
                 added_parties.append(party.identifier)
                 metadata.citation_creators.append(Creator(party.title, party.given_name, party.family_name))
 
-        del metadata.citation_dates[:]
-#       metadata.citation_dates.append(CitationDate(metadata.record_export_date, "created", "Date Created"))
         if metadata.dataset_id is not None:
-           dataset = self.session.query(Dataset).filter_by(id=metadata.dataset_id).first()
-           metadata.citation_publish_date = dataset.publish_date
+            dataset = self.session.query(Dataset).filter_by(id=metadata.dataset_id).first()
+            metadata.citation_publish_date = dataset.publish_date
         else:
-           metadata.citation_publish_date = metadata.record_export_date
+            metadata.citation_publish_date = metadata.record_export_date
+
+        del metadata.citation_dates[:]
+        metadata.citation_dates.append(CitationDate(metadata.citation_publish_date, "publicationDate", "Publication Date"))
 
        # Fill citation fields
         metadata.citation_title = metadata.project_title
 
 #       metadata.citation_edition = None
         metadata.citation_publisher = "James Cook University"
-#       metadata.citation_place_of_publication = None
+        metadata.citation_place_of_publication = None
        # Type of Data?
         metadata.citation_url = self.data_portal + str(metadata.ccdam_identifier)
 #       metadata.citation_context = metadata.project_title
         metadata.citation_data_type = "Data Files"
 
-        metadata.citation_string = ""
+        people_string = ""
         for person in metadata.parties:
-            if len(metadata.citation_string) > 0:
-                metadata.citation_string += "; "
-            metadata.citation_string += "%s, %s" % (person.family_name, person.given_name)
+            if len(people_string) > 0:
+                people_string += "; "
+            people_string += "%s, %s" % (person.family_name, person.given_name)
 
-        metadata.citation_string += "(%s). %s. %s. [%s] {%s}" % (metadata.citation_publish_date.year, metadata.citation_title,
-                                 metadata.citation_publisher, metadata.citation_data_type, metadata.redbox_identifier)
+        metadata.citation_string = "%s (%s). %s. %s. [%s] {ID_WILL_BE_HERE}" % (people_string, metadata.citation_publish_date.year, metadata.citation_title,
+                                 metadata.citation_publisher, metadata.citation_data_type)
+
+        metadata.record_origin = "external"
+        metadata.use_curation = "useCuration"
 
 
     def _write_to_tmp(self, records):

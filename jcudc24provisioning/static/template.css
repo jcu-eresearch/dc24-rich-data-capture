@@ -1190,6 +1190,17 @@ div.more_info_panel, .parent_schema_preview_panel {
     float: right;
 }
 
+.deform #data_configuration_preview fieldset {
+    border: 1px ridge rgb(253, 185, 19);
+    border-radius: 0.5em 0.5em 0.5em 0.5em;
+    background-color: #f8f8f8;
+
+    box-shadow: inset 0px 0px 2px #fff;
+
+    padding: 10px;
+    margin: 0;
+}
+
 .deform #data_configuration_preview form {
     min-height: 0px !important;
 }

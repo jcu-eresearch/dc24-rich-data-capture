@@ -32,7 +32,7 @@
     <a
             class="deformSeqAdd"
             id="${field.oid}-seqAdd"
-            onclick="deform.appendSequenceItem(this); updateParentItem(this)">
+            onclick="deform.appendSequenceItem(this);updateParentItem(this);">
         <small id="${field.oid}-addtext">${add_subitem_text}</small>
     </a>
 

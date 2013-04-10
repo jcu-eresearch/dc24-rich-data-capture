@@ -1209,7 +1209,7 @@ class Metadata(CAModel, Base):
     date_added_to_redbox = Column(Date, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 
 
-    use_record_id = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), ca_default=None)
+    use_record_id = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), ca_default="false")
     type_of_identifier = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), ca_default="local")
     type_of_identifier_label = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), ca_default="Local Identifier")
     dc_spec = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="xmlns:dc", ca_default="http://dublincore.org/documents/2008/01/14/dcmi-terms/")
@@ -1217,7 +1217,7 @@ class Metadata(CAModel, Base):
     anzsrc_spec = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="xmlns:anzsrc", ca_default="http://purl.org/anzsrc/",)
     view_id = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="viewId", ca_default="default",)
     package_type = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="packageType", ca_default="dataset",)
-    record_origin = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="dc:identifier.redbox:origin", ca_default="internal",) #TODO: What should this be prefilled with? Internal or something like rdc?
+    record_origin = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="dc:identifier.redbox:origin", ca_default="",) #TODO: What should this be prefilled with? Internal or something like rdc?
     new_redbox_form = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="redbox:newForm", ca_default="false",)    #TODO: Should this be true?
     redbox_form_version = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="redbox:formVersion", ca_default="1.5.2.2",)
     record_type = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="dc:type.rdf:PlainLiteral", ca_default="dataset",)
@@ -1479,7 +1479,7 @@ class Metadata(CAModel, Base):
 
     custom_citation = Column(Boolean(), ca_order=next(order_counter), ca_default=False, ca_page="information")
     send_citation = Column(String(100), ca_order=next(order_counter), ca_default="on", ca_page="information", ca_widget=deform.widget.HiddenWidget())
-    use_curation = Column(String(100), ca_order=next(order_counter), ca_default="on", ca_page="information", ca_widget=deform.widget.HiddenWidget(),)
+    use_curation = Column(String(100), ca_order=next(order_counter), ca_default="useCuration", ca_page="information", ca_widget=deform.widget.HiddenWidget(),)
 
     # Date of publication (either dataset publish date or date added to redbox)
     citation_publish_date = Column(Date(), ca_order=next(order_counter), ca_page="information")

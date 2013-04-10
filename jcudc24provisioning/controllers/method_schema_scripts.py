@@ -32,7 +32,7 @@ class DummySession(object):
     def changed(self):
         pass
 
-def get_method_schema_form(method_schema_id):
+def get_method_schema_preview(method_schema_id):
     method_schema = DBSession.query(MethodSchema).filter_by(id=method_schema_id).first()
     model_schema = DataTypeSchema(method_schema)
 
@@ -43,7 +43,10 @@ def get_method_schema_form(method_schema_id):
     dummy_request = Request(registry=Registry(settings=settings), session=DummySession())
 
     model_schema._bind({'request': dummy_request})   # Use _bind instead of bind so the schema isn't cloned
-    return Form(model_schema, action="")
+    form = Form(model_schema, action="")
+    display = form.render({})
+    display = display[display.index(">")+1:].replace("</form>", "").strip()
+    return display
 
 class DataTypeSchema(colander.SchemaNode):
     def __init__(self, method_schema):
@@ -79,7 +82,7 @@ def get_schema_fields(method_schema):
                 values = values + ((value.strip(", ").lower().replace(" ", "_"), value),)
 
         #TODO: Website regex is basic but should validate blatant mistakes such as user misinterpreting the field for email
-        widget = field.type == field_types[INTEGER_INDEX][0] and deform.widget.TextInputWidget(regex_mask="\\d.*$", strip=False) or\
+        widget = field.type == field_types[INTEGER_INDEX][0] and deform.widget.TextInputWidget(regex_mask="^\\\\d*$", strip=False) or\
                  field.type == field_types[DECIMAL_INDEX][0] and deform.widget.TextInputWidget(regex_mask="^(((\\\\.\\\\d*)?)|(\\\\d+(\\\\.\\\\d*)?))$", strip=False) or\
                  field.type == field_types[TEXT_AREA_INDEX][0] and deform.widget.TextAreaWidget() or\
                  field.type == field_types[CHECKBOX_INDEX][0] and deform.widget.CheckboxWidget() or\
