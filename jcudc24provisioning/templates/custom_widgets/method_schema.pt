@@ -44,6 +44,7 @@
         <div id="data_configuration_preview" tal:define="schema_form field.schema.get_form(cstruct['method:data_type:id'])">
             <h3 style="display: inline-block;">Preview</h3>
             <button class="buttonText" style="float: none;" >Refresh</button>
+            <p><i>This preview shows how the web form will look for manual data entry.</i></p>
             <div tal:replace="structure schema_form.render({})" />
         </div>
         <!-- /mapping -->

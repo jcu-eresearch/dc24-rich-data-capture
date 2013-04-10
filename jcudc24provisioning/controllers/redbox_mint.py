@@ -1,10 +1,11 @@
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, date
 import random
 import shutil
 import string
 import colander
 from paste.deploy.converters import asint
+import re
 import requests
 from jcudc24provisioning.controllers.sftp_filesend import SFTPFileSend
 from jcudc24provisioning.models.project import PullDataSource, Metadata, UntouchedPages, IngesterLogs, Location, \
@@ -187,7 +188,7 @@ class ReDBoxWraper(object):
         record.redbox_identifier = self.identifier_pattern + str(record.id)
 
         # Set the record export date.
-        record.record_export_date = datetime.now()
+        record.record_export_date = datetime.now().date()
 
         mint_lookup = MintLookup(None)
 
@@ -207,7 +208,18 @@ class ReDBoxWraper(object):
 #            person.organisation = mint_person['dc:title']
 #            person.organisation_label = mint_person['dc:title']
             person.email = mint_person['result-metadata']['all']['Email'][0]
-            pass
+
+            school_group_match = "[^0]{3}0"
+            person.association = mint_person['result-metadata']['all']['GroupID_1'][0]
+            if not re.match(school_group_match, str(person.association)):
+                if re.match(school_group_match, str(mint_person['result-metadata']['all']['GroupID_2'][0])):
+                    person.association = mint_person['result-metadata']['all']['GroupID_2'][0]
+                if re.match(school_group_match, str(mint_person['result-metadata']['all']['GroupID_3'][0])):
+                    person.association = mint_person['result-metadata']['all']['GroupID_3'][0]
+
+            person.association_label = person.association
+
+            person.short_display_name = mint_person['dc:title']
 
         # Only update the citation if it is empty
         if record.custom_citation is not True:
@@ -219,28 +231,44 @@ class ReDBoxWraper(object):
         return record
 
     def pre_fill_citation(self, metadata):
-       if metadata is None:
-           raise ValueError("Updating citation on None metadata")
+        if metadata is None:
+            raise ValueError("Updating citation on None metadata")
 
-       del metadata.citation_creators[:]
-       added_parties = []
-       for party in metadata.parties:
+        del metadata.citation_creators[:]
+        added_parties = []
+        for party in metadata.parties:
             if party.identifier not in added_parties:
                 added_parties.append(party.identifier)
                 metadata.citation_creators.append(Creator(party.title, party.given_name, party.family_name))
 
-       del metadata.citation_dates[:]
-       metadata.citation_dates.append(CitationDate(metadata.record_export_date, "created", "Date Created"))
+        del metadata.citation_dates[:]
+#       metadata.citation_dates.append(CitationDate(metadata.record_export_date, "created", "Date Created"))
+        if metadata.dataset_id is not None:
+           dataset = self.session.query(Dataset).filter_by(id=metadata.dataset_id).first()
+           metadata.citation_publish_date = dataset.publish_date
+        else:
+           metadata.citation_publish_date = metadata.record_export_date
 
        # Fill citation fields
-       metadata.citation_title = metadata.project_title
+        metadata.citation_title = metadata.project_title
 
-       metadata.citation_edition = None
-       metadata.citation_publisher = "James Cook University"
-       metadata.citation_place_of_publication = "James Cook University"
+#       metadata.citation_edition = None
+        metadata.citation_publisher = "James Cook University"
+#       metadata.citation_place_of_publication = None
        # Type of Data?
-       metadata.citation_url = self.data_portal + str(metadata.ccdam_identifier)
-       metadata.citation_context = metadata.project_title
+        metadata.citation_url = self.data_portal + str(metadata.ccdam_identifier)
+#       metadata.citation_context = metadata.project_title
+        metadata.citation_data_type = "Data Files"
+
+        metadata.citation_string = ""
+        for person in metadata.parties:
+            if len(metadata.citation_string) > 0:
+                metadata.citation_string += "; "
+            metadata.citation_string += "%s, %s" % (person.family_name, person.given_name)
+
+        metadata.citation_string += "(%s). %s. %s. [%s] {%s}" % (metadata.citation_publish_date.year, metadata.citation_title,
+                                 metadata.citation_publisher, metadata.citation_data_type, metadata.redbox_identifier)
+
 
     def _write_to_tmp(self, records):
         for record in records:

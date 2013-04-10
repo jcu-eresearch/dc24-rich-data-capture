@@ -90,12 +90,13 @@ def create_json_config():
                 Metadata.record_type_label.key: "dc:type.skos:prefLabel",
                 Metadata.language.key: "dc:language.dc:identifier",
                 Metadata.language_label.key: "dc:language.skos:prefLabel",
-
-                #    "dc:identifier.dc:type.rdf:PlainLiteral": "",   # TODO: Set the redbox identifier - What should the type be?
-                #    "dc:identifier.dc:type.skos:prefLabel": "",
+                Metadata.use_record_id.key: "dc:identifier.checkbox",
+                Metadata.type_of_identifier.key:"dc:identifier.dc:type.rdf:PlainLiteral",
+                Metadata.type_of_identifier_label.key:"dc:identifier.dc:type.skos:prefLabel",
                 Metadata.redbox_identifier.key: ["dc:identifier.rdf:PlainLiteral", "known_ids"],
 
-                Metadata.data_storage_location.key: "vivo:Location.vivo:GeographicLocation.gn:name",
+                Metadata.data_storage_location.key: "bibo:Website.1.dc:identifier",
+                Metadata.data_storage_location_name.key: "vivo:Location.vivo:GeographicLocation.gn:name",
                 Metadata.ccdam_identifier.key: "bibo:Website.0.dc:identifier",
                 Metadata.project_title.key: ["title", "dc:title", "redbox:submissionProcess.dc:title"],
                 Metadata.internal_grant.key: "foaf:fundedBy.vivo:Grant.0.redbox:internalGrant",
@@ -105,7 +106,7 @@ def create_json_config():
                 Metadata.parties.key + "/*": {
                     Party.party_relationship_label.key: "dc:creator.foaf:Person.0.jcu:relationshipLabel",
                     Party.party_relationship.key: "dc:creator.foaf:Person.0.jcu:relationshipType",
-                    Party.identifier.key: "dc:creator.foaf:Person.0.dc:identifier",
+                    Party.identifier.key: ["dc:creator.foaf:Person.0.dc:identifier", "locrel:prc.foaf:Person.dc:identifier"],
                     Party.name.key: "dc:creator.foaf:Person.0.foaf:name",
                     Party.title.key: ["dc:creator.foaf:Person.0.foaf:title", "locrel:prc.foaf:Person.foaf:title"],
                     #                Party.coprimary: "dc:creator.foaf:Person.0.redbox:isCoPrimaryInvestigator",       # TODO: Are these needed?
@@ -115,6 +116,7 @@ def create_json_config():
                     Party.organisation.key: "dc:creator.foaf:Person.0.foaf:Organization.dc:identifier",
                     Party.organisation_label.key: "dc:creator.foaf:Person.0.foaf:Organization.skos:prefLabel",
                     Party.email.key: "locrel:prc.foaf:Person.foaf:email",            # Primary contact
+                    Party.short_display_name.key: "locrel:prc.foaf:Person.foaf:name",
                 },
                 Metadata.collaborators.key + "/*": {
                     Collaborator.collaborator.key: "dc:contributor.locrel:clb.0.foaf:Agent",
@@ -160,7 +162,7 @@ def create_json_config():
                 Metadata.rights.key: "dc:accessRights.dc:RightsStatement.skos:prefLabel",
                 Metadata.rights_url.key: "dc:accessRights.dc:RightsStatement.dc:identifier",
 
-                Metadata.license_name.key: "dc:license.skos:prefLabel",
+                Metadata.license_label.key: "dc:license.skos:prefLabel",
                 Metadata.license.key: "dc:license.dc:identifier",
                 Metadata.other_license_name.key: "dc:license.rdf:Alt.skos:prefLabel",
                 Metadata.other_license_url.key: "dc:license.rdf:Alt.dc:identifier",
@@ -175,6 +177,7 @@ def create_json_config():
                 Metadata.citation_place_of_publication.key: [
                     "dc:biblioGraphicCitation.dc:hasPart.vivo:Publisher.vivo:Location",
                     "dc:biblioGraphicCitation.dc:hasPart.dc:date.0.rdf:PlainLiteral"],
+                Metadata.citation_publish_date.key: "publication-date-citation",
                 Metadata.citation_dates.key + "/*": {
                     CitationDate.label.key: "dc:biblioGraphicCitation.dc:hasPart.dc:date.0.dc:type.skos:prefLabel",
                     # TODO: Get this label as the name in the dropdown (datetype is the value)
@@ -185,6 +188,7 @@ def create_json_config():
                 Metadata.citation_data_type.key: "dc:biblioGraphicCitation.dc:hasPart.jcu:dataType",
                 Metadata.citation_context.key: "dc:biblioGraphicCitation.dc:hasPart.skos:scopeNote",
                 Metadata.send_citation.key: "dc:biblioGraphicCitation.redbox:sendCitation",
+                Metadata.citation_string.key: "dc:biblioGraphicCitation.skos:prefLabel",
                 Metadata.use_curation.key: "dc:biblioGraphicCitation.dc:hasPart.dc:identifier.skos:note",
                 # TODO: Citation->use identifier provided during curation? - Ask if this should be on?
                 Metadata.retention_period.key: "redbox:retentionPeriod",

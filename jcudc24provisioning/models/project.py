@@ -165,9 +165,9 @@ class Person(CAModel, Base):
     email = Column(String(256), ca_order=next(order_counter), ca_missing="", ca_validator=colander.Email())
 
 relationship_types = (
-        ("select", "---Select One---"), ("isManagedBy", "Managed by"), ("hasAssocationWith", "Associated with"),
+        ("select", "---Select One---"), ("isManagedBy", "Managed by"), ("hasAssociationWith", "Associated with"),
         ("hasCollector", "Aggregated by")
-        , ("isEnrichedBy'", "Enriched by"))
+        , ("isEnrichedBy", "Enriched by"))
 
 class Party(CAModel, Base):
     order_counter = itertools.count()
@@ -195,6 +195,11 @@ class Party(CAModel, Base):
     organisation = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(),)
     organisation_label = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(),)
     email = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(),)
+    association = Column(String(256), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(),)
+    association_label = Column(String(256), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(),)
+
+    short_display_name = Column(String(256), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(),)
+
 
     identifier = Column(String(100), ca_order=next(order_counter), ca_title="Person", ca_force_required=True,
         ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/parties/', template="mint_autocomplete_input", size="70", delay=10),
@@ -225,7 +230,7 @@ class Keyword(CAModel, Base):
     id = Column(Integer, primary_key=True, ca_force_required=False, nullable=False, ca_widget=deform.widget.HiddenWidget())
     metadata_id = Column(Integer, ForeignKey('metadata.id'), ca_force_required=False, nullable=False, ca_widget=deform.widget.HiddenWidget())
 
-    keyword = Column(String(512), ca_name="dc:subject.vivo:keyword.0.rdf:PlainLiteral")
+    keyword = Column(String(512), ca_name="dc:subject.vivo:keyword.0.rdf:PlainLiteral", ca_force_required=True)
 
 
 class Collaborator(CAModel, Base):
@@ -1203,6 +1208,10 @@ class Metadata(CAModel, Base):
     record_export_date = Column(Date, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(), name="dc:created")
     date_added_to_redbox = Column(Date, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 
+
+    use_record_id = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), ca_default=None)
+    type_of_identifier = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), ca_default="local")
+    type_of_identifier_label = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), ca_default="Local Identifier")
     dc_spec = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="xmlns:dc", ca_default="http://dublincore.org/documents/2008/01/14/dcmi-terms/")
     foaf_spec = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="xmlns:foaf", ca_default="http://xmlns.com/foaf/spec/",)
     anzsrc_spec = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="xmlns:anzsrc", ca_default="http://purl.org/anzsrc/",)
@@ -1216,7 +1225,8 @@ class Metadata(CAModel, Base):
     language = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="dc:language.dc:identifier", ca_default="http://id.loc.gov/vocabulary/iso639-2/eng",)
     language_label = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="dc:language.skos:prefLabel", ca_default="English",)
 
-    data_storage_location = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), ca_default="CC-DAM, James Cook University, Townsville Campus")
+    data_storage_location = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    data_storage_location_name = Column(String(512), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), ca_default="CC-DAM, James Cook University, Townsville Campus")
     redbox_identifier = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     redbox_uri = Column(String(256), ca_name="dc:relation.vivo:Dataset.0.dc:identifier",ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
     ccdam_identifier = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
@@ -1441,7 +1451,7 @@ class Metadata(CAModel, Base):
 #        ('restricted_license', 'Restricted License'),
 #        ('other', 'Other'),
         )
-    license_name = other_license_name = Column(String(256), ca_order=next(order_counter), ca_page="information", ca_widget=deform.widget.HiddenWidget(),)
+    license_label = other_license_name = Column(String(256), ca_order=next(order_counter), ca_page="information", ca_widget=deform.widget.HiddenWidget(),)
     license = Column(String(256), ca_name="dc:license.dc:identifier", ca_order=next(order_counter), ca_title="License", ca_page="information",
         ca_default="creative_commons_by", ca_force_required=True,
         ca_widget=deform.widget.SelectWidget(values=licenses, template="select_with_other"),
@@ -1471,6 +1481,8 @@ class Metadata(CAModel, Base):
     send_citation = Column(String(100), ca_order=next(order_counter), ca_default="on", ca_page="information", ca_widget=deform.widget.HiddenWidget())
     use_curation = Column(String(100), ca_order=next(order_counter), ca_default="on", ca_page="information", ca_widget=deform.widget.HiddenWidget(),)
 
+    # Date of publication (either dataset publish date or date added to redbox)
+    citation_publish_date = Column(Date(), ca_order=next(order_counter), ca_page="information")
     # Autocomplete from all people
     citation_creators = relationship('Creator', ca_order=next(order_counter), ca_missing=None, ca_page="information",cascade="all, delete-orphan",)
     # Dont know?
@@ -1486,8 +1498,10 @@ class Metadata(CAModel, Base):
     # Unknown
     citation_data_type = Column(String(256), ca_order=next(order_counter), ca_page="information")
     # Unknown
-    citation_context = Column(String(512), ca_name="dc:biblioGraphicCitation.dc:hasPart.skos:scopeNote", ca_order=next(order_counter), ca_placeholder="citation context", ca_missing="", ca_page="information",
+    citation_context = Column(String(512), ca_name="dc:biblioGraphicCitation.dc:hasPart.skos:scopeNote", ca_order=next(order_counter), ca_placeholder="citation context", ca_missing="", ca_page="information",)
+    citation_string = Column(String(512), ca_name="dc:biblioGraphicCitation.skos:prefLabel", ca_order=next(order_counter), ca_page="information",
         ca_group_end='citation')
+
     #-------------additional_information--------------------
     retention_periods = (
         ("indefinite", "Indefinite"), ("1", "1 Year"), ("5", "5 Years"), ("7", "7 Years"), ("10", "10 Years"),
