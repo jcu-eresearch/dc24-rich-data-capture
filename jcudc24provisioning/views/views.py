@@ -3,7 +3,7 @@ import logging
 from string import split
 import urllib2
 import pyramid
-from pyramid.httpexceptions import HTTPNotFound, HTTPFound, HTTPClientError
+from pyramid.httpexceptions import HTTPNotFound, HTTPFound, HTTPClientError, HTTPBadRequest
 from pyramid.view import view_config, forbidden_view_config, view_defaults
 from pyramid.security import remember, forget, authenticated_userid
 from deform.form import Form
@@ -38,6 +38,10 @@ class Layouts(object):
     def global_template(self):
         renderer = get_renderer("../templates/template.pt")
         return renderer.implementation().macros['layout']
+
+    @reify
+    def get_user(self):
+        return self.request.user
 
     @reify
     def get_message(self):
@@ -126,10 +130,8 @@ class Layouts(object):
         return {"page_title": "Provisioning Dashboard", 'messages': messages}
 
 
-
     @view_config(route_name='login', renderer='../templates/form.pt')
-    @forbidden_view_config(renderer='../templates/form.pt')
-    def login(self):
+    def login_view(self):
         request = self.request
         logged_in = authenticated_userid(self.request)
 
@@ -179,6 +181,7 @@ class Layouts(object):
                 form=display
             )
 
+    @forbidden_view_config(renderer='../templates/form.pt')
     @view_config(route_name='login_shibboleth', renderer='../templates/form.pt')
     def login_shibboleth(self):
         request = self.request
@@ -277,3 +280,5 @@ class Layouts(object):
     #        else:
         self.request.session.flash(self.context, 'error')
         return HTTPFound(self.request.route_url('dashboard'))
+
+

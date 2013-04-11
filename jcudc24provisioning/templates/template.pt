@@ -166,9 +166,11 @@
                    <a href="www.jcu.edu.au"><img src="/static/images/jcu_logo.gif" alt="James Cook University logo"/></a>
                </div>
 
-               <div id="top_menu">
+               <div id="top_menu" tal:define="user view.get_user">
+                   <div tal:condition="user" id="user_name">Welcome ${user.display_name}!</div>
                    <div id="help_menu">Help &#x25BC;</div>
-                   <div id="login"><a href="/login/shibboleth">Log in</a></div>
+                   <div tal:condition="not user" id="login"><a href="/login/shibboleth">Log in</a></div>
+                   <div tal:condition="user" id="login"><a href="/logout">Log out</a></div>
                </div>
 
                <div id="search">

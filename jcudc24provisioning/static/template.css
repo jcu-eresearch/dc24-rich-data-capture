@@ -250,7 +250,7 @@ body {
     float: left;
     width: auto;
     color: #999;
-    padding: 3px;
+    padding: 3px !important;
     margin-top: 1px;
     margin-right: 3px;
 }
@@ -292,13 +292,25 @@ body {
     border-bottom-right-radius: 5.76667px;
     border-bottom-left-radius: 5.76667px;
     cursor: pointer;
-    color: rgb(32, 92, 144);
     text-decoration: none;
     outline: medium none;
     font-size: 80%;
     background: none repeat scroll 0% 0% rgb(227, 227, 227);
     padding: 0em 1em;
     float: left;
+}
+
+#user_name {
+    float: left;
+    /*font-weight: bold;*/
+    font-family: verdana, serif;
+    padding-right: 10px;
+    font-size: 0.8em;
+}
+
+#login a, #login a:visited {
+    text-decoration: none;
+    color: rgb(32, 92, 144);
 }
 
 #nav ul, #nav li {
