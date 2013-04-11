@@ -34,6 +34,9 @@ class DummySession(object):
 
 def get_method_schema_preview(method_schema_id):
     method_schema = DBSession.query(MethodSchema).filter_by(id=method_schema_id).first()
+    if method_schema is None:
+        return "<p>Please create your data mapping using the standardised and custom fields.</p>"
+
     model_schema = DataTypeSchema(method_schema)
 
     # Create a dummy request object to make file upload widgets display properly for preview purposes.

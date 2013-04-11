@@ -131,7 +131,8 @@ class Workflows(Layouts):
         if '_project' not in locals():
             self._project = self.session.query(Project).filter_by(id=self.project_id).first()
             if self._project is None:
-                self.request.session.flash("Error: The project couldn't be found.")
+                raise HTTPClientError("You are trying to access a project that doesn't exist.  Either you have edited the address bar directly or the project no longer exists.")
+#                self.request.session.flash("The requested project doesn't exist.  Either you have edited the address bar directly or the project you are requesting no longer exists.")
         return self._project
 
     def find_errors(self, error, page=None):
@@ -434,12 +435,12 @@ class Workflows(Layouts):
 
         return None
 
-    def _render_post(self):
+    def _render_post(self, **kw):
         if self._get_post_appstruct() is not None:
             if hasattr(self, '_validation_error'):
                 return self._validation_error.render()
             else:
-                return self.form.render(self._get_post_appstruct(), readonly=self.readonly)
+                return self.form.render(self._get_post_appstruct(), **kw)
 
         return None
 
@@ -520,15 +521,21 @@ class Workflows(Layouts):
         response_dict = {
             "page_title": kwargs.pop("page_title", self.title),
             "form": kwargs.pop("form", None),
-            "form_only": kwargs.pop("form_only",False),
-            'readonly': kwargs.pop('readonly',self.readonly),
-            'messages': kwargs.pop('messages',self._get_messages()),
-            "next_page": kwargs.pop("next_page",self.next),
-            "prev_page": kwargs.pop("prev_page",self.previous),
+            "form_only": kwargs.pop("form_only", False),
+            'readonly': kwargs.pop('readonly', None),
+            'messages': kwargs.pop('messages', self._get_messages()),
+            "next_page": kwargs.pop("next_page", self.next),
+            "prev_page": kwargs.pop("prev_page", self.previous),
             "page_help": kwargs.pop("page_help", ""),
             "logged_in": authenticated_userid(self.request),
             "page_help_hidden": kwargs.pop("page_help_hidden", True),
         }
+
+        # Don't use a default directly in pop as it initialises the default even if not needed, this causes self.project
+        # to be called which breaks any pages that it is valid for the project to not be in the database yet (create page).
+        if response_dict['readonly'] is None:
+            response_dict['readonly'] = self.readonly
+
         # Lazy default initialisation as this has high overheads.
         if response_dict['form'] is None:
             response_dict['form'] = self._render_model()
@@ -637,7 +644,7 @@ class Workflows(Layouts):
 
             return HTTPFound(self.request.route_url('general', project_id=new_project.id))
 
-        return self._create_response(page_help=page_help, page_help_hidden=False, form=self._render_post())
+        return self._create_response(page_help=page_help, page_help_hidden=False, form=self._render_post(readonly=False), readonly=False)
 
     @view_config(route_name="general")
     def general_view(self):

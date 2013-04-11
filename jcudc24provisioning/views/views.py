@@ -259,3 +259,21 @@ class Layouts(object):
 #        else:
             self.request.session.flash('There is no page at the requested address, please don\'t edit the address bar directly.', 'error')
             return HTTPFound(self.request.route_url('dashboard'))
+
+    @view_config(context=HTTPClientError, renderer="../templates/exception.pt")
+    def http_error_view(self):
+    #        # TODO: Update standard exception screen to fit.
+    #        logger.exception("An exception occurred in global exception view: %s", self.context)
+    #        if self.request.route_url:
+    #            try:
+    #                self.request.session.flash('Sorry, there was an exception, please try again.', 'error')
+    #                self.request.session.flash(self.context, 'error')
+    #                self.request.POST.clear()
+    #                response = getattr(self, str(self.request.route_url) + "_view")()
+    #                return response
+    #            except Exception:
+    #                logger.exception("Exception occurred while trying to display the view without variables: %s", Exception)
+    #                return {"page_title": self.request.url, "form": 'Sorry, we are currently experiencing difficulties.  Please contact the administrators: ' + str(self.context), "form_only": False}
+    #        else:
+        self.request.session.flash(self.context, 'error')
+        return HTTPFound(self.request.route_url('dashboard'))
