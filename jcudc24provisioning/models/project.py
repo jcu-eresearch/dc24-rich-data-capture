@@ -826,7 +826,10 @@ def dataset_select_widget(node, kw):
                 dataset_name = dataset.record_metadata.project_title
             else:
                 project = DBSession.query(Project).filter_by(id=dataset.project_id).first()
-                height_text =  (", %sm above MSL") % dataset.dataset_locations[0].elevation if dataset.dataset_locations[0].elevation is not None else ""
+
+                height_text = ""
+                if len(dataset.dataset_locations) > 0 and dataset.dataset_locations[0] is not None:
+                    height_text =  (", %sm above MSL") % dataset.dataset_locations[0].elevation
                 location_text = "none"
                 if dataset.dataset_locations[0].location is not None:
                     location_text = "%s (%s, %s%s)" % (dataset.dataset_locations[0].name, dataset.dataset_locations[0].get_latitude(),

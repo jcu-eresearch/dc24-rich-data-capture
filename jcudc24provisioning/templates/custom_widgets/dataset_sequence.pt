@@ -13,7 +13,7 @@
 
 
     <div id="${field.oid}-template_panel" class="wizard hidden">
-        <h2>Create New Dataset</h2>
+        <h2>Create New Dataset(s)</h2>
         <p>Select the method that this dataset is for, this will pre-fill the dataset with the correct data schema (how the data is stored), data source as well as any data setup within the method template.</p>
         <p>If you don't want to use any of the available methods, go back to the previous <i>Methods</i> step and make the changes you require.</p>
         <ol>
