@@ -336,6 +336,7 @@ class Workflows(Layouts):
 
 #        model_id = self.request.POST['model_id']
 #        model_type = globals()[self.request.POST['model_type']]
+        changed = False
 
         model = self.session.query(model_type).filter_by(id=model_id).first()
 
@@ -344,6 +345,7 @@ class Workflows(Layouts):
                 model = model_type(appstruct=appstruct)
                 if model is not None:
                     self.session.add(model)
+                    changed = True
                 else:
                     return
             else:
@@ -353,12 +355,13 @@ class Workflows(Layouts):
             # Update the model with all fields in the data
             if model.update(appstruct):
                 self.session.merge(model)
+                changed = True
 
         self._model = model
 
         try:
             self.session.flush()
-            return model.id
+            return changed
 #            self.request.session.flash("Project saved successfully.", "success")
         except Exception as e:
             logger.exception("SQLAlchemy exception while flushing after save: %s" % e)
@@ -426,7 +429,7 @@ class Workflows(Layouts):
             else:
                 try:
                     appstruct = self._get_model_appstruct()
-                    appstruct = self.form.validate_pstruct(appstruct)
+#                    appstruct = self.form.validate_pstruct(appstruct)         # This was was required to fix errors at one point but broke the touch pages functionality.
                     display = self.form.render(appstruct, readonly=self.readonly)
                 except ValidationFailure, e:
                     display = e.render()   # Validation failed, ignore that it isn't touched and display the error form
@@ -466,8 +469,8 @@ class Workflows(Layouts):
         if self.request.method == 'POST' and len(self.request.POST) > 0:
             # If this is a sub-request called just to save.
             if self.request.referrer == self.request.path_url:
-                model_id = self._save_form()
-                self._touch_page()
+                if self._save_form():
+                    self._touch_page()
 
                 # If this view has been called for saving only, return without rendering.
                 view_name = inspect.stack()[1][3][:-5]
