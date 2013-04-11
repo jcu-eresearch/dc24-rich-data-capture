@@ -1,14 +1,15 @@
-import logging
 
-from paste.deploy.converters import asint, asbool
-from pyramid.security import ALL_PERMISSIONS, Everyone, Allow, unauthenticated_userid, authenticated_userid
-from pyramid.authentication import AuthTktCookieHelper
-from pyramid.security import Everyone, Authenticated
+
 from jcudc24provisioning.models import DBSession
 from jcudc24provisioning.models.website import User
 
 from zope.interface import implementer
 from pyramid.interfaces import IAuthenticationPolicy
+from paste.deploy.converters import asint, asbool
+from pyramid.security import ALL_PERMISSIONS, Everyone, Allow, unauthenticated_userid, authenticated_userid
+from pyramid.authentication import AuthTktCookieHelper
+from pyramid.security import Everyone, Authenticated
+import logging
 
 __author__ = 'casey'
 
@@ -36,10 +37,25 @@ class DefaultPermissions(object):
 
 class DefaultRoles(object):
     _permissions = DefaultPermissions()
-    CREATOR = "creator", "Creator of the project, this will be dynamically assigned based on the login credentials.", [DefaultPermissions.VIEW_PROJECT, DefaultPermissions.EDIT_PROJECT, DefaultPermissions.SUBMIT, DefaultPermissions.EDIT_DATA, DefaultPermissions.EDIT_SHARE_PERMISSIONS]
-    AUTHENTICATED = ("authenticated", "Any logged in user.", [DefaultPermissions.CREATE_PROJECT])
-    ADMIN = ("admin", "Standard administrators of the system.", [getattr(_permissions, name) for name in dir(_permissions) if name != DefaultPermissions.EDIT_PERMISSIONS[0] and not name.startswith("_")])
-    SUPER_ADMIN = ("super_admin", "Has all permissions", [getattr(_permissions, name) for name in dir(_permissions) if not name.startswith("_")])
+    CREATOR = "g:creator", "Creator of the project, this will be dynamically assigned based on the login credentials.", [DefaultPermissions.VIEW_PROJECT, DefaultPermissions.EDIT_PROJECT, DefaultPermissions.SUBMIT, DefaultPermissions.EDIT_DATA, DefaultPermissions.EDIT_SHARE_PERMISSIONS]
+    AUTHENTICATED = (Authenticated, "Any logged in user.", [DefaultPermissions.CREATE_PROJECT])
+    ADMIN = ("g:admin", "Standard administrators of the system.", [getattr(_permissions, name) for name in dir(_permissions) if name != DefaultPermissions.EDIT_PERMISSIONS[0] and not name.startswith("_")])
+    SUPER_ADMIN = ("g:super_admin", "Has all permissions", [getattr(_permissions, name) for name in dir(_permissions) if not name.startswith("_")])
+
+
+class RootFactory(object):
+    __acl__ = [
+        (Allow, DefaultRoles.CREATOR[0], DefaultRoles.CREATOR[2]),
+        (Allow, DefaultRoles.AUTHENTICATED[0], DefaultRoles.AUTHENTICATED[2]),
+        (Allow, DefaultRoles.ADMIN[0], DefaultRoles.ADMIN[2]),
+        (Allow, DefaultRoles.SUPER_ADMIN[0], DefaultRoles.SUPER_ADMIN[2]),
+        (Allow, Everyone, DefaultRoles.SUPER_ADMIN[2]),
+        ]
+    __name__ = "Root"
+
+    def __init__(self, request):
+
+        pass
 
 
 # TODO: Update this for shibboleth when more details are known
@@ -70,9 +86,16 @@ class ShibbolethAuthenticationPolicy(object):
         user = request.user
         if user:
             principals += [Authenticated, 'u:%s' % user.id]
-            principals.extend(('g:%s' % r.name for r in user.roles))
-            principals.extend((p.name for p in user.project_permissions))
+            principals.extend((r.name for r in user.roles))
+
+            if 'project_id' in request.matchdict:
+                principals.extend((p.name for p in user.project_permissions if user.project_permissions.project_id == request.matchdict['project_id']))
+                project_creator = DBSession.execute("SELECT `project_creator` FROM `project` WHERE `id`='%s'" % request.matchdict['project_id']).first()[0]
+                if project_creator == user.id:
+                    principals.append(DefaultRoles.CREATOR[0])
+
             principals.extend((p.name for p in (role for role in user.roles)))
+
         return principals
 
 def get_user(request):

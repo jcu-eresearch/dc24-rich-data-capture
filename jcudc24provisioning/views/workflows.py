@@ -4,6 +4,7 @@ import copy
 from datetime import datetime, date
 import json
 import logging
+from jcudc24provisioning.controllers.authentication import DefaultPermissions
 from jcudc24provisioning.controllers.method_schema_scripts import get_method_schema_preview
 import os
 from lxml import etree
@@ -12,7 +13,7 @@ from string import split
 import string
 import urllib2
 from paste.deploy.converters import asint
-from pyramid.security import authenticated_userid, NO_PERMISSION_REQUIRED
+from pyramid.security import authenticated_userid, NO_PERMISSION_REQUIRED, has_permission
 import requests
 import sqlalchemy
 from sqlalchemy.orm.properties import ColumnProperty, RelationProperty
@@ -117,7 +118,7 @@ class Workflows(Layouts):
     def readonly(self):
         if '_readonly' not in locals():
             # TODO: Update this to take permissions into account for submitted state
-            self._readonly = self.project is not None and not (self.project.state == ProjectStates.OPEN or self.project.state is None or self.project.state == ProjectStates.SUBMITTED)
+            self._readonly = has_permission(DefaultPermissions.EDIT_PROJECT, self.context, self.request) and self.project is not None and not (self.project.state == ProjectStates.OPEN or self.project.state is None or self.project.state == ProjectStates.SUBMITTED)
         return self._readonly
 
     @property
@@ -378,7 +379,9 @@ class Workflows(Layouts):
 
     def _redirect_to_target(self, target):
 #        target = self.get_address(self.request.POST['target'])
+
         sub_request = Request.blank(path=target, POST=self.request.POST, referrer=self.request.referrer, referer=self.request.referer)
+
         # Request sorts the post items (which breaks deform) - fix it directly
         sub_request.POST._items = self.request.POST._items
         return self.request.invoke_subrequest(sub_request)
@@ -548,7 +551,7 @@ class Workflows(Layouts):
         return response_dict
 
     # --------------------WORKFLOW STEP VIEWS-------------------------------------------
-    @view_config(route_name="create")
+    @view_config(route_name="create", permission=DefaultPermissions.CREATE_PROJECT)
     def create_view(self):
         page_help = "<p>There are unique challenges associated with creating metadata (information about your data - eg. where,  when or why) and organising persistent storage for large scale projects.\
                             Data is often output in a variety of ways and requires unique handling, this tool enables you to:\
@@ -586,6 +589,7 @@ class Workflows(Layouts):
         if len(appstruct) > 0 and not hasattr(self, '_validation_error'):
             # In either of the below cases get the data as a dict and get the rendered form
             new_project = Project()
+            new_project.project_creator = self.request.user.id
 
             if 'template' in appstruct:
                 template = self.session.query(Project).filter_by(id=appstruct['template']).first()
@@ -651,7 +655,7 @@ class Workflows(Layouts):
 
         return self._create_response(page_help=page_help, page_help_hidden=False, form=self._render_post(readonly=False), readonly=False)
 
-    @view_config(route_name="general")
+    @view_config(route_name="general", permission=DefaultPermissions.VIEW_PROJECT)
     def general_view(self):
         page_help = ""
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description=""), page='general', restrict_admin=True).bind(request=self.request)
@@ -667,7 +671,7 @@ class Workflows(Layouts):
         return self._create_response(page_help=page_help)
 
 
-    @view_config(route_name="description")
+    @view_config(route_name="description", permission=DefaultPermissions.VIEW_PROJECT)
     def description_view(self):
         page_help = "Fully describe your project to encourage other researchers to reuse your data:"\
                     "<ul><li>The entered descriptions will be used for metadata record generation (ReDBox), " \
@@ -686,7 +690,7 @@ class Workflows(Layouts):
         return self._create_response(page_help=page_help)
 
 
-    @view_config(route_name="information")
+    @view_config(route_name="information", permission=DefaultPermissions.VIEW_PROJECT)
     def information_view(self):
         page_help ="<b>Please fill this section out completely</b> - it's purpose is to provide the majority of information " \
                    "for all generated metadata records so that you don't have to enter the same data more than once:"\
@@ -713,7 +717,7 @@ class Workflows(Layouts):
     def get_template_schemas(self):
         return self.session.query(MethodSchema).filter_by(template_schema=1).all()
 
-    @view_config(route_name="methods")
+    @view_config(route_name="methods", permission=DefaultPermissions.VIEW_PROJECT)
     def methods_view(self):
         page_help = "<p>Setup methods the project uses for collecting data (not individual datasets themselves as they will " \
                     "be setup in the next step).</p>" \
@@ -789,7 +793,7 @@ class Workflows(Layouts):
         return self._create_response(page_help=page_help)
 
 
-    @view_config(route_name="datasets")
+    @view_config(route_name="datasets", permission=DefaultPermissions.VIEW_PROJECT)
     def datasets_view(self):
         # Helper method for recursively retrieving all fields in a schema
         def get_file_fields(data_entry_schema):
@@ -888,7 +892,7 @@ class Workflows(Layouts):
 
         return self._create_response(page_help=page_help)
 
-    @view_config(route_name="submit")
+    @view_config(route_name="submit", permission=DefaultPermissions.VIEW_PROJECT)
     def submit_view(self):
         page_help="TODO: The submission and approval should both follow a process of:" \
                     "<ol><li>Automated validation</li>" \
@@ -1061,7 +1065,7 @@ class Workflows(Layouts):
 
 
 
-    @view_config(route_name="delete_record")
+    @view_config(route_name="delete_record", permission=DefaultPermissions.DELETE)
     def delete_record_view(self):
         dataset_id = self.request.matchdict['dataset_id']
 
@@ -1075,8 +1079,8 @@ class Workflows(Layouts):
         return HTTPFound(self.request.route_url(target, project_id=self.project_id))
 
 #-----------------------Dataset Record View/Edit-----------------------------------
-    @view_config(route_name="view_record")
-    @view_config(route_name="edit_record")
+    @view_config(route_name="view_record", permission=DefaultPermissions.VIEW_PROJECT)
+    @view_config(route_name="edit_record", permission=DefaultPermissions.EDIT_PROJECT)
     def edit_record_view(self):
         dataset_id = self.request.matchdict['dataset_id']
 
@@ -1133,7 +1137,7 @@ class Workflows(Layouts):
 
 
     # --------------------WORKFLOW ACTION/SIDEBAR VIEWS-------------------------------------------
-    @view_config(route_name="dataset_logs")
+    @view_config(route_name="dataset_logs", permission=DefaultPermissions.VIEW_PROJECT)
     def dataset_logs_view(self):
         dataset_id = int(self.request.matchdict['dataset_id'])
         logs = self.ingester_api.getIngesterLogs(dataset_id)
@@ -1143,7 +1147,7 @@ class Workflows(Layouts):
         res.body = content
         return res
 
-    @view_config(route_name="logs")
+    @view_config(route_name="logs", permission=DefaultPermissions.VIEW_PROJECT)
     def logs_view(self):
 #        print "POST VARS" + str(self.request.POST) + " " + str(self.project_id)
         page_help="View ingester event logs for project datasets."
@@ -1211,7 +1215,7 @@ class Workflows(Layouts):
 #
 #        return {"page_title": self.find_menu()['page_title'], "form": display, "form_only": False, 'messages': self._get_messages(), 'page_help': page_help}
 
-    @view_config(route_name="duplicate")
+    @view_config(route_name="duplicate", permission=DefaultPermissions.VIEW_PROJECT)
     def duplicate_view(self):
         self._handle_form()
 
@@ -1226,7 +1230,7 @@ class Workflows(Layouts):
         return HTTPFound(self.request.route_url("general", project_id=duplicate.id))
 
 
-    @view_config(route_name="add_data")
+    @view_config(route_name="add_data", permission=DefaultPermissions.EDIT_DATA)
     def add_data_view(self):
         raise NotImplementedError("This page hasn't been implemented yet.")
 
@@ -1237,7 +1241,7 @@ class Workflows(Layouts):
 
         return self.handle_form(self.form, schema, page_help)
 
-    @view_config(route_name="manage_data")
+    @view_config(route_name="manage_data", permission=NO_PERMISSION_REQUIRED)
     def manage_data_view(self):
 
         page_help=""
@@ -1251,7 +1255,7 @@ class Workflows(Layouts):
 
         return self._create_response(page_help=page_help)
 
-    @view_config(route_name="permissions")
+    @view_config(route_name="permissions", permission=DefaultPermissions.EDIT_SHARE_PERMISSIONS)
     def permissions_view(self):
         page_help=""
 

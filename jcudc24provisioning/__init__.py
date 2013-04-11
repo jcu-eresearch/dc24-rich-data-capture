@@ -3,7 +3,7 @@ from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.security import NO_PERMISSION_REQUIRED
 from controllers.sftp_filesend import SFTPFileSend
-from jcudc24provisioning.models import RootFactory
+from jcudc24provisioning.controllers.authentication import RootFactory
 from jcudc24provisioning.controllers.authentication import ShibbolethAuthenticationPolicy, get_user
 from jcudc24provisioning.scripts.create_redbox_config import create_json_config
 

@@ -218,7 +218,7 @@ class Layouts(object):
     @view_config(route_name='logout')
     def logout(self):
         headers = forget(self.request)
-        return HTTPFound(location = self.request.resource_url(self.request.context),
+        return HTTPFound(location = self.request.route_url("dashboard"),
                          headers = headers)
 
 

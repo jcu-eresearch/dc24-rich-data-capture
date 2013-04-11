@@ -1562,7 +1562,9 @@ class Project(CAModel, Base):
     id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget())
     state = Column(Integer, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(), ca_missing=ProjectStates.OPEN, ca_default=ProjectStates.OPEN)
 
-    project_creator = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+    project_creator = Column(Integer, ForeignKey('user.id'), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+
+    project_creator = Column(Integer, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
     creation_date = Column(Date, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 
     template_only = Column(Boolean, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())

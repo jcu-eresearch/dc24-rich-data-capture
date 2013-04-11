@@ -1,3 +1,4 @@
+
 import ast
 from collections import OrderedDict
 from datetime import date
@@ -5,9 +6,11 @@ import colander
 from colanderalchemy.types import SQLAlchemyMapping
 import deform
 import os
+import logging
+from pyramid.security import has_permission
 #from jcudc24provisioning.models.project import DatasetDataSource, SOSDataSource, PushDataSource, PullDataSource, FormDataSource
 
-import logging
+
 logger = logging.getLogger(__name__)
 
 __author__ = 'Casey Bajema'
@@ -321,7 +324,7 @@ def convert_schema(schema, restrict_admin=False, **kw):
 def _remove_admin_fields(schema):
     denied_nodes = []
     for node in schema.children:
-        if hasattr(node, 'requires_admin') and node.requires_admin:
+        if hasattr(node, 'requires_admin') and node.requires_admin and not has_permission("advanced_fields"):
 #            print "Removed node: " + str(node)
             denied_nodes.append(node)
         else:
