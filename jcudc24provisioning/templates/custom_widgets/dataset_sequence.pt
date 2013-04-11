@@ -22,13 +22,23 @@
         </ol>
 
         <div class="dataset_select">
-            <div onclick="$(this).siblings().removeClass('selected'); $(this).addClass('selected');"
+            <div
                  tal:repeat="method field.schema.children[0].methods">
-                <h3 tal:condition="method.method_name">${method.method_name}</h3>
-                <h3 tal:condition="not method.method_name"><i>Un-named method</i></h3>
-                <p tal:condition="method.method_description" tal:content="structure method.method_description"></p>
-                <p tal:condition="not method.method_description"><i>No description has been provided for this method.</i></p>
-                <input class="method_id" type="hidden" value="${method.id}" />
+                <table>
+                    <tr>
+                        <td>
+                            <label class="desc" style="display:block;">Quantity</label>
+                            <input id="${field.oid}-${method.id}-quantity" type="text">
+                            <input class="method_id" type="hidden" value="${method.id}" />
+                        </td>
+                        <td>
+                            <h3 tal:condition="method.method_name">${method.method_name}</h3>
+                            <h3 tal:condition="not method.method_name"><i>Un-named method</i></h3>
+                            <p tal:condition="method.method_description" tal:content="structure method.method_description"></p>
+                            <p tal:condition="not method.method_description"><i>No description has been provided for this method.</i></p>
+                        </td>
+                    </tr>
+                </table>
             </div>
         </div>
 
@@ -60,7 +70,7 @@
     <a
        class="deformSeqAdd"
        id="${field.oid}-seqAdd"
-       onclick="deform.appendSequenceItem(this); addNewMethod(this);">
+       onclick="addNewMethod(this);">
         <small id="${field.oid}-addtext">${add_subitem_text}</small>
     </a>
 
@@ -116,12 +126,30 @@
 
         function preFillMethod(create_button) {
             var oid = create_button.parentNode.parentNode.id.replace('-template_panel', '');
-            var new_oid = $("#" + oid).children("ul").first().children(".deformInsertBefore").prev()[0].id;
-            var method_id = $(create_button.parentNode.parentNode).find(".selected input.method_id")[0].value;
-            $("#" + new_oid + " [name='dataset:method_id']")[0].value = method_id;
             var project_id = $("[name='project:id']")[0].value;
-            $("#" + new_oid + " [name='dataset:project_id']")[0].value = project_id;
 
+            var method_quantities = $("#" + oid + '-template_panel').find("input[value!=''][type=text]");
+            var first = true;
+
+            var i=0;
+            for (i; i<method_quantities.length; i++) {
+                var method_id = $(method_quantities[i]).siblings(".method_id")[0].value;
+                var quantity = parseInt(method_quantities[i].value, 10);
+
+                if (!isNaN(quantity)) {
+                    var j=0;
+                    for (j; j < quantity; j++) {
+                        var add_button = $("#" + oid + "-seqAdd")[0];
+                        if (!first) {
+                            deform.appendSequenceItem(add_button);
+                        }
+                        var new_oid = $("#" + oid).children("ul").first().children(".deformInsertBefore").prev().find('fieldset')[0].id;
+                        $("#" + new_oid + " [name='dataset:method_id']")[0].value = method_id;
+                        $("#" + new_oid + " [name='dataset:project_id']")[0].value = project_id;
+                        first = false;
+                    }
+                }
+            }
 
             $("#deformSave").click();
         }

@@ -1014,6 +1014,20 @@ div.more_info_panel, .parent_schema_preview_panel {
     margin: 0;
 }
 
+.wizard .dataset_select label.desc {
+    margin-bottom: 6px;
+    padding-right: 10px;
+    font-weight: bold;
+}
+
+.wizard .dataset_select input {
+    width: 20px;
+}
+
+.wizard .dataset_select td:first-child {
+    width: 50px;
+}
+
 .deform .deformFileupload span {
     position: relative;
     top: 6px;
@@ -1131,10 +1145,11 @@ div.more_info_panel, .parent_schema_preview_panel {
     color: rgb(233, 79, 53);
 }
 
-.deform label.desc {
+.deform label.desc, label.desc {
     margin-bottom: 6px;
     display: inline-block !important;
 }
+
 
 /*.ui-tabs-anchor {border: 1px solid blue; !important;}*/
 .ui-widget-content {border-color: #FFCC00 !important;}
