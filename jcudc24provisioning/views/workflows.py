@@ -846,6 +846,11 @@ class Workflows(Layouts):
                     new_dataset_dict['dataset:method_id'] = new_dataset_data['dataset:method_id']
                     new_dataset_data.update(new_dataset_dict)
 
+                # Else if this is a new dataset that wasn't actually added and is invalid (I beleive the internals of deform automatically add min_len somehow)
+                elif not new_dataset_data['dataset:id']:
+                    appstruct['project:datasets'].remove(new_dataset_data)
+                    del new_dataset_data
+
         # If this page was only called for saving and a rendered response isn't needed, return now.
         if self._handle_form():
             return
@@ -867,6 +872,11 @@ class Workflows(Layouts):
         if len(appstruct) > 0:
             for dataset_data in appstruct['project:datasets']:
                 method_id = dataset_data["dataset:method_id"]
+
+                # Dataset creation wizard automatically adds a dataset before the create button is pressed (something internal to deform when min_len > 0)
+                if method_id is None or method_id == colander.null:
+                    del dataset_data
+                    break
                 method_name = self.session.query(Method.method_name).filter_by(id=method_id).first()[0]
                 method_names[method_id] = method_name
         schema[DATASETS_INDEX].children[0].method_names = method_names
