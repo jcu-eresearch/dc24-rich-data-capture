@@ -557,7 +557,7 @@ class MethodSchema(CAModel, Base):
 
 
     name = Column(String(256), ca_order=next(order_counter), ca_title="", ca_placeholder="eg. Temperature with sensor XYZ calibration data",
-        ca_widget=deform.widget.TextInputWidget(template="hidden"), )
+        ca_widget=deform.widget.TextInputWidget(template="hidden", readonly_template="hidden"), )
 #        ca_help="Try to enter a unique name that easily identifies this schema.")
 #    nominate_as_template = Column(Boolean, ca_order=next(order_counter), ca_default=False, ca_title="Nominate this schema as a template",
 #        ca_help="Use this checkbox to suggest to admins that it would be helpful for this schema to be added as a template") # These are system schemas that users are encouraged to extend.

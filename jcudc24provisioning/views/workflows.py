@@ -418,10 +418,10 @@ class Workflows(Layouts):
 
     def _render_model(self):
         if self._get_model_appstruct() is not None:
-            if self._is_page_touched():
+            if self._is_page_touched() and not self._readonly:
                 try:
                     appstruct = self.form.validate_pstruct(self._get_model_appstruct())
-                    display = self.form.render(appstruct, readonly=self.readonly)
+                    display = self.form.render(appstruct)
                 except ValidationFailure, e:
                     appstruct = e.cstruct
                     display = e.render()
@@ -430,7 +430,7 @@ class Workflows(Layouts):
                 try:
                     appstruct = self._get_model_appstruct()
 #                    appstruct = self.form.validate_pstruct(appstruct)         # This was was required to fix errors at one point but broke the touch pages functionality.
-                    display = self.form.render(appstruct, readonly=self.readonly)
+                    display = self.form.render(appstruct, readonly=self._readonly)
                 except ValidationFailure, e:
                     display = e.render()   # Validation failed, ignore that it isn't touched and display the error form
 
@@ -538,6 +538,8 @@ class Workflows(Layouts):
         # to be called which breaks any pages that it is valid for the project to not be in the database yet (create page).
         if response_dict['readonly'] is None:
             response_dict['readonly'] = self.readonly
+        else:
+            self._readonly = response_dict['readonly']
 
         # Lazy default initialisation as this has high overheads.
         if response_dict['form'] is None:
@@ -1055,7 +1057,7 @@ class Workflows(Layouts):
             buttons += (Button(DELETE_TEXT),)
         self.form.buttons = buttons
 
-        return self._create_response(page_help=page_help)
+        return self._create_response(page_help=page_help, readonly=False)
 
 
 

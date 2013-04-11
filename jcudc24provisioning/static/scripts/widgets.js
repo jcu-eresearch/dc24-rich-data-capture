@@ -166,7 +166,9 @@ function addMapFeatures(oid) {
     var i = 0;
     for (i; i < fields.length; i++) {
         var deleteLink = $(fields[i]).parents("li").children('.deformClosebutton')[0];
-        deleteLink.setAttribute("onclick", deleteLink.getAttribute("onclick") + " deleteFeature($(this.parentNode).find('input[type=text]')[1].feature);");
+        if (deleteLink) { // Check that this hasn't been removed for readonly display
+            deleteLink.setAttribute("onclick", deleteLink.getAttribute("onclick") + " deleteFeature($(this.parentNode).find('input[type=text]')[1].feature);");
+        }
 
         fields[i].setAttribute("onblur", "locationTextModified(this);");
         fields[i].map_div = map_div;
