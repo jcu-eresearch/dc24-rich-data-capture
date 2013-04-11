@@ -942,6 +942,10 @@ div.more_info_panel, .parent_schema_preview_panel {
     left: 65px;
 }
 
+.parent_schema_preview_panel .buttonText {
+    margin: 0px;
+}
+
 .help_icon {
     border: 1px solid transparent;
     cursor: pointer;

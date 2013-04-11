@@ -21,7 +21,8 @@
         <tal:block tal:repeat="schema field.schema.template_schemas">
 
             <option tal:content="schema.name"
-                    tal:attributes="value schema.id"/>
+                    tal:attributes="value schema.id;
+                            prototype field.schema.children[0].get_form(schema.id)"/>
 
         </tal:block>
     </select>
@@ -55,22 +56,25 @@
             var select_element=$(add_button.parentNode).children('select').first()[0];
             var selected_option = select_element.options[select_element.selectedIndex];
 
-            var fields = $(add_button.parentNode).find('ul').first().find('input[readonly=readonly]');
-            var name_element = fields.last()[0];
-            name_element.value=selected_option.innerHTML;
+            var parents = $(add_button.parentNode).find('ul').first().children("li");
+            var name_element = parents.last().find("[name='methodschema:name']")[0];
+            var id_element = parents.last().find("[name='methodschema:id']")[0];
+            name_element.value = selected_option.innerHTML;
+            id_element.value = selected_option.value;
+
+            parents.last().find(".parent_schema_preview_panel .preview_content")[0].innerHTML = selected_option.attributes['prototype'].value;
 //            $(add_button.parentNode).find('ul').first().find('span input:first')[0].value=selected_option.value;
 
-//            $(selected_option.parentNode).find("option").attr({disabled: ''});
-//            $(selected_option.parentNode).find("option").show(0);
-            for (var i = 0; i < fields.length; i++) {
+            // Remove duplicates
+            for (var i = 0; i < parents.length; i++) {
 //                $(selected_option.parentNode).find("option:contains('"+fields[i].value+"')").attr({disabled: 'disabled'});
 //                $(selected_option.parentNode).find("option:contains('"+fields[i].value+"')").hide(0)
 
-                if (fields[i].value == name_element.value && fields[i] != name_element) {
-                    var sequence_item = $(fields[i]).parents(".deformSeq-schema_parents li");
+                if ($(parents[i]).find("[name='methodschema:name']").value == name_element.value && $(parents[i]).find("[name='methodschema:name']") != name_element) {
+                    var sequence_item = $(parents[i]).parents(".deformSeq-schema_parents li");
                     sequence_item.find("li").first().replaceWith("Cannot add duplicate parent schemas.");
                     sequence_item.delay(2000);
-                    sequence_item.hide(500, function(){$(fields[i]).parents(".deformSeq-schema_parents li").remove();});
+                    sequence_item.hide(500, function(){$(parents[i]).parents(".deformSeq-schema_parents li").remove();});
                 }
             }
         }

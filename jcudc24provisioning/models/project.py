@@ -518,7 +518,8 @@ class MethodSchemaField(CAModel, Base):
         ca_description="",
         ca_placeholder="Type of field that should be shown.",ca_force_required=True)
 
-    name = Column(String(256), ca_title="Name", ca_placeholder="eg. Temperature", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_name"),ca_force_required=True)
+    name = Column(String(256), ca_title="Name", ca_placeholder="eg. Temperature", ca_force_required=True,
+        ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_name"),)
     description = Column(Text(), ca_title="Description", ca_placeholder="eg. Calibrated temperature reading", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_description"))
 
     units = Column(String(256), ca_placeholder="eg. mm", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_units"),)#ca_force_required=True)

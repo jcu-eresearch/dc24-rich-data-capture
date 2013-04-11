@@ -22,8 +22,8 @@
     </ul>
 
     <!-- /mapping -->
-    <div tal:condition="'methodschema:id' in cstruct and cstruct['methodschema:id'] is not None" class="parent_schema_preview_panel hidden" tal:define="schema_form field.schema.get_form(cstruct['methodschema:id'])">
-        <div tal:replace="structure schema_form" />
+    <div class="parent_schema_preview_panel hidden" tal:define="schema_form field.schema.get_form(cstruct['methodschema:id'])">
+        <div class="preview_content"></div>
 
         <a class='close_button buttonText' onclick="$(parentNode.parentNode).find('.parent_schema_preview_button').removeClass('current'); $(parentNode).toggle(200);" >Close</a>
     </div>

@@ -104,7 +104,7 @@ def get_schema_fields(method_schema):
 
         children = []
         params = {
-            'name': field.name,
+            'name': "%s%s" % (field.name, field.units and " (%s)" % field.units or ""),
             'widget': widget,
             'description': field.description,
             'placeholder': field.placeholder,
