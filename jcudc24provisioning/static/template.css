@@ -1014,17 +1014,17 @@ div.more_info_panel, .parent_schema_preview_panel {
     margin: 0;
 }
 
-.wizard .dataset_select label.desc {
+.dataset_select label.desc {
     margin-bottom: 6px;
     padding-right: 10px;
     font-weight: bold;
 }
 
-.wizard .dataset_select input {
+.dataset_select input {
     width: 20px;
 }
 
-.wizard .dataset_select td:first-child {
+.dataset_select td:first-child {
     width: 50px;
 }
 
