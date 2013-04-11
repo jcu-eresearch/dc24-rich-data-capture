@@ -115,11 +115,11 @@
         function stopAddMethod(stop_button) {
             var oid = stop_button.parentNode.parentNode.id.replace('-template_panel', '');
             var template_panel = $("#" + oid + '-template_panel');
-            var new_oid = $("#" + oid).children("ul").first().children(".deformInsertBefore").prev()[0].id;
+//            var new_oid = $("#" + oid).children("ul").first().children(".deformInsertBefore").prev()[0].id;
 
 //            template_panel.find('ol').after($("#" + oid + "-template_prototype")[0].value);
 //            processJavascript(template_panel[0]);
-            $("#" + new_oid).remove();
+//            $("#" + new_oid).remove();
             $("#deform").show();
             template_panel.hide();
         }
@@ -129,7 +129,9 @@
             var project_id = $("[name='project:id']")[0].value;
 
             var method_quantities = $("#" + oid + '-template_panel').find("input[value!=''][type=text]");
-            var first = true;
+
+            var current_datasets = $("#" + oid).children("ul").first().children("li");
+            var first = (current_datasets.length == 1 && !current_datasets.first().find("[name='dataset:method_id']")[0].value);
 
             var i=0;
             for (i; i<method_quantities.length; i++) {
