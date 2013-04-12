@@ -9,5 +9,15 @@
             <div style="border: red 1px solid; height: 200px">Contact Form</div>
             <div style="border: red 1px solid;  height: 300px">Contact details</div>
         </div>
+
+        <script type="text/javascript">
+            $(window).resize(set_help_sidebar_size);
+
+            function set_help_sidebar_size() {
+//            console.log($("#center").width() - $("#sidebar").width());
+                $("#help_content").width($("#center").width() - $("#help_sidebar").width() - 15);
+            }
+            set_help_sidebar_size();
+        </script>
     </div>
 </div>

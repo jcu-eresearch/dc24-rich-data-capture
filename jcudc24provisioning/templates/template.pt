@@ -69,6 +69,13 @@
                 body.css("padding-left", body[0].original_padding);
                 body.css("padding-right", body[0].original_padding);
             }
+
+            var page_height = $("#footer").position().top + $("#footer").height();
+            var window_height = window.innerHeight;
+            if (page_height < window_height) {
+                var new_height = $(window).height() - $("#header").height() - $("#footer").height() - 55; // 55 is to counter padding etc. (trial and error)
+                $('#center').height(new_height);
+            }
         }
 
 //        $(window).ready(function () {
