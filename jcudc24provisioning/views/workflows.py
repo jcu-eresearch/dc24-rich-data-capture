@@ -779,6 +779,11 @@ class Workflows(Layouts):
                     new_method_dict['method:method_template_id'] = new_method_data['method:method_template_id']
                     new_method_data.update(new_method_dict)
 
+                # Else if this is a new method that wasn't actually added and is invalid (I believe the internals of deform automatically add min_len somehow)
+                elif not new_method_data['method:project_id']:
+                    appstruct['project:methods'].remove(new_method_data)
+                    del new_method_data
+
         # If this page was only called for saving and a rendered response isn't needed, return now.
         if self._handle_form():
             return
@@ -859,6 +864,7 @@ class Workflows(Layouts):
                 elif not new_dataset_data['dataset:id']:
                     appstruct['project:datasets'].remove(new_dataset_data)
                     del new_dataset_data
+
 
         # If this page was only called for saving and a rendered response isn't needed, return now.
         if self._handle_form():

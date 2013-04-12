@@ -39,7 +39,7 @@
         </div>
         <br />
         <div style="clear: both; position: relative; height: 60px;">
-            <div class="button_text submit" onclick="stopAddMethod(this);">Cancel</div>
+            <div class="cancel_wizard button_text submit" onclick="stopAddMethod(this);">Cancel</div>
             <div class="button_text submit" onclick="preFillMethod(this);">Create Method</div>
 
         </div>
@@ -89,6 +89,13 @@
                         deform.appendSequenceItem($("#" + oid).children()[0]);
                         addNewMethod($("#" + oid).children()[0]);
                     }
+
+                    var form = document.getElementById('deform');
+                    var submit_text = "stopAddMethod($('#" + oid + "-template_panel .cancel_wizard')[0]);";
+                    if (form.getAttribute('onsubmit') != null) {
+                        submit_text = form.getAttribute('onsubmit') + submit_text;
+                    }
+                    form.setAttribute('onsubmit', submit_text);
                 }
         );
 
@@ -115,7 +122,14 @@
 
 //            template_panel.find('ol').after($("#" + oid + "-template_prototype")[0].value);
 //            processJavascript(template_panel[0]);
-            $("#" + new_oid).remove();
+            var first_item = $("#" + new_oid);
+            if (first_item.length > 0) {
+                var project_id = first_item.find("[name='method:project_id']");
+                if (project_id.length > 0 && !project_id[0].value) {
+                    $("#" + new_oid).remove();
+                }
+            }
+
             $("#deform").show();
             template_panel.hide();
         }

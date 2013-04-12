@@ -44,8 +44,8 @@
 
 
         <div style="clear: both; position: relative; height: 60px;">
-            <div class="button_text submit" onclick="stopAddMethod(this);">Cancel</div>
-            <div class="button_text submit" onclick="preFillMethod(this);">Create Dataset</div>
+            <div class="cancel_wizard button_text submit" onclick="stopAddDataset(this);">Cancel</div>
+            <div class="button_text submit" onclick="preFillDataset(this);">Create Dataset</div>
         </div>
     </div>
     <!-- sequence -->
@@ -70,7 +70,7 @@
     <a
        class="deformSeqAdd"
        id="${field.oid}-seqAdd"
-       onclick="addNewMethod(this);">
+       onclick="deform.appendSequenceItem(add_button); addNewDataset(this);">
         <small id="${field.oid}-addtext">${add_subitem_text}</small>
     </a>
 
@@ -91,13 +91,21 @@
 
                     if ($("#" + oid).find(".deformInsertBefore").prev().length == 0) {
                         deform.appendSequenceItem($("#" + oid).children()[0]);
-                        addNewMethod($("#" + oid).children()[0]);
+                        addNewDataset($("#" + oid).children()[0]);
                     }
+
+                    var form = document.getElementById('deform');
+                    var submit_text = "stopAddDataset($('#" + oid + "-template_panel .cancel_wizard')[0]);";
+                    if (form.getAttribute('onsubmit') != null) {
+                        submit_text = form.getAttribute('onsubmit') + submit_text;
+                    }
+                    form.setAttribute('onsubmit', submit_text);
+
                 }
         );
 
 //        addNewMethod($("#${field.oid}").children()[0]);
-        function addNewMethod(add_button) {
+        function addNewDataset(add_button) {
             var oid = add_button.parentNode.id;
             var template_panel = $("#" + oid + "-template_panel");
 
@@ -112,26 +120,32 @@
 //            }, 0);
         }
 
-        function stopAddMethod(stop_button) {
+        function stopAddDataset(stop_button) {
             var oid = stop_button.parentNode.parentNode.id.replace('-template_panel', '');
             var template_panel = $("#" + oid + '-template_panel');
-//            var new_oid = $("#" + oid).children("ul").first().children(".deformInsertBefore").prev()[0].id;
+            var new_oid = $("#" + oid).children("ul").first().children(".deformInsertBefore").prev()[0].id;
 
 //            template_panel.find('ol').after($("#" + oid + "-template_prototype")[0].value);
 //            processJavascript(template_panel[0]);
-//            $("#" + new_oid).remove();
+            var first_item = $("#" + new_oid);
+            if (first_item.length > 0) {
+                var project_id = first_item.find("[name='dataset:project_id']");
+                if (project_id.length > 0 && !project_id[0].value) {
+                    $("#" + new_oid).remove();
+                }
+            }
             $("#deform").show();
             template_panel.hide();
         }
 
-        function preFillMethod(create_button) {
+        function preFillDataset(create_button) {
             var oid = create_button.parentNode.parentNode.id.replace('-template_panel', '');
             var project_id = $("[name='project:id']")[0].value;
 
             var method_quantities = $("#" + oid + '-template_panel').find("input[value!=''][type=text]");
 
             var current_datasets = $("#" + oid).children("ul").first().children("li");
-            var first = (current_datasets.length == 1 && !current_datasets.first().find("[name='dataset:method_id']")[0].value);
+            var first = true; //(current_datasets.length == 1 && !current_datasets.first().find("[name='dataset:method_id']")[0].value);
 
             var i=0;
             for (i; i<method_quantities.length; i++) {

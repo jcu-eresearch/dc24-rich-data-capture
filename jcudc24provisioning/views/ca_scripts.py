@@ -324,7 +324,8 @@ def convert_schema(schema, restrict_admin=False, **kw):
 def _remove_admin_fields(schema):
     denied_nodes = []
     for node in schema.children:
-        if hasattr(node, 'requires_admin') and node.requires_admin and not has_permission("advanced_fields"):
+        if hasattr(node, 'requires_admin') and node.requires_admin:
+#        if hasattr(node, 'requires_admin') and node.requires_admin and not has_permission("advanced_fields"):
 #            print "Removed node: " + str(node)
             denied_nodes.append(node)
         else:
