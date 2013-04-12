@@ -223,7 +223,7 @@ class ReDBoxWraper(object):
 
             person.short_display_name = mint_person['dc:title']
 
-        record.data_storage_location = self.data_portal + str(record.ccdam_identifier)
+        record.data_storage_location = self.data_portal + str(record.id)
 
         # Only update the citation if it is empty
         if record.custom_citation is not True:
@@ -261,7 +261,7 @@ class ReDBoxWraper(object):
         metadata.citation_publisher = "James Cook University"
         metadata.citation_place_of_publication = None
        # Type of Data?
-        metadata.citation_url = self.data_portal + str(metadata.ccdam_identifier)
+        metadata.citation_url = self.data_portal + str(metadata.id)
 #       metadata.citation_context = metadata.project_title
         metadata.citation_data_type = "Data Files"
 

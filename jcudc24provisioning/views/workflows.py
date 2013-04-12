@@ -178,7 +178,7 @@ class Workflows(Layouts):
             harvest_dir = self.config.get("redbox.ssh_harvest_dir")
             tmp_dir = self.config.get("redbox.tmpdir")
             identifier_pattern = self.config.get("redbox.identifier_pattern")
-            data_portal = self.config.get("ingesterapi.portal_url")
+            data_portal = self.request.route_url("record_data", dataset_id="")
 
             self._redbox = ReDBoxWraper(url=alert_url, data_portal=data_portal, identifier_pattern=identifier_pattern, ssh_host=host, ssh_port=port, tmp_dir=tmp_dir, harvest_dir=harvest_dir,
                 ssh_username=username, rsa_private_key=private_key, ssh_password=password)

@@ -65,6 +65,7 @@ def main(global_config, **settings):
     config.add_route('browse', '/project')                                     # administer user permissions + view admin required items
     config.add_route('admin', '/admin')                                     # administer user permissions + view admin required items
     config.add_route('help', '/help')                                     # administer user permissions + view admin required items
+    config.add_route('record_data', '/record_data/{metadata_id}')
 
 #    ---------------Project/Workflow pages------------------------
     config.add_route('share', '/project/share')                             # Set project permissions
@@ -84,7 +85,8 @@ def main(global_config, **settings):
     config.add_route('dataset_logs', '/project/{project_id}/logs/dataset_{dataset_id}_logs.txt')
     config.add_route('logs', '/project/{project_id}/logs')
     config.add_route('add_data', '/project/{project_id}/add_data')
-    config.add_route('manage_data', '/project/{project_id}/manage_data')
+    config.add_route('manage_dataset', '/project/{project_id}/manage_dataset/{dataset_id}')
+    config.add_route('manage_data', '/project/{project_id}/manage_data/{data_entry_id}')
     config.add_route('permissions', '/project/{project_id}/permissions')
     config.add_route('duplicate', '/project/{project_id}/duplicate')
     config.add_route('create_template', '/project/{project_id}/create_template')
