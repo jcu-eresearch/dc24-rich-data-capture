@@ -74,7 +74,7 @@
                              <ul>
                                  <li tal:repeat="menu view.workflow_step">
                                      <tal:block tal:condition="menu.current">
-                                         <button title="${menu.tooltip}" name="nav-${menu.href}" form="deform" onclick="false" class="current" value="${menu.title}">${menu.title}</button>
+                                         <button title="${menu.tooltip}" name="nav-${menu.href}" onclick="false" class="current" value="${menu.title}">${menu.title}</button>
                                      </tal:block>
                                      <tal:block tal:condition="not menu.current and not readonly">
                                          <button title="${menu.tooltip}" name="nav-${menu.href}" form="deform" href="${view.request.matched_route.name}" onclick="$('#deform')[0].action='${view.get_address(menu.href)}';" value="${menu.title}">${menu.title}</button>
