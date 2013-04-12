@@ -13,6 +13,7 @@ from string import split
 import string
 import urllib2
 from paste.deploy.converters import asint
+import pyramid
 from pyramid.security import authenticated_userid, NO_PERMISSION_REQUIRED, has_permission
 import requests
 import sqlalchemy
@@ -98,7 +99,7 @@ class ProjectStates(object):
     ACTIVE = 2
     DISABLED = 3
 
-@view_defaults(renderer="../templates/workflow_form.pt", permission="admin")
+@view_defaults(renderer="../templates/workflow_form.pt", permission=DefaultPermissions.ADMINISTRATOR)
 class Workflows(Layouts):
     def __init__(self, context, request):
         self.request = request
@@ -178,7 +179,7 @@ class Workflows(Layouts):
             harvest_dir = self.config.get("redbox.ssh_harvest_dir")
             tmp_dir = self.config.get("redbox.tmpdir")
             identifier_pattern = self.config.get("redbox.identifier_pattern")
-            data_portal = self.request.route_url("record_data", dataset_id="")
+            data_portal = self.request.route_url("record_data", metadata_id="")
 
             self._redbox = ReDBoxWraper(url=alert_url, data_portal=data_portal, identifier_pattern=identifier_pattern, ssh_host=host, ssh_port=port, tmp_dir=tmp_dir, harvest_dir=harvest_dir,
                 ssh_username=username, rsa_private_key=private_key, ssh_password=password)
@@ -370,25 +371,6 @@ class Workflows(Layouts):
             self.request.session.flash("Error: %s" % e, "error")
             self.session.rollback()
 #       self.session.remove()
-
-    def _get_messages(self):
-        return {'error_messages': self.request.session.pop_flash("error"),
-                'success_messages': self.request.session.pop_flash("success"),
-                'warning_messages': self.request.session.pop_flash("warning")
-            }
-
-    def _redirect_to_target(self, target):
-#        target = self.get_address(self.request.POST['target'])
-
-        sub_request = Request.blank(path=target, POST=self.request.POST, referrer=self.request.referrer, referer=self.request.referer)
-
-        # Request sorts the post items (which breaks deform) - fix it directly
-        sub_request.POST._items = self.request.POST._items
-        return self.request.invoke_subrequest(sub_request)
-
-#        introspector = self.request.registry.introspector
-#        target_callable = introspector.get('views', target)
-#        route_intr = introspector.get('routes', target)
 
     def _touch_page(self):
         # Set the page as edited so future visits will show the page with validation
@@ -658,7 +640,7 @@ class Workflows(Layouts):
     @view_config(route_name="general", permission=DefaultPermissions.VIEW_PROJECT)
     def general_view(self):
         page_help = ""
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description=""), page='general', restrict_admin=True).bind(request=self.request)
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description=""), page='general', restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request)).bind(request=self.request)
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', ), use_ajax=False, ajax_options=redirect_options)
 
         # If this page was only called for saving and a rendered response isn't needed, return now.
@@ -679,7 +661,7 @@ class Workflows(Layouts):
                     "<li>Focus on what is being researched, why it is being researched and who is doing the research. " \
                     "The research locations and how the research is being conducted will be covered in the <i>Methods</i>" \
                     " and <i>Datasets</i> steps later on.</li></ul>"
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="description", restrict_admin=True).bind(
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="description", restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request)).bind(
             request=self.request)
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
 
@@ -705,7 +687,7 @@ class Workflows(Layouts):
                                    "<li>If specific datasets require additional metadata that cannot be entered through " \
                                    "these forms, you can enter it directly in the ReDBox-Mint records once the project " \
                                    "is submitted and accepted (Look under <i>[to be worked out]</i> for a link).</li></ul>"
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page='information', restrict_admin=True).bind(request=self.request, settings=self.config)
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page='information', restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request)).bind(request=self.request, settings=self.config)
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
 
         # If this page was only called for saving and a rendered response isn't needed, return now.
@@ -726,7 +708,7 @@ class Workflows(Layouts):
                     "<li>Ways of collecting data (data sources), these may require additional configuration on each dataset (datasets page).</li>" \
                     "<li>Type of data being collected which tells the system how data should be stored, displayed and searched (what fields there are, field types and associated information).</li>" \
                     "<li>Any additional information about this data collection methods - websites or attachments</li></ul>"
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="methods", restrict_admin=True).bind(request=self.request)
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="methods", restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request)).bind(request=self.request)
 
         templates = self.session.query(MethodTemplate).order_by(MethodTemplate.category).all()
         categories = []
@@ -822,7 +804,7 @@ class Workflows(Layouts):
                     " and should be set-up in this step for each site it is used at.</i></p>"
 
         datasets = self.session.query(Dataset).filter_by(project_id=self.project_id).all()
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="datasets", restrict_admin=True).bind(request=self.request, datasets=datasets)
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="datasets", restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request)).bind(request=self.request, datasets=datasets)
 
         PREFIX_SEPARATOR = ":"
         DATASETS_INDEX = string.join([schema.name, Project.datasets.key], PREFIX_SEPARATOR)
@@ -912,7 +894,7 @@ class Workflows(Layouts):
                     "<b>Reopen:</b> Reopen the project for editing, this can only occur when the project has been submitted but not yet accepted (eg. the project may require updates before being approved)<br/><br/>"\
                     "<b>Approve:</b> Approve this project, generate metadata records and setup data ingestion<br/><br/>"\
                     "<b>Disable:</b> Stop data ingestion, this would usually occur once the project has finished."
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="submit", restrict_admin=True).bind(request=self.request)
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="submit", restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request)).bind(request=self.request)
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), use_ajax=False)
 
         # If this page was only called for saving and a rendered response isn't needed, return now.
@@ -1057,13 +1039,19 @@ class Workflows(Layouts):
 
 
         buttons=()
-        if (self.project.state == ProjectStates.OPEN or self.project.state is None) and len(self.error) <= 0:
+        if (self.project.state == ProjectStates.OPEN or self.project.state is None) and len(self.error) <= 0 and\
+                has_permission(DefaultPermissions.SUBMIT, self.context, self.request):
             buttons += (Button(SUBMIT_TEXT),)
         elif self.project.state == ProjectStates.SUBMITTED:
-            buttons += (Button(REOPEN_TEXT), Button(APPROVE_TEXT))
-        elif self.project.state == ProjectStates.ACTIVE:
+            if has_permission(DefaultPermissions.REOPEN, self.context, self.request):
+                buttons += (Button(REOPEN_TEXT),)
+            if has_permission(DefaultPermissions.APPROVE, self.context, self.request):
+                buttons += (Button(APPROVE_TEXT),)
+        elif self.project.state == ProjectStates.ACTIVE and\
+                has_permission(DefaultPermissions.DISABLE, self.context, self.request):
             buttons += (Button(DISABLE_TEXT),)
-        elif self.project.state == ProjectStates.DISABLED:
+        elif self.project.state == ProjectStates.DISABLED and\
+                has_permission(DefaultPermissions.DELETE, self.context, self.request):
             buttons += (Button(DELETE_TEXT),)
         self.form.buttons = buttons
 
@@ -1091,7 +1079,7 @@ class Workflows(Layouts):
         dataset_id = self.request.matchdict['dataset_id']
 
         page_help=""
-        schema = convert_schema(SQLAlchemyMapping(Metadata, unknown='raise',), restrict_admin=True).bind(request=self.request, settings=self.config)
+        schema = convert_schema(SQLAlchemyMapping(Metadata, unknown='raise',), restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request)).bind(request=self.request, settings=self.config)
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id, dataset_id=dataset_id), buttons=("Cancel", "Save & Close", "Save",), use_ajax=False)
 
         # If the form is being saved (there would be 1 item in controls if it is a fresh page with a project id set)
@@ -1331,19 +1319,20 @@ class Workflows(Layouts):
     def exception_view(self):
         logger.exception("An exception occurred in global exception view: %s", self.context)
         if hasattr(self, self.request.matched_route.name + "_view"):
-            try:
+#            try:
                 self.request.session.flash('Sorry, please try again - there was an exception: ' + cgi.escape(str(self.context)), 'error')
-                self.request.POST.clear()
-                response = getattr(self, str(self.request.matched_route.name) + "_view")()
-                return response
-            except Exception:
-                logger.exception("Exception occurred while trying to display the view without variables: %s", Exception)
-                messages = {
-                    'error_messages': ['Sorry, we are currently experiencing difficulties: ' % self.context],
-                    'success_messages': [],
-                    'warning_messages': []
-                }
-                return {"page_title": self.find_menu()['page_title'], "form": '', "messages": messages, "form_only": False}
+#                self.request.POST.clear()
+#                response = getattr(self, str(self.request.matched_route.name) + "_view")()
+                return HTTPFound(self.request.route_url(self.request.matched_route.name))
+#                return response
+#            except Exception:
+#                logger.exception("Exception occurred while trying to display the view without variables: %s", Exception)
+#                messages = {
+#                    'error_messages': ['Sorry, we are currently experiencing difficulties: ' % self.context],
+#                    'success_messages': [],
+#                    'warning_messages': []
+#                }
+#                return {"page_title": self.find_menu()['page_title'], "form": '', "messages": messages, "form_only": False}
         else:
             try:
                 messages = {
@@ -1356,7 +1345,7 @@ class Workflows(Layouts):
                 self.request.session.flash('There is no page at the requested address, please don\'t edit the address bar directly.', 'error')
                 if self.request.matchdict and self.request.matchdict['route'] and (self.request.matchdict['route'].split("/")[0]).isnumeric():
                     project_id = int(self.request.matchdict['route'].split("/")[0])
-                    print 'isnumeric: ' + str(project_id)
+#                    print 'isnumeric: ' + str(project_id)
                     return HTTPFound(self.request.route_url('general', project_id=project_id))
                 else:
                     return HTTPFound(self.request.route_url('create'))

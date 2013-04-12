@@ -1,4 +1,21 @@
 <div metal:use-macro="view.global_template">
     <div metal:fill-slot="content">
+        <div style="border: red 1px solid;">Short intro text</div>
+        <div style="border: red 1px solid;" tal:condition="user is None">Full intro text & Pictures</div>
+        <div style="border: red 1px solid;" tal:condition="user is not None">
+            <ul>
+                <li  style="border: blue 1px solid; height: 100px;">Event logs (eg. dataset hasn't ingested data in 1 week)</li>
+                <li  style="border: blue 1px solid; height: 100px;">Notifications (eg. user requests to admins)</li>
+                <li  style="border: blue 1px solid; height: 100px;">Activity (eg. last 5 projects I edited)</li>
+            </ul>
+        </div>
+        <div style="border: red 1px solid;">
+            <ul>
+                <li  style="border: blue 1px solid; height: 100px; width: 30%; float: left; list-style: none;">What</li>
+                <li  style="border: blue 1px solid; height: 100px; width: 30%; float: left; list-style: none;">Why</li>
+                <li  style="border: blue 1px solid; height: 100px; width: 30%; float: left; list-style: none;">How</li>
+            </ul>
+        </div>
+
     </div>
 </div>

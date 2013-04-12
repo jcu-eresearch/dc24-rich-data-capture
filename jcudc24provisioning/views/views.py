@@ -2,13 +2,17 @@ import ConfigParser
 import logging
 from string import split
 import urllib2
+from jcudc24provisioning.controllers.authentication import DefaultPermissions
 import pyramid
-from pyramid.httpexceptions import HTTPNotFound, HTTPFound, HTTPClientError, HTTPBadRequest
-from pyramid.view import view_config, forbidden_view_config, view_defaults
+from pyramid.httpexceptions import HTTPNotFound, HTTPFound, HTTPClientError, HTTPBadRequest, HTTPForbidden
+from pyramid.interfaces import IRoutesMapper, IViewClassifier, IView
+from pyramid.view import view_config, forbidden_view_config, view_defaults, render_view_to_response
 from pyramid.security import remember, forget, authenticated_userid
 from deform.form import Form
 from jcudc24provisioning.models.website import Login, User
 from jcudc24provisioning.models import DBSession
+from pyramid.request import Request
+from zope.interface import providedBy
 
 
 __author__ = 'Casey Bajema'
@@ -18,7 +22,7 @@ from pyramid.decorator import reify
 logger = logging.getLogger(__name__)
 
 PAGES = [
-        {'route_name': 'dashboard', 'title': 'Home', 'page_title': 'JCU TDH DC24 Dashboard', 'hidden': False},
+        {'route_name': 'dashboard', 'title': 'Home', 'page_title': 'EnMaSSE Dashboard', 'hidden': False},
         {'route_name': 'create', 'title': 'New Project', 'page_title': 'Setup a New Project', 'hidden': False},
         {'route_name': 'browse', 'title': 'Browse Projects', 'page_title': 'Browse Projects & Data'},
         {'route_name': 'help', 'title': 'Help & Support', 'page_title': 'Associated Information', 'hidden': False},
@@ -106,28 +110,79 @@ class Layouts(object):
             if page['route_name'] == self.request.matched_route.name:
                 return page['page_title']
 
-        raise ValueError("There is no page title for this address: " + str(self.request.url))
+        return None
+#        raise ValueError("There is no page title for this address: " + str(self.request.url))
+
+    def _redirect_to_target(self, target):
+    #        target = self.get_address(self.request.POST['target'])
+#        q = self.request.registry.queryUtility
+#        routes_mapper = q(IRoutesMapper)
+#        info = routes_mapper(self.request)
+#        context_iface = providedBy(self.context)
+#
+#        view_callable = self.request.registry.adapters.lookup(
+#            (IViewClassifier, self.request.request_iface, context_iface),
+#            IView, name=info[], default=None)
+#        response = view_callable(self.context, self.request)
+
+        sub_request = Request.blank(path=target, POST=self.request.POST, referrer=self.request.referrer, referer=self.request.referer)
+
+        # Add the user object so the subrequest can authenticate.
+        sub_request.user = self.request.user
+
+        # Request sorts the post items (which breaks deform) - fix it directly
+        if len(self.request.POST) > 0:
+            sub_request.POST._items = self.request.POST._items
+
+        return self.request.invoke_subrequest(sub_request)
+#        return render_view_to_response(None, self.request, name=target)
+
+#        introspector = self.request.registry.introspector
+#        target_callable = introspector.get('views', target)
+#        route_intr = introspector.get('routes', target)
+
+    def _get_messages(self):
+        return {'error_messages': self.request.session.pop_flash("error"),
+                'success_messages': self.request.session.pop_flash("success"),
+                'warning_messages': self.request.session.pop_flash("warning")
+        }
+
+    def _create_response(self, **kwargs):
+        response_dict = {
+            "page_title": kwargs.pop("page_title", self.find_page_title()),
+            'messages': kwargs.pop('messages', self._get_messages()),
+            "page_help": kwargs.pop("page_help", ""),
+            "user": self.request.user,
+            "page_help_hidden": kwargs.pop("page_help_hidden", True),
+            }
+
+        response_dict.update(kwargs)
+        return response_dict
+
 
     @view_config(renderer="../templates/dashboard.pt", route_name="dashboard")
     def dashboard_view(self):
+        page_help = "TODO: Video or picture slider."
 
-        messages = {
-            'error_messages': self.request.session.pop_flash("error"),
-            'success_messages': self.request.session.pop_flash("success"),
-            'warning_messages': self.request.session.pop_flash("warning")
-        }
-        return {"page_title": "Provisioning Dashboard", 'messages': messages}
+        return self._create_response(page_help=page_help)
 
-    @view_config(renderer="../templates/dashboard.pt", route_name="search")
+    @view_config(renderer="../templates/manage_data.pt", route_name="browse")
     def search_page_view(self):
-        raise NotImplementedError("Search hasn't been implemented yet!")
+#        raise NotImplementedError("Search hasn't been implemented yet!")
 
-        messages = {
-            'error_messages': self.request.session.pop_flash("error"),
-            'success_messages': self.request.session.pop_flash("success"),
-            'warning_messages': self.request.session.pop_flash("warning")
-        }
-        return {"page_title": "Provisioning Dashboard", 'messages': messages}
+        return self._create_response()
+
+    @view_config(renderer="../templates/administrator.pt", route_name="admin", permission=DefaultPermissions.ADMINISTRATOR)
+    def admin_page_view(self):
+#        raise NotImplementedError("Search hasn't been implemented yet!")
+
+        return self._create_response()
+
+    @view_config(renderer="../templates/help.pt", route_name="help")
+    def help_page_view(self):
+    #        raise NotImplementedError("Search hasn't been implemented yet!")
+
+        return self._create_response()
 
 
     @view_config(route_name='login', renderer='../templates/form.pt')
@@ -164,28 +219,19 @@ class Layouts(object):
         else:
             display = form.render({'came_from': came_from})
 
+        return self._create_response(url = self.request.application_url + '/login', came_from = came_from,
+            login = login, password = password, form=display)
 
-        messages = {
-                    'error_messages': self.request.session.pop_flash("error"),
-                    'success_messages': self.request.session.pop_flash("success"),
-                    'warning_messages': self.request.session.pop_flash("warning")
-                }
-
-        return dict(
-                page_title="Login",
-                messages = messages,
-                url = self.request.application_url + '/login',
-                came_from = came_from,
-                login = login,
-                password = password,
-                form=display
-            )
 
     @forbidden_view_config(renderer='../templates/form.pt')
     @view_config(route_name='login_shibboleth', renderer='../templates/form.pt')
     def login_shibboleth(self):
         request = self.request
         logged_in = authenticated_userid(self.request)
+
+        # Redirect to local logins for administration page.
+        if isinstance(self.context, HTTPForbidden) and request.path == '/admin':
+            return self._redirect_to_target(self.request.route_url("login"))
 
         login_url = self.request.route_url('login_shibboleth')
         referrer = self.request.url
@@ -235,12 +281,10 @@ class Layouts(object):
 #                return response
 #            except Exception:
 #            logger.exception("Exception occurred in standard view: %s", self.context)
-        messages = {
-            'error_messages': ['Sorry, we are currently experiencing difficulties.'],
-            'success_messages': [],
-            'warning_messages': []
-        }
-        return {"exception": "%s" % self.context, "messages": messages}
+
+        self.request.session.flash('Sorry, we are currently experiencing difficulties.', 'error_messages')
+        return self._create_response(page_title="Exception Has Occurred", exception = "%s" % self.context)
+
 #        else:
 #            self.request.session.flash('There is no page at the requested address, please don\'t edit the address bar directly.', 'error')
 #            return HTTPFound(self.request.route_url('dashboard'))

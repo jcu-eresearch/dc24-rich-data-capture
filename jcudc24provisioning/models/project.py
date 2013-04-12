@@ -1432,7 +1432,7 @@ class Metadata(CAModel, Base):
         ca_help="Information about rights held over the collection such as copyright, licences and other intellectual property rights.  A URI is optional.",
         ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
     rights_url = Column(String(256), ca_validator=colander.url,  ca_requires_admin=True,
-        ca_name="dc:accessRights.dc:RightsStatement.dc:identifier", ca_order=next(order_counter), ca_title="URL", ca_missing="", ca_page="information",)
+        ca_name="dc:accessRights.dc:RightsStatement.dc:identifier", ca_order=next(order_counter), ca_title="Usage Rights URL (Advanced)", ca_missing="", ca_page="information",)
     #    TODO: Link to external sources
 
     licenses = (
@@ -1464,24 +1464,26 @@ class Metadata(CAModel, Base):
                 "<p><i>If you would like to add additional licenses please contact the administrators.</i></p>")
 
     other_license_name = Column(String(256), ca_name="dc:license.rdf:Alt.skos:prefLabel", ca_order=next(order_counter), ca_title="License Name", ca_placeholder="", ca_missing="", ca_page="information",
-        ca_group_requires_admin=True, ca_group_end="legality", ca_group_start="other_license", ca_group_title="Other",
+        ca_group_requires_admin=True, ca_group_start="other_license", ca_group_title="Other License (Advanced)",
         ca_group_help="If you want to use a license not included in the above list you can provide details below.</br></br>"\
                       "<ul><li>If you are using this field frequently for the same license it would make sense to get your system administrator to add the license to the field above.</li>"\
                       "<li>If you provide two licenses (one from above, plus this one) only the first will be sent to RDA in the RIF-CS.</li>"\
                       "<li>Example of another license: http://www.opendefinition.org/licenses</li></ul>", ca_requires_admin=True,)
     other_license_url = Column(String(256), ca_validator=colander.url, ca_name="dc:license.rdf:Alt.dc:identifier", ca_order=next(order_counter), ca_title="License URL", ca_placeholder="", ca_missing="", ca_page="information",
-        ca_requires_admin=True, ca_group_end="legality")
+        ca_requires_admin=True, ca_group_end="legality", )
 
     #-------------citation--------------------
-    # Autocomplete from project title
-    citation_title = Column(String(512), ca_name="dc:biblioGraphicCitation.dc:hasPart.dc:title", ca_order=next(order_counter), ca_placeholder="", ca_missing="", ca_page="information",
-        ca_group_collapsed=False, ca_group_start='citation', ca_group_title="Citation", ca_group_requires_admin=True,
-        ca_group_description="<b>TODO:  Need to work out what these feilds actually mean and refactor/reword."
-                             "</b><br/>Provide metadata that should be used for the purposes of citing this record. Providing a "
-                             "citation is optional, but if you choose to enable this there are quite specific mandatory "
-                             "fields that will be required.")
+    custom_citation = Column(Boolean(), ca_title="Provide Custom Citation", ca_order=next(order_counter), ca_default=False, ca_page="information", ca_group_requires_admin=True,
+        ca_description="<i>Select this if you would like to alter the default citation.</i>",
+        ca_widget=deform.widget.CheckboxWidget(template="checked_conditional_input", inverted=True),)
 
-    custom_citation = Column(Boolean(), ca_order=next(order_counter), ca_default=False, ca_page="information")
+    # Autocomplete from project title
+    citation_title = Column(String(512), ca_name="dc:biblioGraphicCitation.dc:hasPart.dc:title",
+        ca_order=next(order_counter), ca_placeholder="", ca_missing="", ca_page="information",
+        ca_group_collapsed=False, ca_group_start='citation', ca_group_title="Citation", ca_group_requires_admin=True,
+        ca_group_description="<i>Citation is fully automated but users with adequate permissions may edit it manually, "
+                             "the user is responsible for ensuring custom citation details are correct.</i>")
+
     send_citation = Column(String(100), ca_order=next(order_counter), ca_default="on", ca_page="information", ca_widget=deform.widget.HiddenWidget())
     use_curation = Column(String(100), ca_order=next(order_counter), ca_default="useCuration", ca_page="information", ca_widget=deform.widget.HiddenWidget(),)
 

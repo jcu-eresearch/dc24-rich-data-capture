@@ -232,6 +232,8 @@ class ReDBoxWraper(object):
         if len(record.parties) > 1 and record.parties[0].identifier == record.parties[1].identifier:
             del record.parties[1]
 
+        # Use other license instead if it is entered.
+
         return record
 
     def pre_fill_citation(self, metadata):
@@ -271,7 +273,9 @@ class ReDBoxWraper(object):
                 people_string += "; "
             people_string += "%s, %s" % (person.family_name, person.given_name)
 
-        metadata.citation_string = "%s (%s). %s. %s. [%s] {ID_WILL_BE_HERE}" % (people_string, metadata.citation_publish_date.year, metadata.citation_title,
+        # The publish date may be None if this s being pre-filled but isn't being approved yet.
+        if metadata.citation_publish_date is not None:
+            metadata.citation_string = "%s (%s). %s. %s. [%s] {ID_WILL_BE_HERE}" % (people_string, metadata.citation_publish_date.year, metadata.citation_title,
                                  metadata.citation_publisher, metadata.citation_data_type)
 
         metadata.record_origin = "external"

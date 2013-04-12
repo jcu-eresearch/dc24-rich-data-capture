@@ -16,6 +16,7 @@ __author__ = 'casey'
 logger = logging.getLogger(__name__)
 
 class DefaultPermissions(object):
+    ADMINISTRATOR = ("admin", "User can access the administrators page.")
     CREATE_PROJECT = ("create_project", "User is allowed to create new projects.")
     VIEW_PROJECT = "view_project", "Allows viewing of project workflow pages.",
     EDIT_PROJECT = "edit_project", "Allows editing of project workflow pages",
@@ -49,7 +50,7 @@ class RootFactory(object):
         (Allow, DefaultRoles.AUTHENTICATED[0], DefaultRoles.AUTHENTICATED[2]),
         (Allow, DefaultRoles.ADMIN[0], DefaultRoles.ADMIN[2]),
         (Allow, DefaultRoles.SUPER_ADMIN[0], DefaultRoles.SUPER_ADMIN[2]),
-        (Allow, Everyone, DefaultRoles.SUPER_ADMIN[2]),
+#        (Allow, Everyone, DefaultRoles.SUPER_ADMIN[2]),     # Only for testing, this disables all permissions.
         ]
     __name__ = "Root"
 
