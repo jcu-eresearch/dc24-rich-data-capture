@@ -8,16 +8,16 @@ tags: [andsUserAcceptance, andsOutputs, andsProduct, andsApps,  fundedByAustrali
 ---
 {% include JB/setup %}
 
-EnMaSSe has two main user groups:
+EnMaSSe (Environmental Monitoring and Sensor Storage) has two main user groups:
 * Researchers that are looking for a way to store their data, these users require an easy-to-use system that has a high level of flexibility focused on entering data.
 * Researchers that are searching for data to use in their own research are concerned with the quality of data (and metadata) and how easy it is to access the data.
 
-These two user groups and their requirements have been explained in more detail on the EnMaSSe developer blog.
+These two user groups and their requirements have been explained in more detail on the [EnMaSSe developer blog]({{ site.JB.BASE_PATH }}/2012/08/27/key-factors-customers-will-use-to-judge-the-value-of-our-product).
 
 Testing & Requirements Gathering Process
 ========================================
 
-Requirements gathering began with researching use cases and researcher workflows from all appropriate sources that we could find, and continued with approximately fortnightly clarifications and demonstrations over the duration of the project.  This processes has been further documented in our Testing & Feedback blog.
+Requirements gathering began with researching use cases and researcher workflows from all appropriate sources that we could find, and continued with approximately fortnightly clarifications and demonstrations over the duration of the project.  This processes has been further documented in our [Testing & Feedback blog]({{ site.JB.BASE_PATH }}/2012/12/12/testing--feedback/).
 
 In early April 2013 we conducted user testing of the EMASSE user interface on two likely end users.  To test the effectiveness of the interface we gave a generalised verbal overview of data-handling issues faced by researchers (such as impermanent storage, difficulty sharing data, difficulty attributing methods to data, management of multiple interrelated project data) and explained how this tool attempts to solve these issues.  We then sat with the researcher while they interacted with the interface to monitor whether this tool was accessible to the end user in its present state.
 
