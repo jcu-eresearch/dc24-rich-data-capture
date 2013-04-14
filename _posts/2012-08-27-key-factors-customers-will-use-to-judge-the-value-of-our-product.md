@@ -2,7 +2,7 @@
 layout: post
 title: "Key factors customers will use to judge the value of our product"
 description: ""
-author: "Casey Bajema"
+author: "casey"
 category: 
 tags: [andsQuality, andsValue, andsAssessment, andsCustomers, DIISRTE, fundedByAustralianNationalDataService, andsApps, DC24, richDataCapture]
 ---

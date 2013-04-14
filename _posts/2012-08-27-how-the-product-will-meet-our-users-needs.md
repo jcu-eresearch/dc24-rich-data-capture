@@ -2,7 +2,7 @@
 layout: post
 title: "How the product will meet our users needs"
 description: ""
-author: "Casey Bajema"
+author: "casey"
 category: 
 tags: [andsCustomers, andsOwners, DIISRTE, fundedByAustralianNationalDataService, andsApps, DC24, richDataCapture]
 ---

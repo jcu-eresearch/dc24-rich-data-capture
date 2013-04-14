@@ -2,7 +2,7 @@
 layout: post
 title: "Real User Testing &#38; Feedback"
 description: "What test users thought of our interface, its usability and functionality."
-author: "Lauren Hodgson"
+author: "lauren"
 category: 
 tags: [andsUserAcceptance, andsOutputs, andsProduct, andsApps,  fundedByAustralianNationalDataService, DIISRTE, EnMaSSe, DC24, Environmental Monitoring and Sensor Storage, richDataCapture]
 ---
