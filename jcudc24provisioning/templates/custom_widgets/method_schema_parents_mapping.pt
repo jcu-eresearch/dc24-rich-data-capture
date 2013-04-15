@@ -33,12 +33,13 @@
                 '${field.oid}',
                 function (oid) {
 
-                    var form = document.getElementById('deform');
-                    var submit_text = '$(".parent_schema_preview_panel").remove();';
-                    if (form.getAttribute('onsubmit') != null) {
-                        submit_text += form.getAttribute('onsubmit');
-                    }
-                    form.setAttribute('onsubmit', submit_text);
+//                    var form = document.getElementById('deform');
+//                    var submit_text = "alert('here');$('.parent_schema_preview_panel').remove();";
+//                    if (form.getAttribute('onsubmit') != null) {
+//                        alert('here');
+//                        submit_text += form.getAttribute('onsubmit');
+//                    }
+//                    form.setAttribute('onsubmit', submit_text);
 
 //                    var collapse_span = $("#mapping-" + oid).find(".collapse_icon");
 //                    if (collapse_span.length <= 0) {

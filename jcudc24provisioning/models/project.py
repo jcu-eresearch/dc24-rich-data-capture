@@ -590,7 +590,8 @@ class MethodSchema(CAModel, Base):
         ca_help="Data that needs to be searchable but isn't a common measurement.",
         )
 
-    methods = relationship("Method", ca_order=next(order_counter), ca_exclude=True,)
+#    method_id = Column(Integer, ForeignKey('method.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+#    methods = relationship("Method", ca_order=next(order_counter), ca_exclude=True,)
 
 def method_schema_validator(form, value):
     pass # TODO

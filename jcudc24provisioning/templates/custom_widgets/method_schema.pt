@@ -62,6 +62,14 @@
         deform.addCallback(
                 '${field.oid}',
                 function (oid) {
+                    var form = document.getElementById('deform');
+                    var submit_text = '$(".data_configuration_preview").remove();$(".parent_schema_preview_panel").remove();';
+                    if (form.getAttribute('onsubmit') != null) {
+                        submit_text += form.getAttribute('onsubmit');
+                    }
+                    form.setAttribute('onsubmit', submit_text);
+
+
 //                    var form = document.getElementById('deform');
 //                    var submit_text = '$("#data_configuration_preview").remove();';
 //                    if (form.getAttribute('onsubmit') != null) {

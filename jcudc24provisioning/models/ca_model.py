@@ -184,6 +184,8 @@ class CAModel(object):
 
                         prefix = ''.join(str(x + ":") for x in item.items()[0][0].split(":")[:-1])
 
+                        model_class=model_object._sa_class_manager[field_name].property.mapper.class_
+                        unknown_model = False
                         # If the item has an id and the id==an item in the model_object, update the model object item instead of creating a new one.
                         if prefix + 'id' in item and (isinstance(item[prefix + 'id'], (long, int)) or (isinstance(item[prefix + 'id'], basestring) and item[prefix + 'id'].isnumeric())):
                             for model_item in old_items:
@@ -196,7 +198,17 @@ class CAModel(object):
     #                                print "Current Object: " + str(current_object)
                                     break
 
-                        child_table_object = self.create_sqlalchemy_model(item, model_class=model_object._sa_class_manager[field_name].property.mapper.class_, model_object=current_object)
+                            # If this is an object referenced from the database that the current model has no previous known state for.
+                            if current_object is None:
+                                current_object = self._sa_instance_state.session.query(model_class).filter_by(id=int(item[prefix + 'id'])).first()
+                                unknown_model = True
+
+                        if not unknown_model:
+                            child_table_object = self.create_sqlalchemy_model(item, model_class=model_class, model_object=current_object)
+                        else:
+                            child_table_object = current_object
+                            current_object = None
+
                         # If the child object has changed
                         if child_table_object is not None:
                             is_data_empty = False
