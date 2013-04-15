@@ -32,10 +32,10 @@ class CAModel(object):
             self._schema = convert_schema(SQLAlchemyMapping(type(self)))
         return self._schema
 
-    def dictify(self, schema=None, force_not_empty_lists=False):
+    def dictify(self, schema=None, force_not_empty_lists=False, dates_as_string=True):
         if schema is None:
             schema = self.schema
-        return self.convert_sqlalchemy_model_to_data(self, schema=schema, force_not_empty_lists=force_not_empty_lists)
+        return self.convert_sqlalchemy_model_to_data(self, schema=schema, force_not_empty_lists=force_not_empty_lists, dates_as_string=dates_as_string)
 
     def update(self, appstruct):
         return self.create_sqlalchemy_model(appstruct, model_object=self) is not None
@@ -268,7 +268,7 @@ class CAModel(object):
 
         return model_object
     
-    def convert_sqlalchemy_model_to_data(self, model, schema=None, force_not_empty_lists=False):
+    def convert_sqlalchemy_model_to_data(self, model, schema=None, force_not_empty_lists=False, dates_as_string=True):
         if schema is None:
             # This will not take groupings into account
             schema = convert_schema(SQLAlchemyMapping(type(model)))
@@ -284,7 +284,7 @@ class CAModel(object):
             if hasattr(model, name):
                 value = getattr(model, name, None)
     
-                if isinstance(value, date):
+                if isinstance(value, date) and dates_as_string:
                     value = str(value)
     
                 if isinstance(value, bool) and hasattr(node.widget, 'true_val'):

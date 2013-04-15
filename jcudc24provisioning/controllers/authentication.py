@@ -40,7 +40,7 @@ class DefaultRoles(object):
     _permissions = DefaultPermissions()
     CREATOR = "g:creator", "Creator of the project, this will be dynamically assigned based on the login credentials.", [DefaultPermissions.VIEW_PROJECT, DefaultPermissions.EDIT_PROJECT, DefaultPermissions.SUBMIT, DefaultPermissions.EDIT_DATA, DefaultPermissions.EDIT_SHARE_PERMISSIONS]
     AUTHENTICATED = (Authenticated, "Any logged in user.", [DefaultPermissions.CREATE_PROJECT])
-    ADMIN = ("g:admin", "Standard administrators of the system.", [getattr(_permissions, name) for name in dir(_permissions) if name != DefaultPermissions.EDIT_PERMISSIONS[0] and not name.startswith("_")])
+    ADMIN = ("g:admin", "Standard administrators of the system.", [getattr(_permissions, name) for name in dir(_permissions) if name not in (DefaultPermissions.EDIT_PERMISSIONS[0], DefaultPermissions.DELETE) and not name.startswith("_")])
     SUPER_ADMIN = ("g:super_admin", "Has all permissions", [getattr(_permissions, name) for name in dir(_permissions) if not name.startswith("_")])
 
 
@@ -50,7 +50,7 @@ class RootFactory(object):
         (Allow, DefaultRoles.AUTHENTICATED[0], DefaultRoles.AUTHENTICATED[2]),
         (Allow, DefaultRoles.ADMIN[0], DefaultRoles.ADMIN[2]),
         (Allow, DefaultRoles.SUPER_ADMIN[0], DefaultRoles.SUPER_ADMIN[2]),
-#        (Allow, Everyone, DefaultRoles.SUPER_ADMIN[2]),     # Only for testing, this disables all permissions.
+        (Allow, Everyone, DefaultRoles.SUPER_ADMIN[2]),     # Only for testing, this disables all permissions.
         ]
     __name__ = "Root"
 

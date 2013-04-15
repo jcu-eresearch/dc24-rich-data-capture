@@ -3,6 +3,7 @@ import itertools
 import logging
 
 import colander
+from sqlalchemy.orm import backref
 from sqlalchemy.schema import ForeignKey, Table
 from sqlalchemy import (
     Integer,
@@ -561,7 +562,6 @@ class MethodSchema(CAModel, Base):
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dam_id = Column(Integer, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dam_version = Column(String(128), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    method_id = Column(Integer, ForeignKey('method.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
     template_schema = Column(Boolean, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter)) # These are system schemas that users are encouraged to extend.
 
@@ -590,6 +590,7 @@ class MethodSchema(CAModel, Base):
         ca_help="Data that needs to be searchable but isn't a common measurement.",
         )
 
+    methods = relationship("Method", ca_order=next(order_counter), ca_exclude=True,)
 
 def method_schema_validator(form, value):
     pass # TODO
@@ -967,8 +968,9 @@ class Method(CAModel, Base):
                 "<p><i>Please refer to the help section or contact the administrators if you need additional information.</i></p>",
         ca_placeholder="Select the easiest method for your project.  If all else fails, manual file uploads will work for all data types.")
 
+    method_schema_id = Column(Integer, ForeignKey('method_schema.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     data_type = relationship("MethodSchema", ca_order=next(order_counter), uselist=False, ca_widget=MethodSchemaWidget(),
-        cascade="all, delete-orphan",ca_title="Data Configuration", ca_child_validator=method_schema_validator,
+        ca_title="Data Configuration", ca_child_validator=method_schema_validator,
         ca_collapsed=False,
         ca_help="<i>Configuration of the type of data being collected is an advanced topic, help can be requested through the contact forms.</i>"
                 "<ol>"
@@ -1625,6 +1627,10 @@ class Project(CAModel, Base):
 
     project_template = relationship("ProjectTemplate", ca_order=next(order_counter), ca_missing=colander.null,
         cascade="all, delete-orphan", ca_widget=deform.widget.HiddenWidget(), ca_exclude=True)
+
+    touched_pages = relationship("UntouchedPages", uselist=False, ca_order=next(order_counter),
+        cascade="all, delete-orphan", ca_exclude=True)
+
 
 
 def grant_validator(form, value):

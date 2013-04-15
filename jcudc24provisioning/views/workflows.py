@@ -427,11 +427,16 @@ class Workflows(Layouts):
 
             else:
                 try:
-                    appstruct = self._get_model_appstruct()
-#                    appstruct = self.form.validate_pstruct(appstruct)         # This was was required to fix errors at one point but broke the touch pages functionality.
+                    # Try to display the form without validating
+                    appstruct = self._get_model_appstruct(dates_as_string=False)
                     display = self.form.render(appstruct, readonly=self._readonly)
-                except ValidationFailure, e:
-                    display = e.render()   # Validation failed, ignore that it isn't touched and display the error form
+                except Exception, e:
+                    try:
+                        # If it fails, try validating - there are issues with dates where it can't display the string as read from the DB untill it is validated.
+                        appstruct = self.form.validate_pstruct(appstruct)
+                        display = self.form.render(appstruct, readonly=self._readonly)
+                    except ValidationFailure, e:
+                        display = e.render()   # Validation failed, ignore that it isn't touched and display the error form
 
             return display
 
@@ -455,10 +460,10 @@ class Workflows(Layouts):
                 self._model = self.session.query(self.model_type).filter_by(id=self.model_id).first()
         return self._model
 
-    def _get_model_appstruct(self):
+    def _get_model_appstruct(self, dates_as_string=True):
         if not hasattr(self, '_model_appstruct'):
             if self._get_model() is not None:
-                self._model_appstruct = self._get_model().dictify(self.form.schema)
+                self._model_appstruct = self._get_model().dictify(self.form.schema, dates_as_string=dates_as_string)
             else:
                 return {}
 
@@ -586,6 +591,7 @@ class Workflows(Layouts):
             # In either of the below cases get the data as a dict and get the rendered form
             new_project = Project()
             new_project.project_creator = self.request.user.id
+            new_project.creation_date = datetime.datetime.now()
 
             if 'template' in appstruct:
                 template = self.session.query(Project).filter_by(id=appstruct['template']).first()
@@ -891,6 +897,7 @@ class Workflows(Layouts):
                 method_name = self.session.query(Method.method_name).filter_by(id=method_id).first()[0]
                 method_names[method_id] = method_name
         schema[DATASETS_INDEX].children[0].method_names = method_names
+        self.session.flush()
 
         return self._create_response(page_help=page_help)
 
@@ -951,7 +958,7 @@ class Workflows(Layouts):
             portal_url = None
             if dataset.dam_id is not None:
                 portal_url = "%s%s" % (self.config['ingesterapi.portal_url'], dataset.dam_id)
-            dataset_method = self.session.query(Method).filter_by(id=dataset.method_id).first()
+#            dataset_method = self.session.query(Method).filter_by(id=dataset.method_id).first()
 
             if dataset.publish_dataset:
                 dataset_name = "dataset for %s method" % dataset.method.method_name
@@ -997,7 +1004,7 @@ class Workflows(Layouts):
 
         # Handle button presses and actual functionality.
         if SUBMIT_TEXT in self.request.POST and (self.project.state == ProjectStates.OPEN or self.project.state is None) and len(self.error) <= 0:
-            self.project.state = ProjectStates.SUBMITTED
+            self.project.state = ProjectStates.SUBMITTED and has_permission(DefaultPermissions.SUBMIT, self.context)
 
             # Only update the citation if it is empty
             if self.project.information.custom_citation is not True:

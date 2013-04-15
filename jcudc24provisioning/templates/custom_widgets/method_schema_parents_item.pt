@@ -7,7 +7,12 @@
                     class name != 'name' and 'hidden' or nothing">
 
     <!-- mapping_item -->
-    <span tal:content="structure field.serialize(cstruct, readonly=True)" />
+    <span tal:condition="name != 'name'" tal:content="structure field.serialize(cstruct, readonly=True)" />
+
+    <!--Manually create the method_schema name as the template needs to be hidden so it doesn't display on the method page-->
+    <span tal:condition="name == 'name'">
+        <input type="text" readonly='readonly' name='methodschema:name' value="${cstruct}">
+    </span>
     <a tal:condition="name == 'name'" class="buttonText parent_schema_preview_button"
             onclick="$(parentNode.parentNode.parentNode).find('.parent_schema_preview_panel').toggle(200); $(this).toggleClass('current')">View Fields</a>
 
