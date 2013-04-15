@@ -252,6 +252,7 @@
                 <div id="supported_by">
                     <a id="qcif_logo" href="http://www.qcif.edu.au/"><img src="/static/images/qcif_logo.bmp" alt="the Queensland Cyber Infrastructure Foundation logo" /></a>
                     <a id="ands_logo" href="http://www.ands.org.au/"><img src="/static/images/ands_logo.bmp" alt="Australian National Data Services logo" /></a>
+                    This project is supported by the Australian National Data Service (ANDS) through the National Collaborative Research Infrastructure Strategy Program and the Education Investment Fund (EIF) Super Science Initiative, as well as through the Queensland Cyber Infrastructure Foundation (QCIF)
                     <p>Supported by <a href="http://www.ands.org.au/">Australian National Data Service (ANDS)</a> through the <a href="http://www.qcif.edu.au/">Queensland Cyber Infrastructure Foundation (QCIF)</a></p>
                 </div>
                 <div id="developed_by">

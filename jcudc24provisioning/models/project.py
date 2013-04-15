@@ -518,7 +518,9 @@ class MethodSchemaField(CAModel, Base):
         ca_description="",
         ca_placeholder="Type of field that should be shown.",ca_force_required=True)
 
-    name = Column(String(256), ca_title="Name", ca_placeholder="eg. Temperature", ca_force_required=True,
+    # The ingester name can't have spaces, which is unintuitive to the end user.
+    internal_name = Column(String(256), ca_widget=deform.widget.HiddenWidget(),)
+    _name = Column(String(256), ca_title="Name", ca_placeholder="eg. Temperature", ca_force_required=True,
         ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_name"),)
     description = Column(Text(), ca_title="Description", ca_placeholder="eg. Calibrated temperature reading", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_description"))
 
@@ -529,6 +531,15 @@ class MethodSchemaField(CAModel, Base):
     values = Column(Text(), ca_title="List of Values", ca_placeholder="Provide possible selections", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_values"))
 #    validators = Column(String(256), ca_title="Validator", ca_placeholder="eg. Numerical value with decimal places or what values are expected such as for a dropdown box", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_validators"))
     notes = Column(String(256), ca_title="Admin Notes", ca_placeholder="eg. Please read this field from the uploaded files, it will follow a pattern like temp:xxx.xx", ca_widget=deform.widget.TextAreaWidget(css_class="full_width custom_field_notes"))
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        self._name = value
+        self.internal_name = value.lower().replace(" ", "_")
 
 
     def __init__(self, name=None, type=None, description=None, units=None, placeholder=None, default=None, values=None, validators=None, notes=None):

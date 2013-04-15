@@ -211,7 +211,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             return model.dam_id
 
         if True: # TODO: If the data entries don't need offsets
-            new_schema = jcudc24ingesterapi.schemas.data_entry_schemas.DataEntrySchema(model.name)
+            new_schema = jcudc24ingesterapi.schemas.data_entry_schemas.DataEntrySchema(model)
         else:
             pass #TODO: new_schema = jcudc24ingesterapi.schemas.data_entry_schemas.OffsetDataEntrySchema()
 
@@ -226,19 +226,19 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
 
         for field in model.custom_fields:
             if field.type == 'integer':
-                schema_field =  Integer(field.name, field.description, field.units)
+                schema_field =  Integer(field.internal_name, field.description, field.units)
             elif field.type == 'decimal':
-                schema_field =  Double(field.name, field.description, field.units)
+                schema_field =  Double(field.internal_name, field.description, field.units)
             elif field.type == 'text_input' or field.type == 'text_area' or field.type == 'select' or\
                  field.type == 'radio' or field.type == 'website' or field.type == 'email'\
                  or field.type == 'phone' or field.type == 'hidden':
-                schema_field =  String(field.name, field.description, field.units)
+                schema_field =  String(field.internal_name, field.description, field.units)
             elif field.type == 'checkbox':
-                schema_field =  Boolean(field.name, field.description, field.units)
+                schema_field =  Boolean(field.internal_name, field.description, field.units)
             elif field.type == 'file':
-                schema_field =  FileDataType(field.name, field.description, field.units)
+                schema_field =  FileDataType(field.internal_name, field.description, field.units)
             elif field.type == 'date':
-                schema_field =  DateTime(field.name, field.description, field.units)
+                schema_field =  DateTime(field.internal_name, field.description, field.units)
             else:
                 assert True, "Unknown field typ: " + field.type
 
