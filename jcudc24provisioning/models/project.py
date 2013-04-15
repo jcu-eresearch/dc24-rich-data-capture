@@ -539,7 +539,8 @@ class MethodSchemaField(CAModel, Base):
     @name.setter
     def name(self, value):
         self._name = value
-        self.internal_name = value.lower().replace(" ", "_")
+        if value is not None:
+            self.internal_name = value.lower().replace(" ", "_")
 
 
     def __init__(self, name=None, type=None, description=None, units=None, placeholder=None, default=None, values=None, validators=None, notes=None):
