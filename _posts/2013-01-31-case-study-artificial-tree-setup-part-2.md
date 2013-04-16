@@ -118,7 +118,7 @@ Project templates allow for pre-filling of any/all fields, and provides the maxi
 
 <i>Collected data is for metadata records.</i>
 
-<span class="workflow_image" id="create_page"><img src="/images/new_project.png" /></span>
+<span class="workflow_image" id="create_page"><img src="{{ site.JB.BASE_PATH }}/images/new_project.png" /></span>
 Figure 1: Screenshot of project creation page <a onclick="enlarge('create_page');">[Enlarge]</a>.
 
 
@@ -132,7 +132,7 @@ If a research grant was provided in the project creation step:
 
 <i>Collected data is for metadata records.</i>
 
-<span class="workflow_image" id="details_page"><img src="/images/general_details.png" /></span>
+<span class="workflow_image" id="details_page"><img src="{{ site.JB.BASE_PATH }}/images/general_details.png" /></span>
 Figure 2: Screenshot of general details page <a onclick="enlarge('details_page');">[Enlarge]</a>.
 
 ###3. Descriptions
@@ -141,7 +141,7 @@ The descriptions page provides plenty of space to enter the brief and full descr
 
 <i>Collected data is for metadata records.</i>
 
-<span class="workflow_image" id="descriptions_page"><img src="/images/description.png" /></span>
+<span class="workflow_image" id="descriptions_page"><img src="{{ site.JB.BASE_PATH }}/images/description.png" /></span>
 Figure 3: Screenshot of project creation page <a onclick="enlarge('descriptions_page');">[Enlarge]</a>.
 
 ###4. Information
@@ -154,7 +154,7 @@ If a research grant was selected the date from and date to fields will be prefil
 
 <i>Collected data is for metadata records (Location may be used to pre-fill dataset locations).</i>
 
-<span class="workflow_image" id="metadata_page"><img src="/images/information.jpg" /></span>
+<span class="workflow_image" id="metadata_page"><img src="{{ site.JB.BASE_PATH }}/images/information.jpg" /></span>
 Figure 4: Screenshot of project creation page <a onclick="enlarge('metadata_page');">[Enlarge]</a>.
 
 
@@ -164,7 +164,7 @@ The methods page sets up ways of collecting data (data sources), what the data i
 
 Adding methods uses a simple wizard (shown in figure 5 below) that allows selection of a method template.  Method templates pre-fill any/all data in methods and their associated datasets.
 
-<span class="workflow_image" id="create_method"><img src="/images/create_method.png" /></span>
+<span class="workflow_image" id="create_method"><img src="{{ site.JB.BASE_PATH }}/images/create_method.png" /></span>
 Figure 5: Screenshot of project creation page <a onclick="enlarge('create_method');">[Enlarge]</a>.
 
 The type of data being collected allows configuration of what data is collected and how that data is indexed:
@@ -177,7 +177,7 @@ Selection of the data source specifies how data will be ingested but configurati
 
 <i>Collected data is used for metadata records, service records and data ingestion.</i>
 
-<span class="workflow_image" id="methods_page"><img src="/images/methods.jpg" /></span>
+<span class="workflow_image" id="methods_page"><img src="{{ site.JB.BASE_PATH }}/images/methods.jpg" /></span>
 Figure 6: Screenshot of project creation page <a onclick="enlarge('methods_page');">[Enlarge]</a>.
 
 ###6. Datasets
@@ -186,7 +186,7 @@ Each dataset represents an individual collection of data with an associated meta
 
 Adding datasets uses a simple wizard where the data collection method is selected a shown in figure 7 below.
 
-<span class="workflow_image" id="create_dataset"><img src="/images/create_dataset.png" /></span>
+<span class="workflow_image" id="create_dataset"><img src="{{ site.JB.BASE_PATH }}/images/create_dataset.png" /></span>
 Figure 7: Screenshot of project creation page <a onclick="enlarge('create_dataset');">[Enlarge]</a>.
 
 The dataset page collects the following data:
@@ -199,7 +199,7 @@ Each datasource is configured differently but will usually require the data loca
 
 <i>Collected data is mainly for data ingestion but the location is used for the metadata records.</i>
 
-<span class="workflow_image" id="datasets_page"><img src="/images/dataset.png" /></span>
+<span class="workflow_image" id="datasets_page"><img src="{{ site.JB.BASE_PATH }}/images/dataset.png" /></span>
 Figure 8: Screenshot of project creation page <a onclick="enlarge('datasets_page');">[Enlarge]</a>.
 
 ###7. Submit
@@ -215,5 +215,5 @@ Submit provides full project validation and an overview of the generated records
 
 The generated record for each dataset can be viewed, edited or regenerated.  The dataset record forms are exactly the same as general details, descriptions and information but on a single form. 
 
-<span class="workflow_image" id="submit_page"><img src="/images/submit.png" /></span>
+<span class="workflow_image" id="submit_page"><img src="{{ site.JB.BASE_PATH }}/images/submit.png" /></span>
 Figure 9: Screenshot of project creation page <a onclick="enlarge('submit_page');">[Enlarge]</a>.
