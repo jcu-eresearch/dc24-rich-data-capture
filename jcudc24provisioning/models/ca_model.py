@@ -15,7 +15,7 @@ __author__ = 'casey'
 
 class CAModel(object):
     def __init__(self, appstruct=None, schema=None):
-#        if not isinstance(self, DeclarativeMeta): TODO: Why does this not work?
+#        if not isinstance(self, DeclarativeMeta):
 #            raise TypeError("CAModel implementations must subclase SQLALchemy DeclarativeMeta (eg. Base=declarative_base(), class YourModel(CAModel, Base): ...)")
 
         if not hasattr(self, 'id'):

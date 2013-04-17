@@ -106,7 +106,6 @@ class Workflows(Layouts):
         self.request = request
         self.context = context
         self.session = DBSession
-        self.config = request.registry.settings
 
         self.project_id = None
         if self.request.matchdict and 'project_id' in self.request.matchdict:
