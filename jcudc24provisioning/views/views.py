@@ -39,6 +39,7 @@ class Layouts(object):
         self.context = context
         self.request = request
         self.config = request.registry.settings
+        self.session = DBSession
 
     @reify
     def global_template(self):
@@ -267,7 +268,7 @@ class Layouts(object):
             email = self.request.headers['email']
             identifier = self.request.headers['auEduPersonSharedToken']
         except KeyError as e:
-            if 'auth_redirect' in self.request.headers:
+            if 'auth_redirect' not in self.request.headers:
                 headers = {'auth_redirect': True}
                 return HTTPFound(location=self.request.route_url("login_shibboleth"), headers=headers)
             else:
@@ -278,9 +279,8 @@ class Layouts(object):
             # Create the user
             logger.info("Adding: %s %s %s" % (first_name, surname, email))
             user = User(common_name, identifier, "", email, auth_type="shibboleth")
-            session = DBSession()
-            session.add(user)
-            session.flush()
+            self.session.add(user)
+            self.session.flush()
 
         headers = remember(self.request, user.id)
 

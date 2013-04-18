@@ -103,9 +103,9 @@ class ProjectStates(object):
 @view_defaults(renderer="../templates/workflow_form.pt", permission=DefaultPermissions.ADMINISTRATOR)
 class Workflows(Layouts):
     def __init__(self, context, request):
-        self.request = request
-        self.context = context
-        self.session = DBSession
+#        self.request = request
+#        self.context = context
+        super(Workflows, self).__init__(context, request)
 
         self.project_id = None
         if self.request.matchdict and 'project_id' in self.request.matchdict:
@@ -270,7 +270,8 @@ class Workflows(Layouts):
                 hidden.append(menu)
 
         for menu in hidden:
-            new_menu.remove(menu)
+            if menu in new_menu:
+                new_menu.remove(menu)
 
         return new_menu
 
@@ -292,7 +293,8 @@ class Workflows(Layouts):
 
 
         for menu in hidden:
-            new_menu.remove(menu)
+            if menu in new_menu:
+                new_menu.remove(menu)
 
         return new_menu
 
