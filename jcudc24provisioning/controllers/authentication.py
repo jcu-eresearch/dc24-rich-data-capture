@@ -118,7 +118,7 @@ class ShibbolethAuthenticationPolicy(object):
 
                 principals.extend(share_principles)
                 project_creator = DBSession.execute("SELECT `project_creator` FROM `project` WHERE `id`='%s'" % request.matchdict['project_id']).first()[0]
-                if project_creator == user.id:
+                if int(project_creator) == int(user.id):
                     principals.append(DefaultRoles.CREATOR[0])
 
             principals.extend((p.name for p in (role for role in user.roles)))
