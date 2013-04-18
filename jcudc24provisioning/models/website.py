@@ -1,7 +1,7 @@
 import hashlib
 import colander
 import itertools
-from sqlalchemy.orm import subqueryload, subqueryload_all
+from sqlalchemy.orm import subqueryload, subqueryload_all, backref
 from colanderalchemy.declarative import Column, relationship
 from sqlalchemy import Integer, ForeignKey, String, Text, Table
 import deform
@@ -76,7 +76,7 @@ class ProjectPermissions(CAModel, Base):
     project_id = Column(Integer, ForeignKey('project.id'), nullable=False)
     permission_id = Column(Integer, ForeignKey('permission.id'), nullable=False)
     user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
-    permission = relationship("Permission", lazy="joined", backref="project_permissions", cascade="all")
+    permission = relationship("Permission", lazy="joined", backref=backref("project_permissions", cascade="all"))
 
     def __init__(self, project_id, permission_id, user_id):
         self.project_id = project_id

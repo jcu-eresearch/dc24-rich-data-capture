@@ -14,7 +14,7 @@ import string
 import urllib2
 from paste.deploy.converters import asint
 import pyramid
-from pyramid.security import authenticated_userid, NO_PERMISSION_REQUIRED, has_permission, view_execution_permitted
+from pyramid.security import authenticated_userid, NO_PERMISSION_REQUIRED, has_permission, view_execution_permitted, ACLAllowed
 import requests
 import sqlalchemy
 from sqlalchemy.orm.properties import ColumnProperty, RelationProperty
@@ -60,26 +60,26 @@ logger = logging.getLogger(__name__)
 # Workflow page href needs to be synchronised with UntouchedPages table in project.py
 WORKFLOW_STEPS = [
         {'href': 'create', 'title': 'Create', 'page_title': 'Create a New Project', 'hidden': True, 'tooltip': '', 'view_permission': DefaultPermissions.CREATE_PROJECT},
-        {'href': 'general', 'title': 'Details', 'page_title': 'General Details', 'tooltip': 'Title, grants, people and collaborators', 'view_permission': DefaultPermissions.VIEW_PROJECT},
-        {'href': 'description', 'title': 'Description', 'page_title': 'Description', 'tooltip': 'Project descriptions used for publishing records', 'view_permission': DefaultPermissions.VIEW_PROJECT},
-        {'href': 'information', 'title': 'Information', 'page_title': 'Associated Information', 'tooltip': 'Collects metadata for publishing records', 'view_permission': DefaultPermissions.VIEW_PROJECT},
-        {'href': 'methods', 'title': 'Methods', 'page_title': 'Data Collection Methods', 'tooltip': 'Ways of collecting data', 'view_permission': DefaultPermissions.VIEW_PROJECT},
-        {'href': 'datasets', 'title': 'Datasets', 'page_title': 'Datasets (Collections of Data)', 'tooltip': 'Configure each individual data collection location'},
-        {'href': 'view_record', 'title': 'Generated Dataset Record', 'page_title': 'Generated Dataset Record', 'hidden': True, 'tooltip': 'View datasets generated metadata record', 'view_permission': DefaultPermissions.VIEW_PROJECT},
-        {'href': 'edit_record', 'title': 'Generated Dataset Record', 'page_title': 'Generated Dataset Record', 'hidden': True, 'tooltip': 'Edit datasets generated metadata record', 'view_permission': DefaultPermissions.EDIT_PROJECT},
+        {'href': 'general', 'title': 'Details', 'page_title': 'General Details', 'tooltip': 'Title, grants, people and collaborators', 'view_permission': DefaultPermissions.VIEW_PROJECT, 'display_leave_confirmation': True},
+        {'href': 'description', 'title': 'Description', 'page_title': 'Description', 'tooltip': 'Project descriptions used for publishing records', 'view_permission': DefaultPermissions.VIEW_PROJECT, 'display_leave_confirmation': True},
+        {'href': 'information', 'title': 'Information', 'page_title': 'Associated Information', 'tooltip': 'Collects metadata for publishing records', 'view_permission': DefaultPermissions.VIEW_PROJECT, 'display_leave_confirmation': True},
+        {'href': 'methods', 'title': 'Methods', 'page_title': 'Data Collection Methods', 'tooltip': 'Ways of collecting data', 'view_permission': DefaultPermissions.VIEW_PROJECT, 'display_leave_confirmation': True},
+        {'href': 'datasets', 'title': 'Datasets', 'page_title': 'Datasets (Collections of Data)', 'tooltip': 'Configure each individual data collection location', 'display_leave_confirmation': True},
+        {'href': 'view_record', 'title': 'Generated Dataset Record', 'page_title': 'Generated Dataset Record', 'hidden': True, 'tooltip': 'View datasets generated metadata record', 'view_permission': DefaultPermissions.VIEW_PROJECT, 'display_leave_confirmation': True},
+        {'href': 'edit_record', 'title': 'Generated Dataset Record', 'page_title': 'Generated Dataset Record', 'hidden': True, 'tooltip': 'Edit datasets generated metadata record', 'view_permission': DefaultPermissions.EDIT_PROJECT, 'display_leave_confirmation': True},
         {'href': 'delete_record', 'title': 'Generated Dataset Record', 'page_title': 'Generated Dataset Record', 'hidden': True, 'tooltip': 'Delete datasets generated metadata record', 'view_permission': DefaultPermissions.EDIT_PROJECT},
         {'href': 'submit', 'title': 'Submit', 'page_title': 'Submit & Approval', 'tooltip': 'Overview, errors and project submission for administrator approval', 'view_permission': DefaultPermissions.VIEW_PROJECT},
-        {'href': 'template', 'title': 'Template', 'page_title': 'Template Details', 'hidden': True, 'tooltip': 'Edit template specific details such as category', 'view_permission': DefaultPermissions.ADMINISTRATOR},
+        {'href': 'template', 'title': 'Template', 'page_title': 'Template Details', 'hidden': True, 'tooltip': 'Edit template specific details such as category', 'view_permission': DefaultPermissions.ADMINISTRATOR, 'display_leave_confirmation': True},
 ]
 
 WORKFLOW_ACTIONS = [
-        {'href': 'general', 'title': 'Configuration', 'page_title': 'General Details', 'tooltip': 'Project settings used to create this project', 'view_permission': DefaultPermissions.VIEW_PROJECT},
+        {'href': 'general', 'title': 'Configuration', 'page_title': 'General Details', 'tooltip': 'Project settings used to create this project', 'view_permission': DefaultPermissions.VIEW_PROJECT, 'display_leave_confirmation': True},
         {'href': 'logs', 'title': 'View Logs', 'page_title': 'Ingester Event Logs', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Event logs received from the data ingester', 'view_permission': DefaultPermissions.VIEW_PROJECT},
 #        {'href': 'add_data', 'title': 'Add Data', 'page_title': 'Add Data', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': ''},
         {'href': 'search', 'title': 'Manage Data', 'page_title': 'Manage Data', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Allows viewing, editing or adding of data and ingester configurations', 'view_permission': DefaultPermissions.VIEW_PROJECT},
         {'href': 'permissions', 'title': 'Sharing', 'page_title': 'Sharing & Permissions', 'tooltip': 'Change who can access and edit this project', 'view_permission': DefaultPermissions.EDIT_SHARE_PERMISSIONS},
         {'href': 'duplicate', 'title': 'Duplicate Project', 'page_title': 'Duplicate Project', 'tooltip': 'Create a new project using this project as a template', 'view_permission': DefaultPermissions.VIEW_PROJECT},
-        {'href': 'create_template', 'title': 'Make into Template', 'page_title': 'Create Project Template', 'tooltip': 'Suggest to the administrators that this project should be a template', 'hidden': True, 'view_permission': DefaultPermissions.ADMINISTRATOR},
+        {'href': 'create_template', 'title': 'Make into Template', 'page_title': 'Create Project Template', 'tooltip': 'Suggest to the administrators that this project should be a template', 'hidden': True, 'view_permission': DefaultPermissions.ADMINISTRATOR, 'display_leave_confirmation': True},
 ]
 
 redirect_options = """
@@ -118,8 +118,16 @@ class Workflows(Layouts):
     @property
     def readonly(self):
         if '_readonly' not in locals():
-            # TODO: Update this to take permissions into account for submitted state
-            self._readonly = has_permission(DefaultPermissions.EDIT_PROJECT, self.context, self.request) and self.project is not None and not (self.project.state == ProjectStates.OPEN or self.project.state is None or self.project.state == ProjectStates.SUBMITTED)
+            if self.project is None:
+                return True
+
+            is_closed = self.project.state == ProjectStates.DISABLED \
+                    or self.project.state == ProjectStates.ACTIVE
+            has_edit_permission = has_permission(DefaultPermissions.EDIT_PROJECT, self.context, self.request).boolval
+            requires_admin = self.project.state == ProjectStates.SUBMITTED
+            has_admin = has_permission(DefaultPermissions.ADMINISTRATOR, self.context, self.request).boolval
+            can_edit = not is_closed and (has_admin or (not requires_admin and has_edit_permission))
+            self._readonly = not can_edit
         return self._readonly
 
     @property
@@ -461,7 +469,7 @@ class Workflows(Layouts):
                 self._model = self.session.query(self.model_type).filter_by(id=self.model_id).first()
         return self._model
 
-    def _get_model_appstruct(self, dates_as_string=True):
+    def _get_model_appstruct(self, dates_as_string=False):
         if not hasattr(self, '_model_appstruct'):
             if self._get_model() is not None:
                 self._model_appstruct = self._get_model().dictify(self.form.schema, dates_as_string=dates_as_string)
@@ -537,6 +545,7 @@ class Workflows(Layouts):
             "page_help": kwargs.pop("page_help", ""),
             "logged_in": authenticated_userid(self.request),
             "page_help_hidden": kwargs.pop("page_help_hidden", True),
+            "display_leave_confirmation": kwargs.pop("display_leave_confirmation", "display_leave_confirmation" in self.page and self.page["display_leave_confirmation"]),
         }
 
         # Don't use a default directly in pop as it initialises the default even if not needed, this causes self.project
@@ -1007,7 +1016,7 @@ class Workflows(Layouts):
 
         # Handle button presses and actual functionality.
         if SUBMIT_TEXT in self.request.POST and (self.project.state == ProjectStates.OPEN or self.project.state is None) and len(self.error) <= 0:
-            self.project.state = ProjectStates.SUBMITTED and has_permission(DefaultPermissions.SUBMIT, self.context)
+            self.project.state = ProjectStates.SUBMITTED and has_permission(DefaultPermissions.SUBMIT, self.context, self.request)
 
             # Only update the citation if it is empty
             if self.project.information.custom_citation is not True:
@@ -1020,17 +1029,19 @@ class Workflows(Layouts):
                     self.redbox.pre_fill_citation(dataset.record_metadata)
 
         if REOPEN_TEXT in self.request.POST and self.project.state == ProjectStates.SUBMITTED:
-            self.project.state = ProjectStates.OPEN
+            self.project.state = ProjectStates.OPEN and has_permission(DefaultPermissions.REOPEN, self.context, self.request)
 
         if DISABLE_TEXT in self.request.POST and self.project.state == ProjectStates.ACTIVE:
-            self.project.state = ProjectStates.DISABLED
+            self.project.state = ProjectStates.DISABLED and has_permission(DefaultPermissions.DISABLE, self.context, self.request)
             # TODO: Disable in CC-DAM
 
-        if DELETE_TEXT in self.request.POST and self.project.state == ProjectStates.DISABLED:
+        if DELETE_TEXT in self.request.POST and self.project.state == ProjectStates.DISABLED \
+                and has_permission(DefaultPermissions.DELETE, self.context, self.request):
             # TODO: Delete
             pass
 
-        if APPROVE_TEXT in self.request.POST and self.project.state == ProjectStates.SUBMITTED:
+        if APPROVE_TEXT in self.request.POST and self.project.state == ProjectStates.SUBMITTED\
+                and has_permission(DefaultPermissions.APPROVE, self.context, self.request):
             # Make sure all dataset record have been created
             for dataset in self.project.datasets:
                 if (dataset.record_metadata is None):
@@ -1288,7 +1299,6 @@ class Workflows(Layouts):
 
             for share in appstruct['shared_with']:
                 user = self.session.query(User).filter_by(id=share['user_id']).first()
-                share.pop("user_id")
 
                 if user is None:
                     self.request.session.flash("You selected an invalid user, please use the autocomplete input and don't enter text manually.", "error")
@@ -1299,12 +1309,17 @@ class Workflows(Layouts):
 
                 has_permission = False
                 for field_name, value in share.items():
+                    if field_name == 'user_id':
+                        continue
+
                     permission = self.session.query(Permission).filter_by(name=field_name).first()
 
+                    has_permission = False
                     for i in range(len(user.project_permissions)):
                         if user.project_permissions[i].project_id == long(self.project_id) and user.project_permissions[i].permission_id == permission.id:  # If the user already has this permission
                             if value == 'false' or value is False:
-                                del user.project_permissions[i]
+                                user_permission = user.project_permissions[i]
+                                self.session.delete(user_permission)
 
                             has_permission = True
                             break

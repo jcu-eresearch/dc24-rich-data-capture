@@ -1,7 +1,7 @@
 
 
 from jcudc24provisioning.models import DBSession
-from jcudc24provisioning.models.website import User
+from jcudc24provisioning.models.website import User, Role
 
 from zope.interface import implementer
 from pyramid.interfaces import IAuthenticationPolicy
@@ -43,21 +43,38 @@ class DefaultRoles(object):
     ADMIN = ("g:admin", "Standard administrators of the system.", [getattr(_permissions, name) for name in dir(_permissions) if name not in (DefaultPermissions.EDIT_PERMISSIONS[0], DefaultPermissions.DELETE) and not name.startswith("_")])
     SUPER_ADMIN = ("g:super_admin", "Has all permissions", [getattr(_permissions, name) for name in dir(_permissions) if not name.startswith("_")])
 
+    SHARE_VIEW_PROJECT = "s:view_project", "Shared view permissions for a project.", [DefaultPermissions.VIEW_PROJECT]
+    SHARE_EDIT_PROJECT = "s:edit_project", "Shared edit permissions for a project.", [DefaultPermissions.EDIT_PROJECT]
+    SHARE_SUBMIT = "s:submit", "Shared submit permissions for a project.", [DefaultPermissions.SUBMIT]
+    SHARE_EDIT_DATA = "s:edit_data", "Shared data edit permissions for a project.", [DefaultPermissions.EDIT_DATA]
+    SHARE_EDIT_INGESTERS = "s:edit_ingesters", "Shared edit ingester permissions for a project.", [DefaultPermissions.EDIT_INGESTERS]
+    SHARE_DISABLE = "s:disable", "Shared disable ingestion permissions for a project.", [DefaultPermissions.DISABLE]
+    SHARE_ENABLE = "s:enable", "Shared enable ingestion permissions for a project.", [DefaultPermissions.ENABLE]
 
 class RootFactory(object):
     __acl__ = [
-        (Allow, DefaultRoles.CREATOR[0], DefaultRoles.CREATOR[2]),
-        (Allow, DefaultRoles.AUTHENTICATED[0], DefaultRoles.AUTHENTICATED[2]),
-        (Allow, DefaultRoles.ADMIN[0], DefaultRoles.ADMIN[2]),
-        (Allow, DefaultRoles.SUPER_ADMIN[0], DefaultRoles.SUPER_ADMIN[2]),
+#        (Allow, DefaultRoles.CREATOR[0], DefaultRoles.CREATOR[2]),
+#        (Allow, DefaultRoles.AUTHENTICATED[0], DefaultRoles.AUTHENTICATED[2]),
+#        (Allow, DefaultRoles.ADMIN[0], DefaultRoles.ADMIN[2]),
+#        (Allow, DefaultRoles.SUPER_ADMIN[0], DefaultRoles.SUPER_ADMIN[2]),
+#        (Allow, DefaultRoles.SUPER_ADMIN[0], DefaultRoles.SUPER_ADMIN[2]),
+#
+#        (Allow, DefaultRoles.SHARE_VIEW_PROJECT[0], DefaultRoles.SHARE_VIEW_PROJECT[2]),
+#        (Allow, DefaultRoles.SHARE_EDIT_PROJECT[0], DefaultRoles.SHARE_EDIT_PROJECT[2]),
+#        (Allow, DefaultRoles.SHARE_SUBMIT[0], DefaultRoles.SHARE_SUBMIT[2]),
+#        (Allow, DefaultRoles.SHARE_EDIT_DATA[0], DefaultRoles.SHARE_EDIT_DATA[2]),
+#        (Allow, DefaultRoles.SHARE_EDIT_INGESTERS[0], DefaultRoles.SHARE_EDIT_INGESTERS[2]),
+#        (Allow, DefaultRoles.SHARE_DISABLE[0], DefaultRoles.SHARE_DISABLE[2]),
+#        (Allow, DefaultRoles.SHARE_ENABLE[0], DefaultRoles.SHARE_ENABLE[2]),
+
 #        (Allow, Everyone, DefaultRoles.SUPER_ADMIN[2]),     # Only for testing, this disables all permissions.
         ]
     __name__ = "Root"
 
     def __init__(self, request):
-
-        pass
-
+        session = DBSession
+        roles = session.query(Role).all()
+        self.__acl__.extend([("Allow", role.name, [(permission.name, permission.description) for permission in role.permissions]) for role in roles])
 
 # TODO: Update this for shibboleth when more details are known
 @implementer(IAuthenticationPolicy)
@@ -90,7 +107,16 @@ class ShibbolethAuthenticationPolicy(object):
             principals.extend((r.name for r in user.roles))
 
             if 'project_id' in request.matchdict:
-                principals.extend((p.name for p in user.project_permissions if user.project_permissions.project_id == request.matchdict['project_id']))
+                share_permissions = [p.permission for p in user.project_permissions if int(p.project_id) == int(request.matchdict['project_id'])]
+
+                session = DBSession
+                share_principles = []
+                for permission in share_permissions:
+                    role = session.query(Role).filter_by(name="s:%s" % permission.name).first()
+                    if role is not None:
+                        share_principles.append(role.name)
+
+                principals.extend(share_principles)
                 project_creator = DBSession.execute("SELECT `project_creator` FROM `project` WHERE `id`='%s'" % request.matchdict['project_id']).first()[0]
                 if project_creator == user.id:
                     principals.append(DefaultRoles.CREATOR[0])

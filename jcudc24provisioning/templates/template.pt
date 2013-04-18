@@ -124,7 +124,7 @@
             }
         });
 
-
+        <tal:block tal:condition="exists:display_leave_confirmation">
         window.onbeforeunload = function (e) {
             var message = "Are you sure you want to leave this page, all unsaved data will be lost.",
             e = e || window.event;
@@ -139,6 +139,7 @@
                 window.onbeforeunload = null;
             });
         });
+        </tal:block>
 
 
 

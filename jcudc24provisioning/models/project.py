@@ -1554,7 +1554,7 @@ class Metadata(CAModel, Base):
 
 
 class ProjectStates(object):
-    OPEN, SUBMITTED, APPROVED, ACTIVE, DISABLED = range(5)
+    OPEN, SUBMITTED, ACTIVE, DISABLED = range(4)
 
 def project_validator(form, value):
     error = False
@@ -1734,10 +1734,10 @@ class SharedUser(colander.MappingSchema):
     view_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.VIEW_PROJECT[0], default = True, title="View")
     edit_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_PROJECT[0],default = False, title="Edit")
     submit_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.SUBMIT[0],default = False, title="Submit")
-    edit_data_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_DATA[0],default = False, title="Manage Data")
-    edit_ingester_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_INGESTERS[0],default = False, title="Manage Ingesters")
     disable_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.DISABLE[0],default = False, title="Disable")
     enable_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.ENABLE[0],default = False, title="Re-Enable")
+    edit_data_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_DATA[0],default = False, title="Manage Data")
+    edit_ingester_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_INGESTERS[0],default = False, title="Manage Ingesters")
 
 class SharedUsers(colander.SequenceSchema):
     user = SharedUser(widget=deform.widget.MappingWidget(template="inline_mapping", readonly_template="readonly/inline_mapping", show_label=True))
@@ -1747,7 +1747,9 @@ class SharedUsers(colander.SequenceSchema):
 #    return kw['users']
 
 class Sharing(colander.MappingSchema):
-    shared_with = SharedUsers(title="Users Who This Project Is Shared With", widget=deform.widget.SequenceWidget(template="sharing_sequence"))
+    shared_with = SharedUsers(title="Users Who This Project Is Shared With",
+        widget=deform.widget.SequenceWidget(template="sharing_sequence"),
+        )
 
 
 class ManageData(colander.MappingSchema):

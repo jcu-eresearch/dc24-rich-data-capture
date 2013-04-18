@@ -220,7 +220,12 @@ class Layouts(object):
         logged_in = authenticated_userid(self.request)
 
         if isinstance(self.context, HTTPForbidden):
-            self.request.session.flash("You are unauthorised to view the requested page, please login first.", "warning")
+            if request.user is None:
+                self.request.session.flash("You are unauthorised to view the requested page, please login first.", "warning")
+            elif "project_id" in request.matchdict :
+                self.request.session.flash("You don't have permission to view the requested page, please request permission from the project creator or administrators.", "warning")
+            else:
+                self.request.session.flash("You don't have permission to view the requested page, please request permission from the administrators.", "warning")
 
         form = Form(Login(), action=self.request.route_url("login"), buttons=('Login', ))
 
