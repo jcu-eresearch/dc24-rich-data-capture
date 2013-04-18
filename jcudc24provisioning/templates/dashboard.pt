@@ -1,19 +1,46 @@
 <div metal:use-macro="view.global_template">
     <div metal:fill-slot="content">
-        <div style="border: red 1px solid;">Short intro text</div>
-        <div style="border: red 1px solid;" tal:condition="user is None">Full intro text & Pictures</div>
-        <div style="border: red 1px solid;" tal:condition="user is not None">
-            <ul>
-                <li  style="border: blue 1px solid; height: 100px;">Event logs (eg. dataset hasn't ingested data in 1 week)</li>
-                <li  style="border: blue 1px solid; height: 100px;">Notifications (eg. user requests to admins)</li>
-                <li  style="border: blue 1px solid; height: 100px;">Activity (eg. last 5 projects I edited)</li>
+        <div id="dashboard-intro">
+             ...TODO: Short intro text...
+        </div>
+        <div tal:condition="user is None">...TODO: Full intro text & Pictures...</div>
+        <div tal:condition="user is not None">
+            <ul id="dashboard-alerts">
+                <li class="dashboard-alert">Event logs (eg. dataset hasn't ingested data in 1 week)</li>
+                <li class="dashboard-alert">Notifications (eg. user requests to admins)</li>
+                <li class="dashboard-alert">Activity (eg. last 5 projects I edited)</li>
             </ul>
         </div>
-        <div style="border: red 1px solid;">
+        <div id="dashboard-footer">
             <ul>
-                <li  style="border: blue 1px solid; height: 100px; width: 30%; float: left; list-style: none;">What</li>
-                <li  style="border: blue 1px solid; height: 100px; width: 30%; float: left; list-style: none;">Why</li>
-                <li  style="border: blue 1px solid; height: 100px; width: 30%; float: left; list-style: none;">How</li>
+                <li class="desc">
+                    <h2>What</h2>
+                    <p>The EnMaSSe application is designed to provide a user friendly interface for:</p>
+                    <ul>
+                        <li>Flexible and scalable research data ingestion (both streamed or manually input).</li>
+                        <li>High quality, fine grained, project based, metadata creation and export (eg. Enter 1 record, export many).</li>
+                        <li>Administerable and maintainable project lifecycle and workflows.</li>
+                    </ul>
+                </li>
+                <li class="desc">
+                    <h2>Why</h2>
+                    <p>The real power and reusability of the EnMaSSe is directly streaming sensor data into a scalable data storage system in a highly flexible way:</p>
+                    <ul>
+                        <li>Reusable and extendable for almost any type of streaming sensor.</li>
+                        <li>Highly customisable data configurations and custom processing scripts mean the data storage can index the ingested data any way the user requires while the bulk of data is stored as flat files (more scalable).</li>
+                        <li>Custom processing scripts can be chained together allowing the data to be split and processed in many ways.</li>
+                    </ul>
+                </li>
+                <li class="desc">
+                    <h2>How</h2>
+                    <p>The project creation workflow collects:</p>
+                    <ul>
+                        <li>Information required for quality metadata records</li>
+                        <li>Data ingestion configurations.</li>
+                        <li>Actual datasets or points of data.</li>
+                    </ul>
+                    <p>Once the configurations are entered and the project is submitted and approved, the project generates and exports a metadata record for each dataset as well as configuring and starting data ingestion.</p>
+                </li>
             </ul>
         </div>
 

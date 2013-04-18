@@ -171,30 +171,34 @@ class Layouts(object):
     @view_config(renderer="../templates/dashboard.pt", route_name="dashboard")
     def dashboard_view(self):
         page_help = "TODO: Video or picture slider."
+        self.request.session.flash("This page is still under development.", "warning")
 
         return self._create_response(page_help=page_help)
 
     @view_config(renderer="../templates/manage_data.pt", route_name="browse")
     def search_page_view(self):
     #        raise NotImplementedError("Search hasn't been implemented yet!")
+        self.request.session.flash("This page is still under development.", "warning")
 
         return self._create_response()
 
     @view_config(renderer="../templates/administrator.pt", route_name="admin",
         permission=DefaultPermissions.ADMINISTRATOR)
     def admin_page_view(self):
+        self.request.session.flash("This page is still under development.", "warning")
     #        raise NotImplementedError("Search hasn't been implemented yet!")
 
         return self._create_response()
 
     @view_config(renderer="../templates/help.pt", route_name="help")
     def help_page_view(self):
+        self.request.session.flash("This page is still under development.", "warning")
     #        raise NotImplementedError("Search hasn't been implemented yet!")
 
         return self._create_response()
 
     @view_config(route_name="record_data")
-    def help_page_view(self):
+    def record_data_view(self):
         metadata_id = self.request.matchdict['metadata_id']
 
         metadata = self.session.query(Metadata).filter_by(id=metadata_id).first()
@@ -214,6 +218,9 @@ class Layouts(object):
     def login_view(self):
         request = self.request
         logged_in = authenticated_userid(self.request)
+
+        if isinstance(self.context, HTTPForbidden):
+            self.request.session.flash("You are unauthorised to view the requested page, please login first.", "warning")
 
         form = Form(Login(), action=self.request.route_url("login"), buttons=('Login', ))
 
@@ -265,11 +272,7 @@ class Layouts(object):
             email = self.request.headers['email']
             identifier = self.request.headers['auEduPersonSharedToken']
         except KeyError as e:
-            if 'auth_redirect' not in self.request.headers:
-                headers = {'auth_redirect': True}
-                return HTTPFound(location=self.request.route_url("login_shibboleth"), headers=headers)
-            else:
-                return HTTPClientError("Missing Shibboleth headers")
+            return HTTPClientError("Missing Shibboleth headers")
 
         user = User.get_user(username=identifier, auth_type="shibboleth")
         if not user:
