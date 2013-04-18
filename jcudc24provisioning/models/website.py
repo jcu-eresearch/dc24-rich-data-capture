@@ -23,8 +23,14 @@ class ShibbolethLogin(colander.MappingSchema):
     link = colander.SchemaNode(colander.String(), widget=deform.widget.HiddenWidget(template="shibboleth_login"))
 
 class Login(colander.MappingSchema):
-    shibboleth_login = ShibbolethLogin(description="<i>Login over Shibboleth using your organisations credentials.</i>")
-    local_login = LocalLogin(description="<i>Login directly to the application using provided credentials.</i>")
+    shibboleth_login = ShibbolethLogin(description="<i>Login over Shibboleth using your organisations credentials.</i>",
+        help="Shibboleth is a 'single-sign in', or logging-in system for computer networks and the internet. "
+                "It allows people to sign in, using just one 'identity', to various systems run by 'federations' "
+                "of different organizations or institutions. The federations are often universities or public service "
+                "organizations.", title="Shibboleth Login (Recommended)")
+    local_login = LocalLogin(title="Local Login (Advanced)", description="<i>Login directly to the application using provided credentials.</i>",
+        help="You will need to contact the administrators if you need a local login.<br />"
+                "<i>Use Shibboleth wherever possible, local users are mainly intended for administration purposes.</i>")
     came_from = colander.SchemaNode(colander.String(), widget=deform.widget.HiddenWidget())
 
 
