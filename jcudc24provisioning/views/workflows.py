@@ -591,7 +591,9 @@ class Workflows(Layouts):
         if len(appstruct) > 0 and not hasattr(self, '_validation_error'):
             # In either of the below cases get the data as a dict and get the rendered form
             new_project = Project()
-            new_project.project_creator = self.request.user.id
+
+            if self.request.user is not None and self.config.get("provisioning.debugging", False):
+                new_project.project_creator = self.request.user.id
             new_project.creation_date = datetime.now()
 
             if 'template' in appstruct:
