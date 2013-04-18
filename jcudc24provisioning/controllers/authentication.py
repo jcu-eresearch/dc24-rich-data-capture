@@ -50,7 +50,7 @@ class RootFactory(object):
         (Allow, DefaultRoles.AUTHENTICATED[0], DefaultRoles.AUTHENTICATED[2]),
         (Allow, DefaultRoles.ADMIN[0], DefaultRoles.ADMIN[2]),
         (Allow, DefaultRoles.SUPER_ADMIN[0], DefaultRoles.SUPER_ADMIN[2]),
-        (Allow, Everyone, DefaultRoles.SUPER_ADMIN[2]),     # Only for testing, this disables all permissions.
+#        (Allow, Everyone, DefaultRoles.SUPER_ADMIN[2]),     # Only for testing, this disables all permissions.
         ]
     __name__ = "Root"
 

@@ -14,10 +14,19 @@ __author__ = 'casey'
 
 logger = logging.getLogger(__name__)
 
-class Login(colander.MappingSchema):
-    user_name = colander.SchemaNode(colander.String())
+
+class LocalLogin(colander.MappingSchema):
+    user_name = colander.SchemaNode(colander.String(),)
     password = colander.SchemaNode(colander.String(), widget=deform.widget.PasswordWidget())
+
+class ShibbolethLogin(colander.MappingSchema):
+    link = colander.SchemaNode(colander.String(), widget=deform.widget.HiddenWidget(template="shibboleth_login"))
+
+class Login(colander.MappingSchema):
+    shibboleth_login = ShibbolethLogin(description="<i>Login over Shibboleth using your organisations credentials.</i>")
+    local_login = LocalLogin(description="<i>Login directly to the application using provided credentials.</i>")
     came_from = colander.SchemaNode(colander.String(), widget=deform.widget.HiddenWidget())
+
 
 class Permission(CAModel, Base):
     order_counter = itertools.count()

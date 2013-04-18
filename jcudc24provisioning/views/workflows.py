@@ -592,7 +592,7 @@ class Workflows(Layouts):
             # In either of the below cases get the data as a dict and get the rendered form
             new_project = Project()
 
-            if self.request.user is not None and self.config.get("provisioning.debugging", False):
+            if self.request.user is None and self.config.get("provisioning.debugging", False):
                 new_project.project_creator = self.request.user.id
             new_project.creation_date = datetime.now()
 

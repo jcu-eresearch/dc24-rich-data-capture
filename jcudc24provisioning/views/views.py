@@ -3,6 +3,7 @@ import logging
 from string import split
 import urllib2
 from jcudc24provisioning.controllers.authentication import DefaultPermissions
+from jcudc24provisioning.models.ca_model import CAModel
 from jcudc24provisioning.models.project import Metadata
 import pyramid
 from pyramid.httpexceptions import HTTPNotFound, HTTPFound, HTTPClientError, HTTPBadRequest, HTTPForbidden
@@ -10,10 +11,11 @@ from pyramid.interfaces import IRoutesMapper, IViewClassifier, IView
 from pyramid.view import view_config, forbidden_view_config, view_defaults, render_view_to_response
 from pyramid.security import remember, forget, authenticated_userid
 from deform.form import Form
-from jcudc24provisioning.models.website import Login, User
+from jcudc24provisioning.models.website import Login, User, LocalLogin
 from jcudc24provisioning.models import DBSession
 from pyramid.request import Request
 from zope.interface import providedBy
+import deform
 
 
 __author__ = 'Casey Bajema'
@@ -207,6 +209,7 @@ class Layouts(object):
             return self._redirect_to_target(self.request.route_url("project", project_id=metadata.project_id))
 
 
+    @forbidden_view_config(renderer='../templates/form.pt')
     @view_config(route_name='login', renderer='../templates/form.pt')
     def login_view(self):
         request = self.request
@@ -214,9 +217,9 @@ class Layouts(object):
 
         form = Form(Login(), action=self.request.route_url("login"), buttons=('Login', ))
 
-        login_url = self.request.resource_url(self.request.context, 'login')
+        login_url = self.request.route_url('login')
         referrer = self.request.url
-        if referrer == login_url:
+        if referrer == login_url or referrer == "":
             referrer = '/' # never use the login form itself as came_from
         came_from = self.request.params.get('came_from', referrer)
         login = ''
@@ -239,21 +242,15 @@ class Layouts(object):
                 appstruct = e.cstruct
                 display = e.render()
         else:
-            display = form.render({'came_from': came_from})
+            display = form.render({"came_from": came_from})
 
         return self._create_response(url=self.request.application_url + '/login', came_from=came_from,
             login=login, password=password, form=display)
 
-
-    @forbidden_view_config(renderer='../templates/form.pt')
     @view_config(route_name='login_shibboleth', renderer='../templates/form.pt')
     def login_shibboleth(self):
         request = self.request
         logged_in = authenticated_userid(self.request)
-
-        # Redirect to local logins for administration page.
-        if isinstance(self.context, HTTPForbidden) and request.path == '/admin':
-            return self._redirect_to_target(self.request.route_url("login"))
 
         login_url = self.request.route_url('login_shibboleth')
         referrer = self.request.url
@@ -288,10 +285,17 @@ class Layouts(object):
 
     @view_config(route_name='logout')
     def logout(self):
+        if self.request.user is not None:
+            self.request.session.flash("You have been successfully logged out.", "success")
+            if self.request.user is not None and self.request.user.auth_type == "shibboleth":
+                    self.request.session.flash("To fully log out of Shibboleth you must close your browser (eg. Firefox, Chrome or Internet Explorer, not just this tab/window).", "warning")
+        else:
+            self.request.session.flash("You were already logged out.", "success")
+
         headers = forget(self.request)
+
         return HTTPFound(location=self.request.route_url("dashboard"),
             headers=headers)
-
 
     @view_config(context=Exception, renderer="../templates/exception.pt")
     def exception_view(self):
