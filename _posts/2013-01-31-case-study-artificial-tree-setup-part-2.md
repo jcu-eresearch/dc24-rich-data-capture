@@ -162,7 +162,7 @@ The methods page sets up ways of collecting data (data sources), what the data i
 Adding methods uses a simple wizard (shown in figure 5 below) that allows selection of a method template.  Method templates pre-fill any/all data in methods and their associated datasets.
 
 <span class="workflow_image" id="create_method"><img src="{{ site.JB.BASE_PATH }}/images/create_method.png" /></span>
-Figure 5: Screenshot of method creation page <a onclick="enlarge('create_method');">[Enlarge]</a>.
+Figure 5: Screenshot of method creation page (method templates are hidden by default) <a onclick="enlarge('create_method');">[Enlarge]</a>.
 
 The type of data being collected allows configuration of what data is collected and how that data is indexed:
 * Most methods will store raw data as a file and index specific information so it is searchable.
