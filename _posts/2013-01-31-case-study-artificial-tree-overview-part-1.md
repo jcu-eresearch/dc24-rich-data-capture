@@ -73,13 +73,17 @@ tags: [DIISRTE, fundedByAustralianNationalDataService, andsApps, DC24, richDataC
 	}
 </style>
 
-Provisioning Interface Overview
+EnMaSSe (Environmental Monitoring and Sensor Storage) Overview
 ======================================
+The EnMaSSe application is designed to provide a user friendly interface for:
+* Flexible and scalable research data ingestion (both streamed or manually input).
+* High quality, fine grained, project based, metadata creation and export (eg. Enter 1 record, export many).
+* Administerable and maintainable project lifecycle and workflows.
 
 Each <i>project</i> consists of project level metadata (information about the research data), <i>methods</i> of collecting data and <i>datasets</i> (individual collection of data).  
 
-The primary purpose of methods is to define the data structure and the data source.  
-* Data structures define how the data is represented in persistent storage and what is indexed.
+The primary purpose of methods is to define the data configuration and the data source.  
+* Data configuration define how the data is represented in persistent storage and what is indexed (searchable).
 * Data sources identify the way data is input into persistent storage (eg. streamed, web form).
 
 Each dataset is an individual configuration of a method as well as a metadata record.
@@ -91,9 +95,9 @@ To make the whole process as easy as possible the following features have been i
 * Providing an associated grant will pre-fill as much information as possible (eg. people, project dates).
 
 Once the project is configured, submitted and approved by the administrators:
-* Project metadata (information about data) record will be created in [ReDBox](http://www.redboxresearchdata.com.au/).
+* Project metadata (information about the research data) record will be created in [ReDBox](http://www.redboxresearchdata.com.au/).
 * Each dataset will have a metadata record created in [ReDBox](http://www.redboxresearchdata.com.au/).
-* Each dataset will provide functionality for data input directly into persistent storage.
+* Each dataset will provide functionality for manual or streamed data input directly into persistent storage.
 
 What is the artificial sensor tree?
 ===================================
@@ -122,7 +126,7 @@ Why use this project for the case study?
 * Complex enough to show how streaming sensors with quality metadata records scales with the minimum of work.  
 * Similar research projects have in the past been conducted by researchers manually collecting data from each field sensor as well as manually setting up the associated metadata records.
 * Complex enough to demonstrate the flexibility of our systems and illustrate the pros and cons of different configurations.
-* Target audience for our project showing how the Rich Data Capture will be used in the future.
+* It is the perfect target audience for our project, showing how EnMaSSe will be used in the future.
 
 <span id="rest"></span>
 
@@ -138,7 +142,7 @@ Glossary
 	<tr><td>Project</td><td>Represents a research project or part thereof.  Choose a project so that many datasets can be created with similar configurations.</td></tr>
 	<tr><td>Dataset</td><td>Single data collection which will have a ReDBox metadata record and a way of inputting data into persistent storage.</td></tr>
 	<tr><td>Method</td><td>Way of collecting research data as well as how that data is stored and indexed in the persistent storage.  Each dataset is based on a method.</td></tr>
-	<tr><td>Provisioning Interface</td><td>The Rich Data Capture web application that is used to provision the data ingestion and ReDBox metadata record creation.</td></tr>
+	<tr><td>EnMaSSe</td><td><b>En</b>vironmental <b>M</b>onitoring <b>a</b>nd <b>S</b>ensor <b>S</b>torag<b>e</b> web application that is used to provision the data ingestion and ReDBox metadata record creation.</td></tr>
 	<tr><td>Ingester</td><td>Way of inputting data into persistent storage.  Eg. the file ingester regularly polls an external file server for new files.</td></tr>
 	<tr><td>Sensor</td><td>An electronic device that collects data and in some way provides that data.</td></tr>	
 </table>
