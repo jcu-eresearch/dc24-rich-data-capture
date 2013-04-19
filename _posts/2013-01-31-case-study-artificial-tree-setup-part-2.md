@@ -154,7 +154,7 @@ If a research grant was selected the date from and date to fields will be prefil
 
 <i>Collected data is for metadata records (Location may be used to pre-fill dataset locations).</i>
 
-<span class="workflow_image" id="metadata_page"><img src="{{ site.JB.BASE_PATH }}/images/information.jpg" /></span>
+<span class="workflow_image" id="metadata_page"><img src="{{ site.JB.BASE_PATH }}/images/information.png" /></span>
 Figure 4: Screenshot of project creation page <a onclick="enlarge('metadata_page');">[Enlarge]</a>.
 
 
