@@ -80,10 +80,10 @@ The EnMaSSe application is designed to provide a user friendly interface for:
 * High quality, fine grained, project based, metadata creation and export (eg. Enter 1 record, export many).
 * Administerable and maintainable project lifecycle and workflows.
 
-Each <i>project</i> consists of project level metadata (information about the research data), <i>methods</i> of collecting data and <i>datasets</i> (individual collection of data).  
+Each <i>project</i> consists of project level metadata (information about the research data), <i>methods</i> of collecting data and <i>datasets</i> (individual collections of data).  
 
 The primary purpose of methods is to define the data configuration and the data source.  
-* Data configuration define how the data is represented in persistent storage and what is indexed (searchable).
+* The data configuration defines how the data is represented in persistent storage and what is indexed (searchable).
 * Data sources identify the way data is input into persistent storage (eg. streamed, web form).
 
 Each dataset is an individual configuration of a method as well as a metadata record.
