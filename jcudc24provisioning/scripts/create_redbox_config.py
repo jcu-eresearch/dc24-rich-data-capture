@@ -1,15 +1,11 @@
-from collections import OrderedDict
 import json
-import colander
-from lxml import etree
-from pyramid.paster import setup_logging, get_appsettings
-from sqlalchemy import Column
 import sys
+
+from pyramid.paster import setup_logging, get_appsettings
 from jcudc24provisioning.controllers.sftp_filesend import SFTPFileSend
-from jcudc24provisioning.models.ca_model import CAModel
 from jcudc24provisioning.models.project import Metadata, Party, Keyword, Collaborator, MetadataNote, CitationDate, Attachment, RelatedPublication, RelatedWebsite, FieldOfResearch, SocioEconomicObjective, Location, Creator
-from jcudc24provisioning.views.ca_scripts import fix_schema_field_name
 import os
+
 
 __author__ = 'Casey Bajema'
 

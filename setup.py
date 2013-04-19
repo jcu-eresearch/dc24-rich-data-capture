@@ -22,7 +22,11 @@ requires = [
     'webob',
     'paramiko',
     'requests',
-    'hashlib'
+    'hashlib',
+#    'pyramid_fanstatic',
+#    'js.deform',
+#    'js.jquery',
+#    'js.jqueryui',
 ]
 
 setup(name='jcu.dc24.provisioning',
@@ -52,7 +56,8 @@ setup(name='jcu.dc24.provisioning',
       main = jcudc24provisioning:main
       [console_scripts]
       initialize_jcu.dc24.provisioning_db = jcudc24provisioning.scripts.initializedb:main
-      """, requires=['colander', "deform", "pyramid_deform", "pyramid_beaker", "pyramid", "transaction", "sqlalchemy", "webob",
+      """,
+      requires=['colander', "deform", "pyramid_deform", "pyramid_beaker", "pyramid", "transaction", "sqlalchemy", "webob",
                      "colanderalchemy"],
       )
 

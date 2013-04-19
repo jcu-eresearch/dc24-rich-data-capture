@@ -8,12 +8,11 @@ import transaction
 import unittest
 from deform import Form
 from colanderalchemy import SQLAlchemyMapping
-import jcudc24ingesterapi
 from jcudc24ingesterapi.authentication import CredentialsAuthentication
 from jcudc24provisioning.models import DBSession, Base
-from jcudc24provisioning.models.project import Project, Location, LocationOffset, Method, Dataset, Keyword, FieldOfResearch, MethodSchema, MethodSchemaField, PullDataSource, Metadata
+from jcudc24provisioning.models.project import Project, Location, LocationOffset, Method, Dataset, MethodSchema, MethodSchemaField, PullDataSource, Metadata
 from jcudc24provisioning.controllers.ingesterapi_wrapper import IngesterAPIWrapper
-from jcudc24provisioning.views.ca_scripts import convert_schema
+from jcudc24provisioning.controllers.ca_schema_scripts import convert_schema
 
 class TestModelConversion(unittest.TestCase):
     def test_conversion_equality(self):

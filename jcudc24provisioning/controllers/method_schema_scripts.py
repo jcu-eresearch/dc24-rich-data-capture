@@ -6,7 +6,7 @@ import colander
 import deform
 from jcudc24provisioning.models import DBSession
 from jcudc24provisioning.models.project import MethodSchema, field_types
-from jcudc24provisioning.views.file_upload import upload_widget
+from jcudc24provisioning.models.file_upload import upload_widget
 
 __author__ = 'xjc01266'
 

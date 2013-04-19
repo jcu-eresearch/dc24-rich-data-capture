@@ -107,7 +107,9 @@ class ShibbolethAuthenticationPolicy(object):
             principals.extend((r.name for r in user.roles))
 
             if 'project_id' in request.matchdict:
-                share_permissions = [p.permission for p in user.project_permissions if int(p.project_id) == int(request.matchdict['project_id'])]
+                project_id = int(request.matchdict['project_id'])
+
+                share_permissions = [p.permission for p in user.project_permissions if int(p.project_id) == project_id]
 
                 session = DBSession
                 share_principles = []
@@ -117,8 +119,8 @@ class ShibbolethAuthenticationPolicy(object):
                         share_principles.append(role.name)
 
                 principals.extend(share_principles)
-                project_creator = DBSession.execute("SELECT `project_creator` FROM `project` WHERE `id`='%s'" % request.matchdict['project_id']).first()[0]
-                if int(project_creator) == int(user.id):
+                project_creator = DBSession.execute("SELECT `project_creator` FROM `project` WHERE `id`='%s'" % project_id).first()[0]
+                if project_creator is not None and int(project_creator) == int(user.id):
                     principals.append(DefaultRoles.CREATOR[0])
 
             principals.extend((p.name for p in (role for role in user.roles)))

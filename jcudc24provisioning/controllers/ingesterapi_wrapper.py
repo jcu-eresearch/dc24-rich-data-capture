@@ -267,38 +267,28 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
     def process_dataset(self, model, command, work):
         assert isinstance(model, Dataset),"Trying to add a project with a model of the wrong type."
 
-        new_dataset = jcudc24ingesterapi.models.dataset.Dataset()
-
-        #            new_dataset.processing_script = dataset.custom_processor_script - Moved to datasource
-        new_dataset.redbox_uri = None   # TODO: Add redbox link
-        new_dataset.enabled = True
-        new_dataset.description = model.record_metadata.project_title
-
-        # Add the location
-        first_location_found = False
-        for location in model.dataset_locations:
-            if not first_location_found and location.is_point():
-                first_location_found = True
-                try:
-                    if location.dam_id is None:
-                        new_dataset.location = self.process_model(location, command, work)
-                    else:
-                        new_dataset.location = int(location.dam_id)
-                except Exception as e:
-                    logger.exception("Failed to add/update location: %s for dataset: %s" % (location.name, model.record_metadata.project_title))
-                    raise ValueError("Failed to add/update location: %s for dataset: %s, error: %s" % (location.name, model.record_metadata.project_title, e))
-            else:
-                pass # TODO: Discuss regions when we get there - there is currently only 1 region in a dataset (this will fail if run)
-
-        # Add the location offset if it is set
-        if model.location_offset is not None:
-            new_dataset.location_offset = self.process_model(model.location_offset, command, work)
-
-        # Add the data_entry schema to the dataset
+        # Get the datasets method.
         method = self.session.query(Method).filter_by(id=model.method_id).first()
         if method is None:
             raise ValueError("Trying to provision a dataset that has no associated method.  Try deleting and re-creating the dataset.")
 
+        # Create the dataset and setup standard fields.
+        new_dataset = jcudc24ingesterapi.models.dataset.Dataset()
+        new_dataset.redbox_uri = None   # TODO: Add redbox link
+        new_dataset.enabled = True
+        new_dataset.description = model.record_metadata.project_title
+
+        # Set the metadata record address
+        if model.record_metadata is not None and model.record_metadata.redbox_uri is not None:
+            new_dataset.redbox_uri = model.record_metadata.redbox_uri
+
+        # Add the location and optionally an offset to that location.
+        self._set_dataset_locations(new_dataset, model, work, command)
+
+        # Add the data source to this dataset.
+        new_dataset.data_source = self._create_data_source(new_dataset, model, method)
+
+        # Add the DataEntrySchema for this dataset
         try:
             if method.data_type.dam_id is None:
                 new_dataset.schema = int(self.process_model(method.data_type, command, work))
@@ -308,152 +298,8 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             logger.exception("Failed to add/update data schema for method: %s" % (method.method_name))
             raise ValueError("Failed to add/update data schema for method: %s, Error: %s" % (method.method_name, e))
 
-        # Add the data source configuration
-        if method.data_source is None:
-            raise ValueError("Trying to provision a dataset with an undefined data source type.  Go back to the methods step and select the data source, then configure the data source in the datasets step.")
 
-        if method.data_source == FormDataSource.__tablename__:
-#            if model.form_data_source is None:
-#                raise ValueError("Trying to provision a dataset with no data source.  Go back to the dataset step and configure the data source.")
-            data_source = jcudc24ingesterapi.models.data_sources.FormDataSource()
-            # TODO: Update datasource configuration
-        if method.data_source == PullDataSource.__tablename__:
-            if model.pull_data_source is None:
-                raise ValueError("Trying to provision a dataset with no data source.  Go back to the dataset step and configure the data source: %s" % model.record_metadata.project_title)
-
-            # Create the sampling
-            sampling_object = None
-            if PullDataSource.periodic_sampling.key in model.pull_data_source.selected_sampling:
-                try:
-                    sampling_object = jcudc24ingesterapi.models.sampling.PeriodicSampling(int(model.pull_data_source.periodic_sampling*60000))
-                except TypeError:
-                    logger.exception("Trying to create a periodic sampler with invalid rate: %s for %s" % (model.pull_data_source.periodic_sampling, model.record_metadata.project_title))
-                    raise ValueError("Trying to create a periodic sampler with invalid rate: %s for %s" % (model.pull_data_source.periodic_sampling, model.record_metadata.project_title))
-
-            elif PullDataSource.cron_sampling.key in model.pull_data_source.selected_sampling:
-                try:
-                    sampling_object = jcudc24ingesterapi.models.sampling.CronSampling(str(model.pull_data_source.cron_sampling))
-                except TypeError:
-                    logger.exception("Trying to create a cron sampler with an invalid cron string: %s for %s" % (model.pull_data_source.cron_sampling, model.record_metadata.project_title))
-                    raise ValueError("Trying to create a cron sampler with an invalid cron string: %s for %s" % (model.pull_data_source.cron_sampling, model.record_metadata.project_title))
-
-            elif PullDataSource.custom_sampling_desc.ca_group_start in model.pull_data_source.selected_sampling:
-                try:
-                    sampling_object = jcudc24ingesterapi.models.sampling.CustomSampling(model.pull_data_source.custom_sampling_script)
-                except TypeError:
-                    logger.exception("Trying to create a custom sampler with invalid script handle: %s" % model.pull_data_source.custom_sampling_script)
-                    raise ValueError("Trying to create a custom sampler with invalid script handle: %s" % model.pull_data_source.custom_sampling_script)
-
-            # Create the data source
-            try:
-                data_source_field = self.session.query(MethodSchemaField).filter_by(id=model.pull_data_source.file_field).first()
-                data_source = jcudc24ingesterapi.models.data_sources.PullDataSource(
-                    url=model.pull_data_source.uri,
-                    field=data_source_field.name,
-                    pattern=model.pull_data_source.filename_pattern,
-                    mime_type=data_source_field.units,
-                    sampling=sampling_object,
-                    recursive=True
-                )
-
-                if model.pull_data_source.custom_processor is not None:
-                    script = self._create_custom_processing_script(model.dataset_data_source.custom_processor)
-                    data_source.processing_script = script
-
-            except Exception as e:
-                logger.exception("Trying to create an ingester pull data source with invalid parameters: %s, Error: %s" % (model.record_metadata.project_title, e))
-                raise ValueError("Trying to create an ingester pull data source with invalid parameters: %s, Error: %s" % (model.record_metadata.project_title, e))
-
-        if method.data_source == PushDataSource.__tablename__:
-#            if model.push_data_source is None:
-#                raise ValueError("Trying to provision a dataset with no data source.  Go back to the dataset step and configure the data source: %s" % model.record_metadata.project_title)
-            data_source = jcudc24ingesterapi.models.data_sources.PushDataSource()
-            # TODO: Update datasource configuration
-        if method.data_source == SOSScraperDataSource.__tablename__:
-            if model.sos_scraper_data_source is None:
-                raise ValueError("Trying to provision a dataset with no data source.  Go back to the dataset step and configure the data source: %s" % model.record_metadata.project_title)
-
-            # Create the sampling
-            sampling_object = None
-            if SOSScraperDataSource.periodic_sampling.key in model.sos_scraper_data_source.selected_sampling:
-                try:
-                    sampling_object = jcudc24ingesterapi.models.sampling.PeriodicSampling(int(model.sos_scraper_data_source.periodic_sampling*60000))
-                except TypeError:
-                    logger.exception("Trying to create a periodic sampler with invalid rate: %s for %s" % (model.sos_scraper_data_source.periodic_sampling, model.record_metadata.project_title))
-                    raise ValueError("Trying to create a periodic sampler with invalid rate: %s for %s" % (model.sos_scraper_data_source.periodic_sampling, model.record_metadata.project_title))
-
-            elif SOSScraperDataSource.cron_sampling.key in model.sos_scraper_data_source.selected_sampling:
-                try:
-                    sampling_object = jcudc24ingesterapi.models.sampling.CronSampling(str(model.sos_scraper_data_source.cron_sampling))
-                except TypeError:
-                    logger.exception("Trying to create a cron sampler with an invalid cron string: %s for %s" % (model.sos_scraper_data_source.cron_sampling, model.record_metadata.project_title))
-                    raise ValueError("Trying to create a cron sampler with an invalid cron string: %s for %s" % (model.sos_scraper_data_source.cron_sampling, model.record_metadata.project_title))
-
-            elif SOSScraperDataSource.custom_sampling_desc.ca_group_start in model.sos_scraper_data_source.selected_sampling:
-                try:
-                    sampling_object = jcudc24ingesterapi.models.sampling.CustomSampling(model.sos_scraper_data_source.custom_sampling_script)
-                except TypeError:
-                    logger.exception("Trying to create a custom sampler with invalid script handle: %s" % model.sos_scraper_data_source.custom_sampling_script)
-                    raise ValueError("Trying to create a custom sampler with invalid script handle: %s" % model.sos_scraper_data_source.custom_sampling_script)
-
-            # Create the data source
-            try:
-                data_field = self.session.query(MethodSchemaField).filter_by(id=model.sos_scraper_data_source.data_field).first()
-                data_source = jcudc24ingesterapi.models.data_sources.SOSScraperDataSource(
-                    url=model.sos_scraper_data_source.uri,
-                    field=data_source.name,
-                    #                    pattern=model.pull_data_source.filename_pattern,
-                    #                    mime_type=data_source_field.mime_type,
-                    #                    processing_script=model.pull_data_source.custom_processor_script,
-                    sampling=sampling_object,
-                    variant=model.sos_scraper_data_source.variant,
-                    version=model.sos_scraper_data_source.version,
-                )
-
-                if model.sos_scraper_data_source.custom_processor is not None:
-                    if model.sos_scraper_data_source.custom_processor is not None:
-                        script = self._create_custom_processing_script(model.dataset_data_source.custom_processor)
-                        data_source.processing_script = script
-
-            except Exception as e:
-                logger.exception("Trying to create an ingester pull data source with invalid parameters: %s, Error: %s" % (model.record_metadata.project_title, e))
-                raise ValueError("Trying to create an ingester pull data source with invalid parameters: %s, Error: %s" % (model.record_metadata.project_title, e))
-
-        if method.data_source == DatasetDataSource.__tablename__:
-            if model.dataset_data_source is None:
-                raise ValueError("Trying to provision a dataset with no data source.  Go back to the dataset step and configure the data source: %s" % model.record_metadata.project_title)
-
-            observed_dataset = self.session.query(Dataset).filter_by(id=model.dataset_data_source.dataset_data_source_id).first()
-            if observed_dataset is None:
-                raise ValueError("The selected source dataset doesn't exist.  Go back to the datasets step and fix %s." % model.record_metadata.project_title)
-
-            try:
-                if observed_dataset.dam_id is None:
-                    source_dataset_id = self.process_dataset(observed_dataset, work.post, work)
-                else:
-                    source_dataset_id = observed_dataset.dam_id
-            except Exception as e:
-                logger.exception("Failed to add/update source dataset to dam: %s, Error: %s for dataset: %s" % (observed_dataset.name, e, model.record_metadata.project_title))
-                raise ValueError("Failed to add/update source dataset to dam: %s, Error: %s for dataset: %s" % (observed_dataset.name, e, model.record_metadata.project_title))
-
-            try:
-                data_source = jcudc24ingesterapi.models.data_sources.DatasetDataSource(
-                    int(source_dataset_id),
-                )
-            except TypeError:
-               logger.exception("Trying to create an ingester dataset data source with invalid parameters: %s" % model.record_metadata.project_title)
-               raise ValueError("Trying to create an ingester dataset data source with invalid parameters: %s" % model.record_metadata.project_title)
-
-            if model.dataset_data_source.custom_processor is not None:
-                script = self._create_custom_processing_script(model.dataset_data_source.custom_processor)
-                data_source.processing_script = script
-
-        new_dataset.data_source = data_source
-
-        if model.record_metadata is not None and model.record_metadata.redbox_uri is not None:
-            new_dataset.redbox_uri = model.record_metadata.redbox_uri
-
-
+        # Set the ID and add the new dataset to the unit of work
         if model.dam_id is not None:
             new_dataset.id = int(model.dam_id)
 
@@ -462,12 +308,104 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
         new_dataset.set_listener(model_id_listener)
         return new_dataset.id
 
-    def process_data_entry(self, model, command, work):
-        pass # TODO: data_entries
 
-    def process_metadata(self, model, command, work):
-        pass # TODO: metadata
+    def _set_dataset_locations(self, dataset, provisioning_dataset, work, command):
+        first_location_found = False
+        for location in provisioning_dataset.dataset_locations:
+            if not first_location_found and location.is_point():
+                first_location_found = True
+                try:
+                    if location.dam_id is None:
+                        dataset.location = self.process_model(location, command, work)
+                    else:
+                        dataset.location = int(location.dam_id)
+                except Exception as e:
+                    logger.exception("Failed to add/update location: %s for dataset: %s" % (location.name, provisioning_dataset.record_metadata.project_title))
+                    raise ValueError("Failed to add/update location: %s for dataset: %s, error: %s" % (location.name, provisioning_dataset.record_metadata.project_title, e))
+            else:
+                pass # TODO: Discuss regions when we get there - there is currently only 1 region in a dataset (this will fail if run)
 
+        # Add the location offset if it is set
+        if provisioning_dataset.location_offset is not None:
+            dataset.location_offset = self.process_model(provisioning_dataset.location_offset, command, work)
+
+
+    def _create_data_source(self, dataset, provisioning_dataset, method):
+        try:
+            # Create the data source with type specific configurations.
+            data_source = None
+            provisioning_data_source = None
+            if method.data_source == FormDataSource.__tablename__:
+                provisioning_data_source = provisioning_dataset.form_data_source
+                data_source = jcudc24ingesterapi.models.data_sources.FormDataSource()
+
+            elif method.data_source == PullDataSource.__tablename__:
+                provisioning_data_source = provisioning_dataset.pull_data_source
+                data_file = self.session.query(MethodSchemaField).filter_by(id=provisioning_data_source.data_file).first()
+                data_source = jcudc24ingesterapi.models.data_sources.PullDataSource(
+                    mime_type=data_file.units,
+                    pattern = provisioning_data_source.filename_pattern,
+                    recursive=True
+                )
+
+            elif method.data_source == SOSScraperDataSource.__tablename__:
+                provisioning_data_source = provisioning_dataset.sos_scraper_data_source
+                data_source = jcudc24ingesterapi.models.data_sources.SOSScraperDataSource(
+                    variant=provisioning_data_source.variant,
+                    version=provisioning_data_source.version,
+                )
+
+            elif method.data_source == PushDataSource.__tablename__:
+                provisioning_data_source = provisioning_dataset.push_data_source
+                data_source = jcudc24ingesterapi.models.data_sources.PushDataSource()
+
+            elif method.data_source == DatasetDataSource.__tablename__:
+                provisioning_data_source = provisioning_dataset.dataset_data_source
+
+                observed_dataset = self.session.query(Dataset).filter_by(id=provisioning_data_source.dataset_data_source_id).first()
+                if observed_dataset is None:
+                    raise ValueError("The selected source dataset doesn't exist.  Go back to the datasets step and fix %s." % provisioning_dataset.record_metadata.project_title)
+
+                try:
+                    if observed_dataset.dam_id is None:
+                        source_dataset_id = self.process_dataset(observed_dataset, work.post, work)
+                    else:
+                        source_dataset_id = observed_dataset.dam_id
+                except Exception as e:
+                    logger.exception("Failed to add/update source dataset to dam: %s, Error: %s for dataset: %s" % (observed_dataset.name, e, provisioning_dataset.record_metadata.project_title))
+                    raise ValueError("Failed to add/update source dataset to dam: %s, Error: %s for dataset: %s" % (observed_dataset.name, e, provisioning_dataset.record_metadata.project_title))
+
+                data_source = jcudc24ingesterapi.models.data_sources.DatasetDataSource(int(source_dataset_id))
+
+            if hasattr(provisioning_data_source, "uri"):
+                data_source.url = provisioning_data_source.uri
+
+            if hasattr(data_source, "field"):
+                data_source.field = provisioning_data_source.data_file
+
+
+            # Add the processing script
+            script = None
+            if hasattr(provisioning_data_source, 'custom_processor'):
+                script = self._create_custom_processing_script(provisioning_data_source.custom_processor)
+                data_source.processing_script = script
+
+
+            # Add the sampling
+            try:
+                sampling_object = None
+                if hasattr(provisioning_data_source, 'periodic_sampling'):
+                        sampling_object = jcudc24ingesterapi.models.sampling.PeriodicSampling(int(provisioning_data_source.periodic_sampling*60000))
+                        data_source.sampling = sampling_object
+            except TypeError:
+                logger.exception("Trying to create a periodic sampler with invalid rate: %s for %s" % (provisioning_data_source, provisioning_dataset.record_metadata.project_title))
+                raise ValueError("Trying to create a periodic sampler with invalid rate: %s for %s" % (provisioning_data_source, provisioning_dataset.record_metadata.project_title))
+
+            return data_source
+
+        except Exception as e:
+            logger.exception("Trying to create an ingester data source with invalid parameters: %s, Error: %s" % (provisioning_dataset.record_metadata.project_title, e))
+            raise ValueError("Trying to create an ingester data source with invalid parameters: %s, Error: %s" % (provisioning_dataset.record_metadata.project_title, e))
 
     def _create_custom_processing_script(self, custom_processor):
         script = None
@@ -495,6 +433,16 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             raise ValueError("Could not read custom processing script: %s" % custom_processor.custom_processor_script)
 
         return script
+
+
+    def process_data_entry(self, model, command, work):
+        pass # TODO: data_entries
+
+    def process_metadata(self, model, command, work):
+        pass # TODO: metadata
+
+
+
 
 
 

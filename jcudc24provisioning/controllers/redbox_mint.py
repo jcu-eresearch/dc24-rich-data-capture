@@ -10,7 +10,7 @@ import requests
 from jcudc24provisioning.controllers.sftp_filesend import SFTPFileSend
 from jcudc24provisioning.models.project import PullDataSource, Metadata, UntouchedPages, IngesterLogs, Location, \
     ProjectTemplate,method_template,DatasetDataSource, Project, project_validator, ProjectStates, CreatePage, Method, Party, Dataset, MethodSchema, grant_validator, MethodTemplate, Creator, CitationDate
-from jcudc24provisioning.views.mint_lookup import MintLookup
+from jcudc24provisioning.views.ajax_mint_lookup import MintLookup
 
 from lxml import etree
 import os

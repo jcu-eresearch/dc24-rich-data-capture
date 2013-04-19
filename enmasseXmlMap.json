@@ -1,0 +1,164 @@
+{
+    "comment": "This James Cook University's XML mapping is generated from the DC24 RichDataCapture provisioning interface.  It is generated on startup to create a ReDBox json configuration file that matches the models XML conversion.",
+    "defaultNamespace": {},
+    "exceptions": {
+        "fields": {}
+    },
+    "mappings": {
+        "/metadata": {
+            "access_rights": "dc:accessRights.skos:prefLabel",
+            "access_rights_url": "dc:accessRights.dc:identifier",
+            "anzsrc_spec": "xmlns:anzsrc",
+            "attachments/*": {
+                "attachment": "",
+                "note": "",
+                "type": ""
+            },
+            "brief_desc": [
+                "description",
+                "dc:description"
+            ],
+            "brief_desc | full_desc | notes/*/note_desc": "rif:description.0.value",
+            "brief_desc_label | full_desc_label | notes/*/note_desc_label": "rif:description.0.label",
+            "brief_desc_type | full_desc_type | notes/*/note_desc_type": "rif:description.0.type",
+            "ccdam_identifier": "bibo:Website.0.dc:identifier",
+            "citation_context": "dc:biblioGraphicCitation.dc:hasPart.skos:scopeNote",
+            "citation_creators/*": {
+                "family_name": "dc:biblioGraphicCitation.dc:hasPart.locrel:ctb.0.foaf:familyName",
+                "given_name": "dc:biblioGraphicCitation.dc:hasPart.locrel:ctb.0.foaf:givenName",
+                "title": "dc:biblioGraphicCitation.dc:hasPart.locrel:ctb.0.foaf:title"
+            },
+            "citation_data_type": "dc:biblioGraphicCitation.dc:hasPart.jcu:dataType",
+            "citation_dates/*": {
+                "date": "dc:biblioGraphicCitation.dc:hasPart.dc:date.0.rdf:PlainLiteral",
+                "label": "dc:biblioGraphicCitation.dc:hasPart.dc:date.0.dc:type.skos:prefLabel",
+                "type": "dc:biblioGraphicCitation.dc:hasPart.dc:date.0.dc:type.rdf:PlainLiteral"
+            },
+            "citation_edition": "dc:biblioGraphicCitation.dc:hasPart.dc:hasVersion.rdf:PlainLiteral",
+            "citation_place_of_publication": [
+                "dc:biblioGraphicCitation.dc:hasPart.vivo:Publisher.vivo:Location",
+                "dc:biblioGraphicCitation.dc:hasPart.dc:date.0.rdf:PlainLiteral"
+            ],
+            "citation_publisher": "dc:biblioGraphicCitation.dc:hasPart.dc:publisher.rdf:PlainLiteral",
+            "citation_string": "dc:biblioGraphicCitation.skos:prefLabel",
+            "citation_title": "dc:biblioGraphicCitation.dc:hasPart.dc:title",
+            "citation_url": "dc:biblioGraphicCitation.dc:hasPart.bibo:Website.dc:identifier",
+            "collaborators/*": {
+                "collaborator": "dc:contributor.locrel:clb.0.foaf:Agent"
+            },
+            "data_storage_location": "bibo:Website.1.dc:identifier",
+            "data_storage_location_name": "vivo:Location.vivo:GeographicLocation.gn:name",
+            "date_from": "dc:coverage.vivo:DateTimeInterval.vivo:start",
+            "date_to": "dc:coverage.vivo:DateTimeInterval.vivo:end",
+            "dc_spec": "xmlns:dc",
+            "ecosystems_conservation_climate": "jcu:research.themes.tropicalEcoSystems",
+            "field_of_research/*": {
+                "field_of_research": "dc:subject.anzsrc:for.0.rdf:resource",
+                "field_of_research_label": "dc:subject.anzsrc:for.0.skos:prefLabel"
+            },
+            "foaf_spec": "xmlns:foaf",
+            "grant": "foaf:fundedBy.vivo:Grant.0.dc:identifier",
+            "grant_label": "foaf:fundedBy.vivo:Grant.0.skos:prefLabel",
+            "grant_number": "foaf:fundedBy.vivo:Grant.0.redbox:grantNumber",
+            "health_medicine_biosecurity": "jcu:research.themes.tropicalHealth",
+            "industries_economies": "jcu:research.themes.industriesEconomies",
+            "internal_grant": "foaf:fundedBy.vivo:Grant.0.redbox:internalGrant",
+            "keywords/*": {
+                "keyword": "dc:subject.vivo:keyword.0.rdf:PlainLiteral"
+            },
+            "language": "dc:language.dc:identifier",
+            "language_label": "dc:language.skos:prefLabel",
+            "license": "dc:license.dc:identifier",
+            "license_label": "dc:license.skos:prefLabel",
+            "locations/*": {
+                "elevation": "",
+                "location": [
+                    "dc:coverage.vivo:GeographicLocation.0.redbox:wktRaw",
+                    "dc:coverage.vivo:GeographicLocation.0.rdf:PlainLiteral"
+                ],
+                "location_type": "dc:coverage.vivo:GeographicLocation.0.dc:type",
+                "name": ""
+            },
+            "new_redbox_form": "redbox:newForm",
+            "no_research_theme": "jcu:research.themes.notAligned",
+            "other_license_name": "dc:license.rdf:Alt.skos:prefLabel",
+            "other_license_url": "dc:license.rdf:Alt.dc:identifier",
+            "package_type": "packageType",
+            "parties/*": {
+                "association": "dc:creator.foaf:Person.0.foaf:Organization.dc:identifier",
+                "association_label": "dc:creator.foaf:Person.0.foaf:Organization.skos:prefLabel",
+                "email": "locrel:prc.foaf:Person.foaf:email",
+                "family_name": [
+                    "dc:creator.foaf:Person.0.foaf:familyName",
+                    "locrel:prc.foaf:Person.foaf:familyName"
+                ],
+                "given_name": [
+                    "dc:creator.foaf:Person.0.foaf:givenName",
+                    "locrel:prc.foaf:Person.foaf:givenName"
+                ],
+                "identifier": [
+                    "dc:creator.foaf:Person.0.dc:identifier",
+                    "locrel:prc.foaf:Person.dc:identifier"
+                ],
+                "name": "dc:creator.foaf:Person.0.foaf:name",
+                "party_relationship": "dc:creator.foaf:Person.0.jcu:relationshipType",
+                "party_relationship_label": "dc:creator.foaf:Person.0.jcu:relationshipLabel",
+                "short_display_name": "locrel:prc.foaf:Person.foaf:name",
+                "title": [
+                    "dc:creator.foaf:Person.0.foaf:title",
+                    "locrel:prc.foaf:Person.foaf:title"
+                ]
+            },
+            "peoples_societies": "jcu:research.themes.peopleSocieties",
+            "project_title": [
+                "title",
+                "dc:title",
+                "redbox:submissionProcess.dc:title"
+            ],
+            "record_export_date": "dc:created",
+            "record_origin": "dc:identifier.redbox:origin",
+            "record_type": "dc:type.rdf:PlainLiteral",
+            "record_type_label": "dc:type.skos:prefLabel",
+            "redbox_form_version": "redbox:formVersion",
+            "redbox_identifier": [
+                "dc:identifier.rdf:PlainLiteral",
+                "known_ids"
+            ],
+            "related_publications/*": {
+                "notes": "dc:relation.swrc:Publication.0.skos:note",
+                "title": "dc:relation.swrc:Publication.0.dc:title",
+                "url": "dc:relation.swrc:Publication.0.dc:identifier"
+            },
+            "related_records/*": {
+                "identifier": "dc:relation.vivo:Dataset.0.dc:identifier",
+                "notes": "dc:relation.vivo:Dataset.0.skos:note",
+                "origin": "dc:relation.vivo:Dataset.0.redbox:origin",
+                "preflabel": "dc:relation.vivo:Dataset.0.vivo:Relationship.skos:prefLabel",
+                "publish": "dc:relation.vivo:Dataset.0.redbox:publish",
+                "relationship": "dc:relation.vivo:Dataset.0.vivo:Relationship.rdf:PlainLiteral",
+                "title": "dc:relation.vivo:Dataset.0.dc:title"
+            },
+            "related_websites/*": {
+                "notes": "dc:relation.bibo:Website.0.skos:note",
+                "title": "dc:relation.bibo:Website.0.dc:title",
+                "url": "dc:relation.bibo:Website.0.dc:identifier"
+            },
+            "retention_period": "redbox:retentionPeriod",
+            "rights": "dc:accessRights.dc:RightsStatement.skos:prefLabel",
+            "rights_url": "dc:accessRights.dc:RightsStatement.dc:identifier",
+            "send_citation": "dc:biblioGraphicCitation.redbox:sendCitation",
+            "socio_economic_objective/*": {
+                "socio_economic_objective": "dc:subject.anzsrc:seo.0.rdf:resource",
+                "socio_economic_objective_label": "dc:subject.anzsrc:seo.0.skos:prefLabel"
+            },
+            "time_period_description": "dc:coverage.redbox:timePeriod",
+            "type_of_identifier": "dc:identifier.dc:type.rdf:PlainLiteral",
+            "type_of_identifier_label": "dc:identifier.dc:type.skos:prefLabel",
+            "type_of_research": "dc:subject.anzsrc:toa.rdf:resource",
+            "type_of_research_label": "dc:subject.anzsrc:toa.skos:prefLabel",
+            "use_curation": "dc:biblioGraphicCitation.dc:hasPart.dc:identifier.skos:note",
+            "use_record_id": "dc:identifier.checkbox",
+            "view_id": "viewId"
+        }
+    }
+}

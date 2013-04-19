@@ -1,0 +1,138 @@
+/*.deform .deformMappingFieldset legend {*/
+/*text-align: middle;*/
+/*}*/
+
+/*.deform .deformMappingFieldset, .deform .deformMappingFieldset:hover {*/
+/*border: 1px solid #FDB913;*/
+/*border-radius: 5px;*/
+/*border-left: 0px;*/
+/*border-right: 0px;*/
+/*}*/
+
+.wizard .dataset_select {
+    background: #fff;
+    margin: 1em;
+    padding: 1em 1.4em 1em 1.4em;
+    border: 1px solid rgb(255, 204, 0) !important;
+    border-radius: 4px;
+}
+
+.wizard .dataset_select div {
+    width: 98%;
+    padding: 10px !important;
+    border-radius: 2px;
+    border: 1px solid transparent;
+}
+
+.wizard .dataset_select div:hover {
+    border-color: rgb(255, 204, 0);
+}
+
+.wizard .dataset_select div.selected {
+    border-color: rgb(233, 79, 53);
+}
+
+.wizard .dataset_select div * {
+    padding: 0;
+    margin: 0;
+}
+
+.dataset_select label.desc {
+    margin-bottom: 6px;
+    padding-right: 10px;
+    font-weight: bold;
+}
+
+.dataset_select input {
+    width: 20px;
+}
+
+.dataset_select td:first-child {
+    width: 50px;
+}
+
+.deform .deformFileupload span {
+    position: relative;
+    top: 6px;
+    padding-right: 5px;
+}
+
+.submit_validation fieldset, .submit_validation fieldset:hover {
+    padding: 10px;
+    border: 1px solid rgb(233, 79, 53);
+    border-bottom: 1px solid rgb(233, 79, 53);
+    margin-top: 10px;
+}
+
+.submit_validation fieldset legend {
+    padding: 5px;
+}
+
+.deform .submit_validation fieldset li {
+    display: list-item;
+}
+
+.deform .submit_validation fieldset ul {
+    list-style: none inside none;
+}
+
+.submit_validation fieldset ul li .error_field_title {
+    font-weight: bold;
+}
+
+.submit_validation fieldset ul li .error_text {
+    padding-left: 5px;
+    color: rgb(233, 79, 53);
+}
+
+.submit_overview table {
+    border-collapse: collapse;
+    margin: 10px 0;
+}
+
+.submit_overview table td, .submit_overview table th {
+    padding: 5px 15px;
+    border: 1px solid rgb(253, 185, 19);
+}
+
+.template_selection h3 {
+    margin: 0px;
+    padding: 0px;
+    font-size: 1em;
+}
+
+.template_selection div {
+    padding: 10px;
+}
+
+.datasource-selected_text {
+    padding-left: 30px;
+    font-style: italic;
+}
+
+#data_configuration {
+    width: 48%;
+    display: inline-block !important;
+    float: left;
+}
+
+#data_configuration_preview {
+    width: 40%;
+    display: inline-block;
+    float: right;
+}
+
+.deform #data_configuration_preview fieldset {
+    border: 1px ridge rgb(253, 185, 19);
+    border-radius: 0.5em 0.5em 0.5em 0.5em;
+    background-color: #f8f8f8;
+
+    box-shadow: inset 0px 0px 2px #fff;
+
+    padding: 10px;
+    margin: 0;
+}
+
+.deform #data_configuration_preview form {
+    min-height: 0px !important;
+}

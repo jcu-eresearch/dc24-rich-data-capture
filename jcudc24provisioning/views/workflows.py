@@ -1,54 +1,37 @@
-import ConfigParser
 import cgi
-import copy
 from datetime import datetime, date
 import json
 import logging
-from jcudc24provisioning.controllers.authentication import DefaultPermissions
-from jcudc24provisioning.controllers.method_schema_scripts import get_method_schema_preview
-import os
-from lxml import etree
-import random
 from string import split
 import string
-import urllib2
-from paste.deploy.converters import asint
-import pyramid
-from pyramid.security import authenticated_userid, NO_PERMISSION_REQUIRED, has_permission, view_execution_permitted, ACLAllowed
-import requests
+import inspect
+from sqlalchemy import distinct
+
+from jcudc24provisioning.controllers.authentication import DefaultPermissions
+from jcudc24provisioning.controllers.method_schema_scripts import get_method_schema_preview
+from pyramid.security import authenticated_userid, NO_PERMISSION_REQUIRED, has_permission
 import sqlalchemy
-from sqlalchemy.orm.properties import ColumnProperty, RelationProperty
+from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.orm.util import object_mapper
 import colander
 from jcudc24provisioning.controllers.redbox_mint import ReDBoxWraper
-from jcudc24provisioning.controllers.sftp_filesend import SFTPFileSend
 import deform
 from deform.exception import ValidationFailure
 from deform.form import Form, Button
-from pyramid.url import route_url
-import inspect
-from sqlalchemy import create_engine, distinct
-from sqlalchemy.orm import scoped_session, sessionmaker, RelationshipProperty
-import time
-import transaction
+from sqlalchemy.orm import RelationshipProperty
 from jcudc24ingesterapi.authentication import CredentialsAuthentication
-from jcudc24ingesterapi.ingester_platform_api import IngesterPlatformAPI
-from jcudc24provisioning.models.common_schemas import SelectMappingSchema
 from pyramid.decorator import reify
-from pyramid.httpexceptions import HTTPFound, HTTPNotFound, HTTPClientError
-from pyramid.response import Response, FileResponse
-from pyramid.view import view_config, view_defaults, render_view_to_response
+from pyramid.httpexceptions import HTTPFound, HTTPClientError
+from pyramid.response import Response
+from pyramid.view import view_config, view_defaults
 from colanderalchemy.types import SQLAlchemyMapping
 from jcudc24provisioning.views.views import Layouts
 from pyramid.renderers import get_renderer
-from jcudc24provisioning.models import DBSession, Base
-from jcudc24provisioning.models.project import PullDataSource, Metadata, UntouchedPages, IngesterLogs, Location, \
-    ProjectTemplate,method_template,DatasetDataSource, Project, project_validator, ProjectStates, Sharing, CreatePage, MetadataNote, Method, Party, Dataset, MethodSchema, grant_validator, MethodTemplate, ManageData
-from jcudc24provisioning.views.ca_scripts import convert_schema, fix_schema_field_name
+from jcudc24provisioning.models.project import Metadata, UntouchedPages, IngesterLogs, Location, \
+    ProjectTemplate,method_template, Project, project_validator, ProjectStates, Sharing, CreatePage, MetadataNote, Method, Party, Dataset, MethodSchema, grant_validator, MethodTemplate, ManageData
+from jcudc24provisioning.controllers.ca_schema_scripts import convert_schema
 from jcudc24provisioning.controllers.ingesterapi_wrapper import IngesterAPIWrapper
-from jcudc24provisioning.views.mint_lookup import MintLookup
-from pyramid.request import Request
-from jcudc24provisioning.scripts.create_redbox_config import create_json_config
+from jcudc24provisioning.views.ajax_mint_lookup import MintLookup
 from jcudc24provisioning.models.website import User, ProjectPermissions, Permission
 
 

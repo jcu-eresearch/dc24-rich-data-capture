@@ -1,0 +1,93 @@
+{
+    "comment": "This James Cook University's XML mapping is generated from the DC24 RichDataCapture provisioning interface.  It is generated on startup to create a ReDBox json configuration file that matches the models XML conversion.",
+    "defaultNamespace": {},
+    "exceptions": {
+        "fields": {}
+    },
+    "mappings": {
+        "/metadata": {
+            "access_rights_url": "dc:accessRights.dc:identifier",
+            "attachments/*": {
+                "attachment": "",
+                "note": "",
+                "type": ""
+            },
+//            "ccdam_identifier": "bibo:Website.0.dc:identifier",
+
+            "rights": "dc:accessRights.dc:RightsStatement.skos:prefLabel",
+            "rights_url": "dc:accessRights.dc:RightsStatement.dc:identifier",
+
+
+            "citation_context": "dc:biblioGraphicCitation.dc:hasPart.skos:scopeNote",
+            "citation_creators/*": {
+                "family_name": "dc:biblioGraphicCitation.dc:hasPart.locrel:ctb.0.foaf:familyName",
+                "given_name": "dc:biblioGraphicCitation.dc:hasPart.locrel:ctb.0.foaf:givenName",
+                "title": "dc:biblioGraphicCitation.dc:hasPart.locrel:ctb.0.foaf:title"
+            },
+            "citation_data_type": "dc:biblioGraphicCitation.dc:hasPart.jcu:dataType",
+            "citation_dates/*": {
+                "date": "dc:biblioGraphicCitation.dc:hasPart.dc:date.0.rdf:PlainLiteral",
+                "label": "dc:biblioGraphicCitation.dc:hasPart.dc:date.0.dc:type.skos:prefLabel",
+                "type": "dc:biblioGraphicCitation.dc:hasPart.dc:date.0.dc:type.rdf:PlainLiteral"
+            },
+            "citation_edition": "dc:biblioGraphicCitation.dc:hasPart.dc:hasVersion.rdf:PlainLiteral",
+            "citation_place_of_publication/*": [
+                "dc:biblioGraphicCitation.dc:hasPart.vivo:Publisher.vivo:Location",
+                "dc:biblioGraphicCitation.dc:hasPart.dc:date.0.rdf:PlainLiteral"
+            ],
+            "citation_publisher": "dc:biblioGraphicCitation.dc:hasPart.dc:publisher.rdf:PlainLiteral",
+            "citation_title": "dc:biblioGraphicCitation.dc:hasPart.dc:title",
+            "citation_url": "dc:biblioGraphicCitation.dc:hasPart.bibo:Website.dc:identifier",
+
+
+            "collaborators/*": {
+                "collaborator": "dc:contributor.locrel:clb.0.foaf:Agent"
+            },
+
+            "socioEconomicObjective/*": {
+                "socio_economic_objective_label": "dc:subject.anzsrc:seo.0.skos:prefLabel"
+            },
+
+
+
+
+            "fieldOfResearch/*": {
+                "field_of_research": "dc:subject.anzsrc:for.0.skos:prefLabel",
+            },
+
+            "full_desc": "rif:description.0.value",
+            "full_desc_label": "rif:description.0.label",
+            "full_desc_type": "rif:description.0.type",
+            "grant_label": "foaf:fundedBy.vivo:Grant.0.skos:prefLabel",
+            "grant_number": "foaf:fundedBy.vivo:Grant.0.redbox:grantNumber",
+            "notes/*": {
+                "note": "rif:description.0.value",
+                "note_desc_label": "rif:description.0.label",
+                "note_desc_type": "rif:description.0.type"
+            },
+            "other_license_name": "dc:license.rdf:Alt.skos:prefLabel",
+            "other_license_url": "dc:license.rdf:Alt.dc:identifier",
+            "parties/*": {
+                "email": "locrel:prc.foaf:Person.foaf:email",
+                "family_name": [
+                    "dc:creator.foaf:Person.0.foaf:familyName",
+                    "locrel:prc.foaf:Person.foaf:familyName"
+                ],
+                "given_name": [
+                    "dc:creator.foaf:Person.0.foaf:givenName",
+                    "locrel:prc.foaf:Person.foaf:title"
+                ],
+                "name": [
+                    "dc:creator.foaf:Person.0.foaf:name",
+                    "locrel:prc.foaf:Person.foaf:name"
+                ],
+                "organisation": "dc:creator.foaf:Person.0.foaf:Organization.dc:identifier",
+                "organisation_label": "dc:creator.foaf:Person.0.foaf:Organization.skos:prefLabel",
+                "title": [
+                    "dc:creator.foaf:Person.0.foaf:title",
+                    "locrel:prc.foaf:Person.foaf:title"
+                ]
+            },
+        }
+    }
+}

@@ -1,13 +1,12 @@
 from datetime import date
 from lxml import etree
-import colander
-from sqlalchemy.ext.declarative import DeclarativeMeta
-import sys
-from colanderalchemy.types import SQLAlchemyMapping
-
 import logging
+
+import colander
+from colanderalchemy.types import SQLAlchemyMapping
 import deform
-from jcudc24provisioning.views.ca_scripts import fix_schema_field_name, convert_schema
+from jcudc24provisioning.controllers.ca_schema_scripts import fix_schema_field_name, convert_schema
+
 
 logger = logging.getLogger(__name__)
 

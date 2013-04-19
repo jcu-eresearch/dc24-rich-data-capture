@@ -5,7 +5,5 @@ from zope.sqlalchemy import ZopeTransactionExtension
 __author__ = 'Casey Bajema'
 
 
-
-
 DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
 Base = declarative_base()

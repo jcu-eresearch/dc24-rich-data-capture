@@ -133,6 +133,10 @@ class User(CAModel, Base):
         self._password = hashed_password
 
     def validate_password(self, password):
+        # Prevent users from logging in with Shibboleth authentication (password is never set)
+        if self.auth_type != "passwd":
+            return False
+
         if isinstance(password, unicode):
             password_8bit = password.encode('UTF-8')
         else:

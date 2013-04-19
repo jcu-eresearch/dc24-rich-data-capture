@@ -6,7 +6,7 @@ import transaction
 import random
 from jcudc24provisioning.controllers.authentication import DefaultPermissions, DefaultRoles
 from jcudc24provisioning.models import DBSession, Base
-from jcudc24provisioning.models.project import Dataset, Location, MethodSchema, ProjectTemplate, MethodSchemaField, Project, MethodTemplate, Method, PullDataSource, DatasetDataSource
+from jcudc24provisioning.models.project import Location, ProjectTemplate, Project, Dataset, MethodSchema, MethodSchemaField, Project, MethodTemplate, Method, PullDataSource, DatasetDataSource
 from jcudc24ingesterapi.schemas.data_types import Double
 from jcudc24provisioning.models import website
 

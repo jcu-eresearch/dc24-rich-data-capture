@@ -1,0 +1,486 @@
+.deform a.deformSeqAdd {
+    color: #0066cc;
+    font-size: 1.1em;
+    padding-bottom: 1px;
+    display: inline-block;
+    text-decoration: none;
+    border-bottom: 1px dashed rgba(247, 147, 30, 1);
+
+    cursor: pointer;
+}
+
+.deform .normal_font + label {
+    font-weight: normal !important;
+}
+
+.deform .deformClosebutton {
+    color: #FF3333;
+}
+
+.deformInlineMappingFieldset .inline_mapping li {
+    display: block;
+    float: left;
+    clear: none;
+}
+
+.deformInlineMappingFieldset .inline_mapping li.section.description {
+    float: none;
+    clear: both;
+}
+
+.deform fieldset, .deform fieldset:hover {
+    border: 0px solid red;
+    padding: 0px;
+    margin: 0px;
+}
+
+.deform legend.collapsible {
+    font-size: 1.4em;
+    padding-left: 0px;
+    font-weight: bolder;
+    color: #3f3e3e;
+    /*text-shadow: -1px -1px 1px #fff, 1px 1px 1px #000;*/
+}
+
+.deform legend {
+    font-size: 1.2em;
+    padding-left: 0px;
+    font-weight: bold;
+}
+
+.deform legend .collapse_icon {
+    text-shadow: none;
+}
+
+.deform label {
+    font-size: 1.1em;
+}
+
+.deform, .wizard {
+    border: 1px ridge rgb(253, 185, 19);
+    border-radius: 0.5em 0.5em 0.5em 0.5em;
+    background-color: #f8f8f8;
+
+    box-shadow: inset 0px 0px 2px #fff;
+
+    padding: 10px;
+    margin: 0;
+    min-height: 300px;
+}
+
+.deform button.current, .deform input[type=submit].current, .wizard button.current, .wizard input[type=submit].current, .deform .deformSave.current,
+.deform .buttonText.current, .deform .submit.current, .buttonText.current, .submit, button.current,
+.deform button:hover, .deform input[type=submit]:hover, .wizard button:hover, .wizard input[type=submit]:hover, .deform .deformSave:hover,
+.deform .buttonText:hover, .deform .submit:hover, .buttonText:hover, .submit:hover, button:hover {
+    box-shadow: inset 0px 0px 1px #fff, inset 2px 2px 5px rgba(0, 0, 0, 0.45);
+}
+
+.deform button, .deform input[type=submit], .wizard button, .wizard input[type=submit], .deform .deformSave,
+.deform .buttonText, .deform .submit, .buttonText, .submit, button {
+    box-shadow: inset 1px 1px 2px #eee;
+    font-size: 0.75em;
+    padding: .75em 1em;
+    background: none rgb(221, 221, 221);
+    border-radius: 0.5em;
+    color: black;
+    float: right;
+    margin-left: 10px;
+    margin-top: 20px;
+    border: 1px solid rgb(181, 188, 199);
+    cursor: pointer;
+}
+
+.deform .multi_select_sequence button {
+    float: none;
+    margin-top: 0;
+}
+
+.inline_mapping li {
+    padding: 0px;
+    margin: 0px 5px;
+}
+
+.description.first {
+    /*background: #fff;*/
+    /*padding: 7px 10px;*/
+    /*border: 1px solid #00AEEF;*/
+    /*box-shadow: #00AEEF 0px 0px 1px;*/
+}
+
+.description:hover, .inline_mapping li.description:hover {
+    /*box-shadow: #ccc 0px 0px 4px;*/
+}
+
+.description.first:hover {
+    /*box-shadow: #00AEEF 0px 0px 3px;*/
+}
+
+.description, .help_text, .inline_mapping .help_text, .inline_mapping .description {
+    /*box-shadow: #ccc 0px 0px 1px;*/
+    margin-bottom: 8px;
+    margin-bottom: 8px;
+    margin-top: 5px;
+
+    /*padding: 7px 10px;*/
+    /*border: 1px solid #bfbfbf;*/
+
+    /*-webkit-border-radius: 3px;*/
+    /*-moz-border-radius: 3px;*/
+    /*border-radius: 3px;*/
+    /*. rounded-corners {*/
+    /*behavior : url( /css/border-radius.htc );*/
+    /*}*/
+}
+
+.description, .help_text {
+    margin: 0px;
+    padding: 0px;
+    margin-bottom: 10px;
+}
+
+.deform li.help_text {
+    clear: both;
+    float: none;
+    display: none;
+    /*border: 2px solid #e6ffe6;*/
+}
+
+.description li, .help_text li {
+    display: list-item;
+    margin: 0px;
+    padding: 2px;
+    list-style-position: outside;
+}
+
+.description ul li, .help_text ul li {
+    list-style-type: disc;
+}
+
+li.description, li.help_text {
+    list-style-type: none;
+}
+
+.description ul, .help_text ul, .description ol, .help_text ol {
+    display: block;
+    padding: 2px 1px;
+    margin-left: 20px;
+}
+
+div.description p, div.help_text p {
+    padding: 2px 0px;
+    margin: 0px;
+}
+
+.placeholder_text {
+    color: #999;
+}
+
+.deform .hidden, .hidden, .description.first.hidden, li.hidden {
+    display: none;
+}
+
+.olControlEditingToolbar .olControlModifyFeatureItemInactive {
+    background-position: 0px 0px;
+}
+
+.olControlEditingToolbar .olControlModifyFeatureItemActive {
+    background-position: 0px -24px;
+}
+
+.olControlEditingToolbar .olControlDeleteFeatureItemInactive {
+    background-position: -153px -1px;
+}
+
+.olControlEditingToolbar .olControlDeleteFeatureItemActive {
+    background-position: -153px -24px;
+}
+
+.olControlEditingToolbar .olControlDrawFeatureBoxItemInactive {
+    background-position: -177px -1px;
+}
+
+.olControlEditingToolbar .olControlDrawFeatureBoxItemActive {
+    background-position: -177px -24px;
+}
+
+span.collapse_icon {
+    color: #0066cc;
+    cursor: pointer;
+}
+
+.collapse_all, .expand_all {
+    cursor: pointer;
+    color: #0066cc;
+    text-decoration: underline;
+}
+
+.multi_select_sequence .select_fields {
+    height: 70px;
+    display: block;
+}
+
+.multi_select_sequence .second_field {
+    margin-left: 20px;
+    display: none;
+}
+
+.multi_select_sequence .third_field {
+    margin-left: 40px;
+    display: none;
+}
+
+.multi_select_sequence .max_error {
+    padding: 10px;
+    color: rgb(233, 79, 53);
+}
+
+.help_icon:hover, .help_icon.current {
+    border: 1px solid rgba(253, 185, 19, 0.48);
+    border-radius: 2em;
+    box-shadow: -1px -1px 1px rgb(253, 185, 19), -5px -5px 3px rgba(253, 185, 19, 0.32);
+}
+
+.parent_schema_preview_button {
+    float: none !important;
+}
+
+div.more_info_panel div, .parent_schema_preview_panel div {
+    padding: 5px;
+}
+
+div.more_info_panel, .parent_schema_preview_panel {
+    max-width: 500px;
+    padding: 10px;
+    border: 1px solid #b6b6b6;
+    background: #fff;
+    position: absolute;
+    border-radius: 0 0 5px 5px;
+    box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.48);
+    /*top: 50%; left: 50%*/
+}
+
+.parent_schema_preview_panel {
+    max-width: 80% !important;
+    left: 65px;
+}
+
+.parent_schema_preview_panel .buttonText {
+    margin: 0px;
+}
+
+.help_icon {
+    border: 1px solid transparent;
+    cursor: pointer;
+    /*background-color: #8b8b8b;*/
+    color: #0066CC;
+    font-weight: bold;
+    text-shadow: -1px -1px 2px rgba(0, 0, 0, 0.47), -4px -4px 3px rgba(0, 0, 0, 0), -3px -3px 4px rgba(0, 102, 204, 0), -4px -4px 5px rgba(0, 40, 204, 0);
+    text-align: center;
+    vertical-align: middle;
+    display: inline-block;
+    margin-right: 5px;
+    /*position: relative;*/
+    margin-bottom: 0.1em;
+    font-size: 1.3em;
+    padding: 0.1em 0.4em;
+}
+
+.workflow_error {
+    font-weight: bold;
+    font-style: italic;
+    color: #3c3c3c;
+}
+
+.deform .cron-block li {
+    clear: none;
+}
+
+.deform .gentleselect-label {
+    border-color: rgb(253, 185, 19);
+    border-width: 1px;
+    background-color: #fff;
+    padding: 0.5em 1.5em;
+}
+
+.deformMapSeq .location_map {
+    width: 100%;
+    height: 300px;
+    border-radius: 3px;
+    overflow: hidden;
+    box-shadow: 0 0 5px #b2b2b2;
+}
+
+.deformMapSeq .location_map:hover {
+    box-shadow: 0 0 7px #888;
+}
+
+.deformMapSeq .location_map input {
+    width: 275px;
+}
+
+/*  Deform error styles  */
+.deform .errorLi {
+    background: rgba(255, 0, 0, 0.19);
+    border-width: 1px medium;
+    border: solid 1px rgb(233, 79, 53);;
+    border-radius: 2px;
+    width: 100%;
+    padding-left: 0;
+    padding-right: 0;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.deform .errorLi h3 {
+    margin: 0px;
+    font-weight: bold;
+    color: rgb(233, 79, 53);
+    background: none;
+}
+
+.deform .errorLi p {
+    color: #000;
+}
+
+.deform p.error {
+    background: rgba(255, 0, 0, 0.19);
+    border-color: rgb(233, 79, 53);
+    color: rgb(233, 79, 53);
+    font-size: 0.9em !important;
+}
+
+.deform li.error label.desc, .deform p.error, .deform h3.errorMsgLbl {
+    color: rgb(233, 79, 53);
+}
+
+.deform label.desc, label.desc {
+    margin-bottom: 6px;
+    display: inline-block !important;
+}
+
+/*.ui-tabs-anchor {border: 1px solid blue; !important;}*/
+.ui-widget-content {
+    border-color: #FFCC00 !important;
+}
+
+.ui-tabs.ui-widget.ui-widget-content {
+    border-color: #FFCC00 !important;
+}
+
+.ui-widget-header {
+    background-image: linear-gradient(top, rgb(233, 79, 53) 15%, rgb(253, 185, 19) 35%, rgb(253, 185, 19) 100%) !important;
+    background-image: -o-linear-gradient(top, rgb(233, 79, 53) 15%, rgb(253, 185, 19) 35%, rgb(253, 185, 19) 100%) !important;
+    background-image: -moz-linear-gradient(top, rgb(233, 79, 53) 15%, rgb(253, 185, 19) 35%, rgb(253, 185, 19) 100%) !important;
+    background-image: -webkit-linear-gradient(top, rgb(233, 79, 53) 15%, rgb(253, 185, 19) 35%, rgb(253, 185, 19) 100%) !important;
+    background-image: -ms-linear-gradient(top, rgb(233, 79, 53) 15%, rgb(253, 185, 19) 35%, rgb(253, 185, 19) 100%) !important;
+
+    background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0, rgb(233, 79, 53) 15%), color-stop(0.57, rgb(253, 185, 19) 35%), color-stop(0.57, rgb(253, 185, 19) 100%)) !important;
+}
+
+.ui-tabs-vertical {
+    width: 98%;
+    margin: 1%;
+}
+
+.ui-tabs-vertical .ui-tabs-nav {
+    padding: .2% .1% .2% .2%;
+    float: left;
+    width: 220px;
+}
+
+.ui-tabs-vertical .ui-tabs-nav li {
+    clear: left;
+    width: 100%;
+    border-bottom-width: 1px !important;
+    border-right-width: 0 !important;
+    margin: 0 -1px .2% 0;
+}
+
+.ui-tabs-vertical .ui-tabs-nav li a {
+    display: block;
+    width: 85%;
+}
+
+.ui-tabs-vertical .ui-tabs-nav li.ui-tabs-active {
+    padding-bottom: 0;
+    padding-right: .1%;
+    border-right-width: 1px;
+    border-right-width: 1px;
+    font-weight: bold;
+}
+
+.ui-tabs-vertical .ui-tabs-panel {
+    padding: 1%;
+    display: block;
+    min-width: 200px;
+    margin-left: 220px;
+}
+
+.ui-tabs-panel div {
+    border-radius: 2px;
+    border: 1px solid transparent;
+}
+
+.ui-tabs-panel div.selectable:hover:not(.selected) {
+    /*background-image: linear-gradient(left, rgb(233, 79, 53) 0%, rgb(247, 147, 30) 50%, rgb(253, 185, 19) 100%);*/
+    /*background-image: -o-linear-gradient(left, rgb(233, 79, 53) 0%, rgb(247, 147, 30) 50%, rgb(253, 185, 19) 100%);*/
+    /*background-image: -moz-linear-gradient(left, rgb(233, 79, 53) 0%, rgb(247, 147, 30) 50%, rgb(253, 185, 19) 100%);*/
+    /*background-image: -webkit-linear-gradient(left, rgb(233, 79, 53) 0%, rgb(247, 147, 30) 50%, rgb(253, 185, 19) 100%);*/
+    /*background-image: -ms-linear-gradient(left, rgb(233, 79, 53) 0%, rgb(247, 147, 30) 50%, rgb(253, 185, 19) 100%);*/
+
+    /*background-image: -webkit-gradient(linear, left bottom, left bottom, color-stop(0, rgb(233, 79, 53) 0%), color-stop(0.57, rgb(247, 147, 30) 50%),color-stop(0.57, rgb(253, 185, 19) 100%));*/
+
+    border: 1px solid rgb(253, 185, 19);
+}
+
+.ui-tabs-panel div.selected:not(.selectable) {
+    border: 1px solid rgb(233, 79, 53);
+}
+
+/*--------------jquery tabs selector-------------------------*/
+.deform .ui-widget {
+    font-family: inherit !important;
+    font-size: 1.1em !important;
+}
+
+.deform .ui-state-default, .ui-widget-content .ui-state-default, .ui-widget-header .ui-state-default {
+    background: #fff !important;
+}
+
+.ui-state-default {
+    /*, .ui-widget-content .ui-state-default, .ui-widget-header .ui-state-default {*/
+    border: 1px solid rgb(233, 79, 53) !important;
+    font-weight: normal;
+}
+
+#ui-datepicker-div, .ui-datepicker {
+    z-index: 999999999999999999 !important;
+}
+
+#ui-datepicker-div a.ui-state-default:hover {
+    font-weight: normal !important;
+}
+
+.ui-datepicker-calendar .ui-state-default {
+    border: 1px solid rgb(253, 185, 19) !important;
+    display: block;
+    position: relative;
+}
+
+.ui-datepicker-calendar .ui-state-default .ui-state-active {
+    border: 1px solid rgb(233, 79, 53) !important;
+}
+
+.ui-state-default:hover, .ui-widget-content .ui-state-default:hover, .ui-widget-header .ui-state-default:hover {
+    font-weight: bold;
+}
+
+.ui-state-active, .ui-widget-content .ui-state-active, .ui-widget-header .ui-state-active {
+    border: 1px solid #000 !important;
+    font-weight: normal;
+    color: #000;
+}
+
+.ui-state-active:hover, .ui-widget-content .ui-state-active:hover, .ui-widget-header .ui-state-active:hover {
+    font-weight: normal;
+}
