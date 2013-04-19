@@ -116,7 +116,7 @@ Project templates allow for pre-filling of any/all fields, and provides the maxi
 <i>Collected data is for metadata records.</i>
 
 <span class="workflow_image" id="create_page"><img src="{{ site.JB.BASE_PATH }}/images/new_project.png" /></span>
-Figure 1: Screenshot of project creation page <a onclick="enlarge('create_page');">[Enlarge]</a>.
+Figure 1: Screenshot of project creation page (Project templates are hidden by default) <a onclick="enlarge('create_page');">[Enlarge]</a>.
 
 
 ###2. General Details
@@ -151,7 +151,7 @@ If a research grant was selected the date from and date to fields will be prefil
 
 <i>Collected data is for metadata records (Location may be used to pre-fill dataset locations).</i>
 
-<span class="workflow_image" id="metadata_page"><img src="{{ site.JB.BASE_PATH }}/images/information.png" /></span>
+<span class="workflow_image" id="metadata_page"><img src="{{ site.JB.BASE_PATH }}/images/information.jpg" /></span>
 Figure 4: Screenshot of project creation page <a onclick="enlarge('metadata_page');">[Enlarge]</a>.
 
 
