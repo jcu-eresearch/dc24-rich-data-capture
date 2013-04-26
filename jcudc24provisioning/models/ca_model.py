@@ -1,3 +1,10 @@
+"""
+Transparently provides additional functionallity to all ColanderAlchemy models including:
+- Updating the model from a Deform appstruct.
+- Converting the model to a Deform appstruct
+- Copverting the model to XML
+"""
+
 from datetime import date
 from lxml import etree
 import logging
@@ -10,13 +17,23 @@ from jcudc24provisioning.controllers.ca_schema_scripts import fix_schema_field_n
 
 logger = logging.getLogger(__name__)
 
-__author__ = 'casey'
+__author__ = 'Casey Bajema'
 
 class CAModel(object):
+    """
+    Transparently provides additional functionallity to all ColanderAlchemy models. This functionality is provided by
+    making all ColanderAlchemy models extend this class (must be the first class extended - eg. MyModel(CAModel, Base))
+    """
     def __init__(self, appstruct=None, schema=None):
-#        if not isinstance(self, DeclarativeMeta):
-#            raise TypeError("CAModel implementations must subclase SQLALchemy DeclarativeMeta (eg. Base=declarative_base(), class YourModel(CAModel, Base): ...)")
+        """
+        Create the model enforcing that all CAModel's have an id attribute as the primary key (used to provide extra
+        functionality)
 
+        :param appstruct: Optional data to initialise the model with, this allows creating a fully populated model from
+                          a Deform appstruct.
+        :param schema: Actual schema to use for extended functionality, the default is usually adequate.
+        :return:
+        """
         if not hasattr(self, 'id'):
             raise AttributeError("All CAModel's must have an 'id' unique identifier.")
 
@@ -27,19 +44,48 @@ class CAModel(object):
 
     @property
     def schema(self):
+        """
+        Either return the schema set in the constructor (or from previous calls) or create the default ColanderAlchemy
+        schema for this model type.
+
+        :return: This models Deform schema.
+        """
         if '_schema' not in locals() or self._schema is None:
             self._schema = convert_schema(SQLAlchemyMapping(type(self)))
         return self._schema
 
     def dictify(self, schema=None, force_not_empty_lists=False, dates_as_string=True):
+        """
+        Convert this model into a Deform appstruct (dict)
+
+        :param schema: Schema to use (this is primarily used for recursive calls).
+        :param force_not_empty_lists: Force all lists/sequences to have at least 1 element.
+        :param dates_as_string: Deform date widgets have some inconsistency with dates as objects or strings.
+        :return: A deform compatible appstruct/dictionary with all data from this model.
+        """
         if schema is None:
             schema = self.schema
         return self.convert_sqlalchemy_model_to_data(self, schema=schema, force_not_empty_lists=force_not_empty_lists, dates_as_string=dates_as_string)
 
     def update(self, appstruct):
+        """
+        Update this object with data in appstruct, the provided appstruct must be a deform compatible appstruct for
+        this objects schema.
+
+        :param appstruct: Data to update this object (compatible deform data for this objects schema)
+        :return: Return either this object updated with the data or None if no update was made.
+        """
         return self.create_sqlalchemy_model(appstruct, model_object=self) is not None
     
     def _get_field_type(self, field_name, model_object):
+        """
+        Read the schema to find out what type of data this field holds.  This is the python data type that represents
+        this column.
+
+        :param field_name:
+        :param model_object:
+        :return:
+        """
         class_manager = model_object._sa_class_manager[field_name]
         parent = getattr(class_manager, 'parententity', getattr(class_manager, '_parententity', None)) # Seems to have either or?
         if field_name not in parent.columns._data: # its a relationship with a value of none
@@ -48,6 +94,15 @@ class CAModel(object):
 #        return model_object._sa_class_manager[field_name]._parententity.columns._data[field_name].type.python_type
 
     def _get_ca_registry(self, field_name, model_class):
+        """
+        Return the ColanderAlchemy registry for the passed in CAModel.  This is a helper function to retreive the data
+        hidden within the class.
+
+        :param field_name: Field/attribute to get ColanderAlchemy registry/attributes for.
+        :param model_class: CAModel class to get the fields registry from.
+        :return: The ca_registry for the identified field and class, a NotImplementedError will be thrown if the
+                 registry can't be found.
+        """
         try:
             ca_registry = None
             if field_name in model_class._sa_class_manager:
@@ -95,6 +150,14 @@ class CAModel(object):
 #            logger.exception("Exception occurred while converting file upload to filehandle: %s" % e)
 
     def normalize_form_value(self, field_name, value, model_object):
+        """
+        Convert the value as returned from the HTML form to normalised python types (eg. colander.null -> None).
+
+        :param field_name: Field that this value was retreived from (used to find the data type from the schema)
+        :param value: Value to normalise
+        :param model_object: Object that the value comes from.
+        :return: normalised value
+        """
         try:
             # Normalise values returned from forms
             if not isinstance(value, list) and not isinstance(value, dict):
@@ -121,10 +184,24 @@ class CAModel(object):
             logger.exception("Exception occurred while normalizing model value: %s" % e)
 
     def get_model_class(self, model_object):
+        """
+        Helper method for getting a CAModel's class from an object instance.
+
+        :param model_object: Object to get the class for
+        :return: The class that the pased in model represents.
+        """
         return model_object._sa_instance_state.class_
 
 
     def create_sqlalchemy_model(self, data, model_class=None, model_object=None):
+        """
+        Convert a deform appstruct into a CAModel object.
+
+        :param data: Data to create the CAModel from.
+        :param model_class: Optionally provide the model class (if the class isn't provided an object instance must be)
+        :param model_object: Optionally provide the object instance (if the object isn't provided an class must be)
+        :return: CAModel that has been created from the passed in data or None if the data caused no change.
+        """
         is_data_empty = True
         if model_object is None and model_class is not None:
             model_object = model_class()
@@ -149,7 +226,7 @@ class CAModel(object):
             field_name = fix_schema_field_name(field_name)
 
             # If this is a grouping - add its fields to the current model_object
-            if not hasattr(model_object, field_name) and isinstance(value, dict):
+            if not hasattr(model_object, field_name) and isinstance(value, dict): # NOTE: hasattr() WILL RETURN FALSE ON ANY EXCEPTION TO getattr() -> eg. wrong DB table fields.
                 self.create_sqlalchemy_model(value, model_class=model_class, model_object=model_object)
             elif hasattr(model_object, field_name):
                 # Fix form values to be the correct class and type and post formatting (eg. fileupload gets file handle from dict, bool is converted from 'false' to False, etc.).
@@ -280,6 +357,15 @@ class CAModel(object):
         return model_object
     
     def convert_sqlalchemy_model_to_data(self, model, schema=None, force_not_empty_lists=False, dates_as_string=True):
+        """
+        Functionality behind CAModel dictify(), this is a recursive function that will call itself for each child.
+
+        :param model: Model to dictify.
+        :param schema: Schema to dictify for (mainly used for recursive functionality).
+        :param force_not_empty_lists: Ensure there is always at least 1 element in sequences/lists.
+        :param dates_as_string: Output dates as objects or strings (deform widgets are inconsistent with this...)
+        :return: Deform compatible appstruct for the passed in CAModel.
+        """
         if schema is None:
             # This will not take groupings into account
             schema = convert_schema(SQLAlchemyMapping(type(model)))
@@ -352,6 +438,13 @@ class CAModel(object):
         return data
 
     def _add_xml_elements(self, root, data):
+        """
+        Implements to_xml() functionality in a recursive manner.
+
+        :param root: Root XML element to add all created elements to.
+        :param data: Data to convert to XML
+        :return: The created XML node/element.
+        """
         element = None
 
         for key, value in data.items():

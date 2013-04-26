@@ -1,3 +1,7 @@
+"""
+Initialise and start the EnMaSSe provisioning interface application.
+"""
+
 from paste.deploy.converters import asint
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy

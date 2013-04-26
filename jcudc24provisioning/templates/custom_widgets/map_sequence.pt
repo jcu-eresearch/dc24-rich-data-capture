@@ -51,7 +51,9 @@ deform.addCallback(
         function (oid) {
             // Prevent any following javascript from breaking the map (make sure it is called last).
             var timer = window.setInterval(function(){
+//                console.log("waiting for map callback for item: " + oid);
                 if (deform.callbacks.length == 0) {
+//                    console.log("Callback run for item: " + oid);
                     window.clearInterval(timer);
 
                     var map_div = $('#' + oid).children('.location_map')[0];
@@ -136,6 +138,7 @@ deform.addCallback(
                     map.setCenter(point.transform(proj, map.getProjectionObject()), 3);
         //            map.panTo(point.transform(proj, map.getProjectionObject()));
         //            map.zoomToMaxExtent();
+//                    console.log("About to add map features: " + oid);
                     addMapFeatures(oid);
 
                 }

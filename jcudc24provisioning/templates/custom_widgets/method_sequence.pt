@@ -127,11 +127,13 @@
                 var project_id = first_item.find("[name='method:project_id']");
                 if (project_id.length > 0 && !project_id[0].value) {
                     $("#" + new_oid).remove();
+
+                    // Only close the create page if nothing was added, otherwise it is unituitive to the user when it
+                    // Looks like it has finished and then reloads a couple seconds later.
+                    $("#deform").show();
+                    template_panel.hide();
                 }
             }
-
-            $("#deform").show();
-            template_panel.hide();
         }
 
         function preFillMethod(create_button) {
@@ -148,6 +150,7 @@
             } else {
                 $("#" + new_oid + " [name='method:project_id']")[0].value = project_id;
             }
+
             $("#deformSave").click();
         }
 

@@ -1,3 +1,8 @@
+"""
+Provides all project related views, this includes project configuration as well as maintainence and searching models
+(eg. anything to do with data ingestion and metadata).
+"""
+
 import cgi
 from datetime import datetime, date
 import json
@@ -14,7 +19,7 @@ import sqlalchemy
 from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.orm.util import object_mapper
 import colander
-from jcudc24provisioning.controllers.redbox_mint import ReDBoxWraper
+from jcudc24provisioning.controllers.redbox_mint import ReDBoxWrapper
 import deform
 from deform.exception import ValidationFailure
 from deform.form import Form, Button
@@ -28,7 +33,8 @@ from colanderalchemy.types import SQLAlchemyMapping
 from jcudc24provisioning.views.views import Layouts
 from pyramid.renderers import get_renderer
 from jcudc24provisioning.models.project import Metadata, UntouchedPages, IngesterLogs, Location, \
-    ProjectTemplate,method_template, Project, project_validator, ProjectStates, Sharing, CreatePage, MetadataNote, Method, Party, Dataset, MethodSchema, grant_validator, MethodTemplate, ManageData
+    ProjectTemplate,method_template, Project, project_validator, ProjectStates, Sharing, CreatePage, MetadataNote, \
+    Method, Party, Dataset, MethodSchema, create_project_validator, MethodTemplate, ManageData, ProjectNote
 from jcudc24provisioning.controllers.ca_schema_scripts import convert_schema
 from jcudc24provisioning.controllers.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.ajax_mint_lookup import MintLookup
@@ -40,7 +46,7 @@ __author__ = 'Casey Bajema'
 logger = logging.getLogger(__name__)
 
 # Pyramid seems to have no way to dynamically find a views permission, so we need to manually re-add it here...
-# Workflow page href needs to be synchronised with UntouchedPages table in project.py
+# Configures all menu items in the project workflow/configurations
 WORKFLOW_STEPS = [
         {'href': 'create', 'title': 'Create', 'page_title': 'Create a New Project', 'hidden': True, 'tooltip': '', 'view_permission': DefaultPermissions.CREATE_PROJECT},
         {'href': 'general', 'title': 'Details', 'page_title': 'General Details', 'tooltip': 'Title, grants, people and collaborators', 'view_permission': DefaultPermissions.VIEW_PROJECT, 'display_leave_confirmation': True},
@@ -55,6 +61,7 @@ WORKFLOW_STEPS = [
         {'href': 'template', 'title': 'Template', 'page_title': 'Template Details', 'hidden': True, 'tooltip': 'Edit template specific details such as category', 'view_permission': DefaultPermissions.ADMINISTRATOR, 'display_leave_confirmation': True},
 ]
 
+# Configures all contextual options in the project side menu.
 WORKFLOW_ACTIONS = [
         {'href': 'general', 'title': 'Configuration', 'page_title': 'General Details', 'tooltip': 'Project settings used to create this project', 'view_permission': DefaultPermissions.VIEW_PROJECT, 'display_leave_confirmation': True},
         {'href': 'logs', 'title': 'View Logs', 'page_title': 'Ingester Event Logs', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Event logs received from the data ingester', 'view_permission': DefaultPermissions.VIEW_PROJECT},
@@ -65,6 +72,7 @@ WORKFLOW_ACTIONS = [
         {'href': 'create_template', 'title': 'Make into Template', 'page_title': 'Create Project Template', 'tooltip': 'Suggest to the administrators that this project should be a template', 'hidden': True, 'view_permission': DefaultPermissions.ADMINISTRATOR, 'display_leave_confirmation': True},
 ]
 
+# Not used currently - this is for if AJAX is enabled
 redirect_options = """
         {success:
                   function (rText, sText, xhr, form) {
@@ -77,14 +85,11 @@ redirect_options = """
                 }
                 """
 
-class ProjectStates(object):
-    OPEN = 0
-    SUBMITTED = 1
-    ACTIVE = 2
-    DISABLED = 3
-
 @view_defaults(renderer="../templates/workflow_form.pt", permission=DefaultPermissions.ADMINISTRATOR)
 class Workflows(Layouts):
+    """
+    This class provides all project related views and helper functions used by them.
+    """
     def __init__(self, context, request):
 #        self.request = request
 #        self.context = context
@@ -100,6 +105,14 @@ class Workflows(Layouts):
 
     @property
     def readonly(self):
+        """
+        Abstract functionality for determining if a form should be readonly so that it is reusable.
+
+        Most forms are readonly if:
+        - Project has been submitted and the user doen't have the ADMINISTRATOR permission.
+        - Project has been submitted and approved.
+        - User doesn't have edit permissions.
+        """
         if '_readonly' not in locals():
             if self.project is None:
                 return True
@@ -115,12 +128,20 @@ class Workflows(Layouts):
 
     @property
     def title(self):
+        """
+        All pages need to get their page title from the WORKFLOW_STEPS and WORKFLOW_ACTIONS arrays, this property
+        abstracts that functionality to be reusable.
+        """
         if '_title' not in locals():
             self._title = self.find_menu()['page_title']
         return self._title
 
     @property
     def project(self):
+        """
+        All project views are associated with a project - this attribute is a simple and efficient way of getting the
+        current project when needed.
+        """
         if '_project' not in locals():
             self._project = self.session.query(Project).filter_by(id=self.project_id).first()
             if self._project is None:
@@ -129,6 +150,11 @@ class Workflows(Layouts):
         return self._project
 
     def find_errors(self, error, page=None):
+        """
+        Get all Deform validation errors for the project as an array including the page, element title and error message.
+
+        This is used by the project validation on the submit page.
+        """
         errors = []
 
         page = getattr(error.node, 'page', page)
@@ -144,7 +170,10 @@ class Workflows(Layouts):
 
 
     @property
-    def auth(self):
+    def ingesterapi_auth(self):
+        """
+        Get an authentication object for opening communications with the ingesterapi.
+        """
         if '_auth' not in locals():
             self._auth = CredentialsAuthentication(self.config["ingesterapi.username"], self.config["ingesterapi.password"])
             auth = self._auth
@@ -152,13 +181,21 @@ class Workflows(Layouts):
 
     @property
     def ingester_api(self):
+        """
+        Open and return a connection with the ingester platform as an IngesterAPIWrapper instance.
+        """
         if '_ingester_api' not in locals():
-            self._ingester_api = IngesterAPIWrapper(self.config["ingesterapi.url"], self.auth)
+            self._ingester_api = IngesterAPIWrapper(self.config["ingesterapi.url"], self.ingesterapi_auth)
             api = self._ingester_api
         return self._ingester_api
 
     @property
     def redbox(self):
+        """
+        Initialise and return a ReDBox representation as a ReDBoxWrapper instance.
+
+        All configurations are read from the development.ini/production.ini configuration file.
+        """
         if '_redbox' not in locals():
             # Get Redbox conconfigurations
             alert_url = self.config.get("redbox.url") + self.config.get("redbox.alert_url")
@@ -171,14 +208,19 @@ class Workflows(Layouts):
             tmp_dir = self.config.get("redbox.tmpdir")
             identifier_pattern = self.config.get("redbox.identifier_pattern")
             data_portal = self.request.route_url("record_data", metadata_id="")
+            search_url = self.config['redbox.search_url']
 
-            self._redbox = ReDBoxWraper(url=alert_url, data_portal=data_portal, identifier_pattern=identifier_pattern, ssh_host=host, ssh_port=port, tmp_dir=tmp_dir, harvest_dir=harvest_dir,
+            self._redbox = ReDBoxWrapper(url=alert_url, search_url=search_url, data_portal=data_portal, identifier_pattern=identifier_pattern, ssh_host=host, ssh_port=port, tmp_dir=tmp_dir, harvest_dir=harvest_dir,
                 ssh_username=username, rsa_private_key=private_key, ssh_password=password)
 
         return self._redbox
 
     @property
     def page(self):
+        """
+        Provide a function for the template to look up the dictionary from the WORKFLOW_STEPS/WORKFLOW_ACTIONS that
+        represents the current workflow step/page/menu.
+        """
         if '_page' not in locals():
             self._page = None
             for menu in WORKFLOW_STEPS + WORKFLOW_ACTIONS:
@@ -189,6 +231,10 @@ class Workflows(Layouts):
 
     @property
     def next(self):
+        """
+        Provide a function for the template to look up the dictionary from the WORKFLOW_STEPS/WORKFLOW_ACTIONS that
+        represents the next workflow step/page/menu.
+        """
         if '_next' not in locals():
             self._next = None # Set as None if this is the last visible step or it isn't a workflow page.
 
@@ -202,6 +248,10 @@ class Workflows(Layouts):
 
     @property
     def previous(self):
+        """
+        Provide a function for the template to look up the dictionary from the WORKFLOW_STEPS/WORKFLOW_ACTIONS that
+        represents the previous workflow step/page/menu.
+        """
         if '_previous' not in locals():
             self._previous = None # Set as None if this is the first visible step or it isn't a workflow page.
 
@@ -215,12 +265,19 @@ class Workflows(Layouts):
 
     @property
     def schema(self):
+        """
+        Simple getter that reads the schema from the form set for this page.  This is used by the helper functions.
+        """
         if self.form is None:
             return None
         return self.form.schema
 
     @property
     def model_type(self):
+        """
+        Read the model class from the set form.  This is a simple helper function that abstracts functionality that may
+        potentially change to one location.
+        """
         if self.form is None or not hasattr(self.form.schema, '_reg'):
             return None
 
@@ -229,6 +286,9 @@ class Workflows(Layouts):
 
     @property
     def model_id(self):
+        """
+        Read the model id from the project property or the POST variables depending on the model type.
+        """
         if '_model_id' not in locals():
             if self.model_type is None:
                 self._model_id = None
@@ -243,6 +303,9 @@ class Workflows(Layouts):
 # --------------------MENU TEMPLATE METHODS-------------------------------------------
     @reify
     def workflow_step(self):
+        """
+        Find all workflow/project configuration steps/menus that should be displayed for the current page.
+        """
         if self.page not in WORKFLOW_STEPS:
             return []
 
@@ -268,6 +331,9 @@ class Workflows(Layouts):
 
     @reify
     def workflow_action(self):
+        """
+        Find all contextual options/menu items that should be displayed for the current page.
+        """
         new_menu = WORKFLOW_ACTIONS[:]
         url = split(self.request.url, "?")[0]
         hidden = []
@@ -291,6 +357,9 @@ class Workflows(Layouts):
 
     @reify
     def is_hidden_workflow(self):
+        """
+        Find if the current page is hidden and should hide the workflow/project configuration menu.
+        """
         url = split(self.request.url, "?")[0]
 
         for menu in WORKFLOW_STEPS + WORKFLOW_ACTIONS:
@@ -300,6 +369,10 @@ class Workflows(Layouts):
         return False
 
     def find_menu(self, href=None):
+        """
+        Find and return the dictionary from the WORKFLOW_STEPS/WORKFLOW_ACTIONS that represents the current page.
+        """
+
         if href is None:
             href = self.request.matched_route.name
 
@@ -309,24 +382,23 @@ class Workflows(Layouts):
 
         raise ValueError("There is no page for this address: " + str(href))
 
-
-
     @reify
     def workflow_template(self):
+        """
+        Provides getter for the workflows template.
+        """
         renderer = get_renderer("../templates/workflow_template.pt")
         return renderer.implementation().macros['layout']
 
-    @reify
-    def isDelete(self):
-        return 'Delete' in self.request.POST
-
-    def get_address(self, href):
-        if href is None:
-            return None
-        return self.request.route_url(href, project_id=self.project_id)
-
 # --------------------WORKFLOW STEP METHODS-------------------------------------------
     def _save_form(self, appstruct=None, model_id=None, model_type=None):
+        """
+        Abstracts functionality of saving form pages that is reusable for all project pages.
+        - If the model doesn't have an ID it inserts a new row in the database.
+        - If the model does have an ID it updates the current database row.
+        - If the data returned results in no change (or is empty), nothing is saved.
+        """
+
         if appstruct is None:
             appstruct = self._get_post_appstruct()
         if model_type is None:
@@ -379,6 +451,10 @@ class Workflows(Layouts):
 #       self.session.remove()
 
     def _touch_page(self):
+        """
+        Indicate that this page has been saved by the user, this means that when the page is loaded in the future it
+        will be validated and show any errors.
+        """
         # Set the page as edited so future visits will show the page with validation
         if self.project_id is not None:
             untouched_pages = self.session.query(UntouchedPages).filter_by(project_id=self.project_id).first()
@@ -392,6 +468,10 @@ class Workflows(Layouts):
             setattr(untouched_pages, page, True)
 
     def _is_page_touched(self):
+        """
+        Check if a page has been saved before, if the page hasn't been saved yet - don't validate (eg. it is
+        non-intuitive to display validation errors before the user has entered and saved data).
+        """
         # If the page has been saved previously, show the validated form
         untouched_pages = self.session.query(UntouchedPages).filter_by(project_id=self.project_id).first()
         page = self.find_menu()['href']
@@ -408,33 +488,43 @@ class Workflows(Layouts):
 #        return HTTPFound(self.request.route_url(target, project_id=self.project_id))
 
     def _render_model(self):
-        if self._get_model_appstruct() is not None:
-            if self._is_page_touched() and not self._readonly:
-                try:
-                    appstruct = self.form.validate_pstruct(self._get_model_appstruct())
-                    display = self.form.render(appstruct)
-                except ValidationFailure, e:
-                    appstruct = e.cstruct
-                    display = e.render()
+        """
+        Abstract the functionality behind rendering Deform schemas to HTML, including touched/untouched based validation
+        wich is used by the _create_response() helper method.
+        """
 
-            else:
+        if self._is_page_touched() and not self._readonly:
+            try:
+                appstruct = self._get_model_appstruct(dates_as_string=True)
+                if appstruct is None:
+                    return
+                appstruct = self.form.validate_pstruct(appstruct)
+                display = self.form.render(appstruct)
+            except ValidationFailure, e:
+                appstruct = e.cstruct
+                display = e.render()
+
+        else:
+            try:
+                # Try to display the form without validating
+                appstruct = self._get_model_appstruct(dates_as_string=False)
+                if appstruct is None:
+                    return
+                display = self.form.render(appstruct, readonly=self._readonly)
+            except Exception, e:
                 try:
-                    # Try to display the form without validating
-                    appstruct = self._get_model_appstruct(dates_as_string=False)
+                    # If it fails, try validating - there are issues with dates where it can't display the string as read from the DB untill it is validated.
+                    appstruct = self.form.validate_pstruct(appstruct)
                     display = self.form.render(appstruct, readonly=self._readonly)
-                except Exception, e:
-                    try:
-                        # If it fails, try validating - there are issues with dates where it can't display the string as read from the DB untill it is validated.
-                        appstruct = self.form.validate_pstruct(appstruct)
-                        display = self.form.render(appstruct, readonly=self._readonly)
-                    except ValidationFailure, e:
-                        display = e.render()   # Validation failed, ignore that it isn't touched and display the error form
+                except ValidationFailure, e:
+                    display = e.render()   # Validation failed, ignore that it isn't touched and display the error form
 
-            return display
-
-        return None
+        return display
 
     def _render_post(self, **kw):
+        """
+        Render the form using the data/appstruct from the request.POST variables.
+        """
         if self._get_post_appstruct() is not None:
             if hasattr(self, '_validation_error'):
                 return self._validation_error.render()
@@ -445,6 +535,10 @@ class Workflows(Layouts):
 
 
     def _get_model(self):
+        """
+        Get the SQLAlchemy model for the current page, this would typically be a Project but may be dynamically set
+        to any ColanderAlchemy model.
+        """
         if not hasattr(self, '_model'):
             if self.model_type is None or self.model_id is None:
                 self._model = None
@@ -453,6 +547,9 @@ class Workflows(Layouts):
         return self._model
 
     def _get_model_appstruct(self, dates_as_string=False):
+        """
+        Helper method for getting the current pages model and converting it into a Deform compatible appstruct.
+        """
         if not hasattr(self, '_model_appstruct'):
             if self._get_model() is not None:
                 self._model_appstruct = self._get_model().dictify(self.form.schema, dates_as_string=dates_as_string)
@@ -461,23 +558,9 @@ class Workflows(Layouts):
 
         return self._model_appstruct
 
-    def _handle_form(self):
-        if self.request.method == 'POST' and len(self.request.POST) > 0:
-            # If this is a sub-request called just to save.
-            if self.request.referrer == self.request.path_url:
-                if self._save_form():
-                    self._touch_page()
-
-                # If this view has been called for saving only, return without rendering.
-                view_name = inspect.stack()[1][3][:-5]
-                if self.request.matched_route.name != view_name:
-                    return True
-            else:
-                self._redirect_to_target(self.request.referrer)
-
     def _clone_model(self, source):
         """
-        Clone a database model
+        Clone a database model, this returns a duplicate model with the ID removed.
         """
         if source is None:
             return None
@@ -501,6 +584,11 @@ class Workflows(Layouts):
         return new_object
 
     def _get_post_appstruct(self):
+        """
+        Convert the request.POST variables into a Deform appstruct, storing any validation errors.
+
+        :return: Deform appstruct as found from the request.POST variables.
+        """
         if not hasattr(self, '_appstruct'):
             controls = self.request.POST.items()
 
@@ -517,6 +605,16 @@ class Workflows(Layouts):
 
 
     def _create_response(self, **kwargs):
+        """
+        Abstract the repetitive task of rendering schemas and attributes into the output HTML.
+
+        This also provides 1 location to place default rendering options such as that page help should be hidden.
+
+        :param kwargs: Optional arguments to pass to the rendered form, most arguments will be standard and just
+        override the defaults.
+
+        :return: Rendered HTML form ready for display.
+        """
         response_dict = {
             "page_title": kwargs.pop("page_title", self.title),
             "form": kwargs.pop("form", None),
@@ -532,7 +630,8 @@ class Workflows(Layouts):
         }
 
         # Don't use a default directly in pop as it initialises the default even if not needed, this causes self.project
-        # to be called which breaks any pages that it is valid for the project to not be in the database yet (create page).
+        # to be called which breaks any pages that it is valid for the project to not be in the database yet
+        # (eg. create page).
         if response_dict['readonly'] is None:
             response_dict['readonly'] = self.readonly
         else:
@@ -547,6 +646,15 @@ class Workflows(Layouts):
     # --------------------WORKFLOW STEP VIEWS-------------------------------------------
     @view_config(route_name="create", permission=DefaultPermissions.CREATE_PROJECT)
     def create_view(self):
+        """
+        The New Project creation wizard that collects the minimum required information to create and pre-fill new
+        projects.
+
+        The creation wizard also fills general data such as who create the project and when it was created.
+
+        :return: HTML rendering of the create page form.
+        """
+
         page_help = "<p>There are unique challenges associated with creating metadata (information about your data - eg. where,  when or why) and organising persistent storage for large scale projects.\
                             Data is often output in a variety of ways and requires unique handling, this tool enables you to:\
                             <ul>\
@@ -564,7 +672,7 @@ class Workflows(Layouts):
                             <p><i>Tip:  To be added to the system please send a request using the contact form.</i> <br />\
                             <i>Tip:  Find a wealth of help by looking for the '?' symbols next to each page's headings and field names.</i></p>"
 
-        schema = CreatePage(validator=grant_validator)
+        schema = CreatePage(validator=create_project_validator)
         templates = self.session.query(ProjectTemplate).order_by(ProjectTemplate.category).all()
         categories = []
         for template in templates:
@@ -653,6 +761,11 @@ class Workflows(Layouts):
 
     @view_config(route_name="general", permission=DefaultPermissions.VIEW_PROJECT)
     def general_view(self):
+        """
+        Displays the general details page.  This is a basic page that simply collects and displays data.
+
+        :return: HTML rendering of the create page form.
+        """
         page_help = ""
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description=""), page='general', restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request)).bind(request=self.request)
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', ), use_ajax=False, ajax_options=redirect_options)
@@ -669,6 +782,11 @@ class Workflows(Layouts):
 
     @view_config(route_name="description", permission=DefaultPermissions.VIEW_PROJECT)
     def description_view(self):
+        """
+        Displays the description page which is a basic page that simply collects and displays data.
+
+        :return: HTML rendering of the create page form.
+        """
         page_help = "Fully describe your project to encourage other researchers to reuse your data:"\
                     "<ul><li>The entered descriptions will be used for metadata record generation (ReDBox), " \
                     "provide detailed information that is relevant to the project as a whole.</li>"\
@@ -688,6 +806,11 @@ class Workflows(Layouts):
 
     @view_config(route_name="information", permission=DefaultPermissions.VIEW_PROJECT)
     def information_view(self):
+        """
+        Displays the information page which is a basic page that simply collects and displays data.
+
+        :return: HTML rendering of the create page form.
+        """
         page_help ="<b>Please fill this section out completely</b> - it's purpose is to provide the majority of information " \
                    "for all generated metadata records so that you don't have to enter the same data more than once:"\
                                    "<ul><li>A metadata record (ReDBox) will be created for the entire project using the" \
@@ -711,10 +834,24 @@ class Workflows(Layouts):
         return self._create_response(page_help=page_help)
 
     def get_template_schemas(self):
+        """
+        Helper function that is given to the standardised fields/parent schema's schema to allow it to lookup and
+        display standardised fields.
+
+        :return: Array of standardised fields (MethodSchema's that have the template field set).
+        """
         return self.session.query(MethodSchema).filter_by(template_schema=1).all()
 
     @view_config(route_name="methods", permission=DefaultPermissions.VIEW_PROJECT)
     def methods_view(self):
+        """
+        Displays the methods page which provides a decent amount of dynamic functionality including:
+        - Method creation wizard that allows selection of a template.
+        - Data configuration wizard (simple, dynamic, ColanderAlchemy schema generator).
+        - Pre-filling of methods based on the selected template.
+
+        :return: HTML rendering of the create page form.
+        """
         page_help = "<p>Setup methods the project uses for collecting data (not individual datasets themselves as they will " \
                     "be setup in the next step).</p>" \
                     "<p>Each method sets up:</p>"\
@@ -796,8 +933,23 @@ class Workflows(Layouts):
 
     @view_config(route_name="datasets", permission=DefaultPermissions.VIEW_PROJECT)
     def datasets_view(self):
-        # Helper method for recursively retrieving all fields in a schema
+        """
+        Displays the datasets page which provides a decent amount of dynamic functionality including:
+        - Dataset creation wizard that allows adding of multiple datasets for each configured method.
+        - Dynamic data and schema customisations for advanced data source configuration.
+        - Pre-filling of datasets based on the selected template (the dataset template is set by the selected method
+          template).
+
+        :return: HTML rendering of the create page form.
+        """
+
         def get_file_fields(data_entry_schema):
+            """
+            Helper method for recursively retrieving all fields in a schema of type file.
+
+            :param data_entry_schema: SQLAlchemy object to find all custom and parent fields from.
+            :return: An array of all fields of file type within the provided schema.
+            """
             if data_entry_schema is None:
                 return []
 
@@ -889,7 +1041,7 @@ class Workflows(Layouts):
                     del dataset_data
                     break
                 method_name = self.session.query(Method.method_name).filter_by(id=method_id).first()[0]
-                method_names[method_id] = method_name
+                method_names[str(method_id)] = method_name
         schema[DATASETS_INDEX].children[0].method_names = method_names
         self.session.flush()
 
@@ -897,6 +1049,17 @@ class Workflows(Layouts):
 
     @view_config(route_name="submit", permission=DefaultPermissions.VIEW_PROJECT)
     def submit_view(self):
+        """
+        Displays the submit page which provides a decent amount of dynamic functionality including:
+        - Validation and error display of all workflow pages.
+        - Setting the project note user.
+        - Providing an overview of all data ingesters and metadata records.
+        - changing project states
+        - Integration with the ingesterapi and ReDBox on project approval.
+
+        :return: HTML rendering of the create page form.
+        """
+
         page_help="TODO: The submission and approval should both follow a process of:" \
                     "<ol><li>Automated validation</li>" \
                     "<li>User fixes validation errors</li>"  \
@@ -912,12 +1075,17 @@ class Workflows(Layouts):
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="submit", restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request)).bind(request=self.request)
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), use_ajax=False)
 
+        # Set the default user id to the current user so any notes that are added are set correctly.
+        PROJECT_NOTE_KEY = "%s:%s" % (schema.name, Project.project_notes.key)
+        PROJECT_NOTE_USER_KEY = "%s:%s" % (schema[PROJECT_NOTE_KEY].children[0].name, ProjectNote.user_id.key)
+        schema[PROJECT_NOTE_KEY].children[0][PROJECT_NOTE_USER_KEY].default = self.request.user.id
+
         # If this page was only called for saving and a rendered response isn't needed, return now.
         if self._handle_form():
             return
 
         # Get validation errors
-        if self.project is not None:
+        if self.project is not None and (self.project.state == ProjectStates.OPEN or self.project.state == ProjectStates.SUBMITTED):
             # Create full self.project schema and form (without filtering to a single page as usual)
             val_schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_validator=project_validator, )).bind(request=self.request, settings=self.config)
 
@@ -941,7 +1109,7 @@ class Workflows(Layouts):
         else:
             self.error = []
 
-            # TODO: Validate the project and set it to self for all workflow steps to use.
+            # TODO: Validate the project and set the validation to self for all workflow steps to use.
 
         # Get all generated (and to-be-generated) metadata records
         # + Get a summary of all ingesters to be setup
@@ -949,25 +1117,26 @@ class Workflows(Layouts):
         ingesters = []
         datasets = []
         for dataset in self.project.datasets:
+            dataset_name = "dataset for %s method" % dataset.method.method_name
             portal_url = None
-            if dataset.dam_id is not None:
-                portal_url = "%s%s" % (self.config['ingesterapi.portal_url'], dataset.dam_id)
-#            dataset_method = self.session.query(Method).filter_by(id=dataset.method_id).first()
+            view_record_url = self.request.route_url("view_record", project_id=self.project_id, dataset_id=dataset.id)
+            reset_record_url = None
+            no_errors = len(self.error) == 0
+            record_created = dataset.record_metadata is not None
+            redbox_url = None
 
-            if dataset.publish_dataset:
-                dataset_name = "dataset for %s method" % dataset.method.method_name
-                if dataset.record_metadata is not None:
-                    dataset_name = dataset.record_metadata.project_title
+            if dataset.record_metadata is not None:
+                dataset_name = dataset.record_metadata.project_title
 
-                metadata_record = self.session.query(Metadata).filter_by(dataset_id=dataset.id).first()
-                redbox_uri = None
-                if metadata_record is not None:
-                    redbox_uri = "%s%s%s" % (self.config['redbox.url'], self.config['redbox.search_url'], metadata_record.redbox_identifier)
+            if dataset.publish_dataset and self.project.state in (ProjectStates.OPEN, ProjectStates.SUBMITTED, None):
+                reset_record_url = self.request.route_url("delete_record", project_id=self.project_id, dataset_id=dataset.id)
 
-                datasets.append((dataset_name, portal_url, redbox_uri,
-                                 self.request.route_url("view_record", project_id=self.project_id, dataset_id=dataset.id),
-                                 self.request.route_url("delete_record", project_id=self.project_id, dataset_id=dataset.id),
-                                 self.session.query(Metadata).filter_by(dataset_id=dataset.id).count() > 0, len(self.error) == 0))
+            if dataset.publish_dataset and self.project.state not in (ProjectStates.OPEN, ProjectStates.SUBMITTED, None):
+                portal_url = self.request.route_url("record_data", metadata_id=dataset.record_metadata.id)
+                redbox_url = dataset.record_metadata.redbox_uri
+
+            datasets.append((dataset_name, portal_url, redbox_url, view_record_url, reset_record_url, record_created,
+                             no_errors))
 
 
         for i in range(len(schema.children)):
@@ -978,14 +1147,14 @@ class Workflows(Layouts):
 #            if schema.children[i].name[-len('ingesters'):] == 'ingesters':
 #                schema.children[i].children[0].ingesters = ingesters
 
-       # Configure the available buttons based of the proect state.
+       # Configure the available buttons based off the proect state.
         SUBMIT_TEXT = "Submit"
         REOPEN_TEXT = "Reopen"
         DISABLE_TEXT = "Disable"
         APPROVE_TEXT = "Approve"
         DELETE_TEXT = "Delete"
 
-        buttons=()
+        buttons=(Button("Save Notes"),)
         if (self.project.state == ProjectStates.OPEN or self.project.state is None) and len(self.error) <= 0:
             buttons += (SUBMIT_TEXT,)
         elif self.project.state == ProjectStates.SUBMITTED:
@@ -1023,22 +1192,22 @@ class Workflows(Layouts):
             pass
 
         if APPROVE_TEXT in self.request.POST and self.project.state == ProjectStates.SUBMITTED\
-                and has_permission(DefaultPermissions.APPROVE, self.context, self.request):
+                and has_permission(DefaultPermissions.APPROVE, self.context, self.request) and len(self.error) <= 0:
             # Make sure all dataset record have been created
             for dataset in self.project.datasets:
                 if (dataset.record_metadata is None):
                     dataset.record_metadata = self.generate_dataset_record(dataset.id)
             self.session.flush()
 
-#            try:
-#                self.ingester_api.post(self.project)
-#                self.ingester_api.close()
-#                logger.info("Project has been added to ingesterplatform successfully: %s", self.project.id)
-#            except Exception as e:
-#                logger.exception("Project failed to add to ingesterplatform: %s", self.project.id)
-#                self.request.session.flash("Failed to configure data storage and ingestion.", 'error')
-#                self.request.session.flash("Error: %s" % e, 'error')
-#                return self._create_response(page_help=page_help)
+            try:
+                self.ingester_api.post(self.project)
+                self.ingester_api.close()
+                logger.info("Project has been added to ingesterplatform successfully: %s", self.project.id)
+            except Exception as e:
+                logger.exception("Project failed to add to ingesterplatform - Project ID: %s", self.project.id)
+                self.request.session.flash("Failed to configure data storage and ingestion.", 'error')
+                self.request.session.flash("Error: %s" % e, 'error')
+                return self._create_response(page_help=page_help)
 
             try:
                 self.redbox.insert_project(self.project_id)
@@ -1049,13 +1218,12 @@ class Workflows(Layouts):
                 self.request.session.flash("Error: %s" % e, 'error')
                 return self._create_response(page_help=page_help)
 
-
             # Change the state to active
             self.project.state = ProjectStates.ACTIVE
             logger.info("Project has been approved successfully: %s", self.project.id)
 
 
-        buttons=()
+        buttons=(Button("Save Notes"),)
         if (self.project.state == ProjectStates.OPEN or self.project.state is None) and len(self.error) <= 0 and\
                 has_permission(DefaultPermissions.SUBMIT, self.context, self.request):
             buttons += (Button(SUBMIT_TEXT),)
@@ -1078,6 +1246,12 @@ class Workflows(Layouts):
 
     @view_config(route_name="delete_record", permission=DefaultPermissions.DELETE)
     def delete_record_view(self):
+        """
+        Deletes the metadata record associated with the selected dataset.  This basically resets any changes so that
+        the next view will re-create the default metadata record.
+
+        :return: Redirect to the submit page
+        """
         dataset_id = self.request.matchdict['dataset_id']
 
         record = self.session.query(Metadata).filter_by(dataset_id=dataset_id).first()
@@ -1093,6 +1267,12 @@ class Workflows(Layouts):
     @view_config(route_name="view_record", permission=DefaultPermissions.VIEW_PROJECT)
     @view_config(route_name="edit_record", permission=DefaultPermissions.EDIT_PROJECT)
     def edit_record_view(self):
+        """
+        Displays the generated metadata record for the selected dataset, this is basically the genral details,
+        description and information models all on one form.
+
+        :return: HTML rendering of the create page form.
+        """
         dataset_id = self.request.matchdict['dataset_id']
 
         page_help=""
@@ -1123,6 +1303,11 @@ class Workflows(Layouts):
 
 
     def generate_dataset_record(self, dataset_id):
+        """
+        Generate a dataset metadata record based of the project metadata, methods and datasets pages.
+
+        :return: A ColanderAlchemy Metadata model of the newly created dataset metadata.
+        """
         metadata_id = self.session.query(Metadata.id).filter_by(dataset_id=dataset_id).first()
 
         metadata_template = self.session.query(Metadata).join(Project).filter(Metadata.project_id == Project.id).join(Dataset).filter(Project.id==Dataset.project_id).filter(Dataset.id==dataset_id).first()
@@ -1150,6 +1335,11 @@ class Workflows(Layouts):
     # --------------------WORKFLOW ACTION/SIDEBAR VIEWS-------------------------------------------
     @view_config(route_name="dataset_logs", permission=DefaultPermissions.VIEW_PROJECT)
     def dataset_logs_view(self):
+        """
+        Retrieves all ingester platform events/logs for the selected dataset from the ingesterapi and displays them.
+
+        :return: HTML rendering of the create page form.
+        """
         dataset_id = int(self.request.matchdict['dataset_id'])
         logs = self.ingester_api.getIngesterLogs(dataset_id)
 
@@ -1160,6 +1350,12 @@ class Workflows(Layouts):
 
     @view_config(route_name="logs", permission=DefaultPermissions.VIEW_PROJECT)
     def logs_view(self):
+        """
+        Retrieves all ingester platform events/logs for all dataset associated with the project from the ingesterapi
+        and displays them with optional filtering.
+
+        :return: HTML rendering of the create page form.
+        """
 #        print "POST VARS" + str(self.request.POST) + " " + str(self.project_id)
         page_help="View ingester event logs for project datasets."
         schema = IngesterLogs()
@@ -1210,24 +1406,14 @@ class Workflows(Layouts):
             return
 
         return self._create_response(page_help=page_help)
-#        if 'target' in self.request.POST and self.request.POST['target']:
-#            target = self.request.POST['target']
-#            return HTTPFound(self.request.route_url(target, project_id=self.project_id))
-#
-#        appstruct = {}
-#        if self.request.POST.items() > 0:
-#            try:
-#                appstruct = self.form.validate(self.request.POST.items())
-#                display = self.form.render(appstruct)
-#            except ValidationFailure, e:
-#                appstruct = e.cstruct
-#                display = e.render()
-#
-#
-#        return {"page_title": self.find_menu()['page_title'], "form": display, "form_only": False, 'messages': self._get_messages(), 'page_help': page_help}
 
     @view_config(route_name="duplicate", permission=DefaultPermissions.VIEW_PROJECT)
     def duplicate_view(self):
+        """
+        Contextual option that allows users to duplicate an existing project.
+
+        :return: Redirect to the general page of the newly created/duplicated project.
+        """
         self._handle_form()
 
         duplicate = self._clone_model(self.project)
@@ -1254,7 +1440,12 @@ class Workflows(Layouts):
 
     @view_config(route_name="manage_data", permission=NO_PERMISSION_REQUIRED)
     def manage_data_view(self):
+        """
+        NOT IMPLEMENTED YET
+        Data management contextual option that integrates with the ingesterapi to manage the actual data.
 
+        :return: HTML rendering of the create page form.
+        """
         page_help=""
         schema = ManageData()
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Refresh',), use_ajax=False)
@@ -1268,6 +1459,12 @@ class Workflows(Layouts):
 
     @view_config(route_name="permissions", permission=DefaultPermissions.EDIT_SHARE_PERMISSIONS)
     def permissions_view(self):
+        """
+        Contextual option that allows project creators/administrators to give other users permissions or the
+        current project.
+
+        :return: HTML rendering of the create page form.
+        """
         page_help=""
 
         users = json.dumps([{"label": user.display_name, "identifier": user.id} for user in self.session.query(User).all()])
@@ -1338,6 +1535,11 @@ class Workflows(Layouts):
     # --------------------WORKFLOW EXCEPTION VIEWS-------------------------------------------
     @view_config(context=Exception, route_name="workflow_exception", permission=NO_PERMISSION_REQUIRED)
     def exception_view(self):
+        """
+        Exception view for any exception that occurs on project/workflow pages.
+
+        :return: Redirect to the same page (without variables), general or create page.
+        """
         logger.exception("An exception occurred in global exception view: %s", self.context)
         if hasattr(self, self.request.matched_route.name + "_view"):
 #            try:
@@ -1377,6 +1579,12 @@ class Workflows(Layouts):
     #    @view_config(context=sqlalchemy.orm.exc.SQLAlchemyError, renderer="../templates/exception.pt")
     @view_config(context=sqlalchemy.exc.SQLAlchemyError, renderer="../templates/exception.pt", permission=NO_PERMISSION_REQUIRED)
     def sqlalchemy_exception_view(self):
+        """
+        Exception view for all database errors.
+        - MySQL server errors can be fixed by re-displaying the page (eg new DB connection is established).
+
+        :return: Either an internal redirect on server gone away error else display an error message.
+        """
         self.session.rollback()
         logger.exception("A database exception occurred in global exception view: %s", self.context)
 
@@ -1398,46 +1606,3 @@ class Workflows(Layouts):
 
 
 
-
-#    @view_config(renderer="../templates/search_template.pt", route_name="add_method_from_template")
-#    def add_method_from_template(self):
-#        assert 'method_id' in self.request.matchdict, "Error: Trying to add method with invalid template id."
-#        assert 'project_id' in self.request.matchdict, "Error: Trying to add method with invalid project id."
-#        method_id = self.request.matchdict['method_id']
-#        project_id = self.request.matchdict['project_id']
-#
-#        project = self.session.query(Project).filter_by(id=project_id).first()
-#        model = self.session.query(Method).filter_by(id=method_id).first()
-#
-#        if project and model:
-#            # Use the scripts to create the new models
-#            data = convert_sqlalchemy_model_to_data(model, convert_schema(SQLAlchemyMapping(Method, unknown='raise')))
-#            new_model = create_sqlalchemy_model(data, model_class=Method)
-#            del new_model.id
-#            #            new_model = Method()
-#            self.session.add(new_model)
-#            new_model.method_template_id = model.id
-#            new_model.project_id = project.id
-#            new_model.method_description="alsdjkh"
-#            project.methods.append(new_model)
-#            self.session.flush()
-#            #            print new_model
-#            #            print new_model.__dict__
-#            #            self.session.flush()
-#            #
-#            #            self.session = DBSession
-#            #
-#            #            print "Method ID's: " + str(model.id) + " : " + str(new_model.id)
-#            #
-#            #            print new_model.id
-#            #            id = new_model.id
-#            #            transaction.commit()
-#            #
-#            #            self.session = APISession
-#            #            test_model = self.session.query(Method).filter_by(id=id).all()
-#            #            for test in test_model:
-#            #                print "Test model: " + str(model.__dict__)
-#            return {'values': json.dumps('Method successfully added')}
-#        else:
-#            print "Add method failed: " + str(project) + str(model)
-#            return {'values': json.dumps('Failed to add method')}

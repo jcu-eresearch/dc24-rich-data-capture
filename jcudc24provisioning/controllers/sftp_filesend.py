@@ -1,3 +1,8 @@
+"""
+Class that wraps all functionality to transfer files over SFTP (File transfer over SSH) used for exporting metadata
+records to ReDBox.
+"""
+
 import hashlib
 
 __author__ = ("Casey Bajema", 'ccpizza (http://code.activestate.com/recipes/576810-copy-files-over-ssh-using-paramiko/)')
@@ -28,10 +33,23 @@ import glob
 import paramiko
 
 class SFTPFileSend(object):
+    """
+    Wraps functionality to transfer files over SFTP (File transfer over SSH).
+    """
     transport = None
     sftp = None
 
     def __init__(self, hostname, port, username, password=None, rsa_private_key=None):
+        """
+        Intialise the SFTP connection parameters, this allows for authentication with either a key or username/password.
+
+        :param hostname: SSH Host address
+        :param port: SSH connection port
+        :param username: SSH authentication username (only required if a private key isn't provided)
+        :param password: SSH password for either the private key or the username (key takes precedence)
+        :param rsa_private_key: Private key to authenticate the SSH connection (a username/password can be used instead).
+        :return:
+        """
         self.username = username
         self.password = password
         self.rsa_private_key = rsa_private_key
@@ -114,6 +132,13 @@ class SFTPFileSend(object):
                 logger.exception('... failed!')
 
     def upload_file(self, local_file, remote_file):
+        """
+        Upload a single file to the SFTP server.
+
+        :param local_file: File to upload
+        :param remote_file: Remote server file/folder to upload to.
+        :return: True/False on success/failure respectively.
+        """
         try:
             # dirlist on remote host
             #    dirlist = sftp.listdir('.')
@@ -157,6 +182,15 @@ class SFTPFileSend(object):
         ## end of http://code.activestate.com/recipes/576810/ }}}
 
     def upload_directory(self, local_dir, remote_dir, glob_pattern=None, extension=None):
+        """
+        Upload all files in local_dir to the remote_dir folder.
+
+        :param local_dir: Folder to upload all files from.
+        :param remote_dir: Remote directory to upload files into.
+        :param glob_pattern: Glob match pattern to filter files to be uploaded from local_dir.
+        :param extension:  If provided only files with this extension will be uploaded.
+        :return: None
+        """
         files_copied = 0
 
         try:
@@ -196,5 +230,9 @@ class SFTPFileSend(object):
         ## end of http://code.activestate.com/recipes/576810/ }}}
 
     def close(self):
+        """
+        Close this SFTP connection, close should always be called when finished with the SFTPFilesend object.
+        :return: None
+        """
         if self.transport is not None:
             self.transport.close()

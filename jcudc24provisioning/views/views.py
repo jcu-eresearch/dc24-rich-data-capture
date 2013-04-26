@@ -1,3 +1,8 @@
+"""
+Provides all non-project related views, this includes general website pages such as the dashboard, admin and login as
+well as exception views.
+"""
+
 import ConfigParser
 import logging
 from string import split
@@ -37,6 +42,10 @@ PAGES = [
 
 @view_defaults(permission=pyramid.security.NO_PERMISSION_REQUIRED)
 class Layouts(object):
+    """
+    Class for displaying all non-project views, this allows much of the functionality to be abstracted and reused.
+    """
+
     def __init__(self, context, request):
         self.context = context
         self.request = request
@@ -45,37 +54,30 @@ class Layouts(object):
 
     @reify
     def global_template(self):
+        """
+        Returns the root level template that wraps everything.
+
+        :return: Global template.
+        """
         renderer = get_renderer("../templates/template.pt")
         return renderer.implementation().macros['layout']
 
     @reify
     def get_user(self):
+        """
+        Get the currently logged in user from the request (this is a custom attribute attached by the get_user method
+        in controllers/authentication.py)
+        :return:
+        """
         return self.request.user
 
     @reify
-    def get_message(self):
-        return self.request.GET.get('msg')
-
-
-    @reify
-    def metadata_view(self):
-        request_data = self.request.POST.items()
-        queryString = ""
-
-        for key, value in request_data:
-            queryString += key + "=" + value
-        config = ConfigParser.ConfigParser()
-        config.read("defaults.cfg")
-        location = config.get("mint", "solr_api").strip().strip("?/\\")
-        url_template = location + '?%(query)s'
-        url = url_template % dict(query=queryString)
-        result = ""
-        data = urllib2.urlopen(url).read()
-
-        return data
-
-    @reify
     def menu(self):
+        """
+        Loop through the PAGES array to find all menus that should be displayed based on the current page.
+
+        :return: Array of main menu items to display.
+        """
         new_menu = PAGES[:]
 
         introspector = self.request.registry.introspector
@@ -99,18 +101,14 @@ class Layouts(object):
 
         return new_menu
 
-    @reify
-    def is_hidden_menu(self):
-        new_menu = PAGES[:]
-        url = split(self.request.url, "?")[0]
-
-        for menu in new_menu:
-            if url.endswith(menu['href']) and 'hidden' in menu and menu['hidden'] is True:
-                return True
-
-        return False
 
     def find_page_title(self):
+        """
+        Find the title for this page from the PAGES array.  The title is displayed both in the heading and the browser
+        tab text.
+
+        :return: Page title based on the current page
+        """
         for page in PAGES:
             if page['route_name'] == self.request.matched_route.name:
                 return page['page_title']
@@ -120,6 +118,13 @@ class Layouts(object):
     #        raise ValueError("There is no page title for this address: " + str(self.request.url))
 
     def _redirect_to_target(self, target):
+        """
+        Do an internal redirect to the target page, the redirect passes all POST variables as well as the request.user
+        so that authentication works correctly on the target page.
+
+        :param target:
+        :return:
+        """
     #        target = self.get_address(self.request.POST['target'])
     #        q = self.request.registry.queryUtility
     #        routes_mapper = q(IRoutesMapper)
@@ -150,12 +155,27 @@ class Layouts(object):
     #        route_intr = introspector.get('routes', target)
 
     def _get_messages(self):
+        """
+        Find and return all messages added using self.request.session.flash('<message>', '<message type>')
+
+        :return: All flash messages that need to be displayed.
+        """
         return {'error_messages': self.request.session.pop_flash("error"),
                 'success_messages': self.request.session.pop_flash("success"),
                 'warning_messages': self.request.session.pop_flash("warning")
         }
 
     def _create_response(self, **kwargs):
+        """
+        Abstract the repetitive task of rendering schemas and attributes into the output HTML.
+
+        This also provides 1 location to place default rendering options such as that page help should be hidden.
+
+        :param kwargs: Optional arguments to pass to the rendered form, most arguments will be standard and just
+        override the defaults.
+
+        :return: Rendered HTML form ready for display.
+        """
         response_dict = {
             "page_title": kwargs.pop("page_title", self.find_page_title()),
             'messages': kwargs.pop('messages', self._get_messages()),
@@ -170,6 +190,12 @@ class Layouts(object):
 
     @view_config(renderer="../templates/dashboard.pt", route_name="dashboard")
     def dashboard_view(self):
+        """
+        NOT YET IMPLEMENTED
+        Dashboard page, this is mainly just rendering a static template.
+
+        :return: Rendered HTML form ready for display.
+        """
         page_help = "TODO: Video or picture slider."
         self.request.session.flash("This page is still under development.", "warning")
 
@@ -177,6 +203,11 @@ class Layouts(object):
 
     @view_config(renderer="../templates/manage_data.pt", route_name="browse")
     def search_page_view(self):
+        """
+        Search/browse page to allow users to navigate projects and their associated data.
+
+        :return: Rendered HTML form ready for display.
+        """
     #        raise NotImplementedError("Search hasn't been implemented yet!")
         self.request.session.flash("This page is still under development.", "warning")
 
@@ -185,6 +216,16 @@ class Layouts(object):
     @view_config(renderer="../templates/administrator.pt", route_name="admin",
         permission=DefaultPermissions.ADMINISTRATOR)
     def admin_page_view(self):
+        """
+        NOT YET IMPLEMENTED
+
+        Administration page that allows setting up and configuring:
+         - user permissions and roles
+         - Templates
+         - Standardised fields.
+
+        :return: Rendered HTML form ready for display.
+        """
         self.request.session.flash("This page is still under development.", "warning")
     #        raise NotImplementedError("Search hasn't been implemented yet!")
 
@@ -192,6 +233,12 @@ class Layouts(object):
 
     @view_config(renderer="../templates/help.pt", route_name="help")
     def help_page_view(self):
+        """
+        NOT YET IMPLEMENTED
+        Help page that provides an overview, contact form and links to additonal help.
+
+        :return: Rendered HTML form ready for display.
+        """
         self.request.session.flash("This page is still under development.", "warning")
     #        raise NotImplementedError("Search hasn't been implemented yet!")
 
@@ -199,6 +246,12 @@ class Layouts(object):
 
     @view_config(route_name="record_data")
     def record_data_view(self):
+        """
+        Persistent view to provide metadata records and external systems with a consistent URL and implementing a simple
+        redirect to the actual data view page.
+
+        :return: Page redirect respons or the results of the internally redirected page.
+        """
         metadata_id = self.request.matchdict['metadata_id']
 
         metadata = self.session.query(Metadata).filter_by(id=metadata_id).first()
@@ -216,6 +269,11 @@ class Layouts(object):
     @forbidden_view_config(renderer='../templates/form.pt')
     @view_config(route_name='login', renderer='../templates/form.pt')
     def login_view(self):
+        """
+        Login page that allows users to login either using Shibboleth or local users added directly to the database.
+
+        :return: Rendered HTML form ready for display.
+        """
         request = self.request
         logged_in = authenticated_userid(self.request)
 
@@ -261,6 +319,12 @@ class Layouts(object):
 
     @view_config(route_name='login_shibboleth', renderer='../templates/form.pt')
     def login_shibboleth(self):
+        """
+        Shibboleth login page that reads headers added by Shibboleth.  If the user doesn't already exist they are added
+        to the database.
+
+        :return: Rendered HTML form ready for display.
+        """
         request = self.request
         logged_in = authenticated_userid(self.request)
 
@@ -293,6 +357,14 @@ class Layouts(object):
 
     @view_config(route_name='logout')
     def logout(self):
+        """
+        When visited this view removes the user authentication and redirects to the dashboard.
+
+        Shibboleth users have to close their browser before they fully log out, this has to do with how Shibboleth works
+        and the complexity of single login systems.
+
+        :return: External redirect to the dashboard.
+        """
         if self.request.user is not None:
             self.request.session.flash("You have been successfully logged out.", "success")
             if self.request.user is not None and self.request.user.auth_type == "shibboleth":
@@ -307,59 +379,39 @@ class Layouts(object):
 
     @view_config(context=Exception, renderer="../templates/exception.pt")
     def exception_view(self):
+        """
+        Handles all exceptions that aren't caught by another exception view.
+
+        :return: Rendered view showing the exception message.
+        """
     #        # TODO: Update standard exception screen to fit.
         logger.exception("An exception occurred in global exception view: %s", self.context)
-        #        if self.request.route_url:
-        #            try:
-        #                self.request.session.flash('Sorry, there was an exception, please try again.', 'error')
-        #                self.request.session.flash(self.context, 'error')
-        #                self.request.POST.clear()
-        #                response = getattr(self, str(self.request.route_url) + "_view")()
-        #                return response
-        #            except Exception:
-        #            logger.exception("Exception occurred in standard view: %s", self.context)
 
-        self.request.session.flash('Sorry, we are currently experiencing difficulties.', 'error_messages')
+        self.request.session.flash('Sorry, an exception has occurred - please try again.', 'error_messages')
         return self._create_response(page_title="Exception Has Occurred", exception="%s" % self.context)
 
-    #        else:
-    #            self.request.session.flash('There is no page at the requested address, please don\'t edit the address bar directly.', 'error')
-    #            return HTTPFound(self.request.route_url('dashboard'))
 
     @view_config(context=HTTPNotFound, renderer="../templates/exception.pt")
-    def http_error_view(self):
-    #        # TODO: Update standard exception screen to fit.
-    #        logger.exception("An exception occurred in global exception view: %s", self.context)
-    #        if self.request.route_url:
-    #            try:
-    #                self.request.session.flash('Sorry, there was an exception, please try again.', 'error')
-    #                self.request.session.flash(self.context, 'error')
-    #                self.request.POST.clear()
-    #                response = getattr(self, str(self.request.route_url) + "_view")()
-    #                return response
-    #            except Exception:
-    #                logger.exception("Exception occurred while trying to display the view without variables: %s", Exception)
-    #                return {"page_title": self.request.url, "form": 'Sorry, we are currently experiencing difficulties.  Please contact the administrators: ' + str(self.context), "form_only": False}
-    #        else:
+    def http_not_found_view(self):
+        """
+        Exception view for when the user tries to access a url that doesn't exist, this displays an error message and
+        redirects to the dashboard page.
+
+        :return: Redirect to the dashboard page.
+        """
+
         self.request.session.flash(
             'There is no page at the requested address, please don\'t edit the address bar directly.', 'error')
         return HTTPFound(self.request.route_url('dashboard'))
 
     @view_config(context=HTTPClientError, renderer="../templates/exception.pt")
     def http_error_view(self):
-    #        # TODO: Update standard exception screen to fit.
-    #        logger.exception("An exception occurred in global exception view: %s", self.context)
-    #        if self.request.route_url:
-    #            try:
-    #                self.request.session.flash('Sorry, there was an exception, please try again.', 'error')
-    #                self.request.session.flash(self.context, 'error')
-    #                self.request.POST.clear()
-    #                response = getattr(self, str(self.request.route_url) + "_view")()
-    #                return response
-    #            except Exception:
-    #                logger.exception("Exception occurred while trying to display the view without variables: %s", Exception)
-    #                return {"page_title": self.request.url, "form": 'Sorry, we are currently experiencing difficulties.  Please contact the administrators: ' + str(self.context), "form_only": False}
-    #        else:
+        """
+        Exception view errors that the standard exception view doesn't catch.
+
+        :return: Redirect to the dashboard page and display an error message.
+        """
+
         self.request.session.flash(self.context, 'error')
         return HTTPFound(self.request.route_url('dashboard'))
 

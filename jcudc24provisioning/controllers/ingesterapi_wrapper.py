@@ -1,3 +1,14 @@
+"""
+Wraps the jcu.dc24.ingesterapi/ingester_platform_api.py/IngesterPlatformAPI to provide transparent mappings of the
+provisioning interface database models:
+- If the api methods are called with ingesterapi models the IngesterPlatformAPI is called directly.
+- If the api methods are called with provisioning interface models a unit of work is created and the process_model()
+  method is called.  process_model calls the associated processing method which converts the provisioning interface
+  model into ingesterapi model(s) and inserts/updates/deletes/posts them.
+- To change how a provisioning interface model integrates with the ingester platform change the relevent proces method.
+- On insert, provisioning interface dam_id's are updated when the ingesterapi model's listener is called.
+"""
+
 import ast
 import copy
 import logging
@@ -18,6 +29,14 @@ __author__ = 'Casey Bajema'
 logger = logging.getLogger(__name__)
 
 def model_id_listener(self, attr, var):
+    """
+    This is an implementation of ingesterapi listener that is added to models before they are inserted/posted.  This
+    provides functionality to update the dam_id held in the provisioning interface models.
+
+    :param attr: attriburte that has been changed
+    :param var: the value that the attribute has been set to.
+    :return: None
+    """
     if attr == "_id":
         self.provisioning_model.dam_id = var
 
@@ -125,8 +144,16 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             return super(IngesterAPIWrapper, self).delete(model)
 
     #---------------Provisioning interface specific functions for processing the models-------------
-    # TODO: Update all processing to add listeners to the ingesterapi models to propagate the id changes to the provisioning interface models (on commit)
     def process_model(self, model, command, work):
+        """
+        Provides tranaparency to the ingesterapi methods so that they can be called with any provisioning model and it
+        is mapped to the relevant process method below.
+
+        :param model: The model to process, the model must be a valid provisioning interface model.
+        :param command: What method of the ingesterapi has been called (eg. is this a delete or post call?)
+        :param work: Unit of work that all api calls should be added to (Unit of work means the transaction is success/fail).
+        :return: ingesterapi model id(s) or model(s) - depending if the ingesterapi model type has an ID.
+        """
         assert hasattr(model, "__tablename__"), "Trying to process a invalid provisioning model"
         assert hasattr(command, "func_name") and hasattr(UnitOfWork, command.func_name), "Trying to process a model with an invalid command"
 
@@ -160,6 +187,14 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
 
 
     def process_location(self, model, command, work):
+        """
+        Convert the provisioning interface location model into an ingesterapi location model.
+
+        :param model: The model to process/convert
+        :param command: How the ingesterapi should be called with the model (eg. delete/post/...)
+        :param work: Unit of work that the command will be called on with the created ingesterapi model.
+        :return: Created ingesterapi model
+        """
         assert isinstance(model, Location), "Invalid location: " + str(model)
         assert model.location[:5] == "POINT", "Provided location is not a point (only points can be used for dataset or data_entry locations).  Value: " + model.location
 
@@ -178,6 +213,14 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
         return new_location.id
 
     def process_location_offset(self, model, command, work):
+        """
+        Convert the provisioning interface location offset model into an ingesterapi location offset model.
+
+        :param model: The model to process/convert
+        :param command: How the ingesterapi should be called with the model (eg. delete/post/...)
+        :param work: Unit of work that the command will be called on with the created ingesterapi model.
+        :return: Created ingesterapi model
+        """
         assert isinstance(model, LocationOffset), "Invalid location offset: " + str(model)
 
         new_location_offset = jcudc24ingesterapi.models.locations.LocationOffset(
@@ -188,6 +231,14 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
         return new_location_offset
 
     def process_region(self, model, command, work):
+        """
+        Convert the provisioning interface region model into an ingesterapi model.
+
+        :param model: The model to process/convert
+        :param command: How the ingesterapi should be called with the model (eg. delete/post/...)
+        :param work: Unit of work that the command will be called on with the created ingesterapi model.
+        :return: Created ingesterapi model
+        """
         assert isinstance(model, Location), "Invalid location: " + str(model)
         assert not model.location[:5] == "POINT", "Provided location is a point (It doesn't make sense for a region to be a single point).  Value: " + model.location
 
@@ -205,13 +256,21 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
         return region
 
     def process_schema(self, model, command, work):
+        """
+        Convert the provisioning interface schema model into an ingesterapi model and call the ingesterapi command with it.
+
+        :param model: The model to process/convert
+        :param command: How the ingesterapi should be called with the model (eg. delete/post/...)
+        :param work: Unit of work that the command will be called on with the created ingesterapi model.
+        :return: ID of the created ingesterapi model
+        """
         assert isinstance(model, MethodSchema), "Invalid schema: " + str(model)
         if model.dam_id is not None:# and model.dam_id >= 0:
             # Schema's cannot be changed TODO: Update this to test if shema has changed, if it has - add a new schema
             return model.dam_id
 
         if True: # TODO: If the data entries don't need offsets
-            new_schema = jcudc24ingesterapi.schemas.data_entry_schemas.DataEntrySchema(model)
+            new_schema = jcudc24ingesterapi.schemas.data_entry_schemas.DataEntrySchema(model.name)
         else:
             pass #TODO: new_schema = jcudc24ingesterapi.schemas.data_entry_schemas.OffsetDataEntrySchema()
 
@@ -254,6 +313,17 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
         return new_schema.id
 
     def process_project(self, project, command, work):
+        """
+        Convert the provisioning interface project model into ingesterapi dataset model(s) and call the ingesterapi
+        command with them.
+
+        This method basically calls process_dataset with each dataset associated with the project.
+
+        :param model: The model to process/convert
+        :param command: How the ingesterapi should be called with the model (eg. delete/post/...)
+        :param work: Unit of work that the command will be called on with the created ingesterapi model.
+        :return: ID of the created ingesterapi model
+        """
         assert isinstance(project, Project),"Trying to add a project with a model of the wrong type."
 
         datasets = []
@@ -265,6 +335,14 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
         return datasets
 
     def process_dataset(self, model, command, work):
+        """
+        Convert the provisioning interface dataset into an ingesterapi dataset and call the ingesterapi command with it.
+
+        :param model: The model to process/convert
+        :param command: How the ingesterapi should be called with the model (eg. delete/post/...)
+        :param work: Unit of work that the command will be called on with the created ingesterapi model.
+        :return: ID of the created ingesterapi model
+        """
         assert isinstance(model, Dataset),"Trying to add a project with a model of the wrong type."
 
         # Get the datasets method.
@@ -310,6 +388,18 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
 
 
     def _set_dataset_locations(self, dataset, provisioning_dataset, work, command):
+        """
+        Break the dataset location processing out to make the code more legible.  This method finds the first point
+        location and adds it to the ingesterapi dataset.
+
+        It also adds the location offset to the ingesterapi dataset.
+
+        :param dataset: Ingesterapi dataset model
+        :param provisioning_dataset: Provisioning interface dataset model
+        :param work: Unit of work that holds all ingesterapi commands for this transaction.
+        :param command: Type of ingesterapi call that is being used.
+        :return: None
+        """
         first_location_found = False
         for location in provisioning_dataset.dataset_locations:
             if not first_location_found and location.is_point():
@@ -331,6 +421,15 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
 
 
     def _create_data_source(self, dataset, provisioning_dataset, method):
+        """
+        Break the data source processing out of process_dataset to make the code more legible.  This method finds the
+        type of data source and creates the ingesterapi datasource object.
+
+        :param dataset: Ingester api dataset model
+        :param provisioning_dataset: Provisioning interface dataset model
+        :param method: Provisioning interface model associated with this dataset.
+        :return: Created ingesterapi datasource model.
+        """
         try:
             # Create the data source with type specific configurations.
             data_source = None
@@ -408,6 +507,13 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             raise ValueError("Trying to create an ingester data source with invalid parameters: %s, Error: %s" % (provisioning_dataset.record_metadata.project_title, e))
 
     def _create_custom_processing_script(self, custom_processor):
+        """
+        Break the custom processing script processing out of process_dataset to make the code more legible.  This method
+        finds the gets the script if there is one and processes any script parameters.
+
+        :param custom_processor: The custom processor file to read as a string and process parameters into.
+        :return: Processing script as a string.
+        """
         script = None
         try:
             script_path = custom_processor.custom_processor_script
@@ -436,9 +542,27 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
 
 
     def process_data_entry(self, model, command, work):
+        """
+        Convert the provisioning interface DataEntry into an ingesterapi DataEntry and call the ingesterapi command with
+        it.
+
+        :param model: The model to process/convert
+        :param command: How the ingesterapi should be called with the model (eg. delete/post/...)
+        :param work: Unit of work that the command will be called on with the created ingesterapi model.
+        :return: ID of the created ingesterapi model
+        """
         pass # TODO: data_entries
 
     def process_metadata(self, model, command, work):
+        """
+        Convert the provisioning interface Calibration into an ingesterapi metadata and call the ingesterapi command
+        with it.
+
+        :param model: The model to process/convert
+        :param command: How the ingesterapi should be called with the model (eg. delete/post/...)
+        :param work: Unit of work that the command will be called on with the created ingesterapi model.
+        :return: ID of the created ingesterapi model
+        """
         pass # TODO: metadata
 
 

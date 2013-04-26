@@ -1,3 +1,8 @@
+"""
+Converts MethodSchema's (data configurations) into Deform schemas.  There is also a helper function
+(get_method_schema_preview) for turning the created schema into HTML for preview purposes on the methods page.
+"""
+
 from collections import namedtuple
 from deform.form import Form
 import random
@@ -26,6 +31,9 @@ DATE_INDEX = 11
 HIDDEN_INDEX = 12
 
 class DummySession(object):
+    """
+    Pretend/dummy session that allows file upload widgets to work in the HTML output from get_method_schema_preview.
+    """
     def setdefault(self, arg1, arg2):
         pass
 
@@ -33,6 +41,12 @@ class DummySession(object):
         pass
 
 def get_method_schema_preview(method_schema_id):
+    """
+    Create and render the method schema identified by method_schema_id as HTML.
+
+    :param method_schema_id: ID of the MethodSchema to preview.
+    :return: Deform rendered HTML form for the identified MethodSchema (Note: The <form> element is removed).
+    """
     method_schema = DBSession.query(MethodSchema).filter_by(id=method_schema_id).first()
     if method_schema is None:
         return "<p>Please create your data mapping using the standardised and custom fields.</p>"
@@ -52,6 +66,9 @@ def get_method_schema_preview(method_schema_id):
     return display
 
 class DataTypeSchema(colander.SchemaNode):
+    """
+    Base Deform schema that dynamically adds all elements of a MethodSchema (including parent schema elements).
+    """
     def __init__(self, method_schema):
         params = {}
         self.__dict__['params'] = params
@@ -62,12 +79,24 @@ class DataTypeSchema(colander.SchemaNode):
         for field in fields:
             self.add(field)
 
-def method_schema_to_model(method_schema):
-    fields = get_schema_fields(method_schema)
-    model_schema = colander._SchemaMeta(str(method_schema.name), (colander._SchemaNode,), fields)
-    return model_schema
+#def method_schema_to_model(method_schema):
+#    """
+#    This is another way of generating the schema from MethodSchema models.
+#    """
+#    fields = get_schema_fields(method_schema)
+#    model_schema = colander._SchemaMeta(str(method_schema.name), (colander._SchemaNode,), fields)
+#    return model_schema
 
 def get_schema_fields(method_schema):
+    """
+    Create all fields/elements of the MethodSchema, this includes:
+    - Hierarchically add all elements of parent schemas.
+    - Add Deform element display attributes such as description and placeholder.
+    - Dynamically create the correct widget with associated settings such as select values and mask regex.
+
+    :param method_schema: MethodSchema to generate a Deform schema from.
+    :return: Deform schema (that can be rendered to HTML as a form).
+    """
     fields = []
 
     for parent in method_schema.parents:

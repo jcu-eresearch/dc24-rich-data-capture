@@ -1,3 +1,7 @@
+"""
+Create a JSON configuration and XPATH mapping of the output XML metadata record to ReDBox fields.
+"""
+
 import json
 import sys
 
@@ -43,6 +47,12 @@ def main(argv=sys.argv):
 
 
 def create_json_config():
+    """
+    Create the mapping, the output will only change when Metadata table field(s)/names change.
+
+    :return: JSON configuration of XPATH mappings for ReDBox.  The XPATH maps from provisioning interface metadata table
+             fields to ReDBox fields.
+    """
 # TODO: Work out if any of these fields are needed?
 #    "dc:extent": "",                                   # Size of data
 

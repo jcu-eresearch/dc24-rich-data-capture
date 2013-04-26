@@ -1,3 +1,8 @@
+"""
+Provides all project related Colander (deform) and ColanderAlchemy (deform+SQLAlchemy) models, this includes project
+configuration as well as maintainence and searching models (eg. anything to do with data ingestion and metadata).
+"""
+
 from collections import OrderedDict
 import itertools
 import logging
@@ -33,8 +38,10 @@ import re
 logger = logging.getLogger(__name__)
 
 class OneOfDict(object):
-    """ Validator which succeeds if the value passed to it is one of
-    a fixed set of values """
+    """
+    Validator which succeeds if the value passed to it is one of
+    a fixed set of values
+    """
     def __init__(self, choices):
         self.choices = choices
 
@@ -48,37 +55,50 @@ class OneOfDict(object):
             raise colander.Invalid(node, err)
 
 
-
-
 def sequence_required_validator(form, value):
+    """
+    Validator that returns a 'required' error for None or empty sequences.  This is a custom validator for sequences
+    that can't enforce at least item being present at the start (SEO/FOR codes - their value needs to be selected first)
+
+    :param form: Form to validate on
+    :param value: Value of the sequence (this should be a list)
+    :return: None, raise a colander.Invalid error if the sequence doesn't have at least 1 item.
+    """
     if not isinstance(value, list) or len(value) < 1:
         exc = colander.Invalid(form, 'Required.')
         raise exc
 
-
-
 ########################################################################################################################
 ###################################### MODELS FOR CREATING METADATA RECORDS ###########################################
 ########################################################################################################################
-
-
 def research_theme_validator(form, value):
+    """
+    Validation that at least 1 research theme is selected.
+
+    :param form: Form to validate on
+    :param value: Value of the research theme's mapping
+    :return: None, raise a colander.Invalid error if there is no research theme selected.
+    """
     error = True
-    exc = colander.Invalid(form, 'At least 1 research theme or Not aligned needs to be selected')
+    exc = colander.Invalid(form, 'At least 1 research theme needs to be selected')
 
     for key, selected in value.items():
         if selected:
             error = False
-
-            #        exc[key] = 'At least 1 research theme needs to be selected'
-
-
+        #        exc[key] = 'At least 1 research theme needs to be selected'
     if error:
         raise exc
 
 #@cache_region('long_term')
 @colander.deferred
 def getFORCodes(node, kw):
+    """
+    Helper function for retrieving and organising FOR codes from the CSV file that contains them.
+
+    :param node: Node that the returnd values are for.
+    :param kw: Arguments that are passed to the shema's bind() method.
+    :return: OrderedDict of FOR codes nested appropriately.
+    """
     FOR_CODES_FILE = kw['settings'].get("provisioning.for_codes", {})
 
     for_codes_file = open(FOR_CODES_FILE).read()
@@ -119,6 +139,13 @@ def getFORCodes(node, kw):
 #@cache_region('long_term')
 @colander.deferred
 def getSEOCodes(node, kw):
+    """
+    Helper function for retrieving and organising SEO codes from the CSV file that contains them.
+
+    :param node: Node that the returnd values are for.
+    :param kw: Arguments that are passed to the shema's bind() method.
+    :return: OrderedDict of SEO codes nested appropriately.
+    """
     SEO_CODES_FILE = kw['settings'].get("provisioning.seo_codes", {})
 
     seo_codes_file = open(SEO_CODES_FILE).read()
@@ -157,6 +184,12 @@ def getSEOCodes(node, kw):
 
 
 class FieldOfResearch(CAModel, Base):
+    """
+    Model to hold and display Fields Of Research (FOR) codes.
+    - field_of_research is only used for exporting to ReDBox (processed to contain the code only)
+    - field_of_research_label holds the value actually selected.
+    """
+
     order_counter = itertools.count()
 
     __tablename__ = 'field_of_research'
@@ -169,6 +202,11 @@ class FieldOfResearch(CAModel, Base):
 
 
 class SocioEconomicObjective(CAModel, Base):
+    """
+    Model to hold and display Fields Of Research (FOR) codes.
+    - socio_economic_objective is only used for exporting to ReDBox (processed to contain the code only)
+    - socio_economic_objective_label holds the value actually selected.
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'socio_economic_objective'
@@ -179,23 +217,30 @@ class SocioEconomicObjective(CAModel, Base):
     socio_economic_objective_label = Column(String(128), ca_order=next(order_counter), ca_title="Socio-Economic Objective", ca_widget=deform.widget.TextInputWidget(template="readonly/textinput"),
         ca_data=getSEOCodes)
 
-class Person(CAModel, Base):
-    order_counter = itertools.count()
+#class Person(CAModel, Base):
+#    order_counter = itertools.count()
+#
+#    __tablename__ = 'person'
+#    id = Column(Integer, primary_key=True, ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
+#
+#    title = Column(String(5), ca_title="Title", ca_order=next(order_counter), ca_placeholder="eg. Mr, Mrs, Dr",)
+#    given_name = Column(String(256), ca_order=next(order_counter), ca_title="Given name")
+#    family_name = Column(String(256), ca_order=next(order_counter), ca_title="Family name")
+#    email = Column(String(256), ca_order=next(order_counter), ca_missing="", ca_validator=colander.Email())
 
-    __tablename__ = 'person'
-    id = Column(Integer, primary_key=True, ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
-
-    title = Column(String(5), ca_title="Title", ca_order=next(order_counter), ca_placeholder="eg. Mr, Mrs, Dr",)
-    given_name = Column(String(256), ca_order=next(order_counter), ca_title="Given name")
-    family_name = Column(String(256), ca_order=next(order_counter), ca_title="Family name")
-    email = Column(String(256), ca_order=next(order_counter), ca_missing="", ca_validator=colander.Email())
-
+# Types of relationships as per ReDBox.
 relationship_types = (
     ("select", "---Select One---"), ("isManagedBy", "Managed by"), ("hasAssociationWith", "Associated with"),
     ("hasCollector", "Aggregated by")
     , ("isEnrichedBy", "Enriched by"))
 
 class Party(CAModel, Base):
+    """
+    Parties associated with a project/metadata record, currently parties are only people which are selected from a
+    mint lookup widget but this could be upgraded to include other parties such as groups or organisations.
+    - party_relationship and identifier are the primary fields the only ones set by the user interface.
+    - Other fields are filled before creating metadata records by looking up Mint.
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'party'
@@ -234,6 +279,9 @@ class Party(CAModel, Base):
 
 
 class Keyword(CAModel, Base):
+    """
+    Metadata record keywords.
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'keyword'
@@ -244,6 +292,9 @@ class Keyword(CAModel, Base):
 
 
 class Collaborator(CAModel, Base):
+    """
+    Metadata record collaborators, these are organisations, groups or people that can't be entered as a party.
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'collaborator'
@@ -253,8 +304,35 @@ class Collaborator(CAModel, Base):
     collaborator = Column(String(256), ca_title="Collaborator", ca_name="dc:contributor.locrel:clb.0.foaf:Agent",
         ca_placeholder="eg. CSIRO, University of X, Prof. Jim Bloggs, etc.")
 
+class Creator(CAModel, Base):
+    """
+    Person to use in the citation as a creator, this is typically pre-filled using all parties setup on the general
+    details page.
+
+    This table is required for 2 reasons:
+    - Allow users to customise the citation (rather than just using all people added on general details page).
+    - Transparent export to metadata records via CAModel.toXML().
+    """
+    order_counter = itertools.count()
+
+    __tablename__ = 'creator'
+    id = Column(Integer, primary_key=True, nullable=False, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+    metadata_id = Column(Integer, ForeignKey('metadata.id'), ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
+
+    title = Column(String(5), ca_name="dc:biblioGraphicCitation.dc:hasPart.locrel:ctb.0.foaf:title", ca_title="Title", ca_order=next(order_counter), ca_placeholder="eg. Mr, Mrs, Dr",)
+    given_name = Column(String(256), ca_name="dc:biblioGraphicCitation.dc:hasPart.locrel:ctb.0.foaf:givenName", ca_order=next(order_counter), ca_title="Given name")
+    family_name = Column(String(256), ca_name="dc:biblioGraphicCitation.dc:hasPart.locrel:ctb.0.foaf:familyName", ca_order=next(order_counter), ca_title="Family name")
+
+    def __init__(self, title=None, given_name=None, family_name=None):
+        super(Creator, self).__init__()
+        self.title = title
+        self.given_name = given_name
+        self.family_name = family_name
 
 class CitationDate(CAModel, Base):
+    """
+    Citation date(s) for metadata records.
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'citation_date'
@@ -275,6 +353,10 @@ class CitationDate(CAModel, Base):
 
 attachment_types = (("data", "Data file"), ("supporting", "Supporting material"), ("readme", "Readme"))
 class Attachment(CAModel, Base):
+    """
+    Metadata record attachment (currently not immplemented for ReDBox export so it doesn't really do anything).
+    """
+
     order_counter = itertools.count()
 
     __tablename__ = 'attachment'
@@ -293,6 +375,9 @@ class Attachment(CAModel, Base):
 
 
 class RelatedPublication(CAModel, Base):
+    """
+    Publications that are related to the metadata table/record, this is basically a title, URL, and optional note.
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'related_publication'
@@ -304,6 +389,9 @@ class RelatedPublication(CAModel, Base):
     notes = Column(String(512), ca_name="dc:relation.swrc:Publication.0.skos:note", ca_title="Note", ca_missing="", ca_placeholder="eg. This publication provides additional information on xyz", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
 
 class RelatedWebsite(CAModel, Base):
+    """
+    Websites that are related to the metadata table/record, this is basically a title, URL, and optional note.
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'related_website'
@@ -316,6 +404,10 @@ class RelatedWebsite(CAModel, Base):
 
 
 class MetadataNote(CAModel, Base):
+    """
+    Note description(s) for the metadata record, this is an optional sequence of description fields.
+    - note_desc is the relavant field, the others are used for exporting to redbox.
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'metadata_note'
@@ -368,6 +460,10 @@ class MetadataNote(CAModel, Base):
 
 
 class Metadata(CAModel, Base):
+    """
+    Main metadata table/form that is an almost direct mapping to exported metadata records.
+    - Many of the fields with HiddenWidget's are only used for metadata record/ReDBox export.
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'metadata'
@@ -641,7 +737,8 @@ class Metadata(CAModel, Base):
         ca_requires_admin=True, ca_group_end="legality", )
 
     #-------------citation--------------------
-    custom_citation = Column(Boolean(), ca_title="Provide Custom Citation", ca_order=next(order_counter), ca_default=False, ca_page="information", ca_group_requires_admin=True,
+    custom_citation = Column(Boolean(), ca_title="Provide Custom Citation", ca_order=next(order_counter),
+        ca_default=False, ca_page="information", ca_group_requires_admin=True, ca_requires_admin=True,
         ca_description="<i>Select this if you would like to alter the default citation.</i>",
         ca_widget=deform.widget.CheckboxWidget(template="checked_conditional_input", inverted=True),)
 
@@ -706,8 +803,18 @@ class Metadata(CAModel, Base):
 #        ca_group_end="additional_information")
 
 
+def create_project_validator(form, value):
+    """
+    Create project validator for the create project page, this validates that:
+    - Either a valid grant is entered or the no_activity checkbox is unselected (unselected means don't use activity).
+    - Either a valid template is selected or the use_template checkbox is unselected.
+    - A valid project manager is entered using the mint lookup autocomlete widget
+    - A valid project lead is entered using the mint lookup autocomlete widget
 
-def grant_validator(form, value):
+    :param form:
+    :param value:
+    :return:
+    """
     error = False
     exc = colander.Invalid(form) # Uncomment to add a block message: , 'At least 1 research theme or Not aligned needs to be selected')
 
@@ -742,6 +849,13 @@ def grant_validator(form, value):
 ########################################################################################################################
 
 class LocationOffset(CAModel, Base):
+    """
+    Location offsets provide the ability to set a dataset's location as an offset from the selected dataset location
+    or a data entry's location as an offset from the dataset's location.
+
+    This is usefull for situations where the distance from a set point is more logical than the actual location itself,
+    such as this sensor is 1m higher than the base location.
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'location_offset'
@@ -801,6 +915,9 @@ field_types = (
     )
 
 class MethodAttachment(CAModel, Base):
+    """
+    An attachment to further describe the data collection method, this would typically be a data sheet or similar.
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'method_attachment'
@@ -812,6 +929,10 @@ class MethodAttachment(CAModel, Base):
 
 
 class MethodWebsite(CAModel, Base):
+    """
+    A website that futher describes the data collection method, this may give in-depth details of the science behind
+    the method used or where the chosen method was derived from.
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'method_website'
@@ -822,47 +943,22 @@ class MethodWebsite(CAModel, Base):
     url = Column(String(256), ca_validator=colander.url, ca_title="URL", ca_placeholder="eg. http://www.somewhere.com.au", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
     notes = Column(Text(), ca_title="Notes", ca_missing="", ca_placeholder="eg. This article provides additional information on xyz", ca_widget=deform.widget.TextInputWidget(css_class="full_width", size=40))
 
+# many-to-many association table for the MethodSchema parent's
 method_schema_to_schema = Table("schema_to_schema", Base.metadata,
     Column("child_id", Integer, ForeignKey("method_schema.id"), primary_key=True),
     Column("parent_id", Integer, ForeignKey("method_schema.id"), primary_key=True)
 )
 
-# TODO: test this validator
-def schema_validator(form, value):
-    if not value['name']:
-        exc = colander.Invalid(form)
-        exc['name'] = "The schema must have a name"
-
-    duplicates = find_duplicate_names([], [], value)
-    if len(duplicates) > 0:
-        if not exc:
-            exc = colander.Invalid(form)
-
-        for name in duplicates:
-            exc[name] = "All field names in the schema must be unique.  Please check " + str(name)
-
-    raise exc
-
-def find_duplicate_names(names, duplicates, values):
-    for key, value in values.items():
-        if isinstance(value, list):
-            for item in value:
-                find_duplicate_names(names, duplicates, values)
-
-        elif isinstance(value, dict):
-            find_duplicate_names(names, duplicates, values)
-        else:
-            if key in names and not key[0] == '_':
-                duplicates.append(key)
-            else:
-                names.append(key)
-
-    return duplicates
-
-
-
 # TODO: Test that schemas are fully recursive (eg. parents can have parents)
 class MethodSchemaField(CAModel, Base):
+    """
+    A custom fields to add to a MethodSchema this includes:
+    - Data type
+    - Special data type attributes such as values for select fields
+    - field name (internal_name)
+    - Form display options such as placeholder, display name (_name) and description.
+    """
+
     order_counter = itertools.count()
 
     __tablename__ = 'method_schema_field'
@@ -883,7 +979,7 @@ class MethodSchemaField(CAModel, Base):
     units = Column(String(256), ca_placeholder="eg. mm", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_units"),)#ca_force_required=True)
 
     placeholder = Column(String(256), ca_title="Example", ca_placeholder="eg. 26.3", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_example"))
-    default = Column(String(256), ca_title="Default Value", ca_placeholder="Use appropriately where the user will usually enter the same value.", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_default"))
+    default = Column(String(256), ca_title="Default Value", ca_placeholder="", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_default"))
     values = Column(Text(), ca_title="List of Values", ca_placeholder="Provide possible selections", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_values"))
     #    validators = Column(String(256), ca_title="Validator", ca_placeholder="eg. Numerical value with decimal places or what values are expected such as for a dropdown box", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_validators"))
     notes = Column(String(256), ca_title="Admin Notes", ca_placeholder="eg. Please read this field from the uploaded files, it will follow a pattern like temp:xxx.xx", ca_widget=deform.widget.TextAreaWidget(css_class="full_width custom_field_notes"))
@@ -911,6 +1007,14 @@ class MethodSchemaField(CAModel, Base):
         self.type = type
 
 class MethodSchema(CAModel, Base):
+    """
+    Represents a data schema or basically defines the database table to store the ingested data in:
+    - Schema type identifies whether this schema is for data entries or calibrations
+    - Setting template schema to True will allow this schema to be selected as a standardised field (parent schema)
+    - parents are other MethodSchema's that this schema extends, or in ither words this schema will have all
+      custom_fields that its parents have.
+    - custom_fields define data that is stored (eg. each custom field is a column in the defined table).
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'method_schema'
@@ -949,58 +1053,79 @@ class MethodSchema(CAModel, Base):
 #    methods = relationship("Method", ca_order=next(order_counter), ca_exclude=True,)
 
 def method_schema_validator(form, value):
-    pass # TODO
+    """
+    Validate that the schema has at least 1 field and doesn't have custom fields or parent custom_fields with
+    duplicate names.
+
+    :param form: MethodSchema Form to validate on
+    :param value: value to validate
+    :return: None, raise a colander.Invalid error if the schema or any of the custom fields don't have a name.
+    """
+    error = False
+    exc = colander.Invalid(form) # Uncomment to add a block message: , 'At least 1 research theme or Not aligned needs to be selected')
+
+    # Check that there is at least 1 field
+    if len(value['method:data_type:custom_fields']) + len(value['method:data_type:parents']) == 0:
+        exc.msg = "The project must have at least one standardised or custom field."
+        error = True
+
+    # Check that each field has a name
+    for i in range(len(value['method:data_type:custom_fields'])):
+        if not value['method:data_type:custom_fields'][i]['methodschemafield:_name']:
+            exc['method:data_type:custom_fields'] = "All fields require a valid name to be set."
+
+    # Check for fields with duplicate names
+    duplicates = find_duplicate_names(value)
+    if len(duplicates) > 0:
+        for name in duplicates:
+            exc[name] = "All field names in the schema must be unique.  Please check " + str(name)
+
+    if error:
+        raise exc
+
+def find_duplicate_names(values, names=None, parent=False):
+    # FIXME: Deform schemas for parents only go 1 level deep - needs to read parents from DB to check fully recursive.
+    """
+    Helper method to identify if two custom fields, or parent fields have the same name.  This is used in the
+    schema_validator.
+
+    :param names: Names that have already been found, this is used for recursibe calls.
+    :param values: Form values to be checked.
+    :return: Array of all duplicate field names.
+    """
+    if not names: names = []
+    duplicates = []
+
+    name_key = 'methodschemafield:_name'
+    if parent:
+        parent_key = 'methodschema:parents'
+        custom_fields_key = 'methodschema:custom_fields'
+    else:
+        parent_key = 'method:data_type:parents'
+        custom_fields_key = 'method:data_type:custom_fields'
+
+    if parent_key in values:
+        for parent in values[parent_key]:
+            duplicates.extend(find_duplicate_names(parent, names, True))
+
+    for field in values[custom_fields_key]:
+        if field[name_key] in names:
+            duplicates.append(field[name_key])
+        else:
+            names.append(field[name_key])
+
+    return duplicates
+
 #    if len(value.custom_fields) == 0 and len(value.parents) == 0:
-#        return colander.Invalid(form, 'A valid data type needs to be entered, add a template data type and/or add custom fields')
+#        return colander.Invalid(form, 'A valid data type needs to be entered, add a template data type and/or add
+#               custom fields')
 
-def custom_processing_validator(form, value):
-    pass
-    #TODO
-#    with open(value) as f:
-#        script = f.read()
-#        if model.dataset_data_source.custom_processing_parameters is not None:
-#            temp_params = [param.strip() for param in model.dataset_data_source.custom_processing_parameters.split(",")]
-#            named_params = {'args': model.dataset_data_source.custom_processing_parameters}
-#            unnamed_params = []
-#            for param in temp_params:
-#                if '=' in param:
-#                    param_parts = param.split("=")
-#                    named_params[param_parts[0]] = param_parts[1]
-#                else:
-#                    unnamed_params.append(param)
-#
-#            try:
-#                script = script.format(*unnamed_params, **named_params)
-#            except KeyError as e:
-#                raise ValueError("Invalid custom processing parameters for {} dataset: {}".format(model.name, e.message))
-#            data_source.processing_script = script
-#
-#    error = False
-#    exc = colander.Invalid(form) # Uncomment to add a block message: , 'At least 1 research theme or Not aligned needs to be selected')
-#
-#    mint = MintLookup(None)
-#
-#    if value['publish_dataset'] is True and value['publish_date'] == colander.null:
-#     exc['publish_date'] = "Required"
-#     error = True
-#    elif value['no_activity'] is True:
-#     if mint.get_from_identifier(value['activity']) is None:
-#         exc['activity'] = "The entered activity isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
-#         error = True
-#
-#    if mint.get_from_identifier(value['project_lead']) is None:
-#         exc['project_lead'] = "The entered project lead isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
-#         error = True
-#
-#    if mint.get_from_identifier(value['data_manager']) is None:
-#         exc['data_manager'] = "The entered data manager isn't a valid Mint identifier.  Please use the autocomplete feature to ensure valid values."
-#         error = True
-#
-#    if error:
-#     raise exc
-
-# Abstract the sampling field out of the datasources so they are consistent
 class _sampling(Column):
+    """
+    Abstract the sampling field out of the datasources so they are consistent.
+
+    Sampling indicates when a data source that accesses external resources should check to see if there is anything new.
+    """
     def __init__(self, **kw):
         super(_sampling, self).__init__(INTEGER(), ca_title="Periodic Sampling (How often should new files be looked for)",
             ca_widget=deform.widget.TextInputWidget(regex_mask="^(\\\\d*)$", strip=False),
@@ -1008,10 +1133,19 @@ class _sampling(Column):
                     "<i>(Advanced) If you require something more advanced almost any custom needs can be implemented "
                     "with a custom processing script (below).</i>", **kw)
 
-# Abstract the custom processing script field out of the datasources so they are consistent
+
 def _custom_processor(**kw) :
+    """
+    Abstract the custom processing script field out of the datasources so they are consistent
+
+    Custom processors are used for customising how data is stored and indexed when ingested, they are part of data
+    sources.
+
+    :param kw: ColanderAlchemy arguments that define the database table and form display.
+    :return: The Database Column/form element that this function created.
+    """
     return relationship("CustomProcessor", uselist=False, ca_collapsed=False,
-        ca_title="Custom Data Processing (Read data from the found file)",  ca_validator=custom_processing_validator,
+        ca_title="Custom Data Processing (Read data from the found file)",
         ca_help="Custom data processing is a flexible method of adding data to this system without knowing what that data will be in advance:"
                 "<ul>"
                 "<li>Pull data sources read a file from the folder address entered above</li>"
@@ -1023,6 +1157,11 @@ def _custom_processor(**kw) :
         , **kw)
 
 class _uri_address(Column):
+    """
+    Abstract the uri_address field out of the datasources so they are consistent.
+
+    The URI address provides the location of external resources that the data source looks at (eg. a file server).
+    """
     def __init__(self, **kw):
         super(_uri_address, self).__init__(Text(), ca_title="Address (URL/URI)", ca_validator=colander.url,
             ca_placeholder="eg. http://example.com.au/folder/",
@@ -1031,8 +1170,12 @@ class _uri_address(Column):
                     "custom processing script so that information can be read from it (eg. a timestamp).</i>", **kw)
 
 
-# Id of the data_entry schema field used for the datasource file
+
 class _data_file(Column):
+    """
+    Abstract the data file field out of the datasources so they are consistent.
+    The data file field is used to hold raw data for most data sources.
+    """
     def __init__(self, **kw):
         super(_data_file, self).__init__(Integer, ca_title="File Field",
             ca_name="data_file",
@@ -1043,6 +1186,12 @@ class _data_file(Column):
 
 
 class CustomProcessor(CAModel, Base):
+    """
+    Custom processor table/form that holds all information needed to customise how data is processed and added to the
+    data storage schema (data configuration).
+
+    This includes the python script itself as well as parameters and user descriptions.
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'custom_processor'
@@ -1068,6 +1217,11 @@ class CustomProcessor(CAModel, Base):
 
 
 class FormDataSource(CAModel, Base):
+    """
+    A data source that only ingests data from manual user uploads (eg. empty/no data source).
+
+    This is really provided to give a user friendly experience.
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'form_data_source'
@@ -1076,6 +1230,14 @@ class FormDataSource(CAModel, Base):
 #    data_file = Column(Integer, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(),)
 
 class PullDataSource(CAModel, Base):
+    """
+    Ingest data from an external file server, it is anticipated that this is the data source that will be used in most
+    cases.
+    - The address of the external file server is provided via the uri field.
+    - Optional filtering of files can be specified by filename_pattern.
+    - periodic_sampling configures the time period between polls for new data.
+    - custom processor defines how data is read from the file into fields setup by data configuration (the data schema).
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'pull_data_source'
@@ -1144,6 +1306,11 @@ class PullDataSource(CAModel, Base):
 
 
 class PushDataSource(CAModel, Base):
+    """
+    At this point the push data source isn't fully supported, the intended purpose is to allow external (authenticated)
+    applications/programs to push their data into the ingester platform through the ingesterapi.
+    """
+
     order_counter = itertools.count()
 
     __tablename__ = 'push_data_source'
@@ -1159,6 +1326,10 @@ sos_variants = (("52North", "52 North"),)
 sos_versions = ((SOSVersions.v_1_0_0, "1.0.0"),)
 
 class SOSScraperDataSource(CAModel, Base):
+    """
+    Dump all data from a Sensor Observation Service (SOS) into the ingester platform, custom processors can further
+    parse specific sensors/data as needed.
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'sos_scraper_data_source'
@@ -1194,6 +1365,15 @@ class SOSScraperDataSource(CAModel, Base):
 
 @colander.deferred
 def dataset_select_widget(node, kw):
+    """
+    Deform widget for selecting fields of type file from the associated data configuration (data schema as setup on the
+    methods page).
+
+    :param node: The node/form element that this widget is for.
+    :param kw: Widget arguments such as template
+    :return: The widget that this function creates.
+    """
+
     if 'datasets' in kw:
         datasets = kw['datasets']
         dataset_values = []
@@ -1220,6 +1400,16 @@ def dataset_select_widget(node, kw):
 
 
 class DatasetDataSource(CAModel, Base):
+    """
+    Further processes previously ingested data and stores it as per the associated methods data configuration.
+    - Select another dataset as the data source for this dataset.
+    - When the selected dataset receives data, the output from its custom processing script is given to this data source.
+    - This data source then processes it further storing more relevant data (eg. calibrated vs raw).
+
+    This allows chained processing and storage of data, such as with the artificial tree where raw data for the whole
+    tree is ingested in one dataset and per sensor datasets further process that file into indexed temperatures
+    and humidity's.
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'dataset_data_source'
@@ -1242,7 +1432,7 @@ class DatasetDataSource(CAModel, Base):
 
 class MethodTemplate(CAModel, Base):
     """
-    Method templates that can be used to pre-populate a method with as well as datasets created for that method.
+    Method templates that can be used to pre-populate a method as well as datasets created for that method.
     """
     __tablename__ = 'method_template'
     order_counter = itertools.count()
@@ -1261,6 +1451,13 @@ class MethodTemplate(CAModel, Base):
 
 
 class Method(CAModel, Base):
+    """
+    Represents a method (eg. the methods page), which includes:
+    - metadata to describe the method (name, description, related websites and attachments).
+    - Data source (how the data is ingested)
+    - Data configuration (how data is stored and indexed for searching).
+    - Linked to datasets (datasets page).
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'method'
@@ -1275,14 +1472,21 @@ class Method(CAModel, Base):
         ca_description="<ol><li>First select the category or organisational group on the left hand side.</li>"
                        "<li>Then select the most relevant template from the list on the right hand side.</li></ol>")
 
-    method_name = Column(String(256), ca_order=next(order_counter),
+    method_name = Column(String(256), ca_order=next(order_counter), ca_force_required=True,
         ca_placeholder="Searchable identifier for this input method (eg. Invertebrate observations)",
-        ca_description="Give the data collection method a name, this will be used in the title of the generated dataset records.",
-        ca_help="<p>The entered name will be used in the generated dataset record as: &lt;project title&gt; at &lt;location name&gt;(&lt;lat, long, height&gt;) collected by &lt;method name&gt;</p>"
-                "<p>The name and description will also be used to identify the method used in the <i>datasets</i> step</p>")
-    method_description = Column(Text(), ca_order=next(order_counter), ca_title="Description", ca_widget=deform.widget.TextAreaWidget(rows=10),
-        ca_description="Provide a description of this method, this should include what, why and how the data is being collected but <b>Don\'t enter where or when</b> as this information is relevant to the dataset, not the method.",
-        ca_placeholder="Enter specific details for this method, users of your data will need to know how reliable your data is and how it was collected.")
+        ca_description="Give the data collection method a name, this will be used in the title of the generated dataset"
+                       " records.",
+        ca_help="<p>The entered name will be used in the generated dataset record as: &lt;project title&gt; at "
+                "&lt;location name&gt;(&lt;lat, long, height&gt;) collected by &lt;method name&gt;</p>"
+                "<p>The name and description will also be used to identify the method used in the <i>datasets</i>"
+                " step</p>")
+    method_description = Column(Text(), ca_order=next(order_counter), ca_title="Description",
+        ca_widget=deform.widget.TextAreaWidget(rows=10), ca_force_required=True,
+        ca_description="Provide a description of this method, this should include what, why and how the data is being "
+                       "collected but <b>Don\'t enter where or when</b> as this information is relevant to the dataset,"
+                       " not the method.",
+        ca_placeholder="Enter specific details for this method, users of your data will need to know how reliable your"
+                       " data is and how it was collected.")
 
     data_sources=(
         (FormDataSource.__tablename__,"Web form/manual only"),
@@ -1307,7 +1511,7 @@ class Method(CAModel, Base):
 
     method_schema_id = Column(Integer, ForeignKey('method_schema.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     data_type = relationship("MethodSchema", ca_order=next(order_counter), uselist=False, ca_widget=MethodSchemaWidget(),
-        ca_title="Data Configuration", ca_child_validator=method_schema_validator,
+        ca_title="Data Configuration", ca_validator=method_schema_validator,
         ca_collapsed=False,
         ca_help="<i>Configuration of the type of data being collected is an advanced topic, help can be requested through the contact forms.</i>"
                 "<ol>"
@@ -1341,6 +1545,12 @@ class Method(CAModel, Base):
         cascade="all, delete-orphan", ca_widget=deform.widget.HiddenWidget())
 
 class Dataset(CAModel, Base):
+    """
+    Each dataset represents a single data ingester and metadata record associated with a method.
+    - The dataset configures the data source and the location for the data ingestion (for searching purposes).
+    - A metadata record is only created if 'Publish Metadata Records' is selected + date to publish and the location
+      are used in the creation of the metdata record.
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'dataset'
@@ -1417,37 +1627,12 @@ class Dataset(CAModel, Base):
 ########################################################################################################################
 ########################################### GENERAL MODELS FOR PROJECT PAGES ###########################################
 ########################################################################################################################
-class Creator(CAModel, Base):
-    order_counter = itertools.count()
-
-    __tablename__ = 'creator'
-    id = Column(Integer, primary_key=True, nullable=False, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
-    metadata_id = Column(Integer, ForeignKey('metadata.id'), ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
-
-    title = Column(String(5), ca_name="dc:biblioGraphicCitation.dc:hasPart.locrel:ctb.0.foaf:title", ca_title="Title", ca_order=next(order_counter), ca_placeholder="eg. Mr, Mrs, Dr",)
-    given_name = Column(String(256), ca_name="dc:biblioGraphicCitation.dc:hasPart.locrel:ctb.0.foaf:givenName", ca_order=next(order_counter), ca_title="Given name")
-    family_name = Column(String(256), ca_name="dc:biblioGraphicCitation.dc:hasPart.locrel:ctb.0.foaf:familyName", ca_order=next(order_counter), ca_title="Family name")
-
-    def __init__(self, title=None, given_name=None, family_name=None):
-        super(Creator, self).__init__()
-        self.title = title
-        self.given_name = given_name
-        self.family_name = family_name
-
-
-class Note(CAModel, Base):
-    order_counter = itertools.count()
-
-    __tablename__ = 'note'
-    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    project_id = Column(Integer, ForeignKey('project.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget())
-
-    note = Column(Text(), ca_widget=deform.widget.TextAreaWidget())
-
-    def __init__(self, note=None):
-        self.note = note
-
 class Region(CAModel, Base):
+    """
+    NOT YET IMMPLEMENTED.
+
+    This is intended as a representation of polygons/line locations to integrate with the ingester platform.
+    """
     __tablename__ = 'region'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
     dam_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget())
@@ -1456,6 +1641,7 @@ class Region(CAModel, Base):
     # TODO: Regions
 
 
+# Validate that manually entered location's are correct WTK format.  Note: Multi-xxx aren't implemented.
 location_validator = colander.Regex(
     re.compile(r"""(point\([+-]?\d*\.?\d* [+-]?\d*\.?\d*\))|(polygon\(\(([+-]?\d*\.?\d*\s[+-]?\d*\.?\d*,?\s?)*\)\))|(linestring\(([+-]?\d*\.?\d*\s[+-]?\d*\.?\d*,?\s?)*\))""", re.I),
     "Must be valid WTK"
@@ -1472,6 +1658,10 @@ location_validator = colander.Regex(
 #)
 
 class Location(CAModel, Base):
+    """
+    Representation of a location or region on earth, this includes the coordinates in WTK format as well as a name and
+    elevation above mean sea level.
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'location'
@@ -1491,31 +1681,45 @@ class Location(CAModel, Base):
     # regions = relationship("Region", ca_widget=deform.widget.HiddenWidget())
 
     def is_point(self):
+        """
+        Test if this is a point rather than a polygon or other WTK type.
+        """
         return self.location is not None and self.location[:5] == "POINT"
 
     def get_latitude(self):
+        """
+        get the latitude, this is only relevant for points - other types will return a NotImplementedError
+        """
         if self.is_point():
             return float(self.location[6:-1].split(" ")[0].strip())
 
         raise NotImplementedError("Get location latitude is not implemented for anything other than points.")
 
     def get_longitude(self):
+        """
+        get the longitude, this is onlyrelevantt for points - other types will return a NotImplementedError
+        """
         if self.is_point():
             return float(self.location[6:-1].split(" ")[1].strip())
 
         raise NotImplementedError("Get location longitude is not implemented for anything other than points.")
 
     def get_points(self):
+        """
+        NOT IMPLEMENTED - Usage is intended for integration with region's (which also aren't implemented).
+        """
         return [[]]
 
-
 class ProjectNote(CAModel, Base):
+    """
+    Simple text field to leave notes about a project on the submit page.
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'project_note'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     project_id = Column(Integer, ForeignKey('project.id'), nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-#    TODO: user_id = Column(Integer, ForeignKey('project.id'), nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    user_id = Column(Integer, ForeignKey('user.id'), nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
     comment = Column(Text(),
         ca_placeholder="eg. Please enter all metadata, the supplied processing script has errors, please extend the existing temperature data type so that your data is searchable, etc..."
@@ -1523,7 +1727,9 @@ class ProjectNote(CAModel, Base):
 
 class ProjectTemplate(CAModel, Base):
     """
-    Indicate an existing project is a template that others can use to pre-populate their projects
+    Use an existing project as a template that others can use to pre-populate their projects.
+    - Category allows grouping of similar templates
+    - Name and description allow administrators to describe the template to users.
     """
     order_counter = itertools.count()
 
@@ -1537,21 +1743,24 @@ class ProjectTemplate(CAModel, Base):
 
 choices = ['JCU Name 1', 'JCU Name 2', 'JCU Name 3', 'JCU Name 4']
 
-class UntouchedFields(CAModel, Base):
-    __tablename__ = 'untouched_fields'
-    order_counter = itertools.count()
-    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget())
+#class UntouchedFields(CAModel, Base):
+#    __tablename__ = 'untouched_fields'
+#    order_counter = itertools.count()
+#    id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget())
+#
+#    project_id = Column(Integer, ForeignKey('project.id'), nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+#    dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+#    method_schema_id = Column(Integer, ForeignKey('method_schema.id'), nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+#    method_schema_field_id = Column(Integer, ForeignKey('method_schema_field.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+#    method_id = Column(Integer, ForeignKey('method.id'),nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+#
+#    field_name = Column(String(100))
 
-    project_id = Column(Integer, ForeignKey('project.id'), nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    method_schema_id = Column(Integer, ForeignKey('method_schema.id'), nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    method_schema_field_id = Column(Integer, ForeignKey('method_schema_field.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    method_id = Column(Integer, ForeignKey('method.id'),nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
-    field_name = Column(String(100))
-
-# Page names below need to be synchronised with WORKFLOW_STEPS->href in workflows.py
 class UntouchedPages(CAModel, Base):
+    """
+    Records if a page has been submitted yet, don't validate the page until it is submitted the first time.
+    """
     __tablename__ = 'untouched_pages'
     order_counter = itertools.count()
     id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget())
@@ -1565,9 +1774,21 @@ class UntouchedPages(CAModel, Base):
 
 
 class ProjectStates(object):
+    """
+    Simple enumeration class for project states
+    """
     OPEN, SUBMITTED, ACTIVE, DISABLED = range(4)
 
 def project_validator(form, value):
+    """
+    Validate that the project as at least 1 method and at least 1 dataset.
+
+    This is only used for checking validation on the submit page.
+
+    :param form: The form to validate
+    :param value: Appstruct used to render/validate the form
+    :return: None, raise an exception if validation fails.
+    """
     error = False
     exc = colander.Invalid(form) # Uncomment to add a block message: , 'At least 1 research theme or Not aligned needs to be selected')
 
@@ -1582,19 +1803,24 @@ def project_validator(form, value):
         raise exc
 
 def method_validator(form, value):
-    pass # TODO
-#    error = False
-#    exc = colander.Invalid(form) # Uncomment to add a block message: , 'At least 1 research theme or Not aligned needs to be selected')
-#
-#    if value['method:publish_dataset'] is True and value['dataset:publish_date'] is None:
-#        exc['dataset:publish_date'] = "Required"
-#        error = True
-#
-#    if error:
-#        raise exc
+    """
+    NOT IMPLEMENTED - Update with methods page validation if needed.
+
+    :param form:
+    :param value:
+    :return:
+    """
+    pass
 
 
 def dataset_validator(form, value):
+    """
+    Validates that the datasets page either doesn't publish a metadata record, or a valid publish date is given.
+
+    :param form: Dataset schemas/form to validate
+    :param value: Appstruct/values passed in for validation.
+    :return: None, raise a colander.Invalid exception if the validation fails.
+    """
     error = False
     exc = colander.Invalid(form) # Uncomment to add a block message: , 'At least 1 research theme or Not aligned needs to be selected')
 
@@ -1607,6 +1833,17 @@ def dataset_validator(form, value):
 
 
 class Project(CAModel, Base):
+    """
+    Represents the project being setup, this is basically a wrapper tieing metadata, methods and datasets together as
+    well as adding administration functionality such as project states, templating, notes and who/when it was created.
+
+    All pages display the project schema and the ca_page attributes are used to configure what is displayed on each
+    page.
+
+    It was decided that a more logical database structure was more important than creating models that fit the
+    desired page layout, so additional ColanderAlchemy functionality was implemented to support this. The ca_page
+    attribute functionality is implemented in controllers/ca_scripts.
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'project'
@@ -1656,7 +1893,8 @@ class Project(CAModel, Base):
     datasets_ready = Column(Boolean(), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(template="submit_overview", true_val='true', false_val='false'), default=False,
         ca_group_start="overview", ca_group_end="overview", ca_group_title="Summary of Datasets & Records", ca_group_collapsed=False, ca_page="submit",)
 
-    project_notes = relationship("ProjectNote", ca_title="Project Note",  ca_order=next(order_counter), ca_page="submit",
+    project_notes = relationship("ProjectNote", ca_title="Project Notes",  ca_order=next(order_counter), ca_page="submit",
+            ca_child_title="Project Note",
             cascade="all, delete-orphan", ca_widget=deform.widget.SequenceWidget(min_len=1),
             ca_help="Project comments that are only relevant to the provisioning system (eg. comments as to why the project was reopened after the creator submitted it).")
 
@@ -1670,6 +1908,12 @@ class Project(CAModel, Base):
 
 
 class CreatePage(colander.MappingSchema):
+    """
+    The create project wizard collects the minimum required data and pre-fills as many fields as possible from the
+    chosen template and grant.
+
+    This is a direct Deform schema, not a ColanderAlchemy schema wich is assocated with an SQLalchemy database table.
+    """
     use_template = colander.SchemaNode(colander.Boolean(), help="",
         title="Use a project template (only select if your project is similar to a previous one)", default=False,
         widget=deform.widget.CheckboxWidget(template="checked_conditional_input", inverted=True))
@@ -1719,6 +1963,12 @@ method_template = colander.SchemaNode(colander.Integer, title="Select a template
 ########################################################################################################################
 
 class DataEntry(CAModel, Base):
+    """
+    NOT YET IMPLEMENTED
+
+    Represents a point of data in the ingester platform displayed using a Deform schema dynamically generated from the
+    methods data configuration (data schema).
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'data_entry'
@@ -1730,6 +1980,15 @@ class DataEntry(CAModel, Base):
 
 
 class IngesterLogsFiltering(colander.MappingSchema):
+    """
+    Provides filtering of ingester platform logs.  Filtering is based on:
+    - level
+    - start data
+    - end date
+
+    This is a direct Deform schema, not a ColanderAlchemy schema wich is assocated with an SQLalchemy database table.
+    """
+
     log_levels=(("ALL","Show All"),
                 ("ERROR","Errors"),
                 ("INFO", "Informational"),
@@ -1742,6 +2001,11 @@ class IngesterLogsFiltering(colander.MappingSchema):
         multiple=False),missing=colander.null)
 
 class IngesterLogs(colander.MappingSchema):
+    """
+    Ingester logs provide feedback on the state of data ingestion and are looked up through the ingesterapi
+
+    This is a direct Deform schema, not a ColanderAlchemy schema wich is assocated with an SQLalchemy database table.
+    """
     filtering = IngesterLogsFiltering(widget=deform.widget.MappingWidget(template="inline_mapping", readonly_template="readonly/inline_mapping", show_label=True),
         title="Filter Logs",
         help='Filter the ingester event logs based on level (multple seletion) as well as date start, end or range.',
@@ -1751,6 +2015,11 @@ class IngesterLogs(colander.MappingSchema):
 
 
 class SharedUser(colander.MappingSchema):
+    """
+    Provides an interface for editing user share permissions for the current project.
+
+    This is a direct Deform schema, not a ColanderAlchemy schema wich is assocated with an SQLalchemy database table.
+    """
     user_id = colander.SchemaNode(colander.Integer(),widget=deform.widget.HiddenWidget())
     view_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.VIEW_PROJECT[0], default = True, title="View")
     edit_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_PROJECT[0],default = False, title="Edit")
@@ -1761,6 +2030,11 @@ class SharedUser(colander.MappingSchema):
     edit_ingester_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_INGESTERS[0],default = False, title="Manage Ingesters")
 
 class SharedUsers(colander.SequenceSchema):
+    """
+    Converts the SharedUser into a sequence/list.
+
+    This is a direct Deform schema, not a ColanderAlchemy schema wich is assocated with an SQLalchemy database table.
+    """
     user = SharedUser(widget=deform.widget.MappingWidget(template="inline_mapping", readonly_template="readonly/inline_mapping", show_label=True))
 #
 #@colander.deferred
@@ -1768,12 +2042,24 @@ class SharedUsers(colander.SequenceSchema):
 #    return kw['users']
 
 class Sharing(colander.MappingSchema):
+    """
+    Page that displays the list of shared user permissions.
+
+    This is a direct Deform schema, not a ColanderAlchemy schema wich is assocated with an SQLalchemy database table.
+    """
     shared_with = SharedUsers(title="Users Who This Project Is Shared With",
         widget=deform.widget.SequenceWidget(template="sharing_sequence"),
     )
 
 
 class ManageData(colander.MappingSchema):
+    """
+    NOT IMMPLEMENTED YET
+    Simple Deform schema to base data mangement from, it is anticipated that a more models will be needed for data
+    management and some may need to be dynamically created in the view.
+
+    This is a direct Deform schema, not a ColanderAlchemy schema wich is assocated with an SQLalchemy database table.
+    """
     user_id = colander.SchemaNode(colander.Integer())
 
 

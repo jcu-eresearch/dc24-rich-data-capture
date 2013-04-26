@@ -1,9 +1,8 @@
 /**
- * Created with IntelliJ IDEA.
- * User: xjc01266
+ * Javascript used for customised deform template functionality.
+ * User: Casey Bajema
  * Date: 24/09/12
  * Time: 4:44 PM
- * To change this template use File | Settings | File Templates.
  */
 
 // Javascript for help icons/text
@@ -17,7 +16,7 @@ function toggleHelp(help_icon) {
 
 }
 
-// Used as an onclick function for toggling a mapping schema
+// Used as an onclick function for toggling a sequence/mapping schema
 function toggleCollapse(fieldset, group) {
     var speed = 200;
     var collapsible_item = $(fieldset.parentNode).children('ul').first();
@@ -37,15 +36,17 @@ function toggleCollapse(fieldset, group) {
     }
 }
 
+// Used as an onclick function for toggling a sequence/mapping schema
 function collapseAll(group) {
     $('.collapsible-' + group).find('.collapsible_items').slideUp(200);
 }
 
+// Used as an onclick function for toggling a sequence/mapping schema
 function expandAll(group) {
     $('.collapsible-' + group).find('.collapsible_items').slideDown(200);
 }
 
-
+// Helper function for escaping quotes in ColanderAlchemy attributes (eg. default text/placeholder).
 function escapeQuotes(text) {
     var i = 0;
     var text_array = text.split("'");
@@ -65,6 +66,7 @@ function escapeQuotes(text) {
     return text;
 }
 
+// When the form is submitted, clear placeholder text before values are read (otherwise empty fields would be filled with placeholder values).
 function submitClearsDefaultValues(oid, default_text) {
     var form = document.getElementById('deform');
     default_text = escapeQuotes(default_text);
@@ -77,6 +79,7 @@ function submitClearsDefaultValues(oid, default_text) {
     form.setAttribute('onsubmit', submit_text);
 }
 
+// Hide all descriptions on the current page
 function hideDescriptions(hide) {
     document.hide_descriptions = hide;
 
@@ -107,7 +110,7 @@ function hideDescriptions(hide) {
 
 
 //--------------------------Map_sequence Template------------------------------------
-
+// All features (points/polygons) are added to a map layer, find the layer the feature is on for the given map.
 function findMapLayerFromFeature(feature, map) {
     var i = 0, j = 0, k = 0;
     if (typeof map === "undefined") {
@@ -137,6 +140,7 @@ function findMapLayerFromFeature(feature, map) {
     return null;
 }
 
+// Find the map that the provided layer is on.
 function findMapFromLayer(layer) {
     var i = 0, j = 0, k = 0;
     for (i; i < document.location_maps.length; i++) {
@@ -149,6 +153,7 @@ function findMapFromLayer(layer) {
     return null;
 }
 
+// Add a location to the map sequence (this is the empty boxes below the displayed map).
 function appendSequenceItem(add_link) {
     deform.appendSequenceItem(add_link);
     var fields = $(add_link.parentNode).children('ul').first().find("input[type=text].map_location");
@@ -159,6 +164,8 @@ function appendSequenceItem(add_link) {
     deleteLink.setAttribute("onclick", deleteLink.getAttribute("onclick") + " deleteFeature($(this.parentNode).find('input[type=text]')[1].feature);");
 }
 
+// Add a map feature (point/polygon) to the map itself as well as updating the most recently added fields (input
+// boxes below the map) with the textual representation of the feature.
 function addMapFeatures(oid) {
     var fields = $("#" + oid).children('ul').first().find("input[type=text].map_location");
     var map_div = $("#" + oid).children(".location_map")[0];
@@ -172,10 +179,13 @@ function addMapFeatures(oid) {
 
         fields[i].setAttribute("onblur", "locationTextModified(this);");
         fields[i].map_div = map_div;
+//        console.log("Adding " + fields[i].value + " to " + map_div);
         locationTextModified(fields[i]);
     }
+//    console.log("Finished adding map features for " + oid);
 }
 
+// Update the map feature from the updated textual representation (eg. the latitude was changed so move the point).
 function locationTextModified(input) {
     var geometry_type = input.value.substr(0, input.value.indexOf("("));
     var displayProj = new OpenLayers.Projection("EPSG:4326");
@@ -238,6 +248,7 @@ function locationTextModified(input) {
     }
 }
 
+// The feature (point/polygon) on the map was modified (using map controls) so update the textual representation of it.
 function modifyFeature(object) {
     var feature = object.feature;
     var map = object.object.map;
@@ -258,6 +269,7 @@ function modifyFeature(object) {
     }
 }
 
+// Delete the feature (point/polygon) from both the map and the sequence (input boxes below the map).
 function deleteFeature(feature) {
     var layer = findMapLayerFromFeature(feature);
 
@@ -279,6 +291,9 @@ function deleteFeature(feature) {
     feature.destroy();
 }
 
+// A new feature (point/polygon) was added to the map, if the feature isn't already associated with an input add a new
+// item to the sequence and associate it with the given feature (the feature may already be associated if a map control
+// fires featureInserted events even though the feature was only moved).
 function featureInserted(object) {
     var feature = object.feature;
     var displayProj = new OpenLayers.Projection("EPSG:4326");
@@ -359,47 +374,48 @@ function displayConditionalCheckboxItems(checkboxElement) {
     }
 }
 
-//------------------select_mapping.pt---------------------------
-function setSelectedItem(select_element) {
-    var protos = $("#select_mapping_prototypes-" + select_element.id).children(".select_mapping_prototype");
-
-    var i = 0;
-    var selectedProto;
-    for (i; i < protos.length; i++) {
-        if (protos[i].id.indexOf(select_element.value) >= 0) {
-            selectedProto = protos[i];
-            break;
-        }
-    }
-    if (selectedProto == undefined) {
-        return;
-    }
-
-//     var newHTML = (typeof selectedProto == 'undefined' ? "" : selectedProto.value);
-//    alert($(selectedProto).attr('prototype'));
-    $(selectedProto).attr('prototype', encodeURIComponent($(selectedProto).attr('prototype')));
-    var $proto_node = $(selectedProto);
-    var $before_node = $("#select_mapping_content-" + select_element.id).find('.deformInsertBefore');
-    var min_len = parseInt('0');
-    var max_len = parseInt('9999');
-    var now_len = parseInt('0');
-    deform.addSequenceItem($proto_node, $before_node);
-
-//     document.getElementById("select_mapping_content-" + select_element.id).innerHTML = newHTML;
-
-//    var scripts = $("#select_mapping_content-" + select_element.id).find("script");
+////------------------select_mapping.pt---------------------------
+//function setSelectedItem(select_element) {
+//    var protos = $("#select_mapping_prototypes-" + select_element.id).children(".select_mapping_prototype");
 //
-//    for (i = 0; i < scripts.length; i++) {
-//        if (scripts[i].innerHTML.trim().length > 0) {
-//            eval(scripts[i].innerHTML);
-//        } else if (scripts[i].src.length > 0) {
-//            $.getScript(scripts[i].src);
+//    var i = 0;
+//    var selectedProto;
+//    for (i; i < protos.length; i++) {
+//        if (protos[i].id.indexOf(select_element.value) >= 0) {
+//            selectedProto = protos[i];
+//            break;
 //        }
 //    }
-//    processJavascript($("#select_mapping_content-" + select_element.id)[0]);
-//    deform.processCallbacks();
-}
+//    if (selectedProto == undefined) {
+//        return;
+//    }
+//
+////     var newHTML = (typeof selectedProto == 'undefined' ? "" : selectedProto.value);
+////    alert($(selectedProto).attr('prototype'));
+//    $(selectedProto).attr('prototype', encodeURIComponent($(selectedProto).attr('prototype')));
+//    var $proto_node = $(selectedProto);
+//    var $before_node = $("#select_mapping_content-" + select_element.id).find('.deformInsertBefore');
+//    var min_len = parseInt('0');
+//    var max_len = parseInt('9999');
+//    var now_len = parseInt('0');
+//    deform.addSequenceItem($proto_node, $before_node);
+//
+////     document.getElementById("select_mapping_content-" + select_element.id).innerHTML = newHTML;
+//
+////    var scripts = $("#select_mapping_content-" + select_element.id).find("script");
+////
+////    for (i = 0; i < scripts.length; i++) {
+////        if (scripts[i].innerHTML.trim().length > 0) {
+////            eval(scripts[i].innerHTML);
+////        } else if (scripts[i].src.length > 0) {
+////            $.getScript(scripts[i].src);
+////        }
+////    }
+////    processJavascript($("#select_mapping_content-" + select_element.id)[0]);
+////    deform.processCallbacks();
+//}
 
+// Read all javascript in the given HTML element and run it (eg. when adding new sequence items).
 function processJavascript(parentElement) {
     var scripts = $(parentElement).find("script");
 
@@ -413,6 +429,7 @@ function processJavascript(parentElement) {
 }
 
 //--------------multi_select_sequence.pt----------------------------------------------
+// The add button was pressed to add a multi-sequence item (eg. SEO/FOR codes)
 function buttonPressed(node) {
     var oid_node = $(node).parent();
     var id = oid_node.attr('id');
@@ -455,6 +472,7 @@ function buttonPressed(node) {
     showAdd(oid_node[0].id, false);
 }
 
+// Make multi-select (eg. SEO/FOR codes) elements hide the add button when an item is deleted.
 function fix_multi_select_close(oid) {
     var oid_node = $('#' + oid);
     var close_buttons = oid_node.children('ul').first().find("span.deformClosebutton");
@@ -463,6 +481,7 @@ function fix_multi_select_close(oid) {
     }
 }
 
+// Show/Hide the add button for the multi-select identified by oid
 function showAdd(oid, show) {
     var oid_node = $('#' + oid);
 //    alert(oid_node);
@@ -492,6 +511,7 @@ function showAdd(oid, show) {
     }
 }
 
+// Set the multi-select display appropriately for when the second field is selected.
 function updateSecondFields(oid) {
     var oid_node = $('#' + oid);
 
@@ -518,6 +538,7 @@ function updateSecondFields(oid) {
     /* Make sure that the user can't have an invalid 3rd field selected when the first select is changed */
 }
 
+// Set the multi-select display appropriately for when the third field is selected.
 function updateThirdFields(oid) {
     var oid_node = $('#' + oid);
 

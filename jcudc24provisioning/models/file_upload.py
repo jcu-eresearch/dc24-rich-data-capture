@@ -1,3 +1,7 @@
+"""
+Customised widgets and functionality for file uploads in the EnMaSSe provisioning interface.
+"""
+
 import binascii
 import colander
 from pyramid_deform import chunks, string_types, _marker
@@ -9,19 +13,42 @@ __author__ = 'Casey Bajema'
 
 
 class ProvisioningUploadTempStore(object):
+    """
+    Defines how uploaded files are stored.
+    """
     def __init__(self, request, directory):
+        """
+        Initialise the file upload storage.
+
+        :param request: The HTTP request object.
+        :param directory: Parent directory for uploaded files.
+        :return: self
+        """
         self.dir = os.path.normpath(directory) + os.sep
         self.request = request
         self.session = request.session
         self.tempstore = self.session.setdefault('directory_upload.tempstore', {})
 
     def preview_url(self, name):
+        """
+        Provides the text that represents the file identified by name, the returned value is what is stored in the DB.
+        :param name: Name of the file (this is really a random identifier).
+        :return:
+        """
         return self._get_file_path(name, self.get(name)['filename'])
 
     def __contains__(self, name):
         return self.get(name) is not None
 
     def __setitem__(self, name, data):
+        """
+        Write a file to storage.
+
+        :param name: Random identifier for this file.
+        :param data: Data contained in this file.
+        :return:
+        """
+
         newdata = data.copy()
         stream = newdata.pop('fp', None)
 
@@ -37,12 +64,33 @@ class ProvisioningUploadTempStore(object):
         self.session.changed()
 
     def _get_file_path(self, name, filename):
+        """
+        Get the file path based on the random identifier and the name, this is really a way of encoding both of these
+        pieces of data into a filename that the file data is written to.
+
+        :param name: Random, unique, identifier for this file.
+        :param filename: Original filename (not the full path, just the files name and extension).
+        :return: <name>.<filename> as a unique filename to write the files data to while still maintaining the information to get the original filename.
+        """
         return "%s.%s" % (self._get_base_path(name), filename)
 
     def _get_base_path(self, name):
+        """
+        Return the base path of all uploaded files (<directory><name>).
+
+        :param name: Unique, random, identifier
+        :return: Return the base path of this file.
+        """
         return self.dir + name
 
     def get(self, name, default=None):
+        """
+        Get this file as a HTML fileupload compatible dictionary.
+
+        :param name: Unique, random, identifier
+        :param default: Default value to return if no file is found.
+        :return: Dict of data compatible for outputting to a deform fileupload widget.
+        """
         data = self.tempstore.get(name)
 
         new_data = None
@@ -88,6 +136,9 @@ class ProvisioningUploadTempStore(object):
 
 
 class ProvisioningFileUploadWidget(FileUploadWidget):
+    """
+    Deform Widget for displaying and parsing results for file uploads
+    """
     def serialize(self, field, cstruct, **kw):
         if cstruct in (colander.null, None):
             cstruct = {}
@@ -163,14 +214,22 @@ class ProvisioningFileUploadWidget(FileUploadWidget):
 
 @colander.deferred
 def upload_widget(node, kw):
+    """
+    Deferred function that creates the ProvisioningFileUploadWidget when the schem .bind() method is called.  The
+    ProvisioningFileUploadWidget requires a request object te get access to the session and .ini configurations.
+
+    :param node: Schema node that this widget is for.
+    :param kw: Arguments that are passed into the bind() method.
+    :return: ProvisioningFileUploadWidget with access to the request object.
+    """
     request = kw['request']
     tmp_store = ProvisioningUploadTempStore(request, request.registry.settings.get("workflows.files"))
     widget = ProvisioningFileUploadWidget(tmp_store)
     return widget
 
 
-class Attachment(colander.SchemaNode):
-    def __init__(self, typ=deform.FileData(), *children, **kw):
-        if not "widget" in kw: kw["widget"] = upload_widget
-        if not "title" in kw: kw["title"] = "Attach File"
-        colander.SchemaNode.__init__(self, typ, *children, **kw)
+#class Attachment(colander.SchemaNode):
+#    def __init__(self, typ=deform.FileData(), *children, **kw):
+#        if not "widget" in kw: kw["widget"] = upload_widget
+#        if not "title" in kw: kw["title"] = "Attach File"
+#        colander.SchemaNode.__init__(self, typ, *children, **kw)

@@ -59,15 +59,8 @@
                  </div>
              </div>
              <div id="content">
-                 <tal:block tal:condition="exists:view.get_message">
-                     <div id="message" tal:condition="view.get_message">
-                         ${view.get_message}
-                     </div>
-                 </tal:block>
 
                  <div id="main">
-
-
                      <div id="workflow">
                          <input id="workflow_target" form="deform" type="hidden" name="target" />
                          <div id="workflow_nav" tal:condition="not view.is_hidden_workflow">

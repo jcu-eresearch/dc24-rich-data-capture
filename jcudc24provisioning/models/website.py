@@ -1,3 +1,8 @@
+"""
+Provides all non-project related Colander (deform) and ColanderAlchemy (deform+SQLAlchemy) models, this includes general
+website schema's such as for the login page as well as general models such as users and permissions.
+"""
+
 import hashlib
 import colander
 import itertools
@@ -16,13 +21,24 @@ logger = logging.getLogger(__name__)
 
 
 class LocalLogin(colander.MappingSchema):
+    """
+    Local user login form, this allows non-shibboleth users added directly to the users table to login.
+    """
     user_name = colander.SchemaNode(colander.String(),)
     password = colander.SchemaNode(colander.String(), widget=deform.widget.PasswordWidget())
 
 class ShibbolethLogin(colander.MappingSchema):
+    """
+    Deform schema that is really just a placeholder for a custom template (schema doesn't do anything).
+
+    The template is a static image link to the shibboleth login page.
+    """
     link = colander.SchemaNode(colander.String(), widget=deform.widget.HiddenWidget(template="shibboleth_login"))
 
 class Login(colander.MappingSchema):
+    """
+    The login page that allows users to select either local login or Shibboleth login.
+    """
     shibboleth_login = ShibbolethLogin(description="<i>Login over Shibboleth using your organisations credentials.</i>",
         help="Shibboleth is a 'single-sign in', or logging-in system for computer networks and the internet. "
                 "It allows people to sign in, using just one 'identity', to various systems run by 'federations' "
@@ -35,6 +51,10 @@ class Login(colander.MappingSchema):
 
 
 class Permission(CAModel, Base):
+    """
+    Each page can be restricted to a specific permission (2 permissions can't be used), this table/form configures all
+    permissions within the system.
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'permission'
@@ -46,12 +66,20 @@ class Permission(CAModel, Base):
         self.name = name
         self.description = description
 
+"""
+Joiner table for permissions and roles, this allows each role to have many permissions and each permission to be added
+to many roles
+ """
 role_permissions_table = Table('role_permissions', Base.metadata,
     Column('permission_id', Integer, ForeignKey('permission.id')),
     Column('role_id', Integer, ForeignKey('role.id'))
 )
 
 class Role(CAModel, Base):
+    """
+    Each role can have any number of permissions and if a user is assigned a role they are are given all permissions
+    associated with the role.  Eg. giving a user the admin role gives them almost all permissions.
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'role'
@@ -65,12 +93,24 @@ class Role(CAModel, Base):
         self.description = description
         self.permissions = permissions
 
+"""
+Joiner table between users and roles wich allows a user to have many roles and each role can be assigned to many users.
+"""
 user_roles_table = Table('user_roles', Base.metadata,
     Column('role_id', Integer, ForeignKey('role.id')),
     Column('user_id', Integer, ForeignKey('user.id'))
 )
 
 class ProjectPermissions(CAModel, Base):
+    """
+    ProjectPermissions are an extended joiner table between users, permissions and projects which allows:
+    - A user to have many permissions for a specific project.
+    - A project may have many users with permissions.
+    - A user may be given permissions for many projects.
+
+    This allows users to be given permissions for individual projects, this is really useful because users can share
+    between themselves without needing administrator assistance.
+    """
     __tablename__ = 'project_permissions'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
     project_id = Column(Integer, ForeignKey('project.id'), nullable=False)
@@ -89,6 +129,14 @@ class ProjectPermissions(CAModel, Base):
 #)
 
 class User(CAModel, Base):
+    """
+    Represents a user of the system, when a user logs in through Shibboleth for the first time they are automatically
+    added to the user table.
+    - User information such as their name and contact details
+    - Authentication method (shibboleth/passwd) - passwd authentication uses the username and _password fields,
+      Shibboleth uses the username field to store the Shibboleth identifier (see shibboleth_login in views/views.py)
+    - Given permissions and roles.
+    """
     order_counter = itertools.count()
 
     __tablename__ = 'user'
@@ -116,6 +164,12 @@ class User(CAModel, Base):
 
     @password.setter
     def password(self, password):
+        """
+        Hash the password before storing it in the database.
+
+        :param password: User entered password that is to be hashed before storing it.
+        :return: None
+        """
         hashed_password = password
 
         if isinstance(password, unicode):
@@ -133,6 +187,15 @@ class User(CAModel, Base):
         self._password = hashed_password
 
     def validate_password(self, password):
+        """
+        Validate the the given password is the same as the password originally passed in for hashing and storage.
+
+        This is only valid for passwd authenticated users (not Shibboleth).
+
+        :param password: Unhashed password to validate.
+        :return: True if it is the same, False otherwise.
+        """
+
         # Prevent users from logging in with Shibboleth authentication (password is never set)
         if self.auth_type != "passwd":
             return False
@@ -147,6 +210,15 @@ class User(CAModel, Base):
 
     @classmethod
     def get_user(cls, userid=None, username=None, auth_type="passwd"):
+        """
+        Helper function that looks up a user from either the userid or username.
+
+        :param cls: This class (eg. self, but as a class method)
+        :param userid: Id of the user, either userid or username needs to be set.
+        :param username: user login name, either userid or username needs to be set.
+        :param auth_type: Either passwd or shibboleth
+        :return: The found user or None
+        """
         session = DBSession
         if userid is not None:
             return session.query(cls).filter_by(id=userid).first()

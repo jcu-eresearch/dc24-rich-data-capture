@@ -42,82 +42,89 @@
 deform.addCallback(
         '${field.oid}',
         function (oid) {
-            var map_div = $('#' + oid).children('.location_map')[0];
+            // Prevent any following javascript from breaking the map (make sure it is called last).
+            var timer = window.setInterval(function(){
+//                console.log("waiting for map callback for item: " + oid);
+                if (deform.callbacks.length == 0) {
+//                    console.log("Callback run for item: " + oid);
+                    window.clearInterval(timer);
+                    var map_div = $('#' + oid).children('.location_map')[0];
 
-            var map = new OpenLayers.Map(map_div, {
-                projection:"EPSG:900913",
-                displayProjection:"EPSG:4326",
-                units:'m',
-                numZoomLevels:18
-            });
+                    var map = new OpenLayers.Map(map_div, {
+                        projection:"EPSG:900913",
+                        displayProjection:"EPSG:4326",
+                        numZoomLevels:18
+                    });
 
-            if (!document.location_maps) {
-                document.location_maps = [];
-            }
+                    if (!document.location_maps) {
+                        document.location_maps = [];
+                    }
 
-            document.location_maps.push(map);
+                    document.location_maps.push(map);
 
-            // create Google Mercator layers
-            var gphy = new OpenLayers.Layer.Google(
-                    "Google Physical",
-                    {type:google.maps.MapTypeId.TERRAIN}
-            );
+                    // create Google Mercator layers
+                    var gphy = new OpenLayers.Layer.Google(
+                            "Google Physical",
+                            {type:google.maps.MapTypeId.TERRAIN}
+                    );
 
-            var gmap = new OpenLayers.Layer.Google(
-                    "Google Streets", // the default
-                    {numZoomLevels:20}
-            );
-            var ghyb = new OpenLayers.Layer.Google(
-                    "Google Hybrid",
-                    {type:google.maps.MapTypeId.HYBRID, numZoomLevels:20}
-            );
-            var gsat = new OpenLayers.Layer.Google(
-                    "Google Satellite",
-                    {type:google.maps.MapTypeId.SATELLITE, numZoomLevels:22}
-            );
+                    var gmap = new OpenLayers.Layer.Google(
+                            "Google Streets", // the default
+                            {numZoomLevels:20}
+                    );
+                    var ghyb = new OpenLayers.Layer.Google(
+                            "Google Hybrid",
+                            {type:google.maps.MapTypeId.HYBRID, numZoomLevels:20}
+                    );
+                    var gsat = new OpenLayers.Layer.Google(
+                            "Google Satellite",
+                            {type:google.maps.MapTypeId.SATELLITE, numZoomLevels:22}
+                    );
 
-            // create a vector layer for drawing
-            var vector = new OpenLayers.Layer.Vector("Research Locations");
-            vector.events.register("featuremodified", vector, modifyFeature);
-            vector.events.register("featureadded", vector, featureInserted);
+                    // create a vector layer for drawing
+                    var vector = new OpenLayers.Layer.Vector("Research Locations");
+                    vector.events.register("featuremodified", vector, modifyFeature);
+                    vector.events.register("featureadded", vector, featureInserted);
 
-            map.addLayers([
-                gphy, gmap, gsat, ghyb, vector
-            ]);
-            map.addControl(new OpenLayers.Control.LayerSwitcher());
-            //        map.addControl(new OpenLayers.Control.EditingToolbar(vector));
-            //                            map.addControl(new OpenLayers.Control.Permalink());
-            map.addControl(new OpenLayers.Control.MousePosition());
+                    map.addLayers([
+                        gphy, gmap, gsat, ghyb, vector
+                    ]);
+                    map.addControl(new OpenLayers.Control.LayerSwitcher());
+                    //        map.addControl(new OpenLayers.Control.EditingToolbar(vector));
+                    //                            map.addControl(new OpenLayers.Control.Permalink());
+                    map.addControl(new OpenLayers.Control.MousePosition());
 
-//            if ($("#" + oid).children(".points_only").length > 0 && $("#" + oid).children(".points_only")[0].value == 'True') {
-//                var panelControls = [
-//                    new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.Point, {title:"Draw points", 'displayClass':'olControlDrawFeaturePoint'}),
-//                    new OpenLayers.Control.Navigation({title:"Navigate only"})
-//                ];
-//            } else {
-//                var panelControls = [
-//                    new OpenLayers.Control.SelectFeature(vector, {title:"Delete", onSelect:deleteFeature, 'displayClass':'olControlDeleteFeature'}),
-//                    new OpenLayers.Control.ModifyFeature(vector, {title:"Move points", mode:OpenLayers.Control.ModifyFeature.RESHAPE}),
-//                    new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.Point, {title:"Draw points", 'displayClass':'olControlDrawFeaturePoint'}),
-//                    new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.RegularPolygon, {handlerOptions: {sides: 4, irregular: true}, title:"Draw box", 'displayClass':'olControlDrawFeatureBox'}),
-//                    new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.Path, {title:"Draw lines", 'displayClass':'olControlDrawFeaturePath'}),
-//                    new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.Polygon, {title:"Draw shapes", 'displayClass':'olControlDrawFeaturePolygon'}),
-//                    new OpenLayers.Control.Navigation({title:"Navigate only"})
-//                ];
-//            }
-//            var toolbar = new OpenLayers.Control.Panel({
-//                displayClass:'olControlEditingToolbar',
-//                defaultControl:panelControls[0]
-//            });
-//            toolbar.addControls(panelControls);
-//            map.addControl(toolbar);
+        //            if ($("#" + oid).children(".points_only").length > 0 && $("#" + oid).children(".points_only")[0].value == 'True') {
+        //                var panelControls = [
+        //                    new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.Point, {title:"Draw points", 'displayClass':'olControlDrawFeaturePoint'}),
+        //                    new OpenLayers.Control.Navigation({title:"Navigate only"})
+        //                ];
+        //            } else {
+        //                var panelControls = [
+        //                    new OpenLayers.Control.SelectFeature(vector, {title:"Delete", onSelect:deleteFeature, 'displayClass':'olControlDeleteFeature'}),
+        //                    new OpenLayers.Control.ModifyFeature(vector, {title:"Move points", mode:OpenLayers.Control.ModifyFeature.RESHAPE}),
+        //                    new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.Point, {title:"Draw points", 'displayClass':'olControlDrawFeaturePoint'}),
+        //                    new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.RegularPolygon, {handlerOptions: {sides: 4, irregular: true}, title:"Draw box", 'displayClass':'olControlDrawFeatureBox'}),
+        //                    new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.Path, {title:"Draw lines", 'displayClass':'olControlDrawFeaturePath'}),
+        //                    new OpenLayers.Control.DrawFeature(vector, OpenLayers.Handler.Polygon, {title:"Draw shapes", 'displayClass':'olControlDrawFeaturePolygon'}),
+        //                    new OpenLayers.Control.Navigation({title:"Navigate only"})
+        //                ];
+        //            }
+        //            var toolbar = new OpenLayers.Control.Panel({
+        //                displayClass:'olControlEditingToolbar',
+        //                defaultControl:panelControls[0]
+        //            });
+        //            toolbar.addControls(panelControls);
+        //            map.addControl(toolbar);
 
-            var proj = new OpenLayers.Projection("EPSG:4326");
-            var point = new OpenLayers.LonLat(135, -25);
-            map.setCenter(point.transform(proj, map.getProjectionObject()), 3);
+                    var proj = new OpenLayers.Projection("EPSG:4326");
+                    var point = new OpenLayers.LonLat(135, -25);
+                    map.setCenter(point.transform(proj, map.getProjectionObject()), 3);
 
-            addMapFeatures(oid);
+                    addMapFeatures(oid);
 
+                }
+            }, 100);
         }
 );
 

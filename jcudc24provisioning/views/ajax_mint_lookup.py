@@ -1,3 +1,7 @@
+"""
+Views that provide data looked up from mint as JSON for local AJAX usage.
+"""
+
 import ConfigParser
 import json
 import urllib
@@ -13,6 +17,10 @@ __author__ = 'Casey Bajema'
 
 @view_defaults(renderer="../templates/search_template.pt")
 class MintLookup(object):
+    """
+    Provides searching of the Mint (Name authority associated with ReDBox) for use with AJAX based templates.
+    """
+
     def __init__(self, request):
         self.request = request
 
@@ -29,6 +37,13 @@ class MintLookup(object):
 
     @view_config(route_name="get_activities")
     def get_grants(self, search_terms=None):
+        """
+        Outputs the grants found in Mint as JSON.
+
+        :param search_terms: Text to search grants for.
+        :return: Found grants as JSON to be rendered.
+        """
+
         assert search_terms is not None or 'search_terms' in self.request.matchdict, "Error: Trying to lookup grant/activities data from Mint without a search term."
         if search_terms is None:
             search_terms = self.request.matchdict['search_terms']
@@ -53,6 +68,13 @@ class MintLookup(object):
 
     @view_config(route_name="get_parties")
     def get_parties(self, search_terms=None):
+        """
+        Outputs the parties found in Mint as JSON.
+
+        :param search_terms: Text to search parties for.
+        :return: Found parties as JSON to be rendered.
+        """
+
         assert search_terms is not None or 'search_terms' in self.request.matchdict, "Error: Trying to lookup people/parties from Mint without a search term."
         if search_terms is None:
             search_terms = self.request.matchdict['search_terms']
@@ -79,6 +101,12 @@ class MintLookup(object):
 
     @view_config(route_name="get_from_identifier")
     def get_from_identifier(self, identifier=None):
+        """
+        Outputs the items found in Mint as JSON.
+
+        :param search_terms: Unique identifier to search Mint with.
+        :return: Found items as JSON to be rendered.
+        """
 
         if identifier is None and hasattr(self.request, 'matchdict'):
             assert 'identifier' in self.request.matchdict, "Error: Trying to lookup people/parties from Mint without a search term."

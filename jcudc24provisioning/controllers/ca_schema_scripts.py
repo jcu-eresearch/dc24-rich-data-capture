@@ -1,10 +1,10 @@
 """
 alters the ColanderAlchemy generated schema to add additional display options including:
- - Removing the top level title (ColanderAlchemy outputs a schema with a name at the top of every form).
+- Removing the top level title (ColanderAlchemy outputs a schema with a name at the top of every form).
 - Removing items not on the specified page (based on attributes on schema nodes).
 - Allowing form elements to be required.
 - Grouping of nodes under a MappingSchema for display purposes.
-- Prevent duplicate field names causing problems by adding parent schema names separated by ':'.
+- Prevent duplicate field names causing problems by adding parent schema names separated by :
 - Removal of advanced/restricted fields based on a passed in parameter (this could be upgraded to integrate with the
   Pyramid permissions system).
 - There is also a fix_schema_field_name) method that reverts names to their original value.
@@ -28,28 +28,60 @@ logger = logging.getLogger(__name__)
 __author__ = 'Casey Bajema'
 
 def fix_schema_field_name(field_name):
+    """
+    Remove parent form element names that prepend the actual elements name to prevent duplicate form names.
+    :param field_name: Name that is used on the output HTML forms.
+    :return: model attribute name.
+    """
     return field_name.split(":")[-1]
 
 def convert_schema(schema, restrict_admin=False, **kw):
+    """
+    Convert the default ColanderAlchemy schema to include the required additional features, this may include:
+    - Removing the top level title (ColanderAlchemy outputs a schema with a name at the top of every form).
+    - Removing items not on the specified page (based on attributes on schema nodes).
+    - Allowing form elements to be required.
+    - Grouping of nodes under a MappingSchema for display purposes.
+    - Prevent duplicate field names causing problems by adding parent schema names separated by :
+    - Removal of advanced/restricted fields based on a passed in parameter (this could be upgraded to integrate with the
+      Pyramid permissions system).
+    - There is also a fix_schema_field_name) method that reverts names to their original value.
+
+    :param schema: original schema
+    :param restrict_admin: should fields marked as restricted (ca_requires_admin=True) be removed?
+    :param kw: additional paramaters
+    :return: modified schema with the desired alterations.
+    """
     schema.title = ''
 
+    # Remove elements not on the current page (or in other words, elements that have a non-matching page value set).
     if kw.has_key('page'):
         schema = _remove_nodes_not_on_page(schema, kw.pop('page'))
 
+    # Make fields required (ColanderAlchemy removes the ability to have required fields)
     _force_required(schema)
 
 #    fix_order(schema)
 
+    # Wrap elements between ca_group_start and ca_group_end attributes with a MappingSchema (display purposes)
     schema = _group_nodes(schema)
 
+    # Prepend the elements name with <parent element name>:
     schema = _prevent_duplicate_fields(schema)
 
+    # Remove fields that are marked as ca_require_admin=True if restrict_admin is True
     if restrict_admin:
         _remove_admin_fields(schema)
 
     return schema
 
 def _remove_admin_fields(schema):
+    """
+    Remove fields that are marked as ca_require_admin=True
+
+    :param schema: schema to remove elements from
+    :return: updated schema
+    """
     denied_nodes = []
     for node in schema.children:
         if hasattr(node, 'requires_admin') and node.requires_admin:
@@ -67,6 +99,12 @@ def _remove_admin_fields(schema):
 
 
 def _prevent_duplicate_fields(schema):
+    """
+    Prepend the elements name with <parent element name>:
+
+    :param schema: schema to update
+    :return: updated schema
+    """
     for node in schema.children:
         node.name = schema.name + ":" + node.name
 
@@ -77,6 +115,12 @@ def _prevent_duplicate_fields(schema):
     return schema
 
 def _force_required(schema):
+    """
+    Make fields required (ColanderAlchemy removes the ability to have required fields)
+
+    :param schema: schema to update
+    :return: updated schema
+    """
     for node in schema.children:
         if len(node.children) > 0:
             _force_required(node)
@@ -88,6 +132,13 @@ def _force_required(schema):
 
 
 def _remove_nodes_not_on_page(schema, page):
+    """
+    Remove elements not on the current page (or in other words, elements that have a non-matching page value set).
+
+    :param schema: schema to update
+    :param page: page value that is allowed, all elements with a non-matching page value are removed.
+    :return: updated schema
+    """
     children_to_remove = []
 
     for child in schema.children:
@@ -103,6 +154,13 @@ def _remove_nodes_not_on_page(schema, page):
     return schema
 
 def _fix_sequence_schemas(sequence_node):
+    """
+    Sequence schemas have some display problems that ca_child_... elements are used to fix.
+    Some other problems include displaying of labels when there is only 1 element (which looks odd).
+
+    :param sequence_node: sequence item to fix/update
+    :return: None
+    """
     # Set the childs widget if ca_child_widget has been set on the sequence (I can't see any other way to do it)
     for attr in sequence_node.__dict__:
         if attr[:6] == "child_":
@@ -127,6 +185,12 @@ def _fix_sequence_schemas(sequence_node):
         sequence_node.children[0].widget = deform.widget.MappingWidget(template="ca_sequence_mapping", item_template="ca_sequence_mapping_item")
 
 def _group_nodes(node):
+    """
+    Wrap elements between ca_group_start and ca_group_end attributes with a MappingSchema (display purposes).
+
+    :param node: schema to update
+    :return: updated schema
+    """
     mappings = OrderedDict()
     groups = []
     chilren_to_remove = []
@@ -185,24 +249,25 @@ def _group_nodes(node):
 
     return node
 
-def _ungroup_nodes(node):
-    children_to_add = {}
 
-    for child in node.children:
-
-        if isinstance(child.typ, colander.Mapping) and not hasattr(child, "__tablename__"):
-            child = _ungroup_nodes(child)
-            index = node.children.index(child)
-            node.children.remove(child)
-            node.children.insert(index, child.children[0])
-
-            children_to_add[index] = child.children[1:]
-
-    for index, mapping_children in children_to_add.items():
-        for child in mapping_children:
-            index += 1
-            node.children.insert(index, child)
-            node.children.insert(index, child)
-
-    return node
+#def _ungroup_nodes(node):
+#    children_to_add = {}
+#
+#    for child in node.children:
+#
+#        if isinstance(child.typ, colander.Mapping) and not hasattr(child, "__tablename__"):
+#            child = _ungroup_nodes(child)
+#            index = node.children.index(child)
+#            node.children.remove(child)
+#            node.children.insert(index, child.children[0])
+#
+#            children_to_add[index] = child.children[1:]
+#
+#    for index, mapping_children in children_to_add.items():
+#        for child in mapping_children:
+#            index += 1
+#            node.children.insert(index, child)
+#            node.children.insert(index, child)
+#
+#    return node
 

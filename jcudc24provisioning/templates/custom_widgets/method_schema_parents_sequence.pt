@@ -70,11 +70,10 @@
 //                $(selected_option.parentNode).find("option:contains('"+fields[i].value+"')").attr({disabled: 'disabled'});
 //                $(selected_option.parentNode).find("option:contains('"+fields[i].value+"')").hide(0)
 
-                if ($(parents[i]).find("[name='methodschema:name']").value == name_element.value && $(parents[i]).find("[name='methodschema:name']") != name_element) {
-                    var sequence_item = $(parents[i]).parents(".deformSeq-schema_parents li");
-                    sequence_item.find("li").first().replaceWith("Cannot add duplicate parent schemas.");
-                    sequence_item.delay(2000);
-                    sequence_item.hide(500, function(){$(parents[i]).parents(".deformSeq-schema_parents li").remove();});
+                if ($(parents[i]).find("[name='methodschema:name']")[0].value == name_element.value && $(parents[i]).find("[name='methodschema:name']")[0] != name_element) {
+                    parents.last()[0].innerHTML = "<p class='error'>Cannot add duplicate parent schemas.</p>";
+                    parents.last().delay(2000);
+                    parents.last().hide(500, function(){$(parents[i]).parents(".deformSeq-schema_parents li").remove();});
                 }
             }
         }

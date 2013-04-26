@@ -1,3 +1,15 @@
+"""
+Wrapper for converting provisioning interface projects and/or datasets into ReDBox metadata records and exporting them
+to ReDBox over SFTP.
+
+The ReDBox export relies on the enmasse-alerts harvester being setup as per the administrator guide and the process is:
+- Create and update metadata entries for each project and dataset.  Making sure all ReDBox speicic fields are correct.
+- Write the metadata entries to XML files.
+- Copy the output XML files to the ReDBox server over SFTP.
+- Alert ReDBox that there are new records to harvest by calling the new alerts harvester URL.
+- Cleanup written XML files and set the metadata export date in the metadata table.
+"""
+
 from copy import deepcopy
 from datetime import datetime, date
 import random
@@ -9,7 +21,7 @@ import re
 import requests
 from jcudc24provisioning.controllers.sftp_filesend import SFTPFileSend
 from jcudc24provisioning.models.project import PullDataSource, Metadata, UntouchedPages, IngesterLogs, Location, \
-    ProjectTemplate,method_template,DatasetDataSource, Project, project_validator, ProjectStates, CreatePage, Method, Party, Dataset, MethodSchema, grant_validator, MethodTemplate, Creator, CitationDate
+    ProjectTemplate,method_template,DatasetDataSource, Project, project_validator, ProjectStates, CreatePage, Method, Party, Dataset, MethodSchema, create_project_validator, MethodTemplate, Creator, CitationDate
 from jcudc24provisioning.views.ajax_mint_lookup import MintLookup
 
 from lxml import etree
@@ -114,8 +126,27 @@ __author__ = 'casey'
 #        return service
 
 
-class ReDBoxWraper(object):
-    def __init__(self, data_portal, url, identifier_pattern, ssh_host, ssh_port, tmp_dir, harvest_dir, ssh_username, rsa_private_key=None, ssh_password=None):
+class ReDBoxWrapper(object):
+    """
+    Provides methods to transparently export projects and datasets to ReDBox (basically direct mapping of metadata table).
+    """
+
+    def __init__(self, data_portal, url, search_url, identifier_pattern, ssh_host, ssh_port, tmp_dir, harvest_dir, ssh_username, rsa_private_key=None, ssh_password=None):
+        """
+        Initialise the parameters for the connected ReDBox server and working data.
+
+        :param data_portal: URL prefix of the address for viewing the data (metadata.id is appended to this prefix).
+        :param url: Location of the ReDBox instance.
+        :param identifier_pattern: Prefix for the generated ReDBox identifier (metadata.id is appended to it).
+        :param ssh_host: ReDBox server SSH address (SFTP is file transfer over SSH).
+        :param ssh_port: ReDBox server SSH port number (SFTP is file transfer over SSH).
+        :param tmp_dir: Temporary directory to write metadata as XML files.
+        :param harvest_dir: Location on the ReDBox server to copy XML files into (eg. /opt/deploy/redbox/home/harvest/enmasse-alerts).
+        :param ssh_username: Username for the SSH connection.  This is only required if an key isn't provided.
+        :param rsa_private_key: Private key to use for authenticating the SSH connection.
+        :param ssh_password: Password of the the SSH private key or to use with the provided SSH username.
+        :return: This ReDBoxWrapper instance.
+        """
         self.data_portal = data_portal
         self.url = url
         self.ssh_host = ssh_host
@@ -126,11 +157,18 @@ class ReDBoxWraper(object):
         self.ssh_password = ssh_password
         self.tmp_dir = tmp_dir
         self.identifier_pattern = identifier_pattern
+        self.search_url = search_url
 
         self.session = DBSession
 
 
     def insert_project(self, project_id):
+        """
+        Generate metadata records for this project and associated datasets and export them to ReDBox.
+
+        :param project_id: The project to generate and export metadata records from.
+        :return: True if the export was successful, otherwise False.
+        """
         project = self.session.query(Project).filter_by(id=project_id).first()
 
         # 1. TODO: Create service records.
@@ -177,6 +215,12 @@ class ReDBoxWraper(object):
         return xml
 
     def _prepare_record(self, record):
+        """
+        Fill and update any ReDBox specific fields of the metadata table ready for exporting.
+
+        :param record: The record (XML node) to fix.
+        :return: Updated record (XML node).
+        """
         # Split the FOR and SEO codes into value/label pairs.
         for field_of_research in record.field_of_research:
             field_of_research.field_of_research = "http://purl.org/asc/1297.0/2008/for/%s" % field_of_research.field_of_research_label.split(" ")[0]
@@ -186,6 +230,9 @@ class ReDBoxWraper(object):
 
         # Set the redbox identifier
         record.redbox_identifier = self.identifier_pattern + str(record.id)
+
+        # Set the redbox_uri
+        record.redbox_uri = "%s%s%s" % (self.url, self.search_url, record.redbox_identifier)
 
         # Set the record export date.
         record.record_export_date = datetime.now().date()
@@ -237,6 +284,12 @@ class ReDBoxWraper(object):
         return record
 
     def pre_fill_citation(self, metadata):
+        """
+        Use the project and dataset data to generate the metadata records citation.
+
+        :param metadata: Metadata table model to generate a citation in.
+        :return: None
+        """
         if metadata is None:
             raise ValueError("Updating citation on None metadata")
 
@@ -263,7 +316,7 @@ class ReDBoxWraper(object):
         metadata.citation_publisher = "James Cook University"
         metadata.citation_place_of_publication = None
        # Type of Data?
-        metadata.citation_url = self.data_portal + str(metadata.id)
+        metadata.citation_url = metadata.data_storage_location
 #       metadata.citation_context = metadata.project_title
         metadata.citation_data_type = "Data Files"
 
@@ -283,6 +336,12 @@ class ReDBoxWraper(object):
 
 
     def _write_to_tmp(self, records):
+        """
+        Write the passed in records (XML trees) to the temporary directory.
+
+        :param records: Metadata records as XML trees.
+        :return: None
+        """
         for record in records:
             identifier = record.xpath("%s" % Metadata.redbox_identifier.key)
             if len(identifier) == 1:
@@ -296,6 +355,10 @@ class ReDBoxWraper(object):
                 raise AttributeError("Trying to create ReDBox record with no redbox_identifier set.")
 
     def _create_working_dir(self):
+        """
+        Create the working directory for this export, each project exports to its own directory that is randomly created.
+        :return:
+        """
         # Create a unique directory for this operation
         self.working_dir = self.tmp_dir + ''.join(random.choice(string.letters) for i in range(20)) + os.sep
         while os.path.exists(self.working_dir):
@@ -304,14 +367,31 @@ class ReDBoxWraper(object):
         os.mkdir(self.working_dir)
 
     def _upload_record_files(self):
+        """
+        Upload all XML files in the temporary directory to ReDBox ready for harvesting.
+
+        :return: None
+        """
         file_send = SFTPFileSend(self.ssh_host, self.ssh_port, self.ssh_username, password=self.ssh_password, rsa_private_key=self.rsa_private_key)
         file_send.upload_directory(self.working_dir, self.harvest_dir)
         file_send.close()
 
     def _alert_redbox(self):
+        """
+        Poll the ReDBox new alerts URL to indicate there is new metadata records ready to harvest.
+
+        :return: None
+        """
         return requests.post(self.url)
 
     def _add_relationships(self, project_record, dataset_records):
+        """
+        Add parent-child relationships between the project record and each dataset records.
+
+        :param project_record: Project record that is the parent (has part) of each dataset record
+        :param dataset_records: Dataset records that are each children (part of) the project record.
+        :return:
+        """
         original_records = {}    # Records what dataset record the relationship came from
 
         related_parent = self._create_relationship_node(project_record, "isPartOf")
@@ -354,6 +434,13 @@ class ReDBoxWraper(object):
 
 
     def _create_relationship_node(self, record, relationship_type):
+        """
+        Create an XML node that is a ReDBox relationship of relationship_type for record.
+
+        :param record: The record that this relationship is about (not the record the relationship is being added to).
+        :param relationship_type: Type of relationship as per ReDBox (eg. hasPart, isPartOf)
+        :return: Create XML relationship node.
+        """
         related_record_node = etree.Element("related_record")
 
         identifier = etree.SubElement(related_record_node, "identifier")

@@ -1,3 +1,7 @@
+"""
+Create database tables and initialise the database with default values on the first run.
+"""
+
 import os
 import os
 import sys
@@ -33,17 +37,28 @@ def main(argv=sys.argv):
     initialise_all_db(settings)
 
 def initialise_all_db(settings):
+    """
+    Initialise the database connection, create all tables if they don't exist then initialise default data if it hasn't
+    already been.
+
+    :param settings:
+    :return:
+    """
+
+    # Initialise the database connection.
     engine = engine_from_config(settings, 'sqlalchemy.')
     DBSession.configure(bind=engine)
 
-    test = Base
+    # Test if the database has already been initialised with default data (is this the first time its run?)
     initialised = engine.dialect.has_table(engine.connect(), "project")
+
+    # Create all database tables if they don't exist (on first run)
     Base.metadata.create_all(engine)
 
+    # If this is the first run, initialise all default database data.
     if not initialised:
         with transaction.manager:
             session = DBSession
-            #        self.initialise_offset_locations_schema()
             initialise_default_schemas(session)
             initialise_project_templates(session)
             initialise_method_templates(session)
@@ -51,6 +66,14 @@ def initialise_all_db(settings):
             transaction.commit()
 
 def initialise_security(session):
+    """
+    Initialise the default permissions, roles and users.
+
+    :param session: Database session to add new data to.
+    :return: None
+    """
+
+    # Loop through all permissions in the DefaultPermissions class and add them to the database
     defaults = DefaultPermissions()
     for name in dir(defaults):
         if name.startswith("_"):
@@ -59,6 +82,7 @@ def initialise_security(session):
         permission = Permission(name, description)
         session.add(permission)
 
+    # Loop through all roles in the DefaultPermissions class and add them to the database
     defaults = DefaultRoles()
     for name in dir(defaults):
         if name.startswith("_") or name == 'name':
@@ -69,6 +93,7 @@ def initialise_security(session):
         role = Role(name, description, permission_objects)
         session.add(role)
 
+    # Add the default/testing users.
     session.flush()
     user = User("A User", "user", "user", "user@host.com")
     session.add(user)
@@ -76,43 +101,46 @@ def initialise_security(session):
     session.add(admin)
 
 
-def initialise_offset_locations_schema(session):
-    location_offsets_schema = session.query(MethodSchema).filter_by(name="XYZ Location Offsets").first()
-    if not location_offsets_schema:
-        location_offsets_schema = MethodSchema()
-        location_offsets_schema.name = "XYZ Location Offsets"
-        location_offsets_schema.template_schema = True
-
-        x_offset_field = MethodSchemaField()
-        x_offset_field.type = Double.__xmlrpc_class__
-        x_offset_field.units = "meters"
-        x_offset_field.name = "X Offset"
-        x_offset_field.placeholder = "eg. 23.4"
-        x_offset_field.default = 0
-        location_offsets_schema.custom_fields.append(x_offset_field)
-
-        y_offset_field = MethodSchemaField()
-        y_offset_field.type = Double.__xmlrpc_class__
-        y_offset_field.units = "meters"
-        y_offset_field.name = "Z Offset"
-        y_offset_field.placeholder = "eg. 23.4"
-        y_offset_field.default = 0
-        location_offsets_schema.custom_fields.append(y_offset_field)
-
-        z_offset_field = MethodSchemaField()
-        z_offset_field.type = Double.__xmlrpc_class__
-        z_offset_field.units = "meters"
-        z_offset_field.name = "Z Offset"
-        z_offset_field.placeholder = "eg. 23.4"
-        z_offset_field.default = 0
-        location_offsets_schema.custom_fields.append(z_offset_field)
-
-        session.add(location_offsets_schema)
-        session.flush()
-
-        # TODO: Add the offset schema to CC-DAM as well
-
 def initialise_default_schemas(session):
+    """
+    Initialise all default MethodSchema standardised fields (parent schemas).
+
+    :param session: Session to add the created schemas to the database with.
+    :return: None
+    """
+
+    #-----------------Location Offset Schema----------------------
+    location_offsets_schema = MethodSchema()
+    location_offsets_schema.name = "XYZ Location Offsets"
+    location_offsets_schema.template_schema = True
+
+    x_offset_field = MethodSchemaField()
+    x_offset_field.type = Double.__xmlrpc_class__
+    x_offset_field.units = "meters"
+    x_offset_field.name = "X Offset"
+    x_offset_field.placeholder = "eg. 23.4"
+    x_offset_field.default = 0
+    location_offsets_schema.custom_fields.append(x_offset_field)
+
+    y_offset_field = MethodSchemaField()
+    y_offset_field.type = Double.__xmlrpc_class__
+    y_offset_field.units = "meters"
+    y_offset_field.name = "Z Offset"
+    y_offset_field.placeholder = "eg. 23.4"
+    y_offset_field.default = 0
+    location_offsets_schema.custom_fields.append(y_offset_field)
+
+    z_offset_field = MethodSchemaField()
+    z_offset_field.type = Double.__xmlrpc_class__
+    z_offset_field.units = "meters"
+    z_offset_field.name = "Z Offset"
+    z_offset_field.placeholder = "eg. 23.4"
+    z_offset_field.default = 0
+    location_offsets_schema.custom_fields.append(z_offset_field)
+
+    session.add(location_offsets_schema)
+    session.flush()
+
     #----------Temperature schema--------------
     temp_schema = MethodSchema()
     temp_schema.name = "Temperature"
@@ -123,7 +151,6 @@ def initialise_default_schemas(session):
     temp_field.type = "decimal"
     temp_field.units = "Celcius"
     temp_field.name = "Temperature"
-    temp_field.validators = "decimal" # TODO: Auto schema validators
     temp_schema.custom_fields.append(temp_field)
     session.add(temp_schema)
 
@@ -137,7 +164,6 @@ def initialise_default_schemas(session):
     humidity_field.type = "decimal"
     humidity_field.units = "%"
     humidity_field.name = "Humidity"
-    humidity_field.validators = "decimal" # TODO: Auto schema validators
     humidity_schema.custom_fields.append(humidity_field)
     session.add(humidity_schema)
 
@@ -151,7 +177,6 @@ def initialise_default_schemas(session):
     moisture_field.type = "decimal"
     moisture_field.units = "%"
     moisture_field.name = "Moisture"
-    moisture_field.validators = "decimal" # TODO: Auto schema validators
     moisture_schema.custom_fields.append(moisture_field)
     session.add(moisture_schema)
 
@@ -165,7 +190,6 @@ def initialise_default_schemas(session):
     altitude_field.type = "decimal"
     altitude_field.units = "Meters above Mean Sea Level (MSL)"
     altitude_field.name = "Altitude"
-    altitude_field.validators = "decimal" # TODO: Auto schema validators
     altitude_schema.custom_fields.append(altitude_field)
     session.add(altitude_schema)
 
@@ -179,7 +203,6 @@ def initialise_default_schemas(session):
     distance_field.type = "decimal"
     distance_field.units = "Meters"
     distance_field.name = "Distance"
-    distance_field.validators = "decimal" # TODO: Auto schema validators
     distance_schema.custom_fields.append(distance_field)
     session.add(distance_schema)
 
@@ -194,7 +217,6 @@ def initialise_default_schemas(session):
     luminosity_field.type = "decimal"
     luminosity_field.units = "candela (cd)"
     luminosity_field.name = "Luminosity"
-    luminosity_field.validators = "decimal" # TODO: Auto schema validators
     luminosity_schema.custom_fields.append(luminosity_field)
     session.add(luminosity_schema)
 
@@ -209,7 +231,6 @@ def initialise_default_schemas(session):
     weight_field.type = "decimal"
     weight_field.units = "kg"
     weight_field.name = "Weight"
-    weight_field.validators = "decimal" # TODO: Auto schema validators
     weight_schema.custom_fields.append(weight_field)
     session.add(weight_schema)
 
@@ -224,15 +245,19 @@ def initialise_default_schemas(session):
     density_field.type = "decimal"
     density_field.units = "kg/m^3"
     density_field.name = "Density"
-    density_field.validators = "decimal" # TODO: Auto schema validators
     density_schema.custom_fields.append(density_field)
     session.add(density_schema)
-
-
 
     session.flush()
 
 def initialise_project_templates(session):
+    """
+    Initialise the default project templates, this could be updated to be organisation specific.
+
+    :param session: Database connection to add the created templates to.
+    :return: None
+    """
+
     blank_project = Project()
     blank_project.template_only = True
     session.add(blank_project) # Add an empty project as a blank template
@@ -270,6 +295,12 @@ def initialise_project_templates(session):
 
 
 def initialise_method_templates(session):
+    """
+    Initialise the default method templates.
+
+    :param session: Database connection to add the created templates to
+    :return: None
+    """
     blank_template = session.query(MethodTemplate).filter_by(name="Blank Template").first()
     if not blank_template:
         blank_method = Method()
