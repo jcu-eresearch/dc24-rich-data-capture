@@ -53,22 +53,6 @@
                             ${max_len}, ${now_len});
                 }
         )
-    </script>
-
-
-    <script type="text/javascript">
-        function autocomplete_selected(event, ui) {
-            $("#"+ event.target.id + "Id")[0].value = ui.item.identifier;
-            $("#"+ event.target.id)[0].value = ui.item.label;
-        }
-
-        function add_user(add_button) {
-            var oid = add_button.id.replace("-seqAdd", "");
-            var user_id = $("#" + oid + "-userSelectionId")[0].value;
-            var user_name = $("#" + oid + "-userSelection")[0].value;
-            $(add_button.parentNode).children("ul").first().children(".deformInsertBefore").prev().find("[name='user_id']")[0].value=user_id;
-            $(add_button.parentNode).children("ul").first().children(".deformInsertBefore").prev().find("legend")[0].innerHTML=user_name;
-        }
 
         deform.addCallback(
                 '${field.oid}',

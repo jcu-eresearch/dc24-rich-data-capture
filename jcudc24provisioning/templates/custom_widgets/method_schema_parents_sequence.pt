@@ -52,31 +52,7 @@
 
 
     <script type="text/javascript">
-        function updateParentItem(add_button) {
-            var select_element=$(add_button.parentNode).children('select').first()[0];
-            var selected_option = select_element.options[select_element.selectedIndex];
 
-            var parents = $(add_button.parentNode).find('ul').first().children("li");
-            var name_element = parents.last().find("[name='methodschema:name']")[0];
-            var id_element = parents.last().find("[name='methodschema:id']")[0];
-            name_element.value = selected_option.innerHTML;
-            id_element.value = selected_option.value;
-
-            parents.last().find(".parent_schema_preview_panel .preview_content")[0].innerHTML = selected_option.attributes['prototype'].value;
-//            $(add_button.parentNode).find('ul').first().find('span input:first')[0].value=selected_option.value;
-
-            // Remove duplicates
-            for (var i = 0; i < parents.length; i++) {
-//                $(selected_option.parentNode).find("option:contains('"+fields[i].value+"')").attr({disabled: 'disabled'});
-//                $(selected_option.parentNode).find("option:contains('"+fields[i].value+"')").hide(0)
-
-                if ($(parents[i]).find("[name='methodschema:name']")[0].value == name_element.value && $(parents[i]).find("[name='methodschema:name']")[0] != name_element) {
-                    parents.last()[0].innerHTML = "<p class='error'>Cannot add duplicate parent schemas.</p>";
-                    parents.last().delay(2000);
-                    parents.last().hide(500, function(){$(parents[i]).parents(".deformSeq-schema_parents li").remove();});
-                }
-            }
-        }
 
         deform.addCallback(
                 '${field.oid}',

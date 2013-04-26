@@ -15,20 +15,6 @@
                 function (oid) {
                     conditionalCheckboxToggled($("#" + oid)[0])
                 });
-
-        function conditionalCheckboxToggled(checkbox) {
-            var inverted = $(checkbox).siblings(".show_on_selected")[0];
-            inverted = (inverted !== undefined && inverted.value == 'true');
-            var show = inverted && checkbox.checked || !inverted && !checkbox.checked;
-            var next_element = $(checkbox).parent().next();
-
-            var DURATION = 300;
-            if (show) {
-                next_element.show(DURATION);
-            } else {
-                next_element.hide(DURATION);
-            }
-        }
     </script>
 </tal:block>
 

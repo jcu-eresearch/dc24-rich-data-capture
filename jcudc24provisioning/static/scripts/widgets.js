@@ -559,3 +559,295 @@ function updateThirdFields(oid) {
         showAdd(oid, false)
     }
 }
+
+//---------------------CHECKED CONDITIONAL INPUT---------------------
+function conditionalCheckboxToggled(checkbox) {
+    var inverted = $(checkbox).siblings(".show_on_selected")[0];
+    inverted = (inverted !== undefined && inverted.value == 'true');
+    var show = inverted && checkbox.checked || !inverted && !checkbox.checked;
+    var next_element = $(checkbox).parent().next();
+
+    var DURATION = 300;
+    if (show) {
+        next_element.show(DURATION);
+    } else {
+        next_element.hide(DURATION);
+    }
+}
+
+//-------------------CHOICE MAPPING ITEM-------------------------
+function choice_selected(list_item, is_onchange, is_loading) {
+    var oid = list_item.id.replace("item-", "");
+    var radio_element = $(list_item).children('input[type=radio]').first();
+    var selected_element = $(list_item).siblings().find("[name*='selected_sampling']").first();
+    selected_element[0].value = $(list_item).attr('select_name');
+    if (!radio_element.attr('checked') || is_onchange) {
+        radio_element.attr('checked', 'checked');
+        var prototype = $("#" + oid + "-prototype").attr('prototype');
+
+        var content_element = $('#' + oid + '-content')[0];
+        content_element.innerHTML = prototype;
+        if ($(content_element).children().first().is("fieldset")) {
+            $(content_element).children().first().children("legend").remove();
+        }
+
+        process_callbacks_when_ready(content_element);
+        content_element.processed = true;
+    }
+    var other_radios = $("[name='" + radio_element[0].name + "']").not("#select-" + oid);
+    for (var i=0; i<other_radios.length; i++) {
+        set_prototype(other_radios[i].id.replace("select-", ""));
+    }
+}
+
+function process_callbacks_when_ready(content_element) {
+    if (deform.callbacks.length > 0) {
+        window.setTimeout(process_callbacks_when_ready, 200, content_element);
+    } else {
+        processJavascript(content_element);
+        deform.processCallbacks();
+    }
+}
+
+function set_prototype(oid) {
+    var content_element = $('#' + oid + '-content')[0];
+    if (content_element.innerHTML) {
+//                $("#" + oid + "-prototype").attr('prototype', content_element.innerHTML);
+//                alert(content_element.innerHTML);
+        content_element.innerHTML = '';
+    }
+}
+
+
+//--------------------METHOD SCHEMA FIELD ITEM--------------------
+function conditional_display(oid) {
+//            alert(oid);
+    var list_item = $("#item-" + oid)[0];
+//            alert(list_item);
+    if (list_item) {
+        var list = list_item.parentNode;
+//                alert(list);
+        var type = $(list).children("li").first().find("select")[0];
+//                alert(type.value);
+
+        var units = $(list).find('.custom_field_units')[0].parentNode.parentNode;
+        var example = $(list).find('.custom_field_example')[0].parentNode.parentNode;
+        var default_item = $(list).find('.custom_field_default')[0].parentNode.parentNode;
+//                var validator = $(list).find('.custom_field_validators')[0].parentNode.parentNode;
+        var values = $(list).find('.custom_field_values')[0].parentNode.parentNode;
+
+        $(units).find('label')[0].innerHTML = 'Units'
+
+        switch (type.value) {
+            case "integer":
+            case "decimal":
+            case "hidden":
+                example.className += " hidden";
+                default_item.className = values.className.replace( / hidden/g , '');
+//                        validator.className = values.className.replace( /\shidden/g , '');
+                units.className = values.className.replace( /\shidden/g , '');
+                values.className += " hidden";
+                break;
+            case "text_input":
+            case "text_area":
+                example.className = values.className.replace( / hidden/g , '');
+                default_item.className = values.className.replace( / hidden/g , '');
+//                        validator.className = values.className.replace( / hidden/g , '');
+                units.className += " hidden";
+                values.className += " hidden";
+                break;
+
+            case "select":
+            case "radio":
+                example.className += " hidden";
+                default_item.className = values.className.replace( / hidden/g , '');
+//                        validator.className = values.className.replace( / hidden/g , '');
+                units.className += " hidden";
+                values.className = values.className.replace( / hidden/g , '');
+                break;
+
+            case "website":
+            case "email":
+            case "phone":
+            case "date":
+                example.className += " hidden";
+                default_item.className = values.className.replace( / hidden/g , '');
+//                        validator.className += " hidden";
+                units.className += " hidden";
+                values.className += " hidden";
+                break;
+
+            case "file":
+                example.className = values.className.replace( / hidden/g , '');
+                default_item.className += " hidden";
+//                        validator.className += " hidden";
+                units.className = values.className.replace( / hidden/g , '');
+                $(units).find('label')[0].innerHTML = 'Mime Type';
+                values.className += " hidden";
+                break;
+
+            case "checkbox":
+                example.className += " hidden";
+                default_item.className = values.className.replace( / hidden/g , '');
+//                        validator.className = values.className.replace( / hidden/g , '');
+                units.className += " hidden";
+                values.className += " hidden";
+                break;
+        }
+    }
+}
+
+//----------------------------METHOD SCHEM PARENTS SEQUENCE--------------------
+function updateParentItem(add_button) {
+    var select_element=$(add_button.parentNode).children('select').first()[0];
+    var selected_option = select_element.options[select_element.selectedIndex];
+
+    var parents = $(add_button.parentNode).find('ul').first().children("li");
+    var name_element = parents.last().find("[name='methodschema:name']")[0];
+    var id_element = parents.last().find("[name='methodschema:id']")[0];
+    name_element.value = selected_option.innerHTML;
+    id_element.value = selected_option.value;
+
+    parents.last().find(".parent_schema_preview_panel .preview_content")[0].innerHTML = selected_option.attributes['prototype'].value;
+//            $(add_button.parentNode).find('ul').first().find('span input:first')[0].value=selected_option.value;
+
+    // Remove duplicates
+    for (var i = 0; i < parents.length; i++) {
+//                $(selected_option.parentNode).find("option:contains('"+fields[i].value+"')").attr({disabled: 'disabled'});
+//                $(selected_option.parentNode).find("option:contains('"+fields[i].value+"')").hide(0)
+
+        if ($(parents[i]).find("[name='methodschema:name']")[0].value == name_element.value && $(parents[i]).find("[name='methodschema:name']")[0] != name_element) {
+            parents.last()[0].innerHTML = "<p class='error'>Cannot add duplicate parent schemas.</p>";
+            parents.last().delay(2000);
+            parents.last().hide(500, function(){$(parents[i]).parents(".deformSeq-schema_parents li").remove();});
+        }
+    }
+}
+
+
+//--------------------MINT AUTOCOMPLETE INPUT--------------------------
+function get_name_from_identifier(oid, identifier) {
+    $.ajax({
+        url: "/search/" + identifier,
+        dataType: "json",
+        success: function( data ) {
+            var data_all = data['result-metadata']['all'];
+            var value = "";
+            if (identifier.match(/.*people.*/g)) {
+                value = data_all['Honorific'][0] + " " + data_all['Given_Name'][0] + " ";
+                for (var i=0; i<data_all['Other_Names'].length; i++) {
+                    if (data_all['Other_Names'][i].trim().length > 0) {
+                        value += data_all['Other_Names'][i] + " ";
+                    }
+                }
+                value = value.trim() + " " + data_all['Family_Name'][0];
+            } else if (identifier.match(/.*activities.*/g)) {
+                value = data['dc:title'];
+            }
+
+            $("#" + oid + "-autocomplete")[0].value = value;
+
+
+//                    $('#' + oid).siblings("a.mint-more-info")[0].href = data['rdf:about'];
+            $('#' + oid).siblings("a.mint-more-info").removeClass('hidden');
+
+            var more_info_panel = $('#' + oid).siblings("div.more_info_panel");
+            more_info_panel.children().remove();
+
+            more_info_panel.append("<div><b>Name:</b> " + value + "</div>");
+            if (data_all['Email'] && data_all['Email'][0].length > 0) {
+                more_info_panel.append("<div><b>Email:</b> <a href='mailto:" + data_all['Email'][0] + "'>" + data_all['Email'] + "</div>");
+            }
+            if (data_all['dc_description'] && data_all['dc_description'][0].length > 0) {
+                more_info_panel.append("<div><b>Description:</b>" + data_all['dc_description'][0] + "</div>");
+            }
+
+            var links_panel = "<div><b>Links:</b> <ul>";
+            if (data_all['Personal_Homepage'] && data_all['Personal_Homepage'][0]) {
+                links_panel += "<li><a style='overflow: hidden;' target='_blank' href='" + data_all['Personal_Homepage'][0] + "'>Personal Homepage</li>";
+            }
+            if (data_all['Staff_Profile_Homepage'] && data_all['Staff_Profile_Homepage'][0]) {
+                links_panel += "<li><a style='overflow: hidden;' target='_blank' href='" + data_all['Staff_Profile_Homepage'][0] + "'>Staff Profile</li>";
+            }
+            if (data_all['Personal_URI'] && data_all['Personal_URI'][0]) {
+                links_panel += "<li><a style='overflow: hidden;' target='_blank' href='" + data_all['Personal_URI'][0] + "'>Personal URI</li>";
+            }
+            links_panel += "<li><a style='overflow: hidden;' target='_blank' href='" + data['rdf:about'] + "'>Mint Record</li>";
+
+            links_panel += "</ul></div>";
+            more_info_panel.append(links_panel);
+
+            var onclick = '$("#' + oid + '").siblings(".more_info_panel").hide(); $("#' + oid + '").siblings("a").removeClass("current");';
+            var close = "<div class='close_button buttonText' onclick='" + onclick + "' >Close</div>";
+            more_info_panel.append(close);
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+//                    alert(textStatus);
+//                    alert(errorThrown);
+        }
+    });
+}
+
+function lookup_mint(url, request, response) {
+    $.ajax({
+        url: url + request.term,
+        dataType: "json",
+        success: function( data ) {
+            if (data.length == 0) {
+                return response([{
+                    label: "None available",
+                    value: "",
+                    identifier: ""
+                }]);
+            }
+
+            response($.map( data, function( item ) {
+                return {
+                    label: item.label,
+                    value: item.label,
+                    identifier: item.value
+                }
+            }));
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+            return response([{
+                label: "None available",
+                value: "",
+                identifier: ""
+            }]);
+        },
+        open: function() {
+            $( this ).removeClass( "ui-corner-all" ).addClass( "ui-corner-top" );
+        },
+        close: function() {
+            $( this ).removeClass( "ui-corner-top" ).addClass( "ui-corner-all" );
+        }
+    });
+}
+
+function partial(func /*, 0..n args */) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return function() {
+        var allArguments = args.concat(Array.prototype.slice.call(arguments));
+        return func.apply(this, allArguments);
+    };
+}
+
+function autocomplete_selected(event, ui){
+    $("#"+ event.target.id.replace("-autocomplete", ""))[0].value = ui.item.identifier;
+    get_name_from_identifier(event.target.id.replace("-autocomplete", ""), ui.item.identifier);
+}
+
+//------------------SHARING SEQUENCE----------------------
+function autocomplete_selected(event, ui) {
+    $("#"+ event.target.id + "Id")[0].value = ui.item.identifier;
+    $("#"+ event.target.id)[0].value = ui.item.label;
+}
+
+function add_user(add_button) {
+    var oid = add_button.id.replace("-seqAdd", "");
+    var user_id = $("#" + oid + "-userSelectionId")[0].value;
+    var user_name = $("#" + oid + "-userSelection")[0].value;
+    $(add_button.parentNode).children("ul").first().children(".deformInsertBefore").prev().find("[name='user_id']")[0].value=user_id;
+    $(add_button.parentNode).children("ul").first().children(".deformInsertBefore").prev().find("legend")[0].innerHTML=user_name;
+}

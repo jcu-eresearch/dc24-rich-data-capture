@@ -390,7 +390,37 @@ class Workflows(Layouts):
         renderer = get_renderer("../templates/workflow_template.pt")
         return renderer.implementation().macros['layout']
 
+    def get_address(self, href):
+        """
+        Method to provide templates with the ability to find page URL's based of the route_name and project_id.
+
+        :param href: view route_url
+        :return: Full page URL for the given project and route_name.
+        """
+        if href is None:
+            return None
+        return self.request.route_url(href, project_id=self.project_id)
+
 # --------------------WORKFLOW STEP METHODS-------------------------------------------
+    def _handle_form(self):
+        """
+        Abstract saving and internal redirects to save the referring page correctly.
+
+        :return: None
+        """
+        if self.request.method == 'POST' and len(self.request.POST) > 0:
+            # If this is a sub-request called just to save.
+            if self.request.referrer == self.request.path_url:
+                if self._save_form():
+                    self._touch_page()
+
+                # If this view has been called for saving only, return without rendering.
+                view_name = inspect.stack()[1][3][:-5]
+                if self.request.matched_route.name != view_name:
+                    return True
+            else:
+                self._redirect_to_target(self.request.referrer)
+
     def _save_form(self, appstruct=None, model_id=None, model_type=None):
         """
         Abstracts functionality of saving form pages that is reusable for all project pages.
