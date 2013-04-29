@@ -173,8 +173,15 @@ class CAModel(object):
                     value = None
 
                 # Best attempt, cast all values to their required type
-                if value is not None and isinstance(getattr(model_object, field_name), (int, long, float, str)):
-                    value = (type(getattr(model_object, field_name)))(value)
+                field_type = self._get_field_type(field_name, model_object)
+                if value is not None:
+                    if issubclass(field_type, (int, long, float)):
+                        value = (type(getattr(model_object, field_name)))(value)
+                    elif issubclass(field_type, basestring):
+                        if isinstance(value, unicode):
+                            value = value.encode("utf-8")
+                        else:
+                            value = unicode(value, "utf-8")
     
 #            elif (isinstance(value, dict) or value is None):
 #                value = self.fileupload_to_filehandle(field_name, value, model_object)
@@ -380,6 +387,12 @@ class CAModel(object):
     
             if hasattr(model, name):
                 value = getattr(model, name, None)
+
+                if isinstance(value, basestring):
+                    if isinstance(value, unicode):
+                        value = value.encode("utf-8")
+                    else:
+                        value = unicode(value, "utf-8")
     
                 if isinstance(value, date) and dates_as_string:
                     value = str(value)

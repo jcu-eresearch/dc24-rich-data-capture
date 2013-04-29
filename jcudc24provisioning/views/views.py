@@ -256,7 +256,7 @@ class Layouts(object):
 
         metadata = self.session.query(Metadata).filter_by(id=metadata_id).first()
         if metadata is None:
-            raise ValueError("Data cannot be displayed as the provided record ID doesn't exist!")
+            raise ValueError("Record does not exist!")
 
         if metadata.dataset_id is not None:
             data_url = "" % (self.config['ingesterapi.data_url'],)
