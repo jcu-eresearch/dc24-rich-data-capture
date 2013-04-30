@@ -176,7 +176,7 @@ class CAModel(object):
                 field_type = self._get_field_type(field_name, model_object)
                 if value is not None:
                     if issubclass(field_type, (int, long, float)):
-                        value = (type(getattr(model_object, field_name)))(value)
+                        value = (field_type)(value)
                     elif issubclass(field_type, basestring):
                         if isinstance(value, unicode):
                             value = value.encode("utf-8")

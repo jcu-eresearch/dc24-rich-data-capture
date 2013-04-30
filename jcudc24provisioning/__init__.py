@@ -69,7 +69,7 @@ def main(global_config, **settings):
     config.add_route('browse', '/project')                                     # administer user permissions + view admin required items
     config.add_route('admin', '/admin')                                     # administer user permissions + view admin required items
     config.add_route('help', '/help')                                     # administer user permissions + view admin required items
-    config.add_route('record_data', '/record_data/{metadata_id}')
+    config.add_route('record_data', '/{metadata_id}')
 
 #    ---------------Project/Workflow pages------------------------
     config.add_route('share', '/project/share')                             # Set project permissions

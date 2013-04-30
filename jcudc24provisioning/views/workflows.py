@@ -389,18 +389,6 @@ class Workflows(Layouts):
         """
         renderer = get_renderer("../templates/workflow_template.pt")
         return renderer.implementation().macros['layout']
-
-    def get_address(self, href):
-        """
-        Method to provide templates with the ability to find page URL's based of the route_name and project_id.
-
-        :param href: view route_url
-        :return: Full page URL for the given project and route_name.
-        """
-        if href is None:
-            return None
-        return self.request.route_url(href, project_id=self.project_id)
-
 # --------------------WORKFLOW STEP METHODS-------------------------------------------
     def _handle_form(self):
         """
@@ -1184,7 +1172,7 @@ class Workflows(Layouts):
         APPROVE_TEXT = "Approve"
         DELETE_TEXT = "Delete"
 
-        buttons=(Button("Save Notes"),)
+        buttons=()
         if (self.project.state == ProjectStates.OPEN or self.project.state is None) and len(self.error) <= 0:
             buttons += (SUBMIT_TEXT,)
         elif self.project.state == ProjectStates.SUBMITTED:
@@ -1193,6 +1181,7 @@ class Workflows(Layouts):
             buttons += (DISABLE_TEXT,)
         elif self.project.state == ProjectStates.DISABLED:
             buttons += (DELETE_TEXT,)
+        buttons += (Button("Save Notes"),)
         self.form.buttons = buttons
 
         # Handle button presses and actual functionality.
@@ -1253,7 +1242,7 @@ class Workflows(Layouts):
             logger.info("Project has been approved successfully: %s", self.project.id)
 
 
-        buttons=(Button("Save Notes"),)
+        buttons=()
         if (self.project.state == ProjectStates.OPEN or self.project.state is None) and len(self.error) <= 0 and\
                 has_permission(DefaultPermissions.SUBMIT, self.context, self.request):
             buttons += (Button(SUBMIT_TEXT),)
@@ -1268,6 +1257,7 @@ class Workflows(Layouts):
         elif self.project.state == ProjectStates.DISABLED and\
                 has_permission(DefaultPermissions.DELETE, self.context, self.request):
             buttons += (Button(DELETE_TEXT),)
+        buttons += (Button("Save Notes"),)
         self.form.buttons = buttons
 
         return self._create_response(page_help=page_help, readonly=False)

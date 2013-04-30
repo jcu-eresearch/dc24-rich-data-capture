@@ -86,10 +86,9 @@ class Layouts(object):
             menu['current'] = menu['route_name'] == self.request.matched_route.name
             request = self.request
 
-            menu_introspector = introspector.get('routes', menu['route_name'])
-            if menu_introspector:
-                menu['href'] = menu_introspector['pattern']
-            else:
+            try:
+                menu['href'] = self.request.route_url(menu['route_name'])
+            except Exception as e:
                 logger.error("Menu item has an invalid route_name: %s" % menu['route_name'])
                 raise ValueError("Menu item has an invalid route_name: %s" % menu['route_name'])
 
@@ -259,11 +258,12 @@ class Layouts(object):
             raise ValueError("Record does not exist!")
 
         if metadata.dataset_id is not None:
-            data_url = "" % (self.config['ingesterapi.data_url'],)
-            return HTTPFound(location=data_url)
+            return HTTPFound(self.request.route_url("manage_dataset", project_id=metadata.project_id, dataset_id=metadata.dataset_id))
+#            return self._redirect_to_target(self.request.route_url("manage_dataset", project_id=metadata.project_id, dataset_id=metadata.dataset_id))
         else:
             self.request.session.flash("Project records don't have data directly associated with them, please use the contextual options to access data from related datasets.", "success")
-            return self._redirect_to_target(self.request.route_url("project", project_id=metadata.project_id))
+            return HTTPFound(self.request.route_url("general", project_id=metadata.project_id))
+#            return self._redirect_to_target(self.request.route_url("general", project_id=metadata.project_id))
 
 
     @forbidden_view_config(renderer='../templates/form.pt')
