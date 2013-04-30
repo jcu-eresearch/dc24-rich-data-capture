@@ -11,7 +11,7 @@
                             next.remove();
                         </tal:block>
                         <tal:block tal:condition="next_page is not None">
-                            next.attr("onclick", "$('#deform')[0].action='${view.get_address(next_page.href)}'");
+                            next.attr("onclick", "$('#deform')[0].action='${request.route_url(next_page.href, project_id=view.project_id)}'");
                         </tal:block>
                     </tal:block>
 
@@ -20,7 +20,7 @@
                             previous.remove();
                         </tal:block>
                         <tal:block tal:condition="prev_page is not None">
-                              previous.attr("onclick", "$('#deform')[0].action='${view.get_address(prev_page.href)}'");
+                              previous.attr("onclick", "$('#deform')[0].action='${request.route_url(prev_page.href, project_id=view.project_id)}'");
                         </tal:block>
                     </tal:block>
                 });
@@ -38,10 +38,10 @@
                                       <a title="${menu.tooltip}" form="deform" onclick="false" class="current" value="${menu.title}">${menu.title}</a>
                                   </tal:block>
                                   <tal:block tal:condition="not menu.current and not readonly">
-                                      <a title="${menu.tooltip}" form="deform" onclick="$('#deform')[0].action='${view.get_address(menu.href)}'; window.onbeforeunload = null; $('#deform')[0].submit();" value="${menu.title}">${menu.title}</a>
+                                      <a title="${menu.tooltip}" form="deform" onclick="$('#deform')[0].action='${request.route_url(menu.href, project_id=view.project_id)}'; window.onbeforeunload = null; $('#deform')[0].submit();" value="${menu.title}">${menu.title}</a>
                                   </tal:block>
                                   <tal:block tal:condition="readonly and not menu.current">
-                                      <a title="${menu.tooltip}" href="${menu.href}">${menu.title}</a>
+                                      <a title="${menu.tooltip}" href="${request.route_url(menu.href, project_id=view.project_id)}">${menu.title}</a>
                                   </tal:block>
                               </li>
                           </ul>
@@ -70,7 +70,7 @@
                                          <button title="${menu.tooltip}" name="nav-${menu.href}" onclick="false" class="current" value="${menu.title}">${menu.title}</button>
                                      </tal:block>
                                      <tal:block tal:condition="not menu.current and not readonly">
-                                         <button title="${menu.tooltip}" name="nav-${menu.href}" form="deform" href="${view.request.matched_route.name}" onclick="$('#deform')[0].action='${view.get_address(menu.href)}';" value="${menu.title}">${menu.title}</button>
+                                         <button title="${menu.tooltip}" name="nav-${menu.href}" form="deform" href="${view.request.matched_route.name}" onclick="$('#deform')[0].action='${request.route_url(menu.href, project_id=view.project_id)}';" value="${menu.title}">${menu.title}</button>
                                      </tal:block>
                                      <tal:block tal:condition="readonly and not menu.current">
                                          <a href="${menu.href}">${menu.title}</a>
