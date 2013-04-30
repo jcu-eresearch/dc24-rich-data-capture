@@ -135,7 +135,7 @@ class Layouts(object):
     #            IView, name=info[], default=None)
     #        response = view_callable(self.context, self.request)
 
-        sub_request = Request.blank(path=target, POST=self.request.POST, referrer=self.request.referrer,
+        sub_request = Request.blank(path=target, base_url=self.request.route_url("dashboard")[:-1], POST=self.request.POST, referrer=self.request.referrer,
             referer=self.request.referer)
 
         # Add the user object so the subrequest can authenticate.
