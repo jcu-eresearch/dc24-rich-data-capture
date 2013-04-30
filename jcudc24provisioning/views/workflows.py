@@ -1585,7 +1585,7 @@ class Workflows(Layouts):
                 }
                 return {"page_title": self.find_menu()['page_title'], "form": 'This address is not valid, please don\'t directly edit the address bar: ' + cgi.escape(str(self.context)), "form_only": False, "messages": messages}
             except:
-                self.request.session.flash('There is no page at the requested address, please don\'t edit the address bar directly.', 'error')
+                self.request.session.flash('There is no page at the requested address (%s), please don\'t edit the address bar directly.' % self.request.path_url, 'error')
                 if self.request.matchdict and self.request.matchdict['route'] and (self.request.matchdict['route'].split("/")[0]).isnumeric():
                     project_id = int(self.request.matchdict['route'].split("/")[0])
 #                    print 'isnumeric: ' + str(project_id)

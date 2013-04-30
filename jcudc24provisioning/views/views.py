@@ -401,7 +401,7 @@ class Layouts(object):
         """
 
         self.request.session.flash(
-            'There is no page at the requested address, please don\'t edit the address bar directly.', 'error')
+            'There is no page at the requested address (%s), please don\'t edit the address bar directly.' % self.request.path_url, 'error')
         return HTTPFound(self.request.route_url('dashboard'))
 
     @view_config(context=HTTPClientError, renderer="../templates/exception.pt")
