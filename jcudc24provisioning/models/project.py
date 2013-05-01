@@ -1390,7 +1390,7 @@ def dataset_select_widget(node, kw):
                 if len(dataset.dataset_locations) > 0 and dataset.dataset_locations[0] is not None:
                     height_text =  (", %sm above MSL") % dataset.dataset_locations[0].elevation
                 location_text = "none"
-                if dataset.dataset_locations[0].location is not None:
+                if len(dataset.dataset_locations) > 0 and dataset.dataset_locations[0].location is not None:
                     location_text = "%s (%s, %s%s)" % (dataset.dataset_locations[0].name, dataset.dataset_locations[0].get_latitude(),
                                                        dataset.dataset_locations[0].get_longitude(), height_text)
                 dataset_name = "%s at %s collected by %s" %\

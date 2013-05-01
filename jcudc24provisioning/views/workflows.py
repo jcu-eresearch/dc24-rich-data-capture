@@ -11,6 +11,13 @@ from string import split
 import string
 import inspect
 from sqlalchemy import distinct
+from jcudc24provisioning.resources import enmasse_forms, open_layers, open_layers_js
+from js.jquery import jquery
+from js.jqueryui import jqueryui
+from js.jqueryui import ui_lightness
+from js.jquery_form import jquery_form
+import js.deform
+
 
 from jcudc24provisioning.controllers.authentication import DefaultPermissions
 from jcudc24provisioning.controllers.method_schema_scripts import get_method_schema_preview
@@ -94,6 +101,7 @@ class Workflows(Layouts):
 #        self.request = request
 #        self.context = context
         super(Workflows, self).__init__(context, request)
+        enmasse_forms.need()
 
         self.project_id = None
         if self.request.matchdict and 'project_id' in self.request.matchdict:
@@ -102,6 +110,7 @@ class Workflows(Layouts):
         # If the user submits a form
         if 'project:id' in self.request.POST and self.request.POST['project:id'] != self.project_id:
             self.request.POST['project:id'] = self.project_id
+
 
     @property
     def readonly(self):
@@ -209,6 +218,8 @@ class Workflows(Layouts):
             identifier_pattern = self.config.get("redbox.identifier_pattern")
             data_portal = self.request.route_url("record_data", metadata_id="")
             search_url = self.config['redbox.search_url']
+
+            data_portal = "https://research.jcu.edu.au/enmasse/"
 
             self._redbox = ReDBoxWrapper(url=alert_url, search_url=search_url, data_portal=data_portal, identifier_pattern=identifier_pattern, ssh_host=host, ssh_port=port, tmp_dir=tmp_dir, harvest_dir=harvest_dir,
                 ssh_username=username, rsa_private_key=private_key, ssh_password=password)
@@ -829,6 +840,9 @@ class Workflows(Layouts):
 
         :return: HTML rendering of the create page form.
         """
+        open_layers.need()
+        open_layers_js.need()
+
         page_help ="<b>Please fill this section out completely</b> - it's purpose is to provide the majority of information " \
                    "for all generated metadata records so that you don't have to enter the same data more than once:"\
                                    "<ul><li>A metadata record (ReDBox) will be created for the entire project using the" \
@@ -960,6 +974,9 @@ class Workflows(Layouts):
 
         :return: HTML rendering of the create page form.
         """
+
+        open_layers.need()
+        open_layers_js.need()
 
         def get_file_fields(data_entry_schema):
             """
@@ -1218,15 +1235,15 @@ class Workflows(Layouts):
                     dataset.record_metadata = self.generate_dataset_record(dataset.id)
             self.session.flush()
 
-            try:
-                self.ingester_api.post(self.project)
-                self.ingester_api.close()
-                logger.info("Project has been added to ingesterplatform successfully: %s", self.project.id)
-            except Exception as e:
-                logger.exception("Project failed to add to ingesterplatform - Project ID: %s", self.project.id)
-                self.request.session.flash("Failed to configure data storage and ingestion.", 'error')
-                self.request.session.flash("Error: %s" % e, 'error')
-                return self._create_response(page_help=page_help)
+#            try:
+#                self.ingester_api.post(self.project)
+#                self.ingester_api.close()
+#                logger.info("Project has been added to ingesterplatform successfully: %s", self.project.id)
+#            except Exception as e:
+#                logger.exception("Project failed to add to ingesterplatform - Project ID: %s", self.project.id)
+#                self.request.session.flash("Failed to configure data storage and ingestion.", 'error')
+#                self.request.session.flash("Error: %s" % e, 'error')
+#                return self._create_response(page_help=page_help)
 
             try:
                 self.redbox.insert_project(self.project_id)
@@ -1293,6 +1310,10 @@ class Workflows(Layouts):
 
         :return: HTML rendering of the create page form.
         """
+
+        open_layers.need()
+        open_layers_js.need()
+
         dataset_id = self.request.matchdict['dataset_id']
 
         page_help=""

@@ -10,6 +10,7 @@ import urllib2
 from jcudc24provisioning.controllers.authentication import DefaultPermissions
 from jcudc24provisioning.models.ca_model import CAModel
 from jcudc24provisioning.models.project import Metadata
+from jcudc24provisioning.resources import enmasse_requirements
 import pyramid
 from pyramid.httpexceptions import HTTPNotFound, HTTPFound, HTTPClientError, HTTPBadRequest, HTTPForbidden
 from pyramid.interfaces import IRoutesMapper, IViewClassifier, IView
@@ -47,6 +48,7 @@ class Layouts(object):
     """
 
     def __init__(self, context, request):
+        enmasse_requirements.need()
         self.context = context
         self.request = request
         self.config = request.registry.settings
