@@ -6,12 +6,12 @@
     <div id="${field.oid}-tabs">
         <ul>
             <tal:block tal:repeat="category field.schema.template_categories">
-                <li><a href="#${category.replace(' ', '_')}">${category}</a></li>
+                <li><a href="#${category.replace(' ', '_').replace('(', '').replace(')', '')}">${category}</a></li>
             </tal:block>
         </ul>
 
         <tal:block tal:repeat="category field.schema.template_categories">
-            <div id="${category.replace(' ', '_')}" class="template_selection">
+            <div id="${category.replace(' ', '_').replace('(', '').replace(')', '')}" class="template_selection">
                 <tal:block tal:repeat="template field.schema.templates_data">
                     <div class="selectable" tal:condition="template.category == category"
                         id="${template.template_id}-template_item"

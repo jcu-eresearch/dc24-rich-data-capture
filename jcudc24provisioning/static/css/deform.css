@@ -361,6 +361,7 @@ div.more_info_panel, .parent_schema_preview_panel {
 /*.ui-tabs-anchor {border: 1px solid blue; !important;}*/
 .ui-widget-content {
     border-color: #FFCC00 !important;
+    background: white !important;
 }
 
 .ui-tabs.ui-widget.ui-widget-content {
