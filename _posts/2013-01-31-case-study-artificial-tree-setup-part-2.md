@@ -87,13 +87,9 @@ tags: []
 </script>
 
 <span id="lightbox">
-	<span id="lightbox_content">asdf</span>
+	<span id="lightbox_content"></span>
 	<a onclick="document.getElementById('lightbox').style.display='none'">X</a>
 </span>
-
-<br />
-#<b style="color: red;">Pictures need updating with relevent metadata included!</b>
-<br />
 
 It is recommended that you read [Artificial Tree Overview (Part 1)]({{ site.JB.BASE_PATH }}/2013/01/31/case-study-artificial-tree-overview-part-1) first, which gives an overview of the provisioning interface and the artificial tree.
 
