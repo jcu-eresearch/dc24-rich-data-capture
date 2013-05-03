@@ -2,9 +2,9 @@
 layout: post
 title: "Case Study: Artificial Tree Setup (Part 2)"
 description: ""
-author: ""
+author: "casey"
 category: 
-tags: []
+tags: [DIISRTE, fundedByAustralianNationalDataService, andsApps, DC24, richDataCapture]
 ---
 {% include JB/setup %}
 
@@ -87,13 +87,9 @@ tags: []
 </script>
 
 <span id="lightbox">
-	<span id="lightbox_content">asdf</span>
+	<span id="lightbox_content">dummy_content</span>
 	<a onclick="document.getElementById('lightbox').style.display='none'">X</a>
 </span>
-
-<br />
-#<b style="color: red;">Pictures need updating with relevent metadata included!</b>
-<br />
 
 It is recommended that you read [Artificial Tree Overview (Part 1)]({{ site.JB.BASE_PATH }}/2013/01/31/case-study-artificial-tree-overview-part-1) first, which gives an overview of the provisioning interface and the artificial tree.
 
@@ -174,7 +170,7 @@ Selection of the data source specifies how data will be ingested but configurati
 
 <i>Collected data is used for metadata records, service records and data ingestion.</i>
 
-<span class="workflow_image" id="methods_page"><img src="{{ site.JB.BASE_PATH }}/images/methods.jpg" /></span>
+<span class="workflow_image" id="methods_page"><img src="{{ site.JB.BASE_PATH }}/images/methods.png" /></span>
 Figure 6: Screenshot of method page <a onclick="enlarge('methods_page');">[Enlarge]</a>.
 
 ###6. Datasets
@@ -218,6 +214,6 @@ What now?
 =========
 Once the project has been setup, submitted and approved:
 * Metadata records are create and exported to ReDBox, which then publishes them nationally to Reseach Data Australia (RDA). This is targetted advertising of the research you have collected, gaining you recognition!
-* Data is streamed directly from the artificial tree into the database, so all you need to do is fix the odd sensor eaten by a possum!
+* Data is streamed directly from the artificial tree into the database.
 
 
