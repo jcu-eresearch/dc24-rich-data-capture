@@ -87,7 +87,7 @@ tags: []
 </script>
 
 <span id="lightbox">
-	<span id="lightbox_content"></span>
+	<span id="lightbox_content">dummy_content</span>
 	<a onclick="document.getElementById('lightbox').style.display='none'">X</a>
 </span>
 
