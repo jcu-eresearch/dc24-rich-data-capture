@@ -139,9 +139,10 @@ class Layouts(object):
 
         # Fix target to work when there is a script_name being used.
         target = target.replace(self.request.script_name, "", 1)
+        referrer = self.request.referrer.replace(self.request.script_name, "", 1)
 
-        sub_request = Request.blank(path=target, POST=self.request.POST, referrer=self.request.referrer,
-            referer=self.request.referer)
+        sub_request = Request.blank(path=target, POST=self.request.POST, referrer=referrer,
+            referer=referrer)
 
         # Add the user object so the subrequest can authenticate.
         sub_request.user = self.request.user
@@ -295,7 +296,7 @@ class Layouts(object):
         login_url = self.request.route_url('login')
         referrer = self.request.url
         if referrer == login_url or referrer == "":
-            referrer = '/' # never use the login form itself as came_from
+            referrer = self.request.route_url("dashboard") # never use the login form itself as came_from
         came_from = self.request.params.get('came_from', referrer)
         login = ''
         password = ''
