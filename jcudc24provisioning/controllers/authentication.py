@@ -43,6 +43,7 @@ class DefaultPermissions(object):
     ENABLE = "enable", "Allows enabling of ingesters (which effects data ingesters).",
     DELETE = "delete", "Allows deleting projects (Non-reversible).",
 
+    EDIT_DATA = "view_data", "Allows viewing of data and calibrations.",
     EDIT_DATA = "edit_data", "Allows editing of current data and calibrations.",
     EDIT_INGESTERS = "edit_ingesters", "Allows editing of ingester configurations such as sampling rate or custom processors.",
 

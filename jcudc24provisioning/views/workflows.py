@@ -71,9 +71,9 @@ WORKFLOW_STEPS = [
 # Configures all contextual options in the project side menu.
 WORKFLOW_ACTIONS = [
         {'href': 'general', 'title': 'Configuration', 'page_title': 'General Details', 'tooltip': 'Project settings used to create this project', 'view_permission': DefaultPermissions.VIEW_PROJECT, 'display_leave_confirmation': True},
-        {'href': 'logs', 'title': 'View Logs', 'page_title': 'Ingester Event Logs', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Event logs received from the data ingester', 'view_permission': DefaultPermissions.VIEW_PROJECT},
+        {'href': 'logs', 'title': 'View Logs', 'page_title': 'Ingester Event Logs', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Event logs received from the data ingester', 'view_permission': DefaultPermissions.VIEW_PROJECT, 'display_leave_confirmation': False},
 #        {'href': 'add_data', 'title': 'Add Data', 'page_title': 'Add Data', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': ''},
-        {'href': 'search', 'title': 'Manage Data', 'page_title': 'Manage Data', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Allows viewing, editing or adding of data and ingester configurations', 'view_permission': DefaultPermissions.VIEW_PROJECT},
+        {'href': 'search', 'title': 'Manage Data', 'page_title': 'Manage Data', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Allows viewing, editing or adding of data and ingester configurations', 'view_permission': DefaultPermissions.VIEW_PROJECT, 'display_leave_confirmation': False},
         {'href': 'permissions', 'title': 'Sharing', 'page_title': 'Sharing & Permissions', 'tooltip': 'Change who can access and edit this project', 'view_permission': DefaultPermissions.EDIT_SHARE_PERMISSIONS},
         {'href': 'duplicate', 'title': 'Duplicate Project', 'page_title': 'Duplicate Project', 'tooltip': 'Create a new project using this project as a template', 'view_permission': DefaultPermissions.VIEW_PROJECT},
         {'href': 'create_template', 'title': 'Make into Template', 'page_title': 'Create Project Template', 'tooltip': 'Suggest to the administrators that this project should be a template', 'hidden': True, 'view_permission': DefaultPermissions.ADMINISTRATOR, 'display_leave_confirmation': True},
@@ -432,6 +432,10 @@ class Workflows(Layouts):
             appstruct = self._get_post_appstruct()
         if model_type is None:
             model_type = self.model_type
+
+            if model_type is None:
+                return False
+
         if model_id is None:
             model_id = self.model_id
             model_id_field_name = "%s:id" % model_type.__tablename__
@@ -1041,6 +1045,11 @@ class Workflows(Layouts):
                     del new_dataset_dict['dataset:id']
                     new_dataset_dict['dataset:project_id'] = new_dataset_data['dataset:project_id']
                     new_dataset_dict['dataset:method_id'] = new_dataset_data['dataset:method_id']
+
+                    # Pre-fill the publish date to today if it isn't already set.
+                    if not new_dataset_dict['dataset:publish_date']:
+                        new_dataset_dict['dataset:publish_date'] = datetime.now().date()
+
                     new_dataset_data.update(new_dataset_dict)
 
                 # Else if this is a new dataset that wasn't actually added and is invalid (I beleive the internals of deform automatically add min_len somehow)
@@ -1235,24 +1244,24 @@ class Workflows(Layouts):
                     dataset.record_metadata = self.generate_dataset_record(dataset.id)
             self.session.flush()
 
-#            try:
-#                self.ingester_api.post(self.project)
-#                self.ingester_api.close()
-#                logger.info("Project has been added to ingesterplatform successfully: %s", self.project.id)
-#            except Exception as e:
-#                logger.exception("Project failed to add to ingesterplatform - Project ID: %s", self.project.id)
-#                self.request.session.flash("Failed to configure data storage and ingestion.", 'error')
-#                self.request.session.flash("Error: %s" % e, 'error')
-#                return self._create_response(page_help=page_help)
-
             try:
-                self.redbox.insert_project(self.project_id)
-
+                self.ingester_api.post(self.project)
+                self.ingester_api.close()
+                logger.info("Project has been added to ingesterplatform successfully: %s", self.project.id)
             except Exception as e:
-                logger.exception("Project failed to add to ReDBox: %s", self.project.id)
-                self.request.session.flash("Sorry, the project failed to generate or add metadata records to ReDBox, please try agiain.", 'error')
+                logger.exception("Project failed to add to ingesterplatform - Project ID: %s", self.project.id)
+                self.request.session.flash("Failed to configure data storage and ingestion.", 'error')
                 self.request.session.flash("Error: %s" % e, 'error')
                 return self._create_response(page_help=page_help)
+
+#            try:
+#                self.redbox.insert_project(self.project_id)
+#
+#            except Exception as e:
+#                logger.exception("Project failed to add to ReDBox: %s", self.project.id)
+#                self.request.session.flash("Sorry, the project failed to generate or add metadata records to ReDBox, please try agiain.", 'error')
+#                self.request.session.flash("Error: %s" % e, 'error')
+#                return self._create_response(page_help=page_help)
 
             # Change the state to active
             self.project.state = ProjectStates.ACTIVE
@@ -1402,51 +1411,75 @@ class Workflows(Layouts):
         schema = IngesterLogs()
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Refresh',), use_ajax=False)
 
-        datasets = self.session.query(Dataset).filter_by(project_id=self.project_id).order_by(Dataset.record_metadata.project_title).all()
+        datasets = self.session.query(Dataset).filter_by(project_id=self.project_id).all()
 
+        # Create
         for dataset in datasets:
             if dataset.dam_id is None:
-                dataset.logs_error = ["Ingester hasn't been activated yet: %s" % dataset.title]
-            else:
-                try:
-                    dataset.logs = self.ingester_api.getIngesterLogs(dataset.dam_id)
-#                    print dataset.logs
-#                    print range(len(dataset.logs)).reverse()
-                    for i in reversed(range(len(dataset.logs))):
-#                        print "Level filter: " + str(dataset.logs[i]['level']) + " : " + str(self.request.POST['level'])
-                        if 'level' in self.request.POST and str(self.request.POST['level']) != "ALL" and str(dataset.logs[i].level) != str(self.request.POST['level']):
-                            del dataset.logs[i]
-                            continue
-#                        print "data: %s" % dataset.logs[i]['timestamp'].partition('T')[0]
-                        try:
-                            log_date = dataset.logs[i].timestamp.date()
-                        except Exception as e:
-                            logger.exception("Log date wasn't parsable: %s" % e)
-                            continue
-
-                        if 'start_date' in self.request.POST and self.request.POST['start_date']:
-                            start_date = datetime.strptime(self.request.POST['start_date'].partition('T')[0], '%Y-%m-%d').date()
-                            if log_date < start_date:
-                                del dataset.logs[i]
-                                continue
-
-                        if 'end_date' in self.request.POST and self.request.POST['end_date']:
-                            end_date = datetime.strptime(self.request.POST['end_date'].partition('T')[0], '%Y-%m-%d').date()
-                            if log_date > end_date:
-                                del dataset.logs[i]
-                                continue
-
-                except Exception as e:
-                    logger.exception("Exception getting logs: %s", e)
-                    dataset.logs_error = "Error occurred: %s" % e
+                dataset.logs_error = ["Ingester hasn't been activated yet"] #: %s" % dataset.id]
+#            else:
+#                for dataset in datasets:
+#                    dataset.logs = [{"level": "info" ,
+#                                     "message": "Logs are still loading, please wait.  Provide more specific filtering "
+#                                     "or click on the individual dataset log link (right of the dataset name) for "
+#                                     "quicker results.",
+#                                     "timestamp": None}]
 
         schema.children[1].datasets = datasets
+        schema.children[1].request = self.request
+
+        level = "ALL"
+        start_date = None
+        end_date = None
+        if 'level' in self.request.POST and str(self.request.POST['level']):
+            level = self.request.POST['level']
+        if 'start_date' in self.request.POST and self.request.POST['start_date']:
+            start_date = self.request.POST['start_date']
+        if 'end_date' in self.request.POST and self.request.POST['end_date']:
+            end_date = self.request.POST['end_date']
+
+        schema.children[1].filtering = (level, start_date, end_date)
+
+#            try:
+#                    dataset.logs = self.ingester_api.getIngesterLogs(dataset.dam_id)
+##                    print dataset.logs
+##                    print range(len(dataset.logs)).reverse()
+#                    for i in reversed(range(len(dataset.logs))):
+##                        print "Level filter: " + str(dataset.logs[i]['level']) + " : " + str(self.request.POST['level'])
+#                        if 'level' in self.request.POST and str(self.request.POST['level']) != "ALL" and str(dataset.logs[i].level) != str(self.request.POST['level']):
+#                            del dataset.logs[i]
+#                            continue
+##                        print "data: %s" % dataset.logs[i]['timestamp'].partition('T')[0]
+#                        try:
+#                            log_date = dataset.logs[i].timestamp.date()
+#                        except Exception as e:
+#                            logger.exception("Log date wasn't parsable: %s" % e)
+#                            continue
+#
+#                        if 'start_date' in self.request.POST and self.request.POST['start_date']:
+#                            start_date = datetime.strptime(self.request.POST['start_date'].partition('T')[0], '%Y-%m-%d').date()
+#                            if log_date < start_date:
+#                                del dataset.logs[i]
+#                                continue
+#
+#                        if 'end_date' in self.request.POST and self.request.POST['end_date']:
+#                            end_date = datetime.strptime(self.request.POST['end_date'].partition('T')[0], '%Y-%m-%d').date()
+#                            if log_date > end_date:
+#                                del dataset.logs[i]
+#                                continue
+#
+#                except Exception as e:
+#                    logger.exception("Exception getting logs: %s", e)
+#                    dataset.logs_error = "Error occurred: %s" % e
+#
+#        schema.children[1].datasets = datasets
+
 
         # If this page was only called for saving and a rendered response isn't needed, return now.
         if self._handle_form():
             return
 
-        return self._create_response(page_help=page_help)
+        return self._create_response(page_help=page_help, readonly=False)
 
     @view_config(route_name="duplicate", permission=DefaultPermissions.VIEW_PROJECT)
     def duplicate_view(self):

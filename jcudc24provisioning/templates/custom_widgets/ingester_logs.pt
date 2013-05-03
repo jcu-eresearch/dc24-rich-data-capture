@@ -1,16 +1,27 @@
-<span>
-    <p>Click on the dataset you want to view the logs for below.</p>
+<span tal:condition="exists: field.schema.datasets" id="ingester_logs-${field.oid}">
+    <p><i>Click on the dataset you want to view the logs for below.</i></p>
 
     <p tal:condition="len(field.schema.datasets) <=0" class="error">There are no datasets configured for this project.</p>
     <div tal:repeat="dataset field.schema.datasets" class="logs_dataset content_container" style="position: relative">
-        <h3>${dataset.name}</h3>
-        <a href="./dataset_${dataset.id}_logs.txt" style="position: absolute; right: 5px; top: 0;">dataset_${dataset.id}_logs.txt</a>
-        <p class="error" tal:condition="hasattr(dataset, 'logs_error')">${dataset.logs_error}</p>
-        <div tal:condition="exists:dataset.logs">
-            <p tal:condition="len(dataset.logs) <= 0"><i>This dataset has no ingester logs.</i></p>
-            <p tal:repeat="log dataset.logs" class="level-${log.level}">${log.timestamp} ${log.message}</p>
+        <input type="hidden" class="dataset_dam_id" value="${dataset.dam_id}">
+
+        <h3 tal:condition="dataset.record_metadata is not None">${dataset.record_metadata.project_title}</h3>
+        <a href="${field.schema.request.route_url('dataset_logs', project_id=dataset.project_id, dataset_id=dataset.id)}" style="position: absolute; right: 5px; top: 0; background-color: white; z-index: 0; padding-left: 3px; padding-right: 3px;">dataset_${dataset.id}_logs.txt</a>
+        <div class="errors">
+            <p tal:repeat="error dataset.logs_error" class="error" tal:condition="hasattr(dataset, 'logs_error')">${error}</p>
+        </div>
+        <div class="logs">
+            <tal:block tal:condition="exists:dataset.logs">
+                <p tal:condition="len(dataset.logs) <= 0"><i>This dataset has no ingester logs.</i></p>
+                <p tal:repeat="log dataset.logs" class="level-${log.level}">${log.timestamp} ${log.message}</p>
+            </tal:block>
+            <p tal:condition="not:exists:dataset.logs">Logs are still loading, please wait.  Provide more specific
+                filtering or click on the individual dataset log link (right of the dataset name) for
+                quicker results.</p>
         </div>
     </div>
+
+    <input type="hidden" class="filtering-values" value="${','.join(str(i) for i in field.schema.filtering)}">
 
     <script type="text/javascript">
             deform.addCallback(
@@ -18,7 +29,55 @@
                     function (oid) {
                         $(".logs_dataset p").hide();
                         $('.logs_dataset').addClass('collapsed');
-                        $(".logs_dataset").attr("onclick", "$('.logs_dataset').not($(this)).find('p').hide(); $('.logs_dataset').not($(this)).addClass('collapsed');  $(this).find('p').toggle(); $(this).toggleClass('collapsed');")
+                        $(".logs_dataset").attr("onclick", "$('.logs_dataset').not($(this)).find('logs').find('p').hide(); $('.logs_dataset').not($(this)).addClass('collapsed');  $(this).find('.logs').find('p').toggle(); $(this).toggleClass('collapsed');");
+
+                        var datasets = $("#ingester_logs-" + oid).find(".logs_dataset");
+                        var filtering = $("#ingester_logs-" + oid).find(".filtering-values")[0].value;
+                        var i=0;
+                        for (i; i<datasets.length; i++) {
+                            var dam_id = $(datasets[i]).find('.dataset_dam_id')[0].value;
+                            if (dam_id !== undefined && dam_id != "") {
+                                lookup_ingester_log(dam_id, filtering);
+                            }
+                        }
                     });
+
+            function lookup_ingester_log(dam_id, filtering) {
+                $.ajax({
+                    url: "/get_ingester_logs/" + dam_id + "/" + filtering,
+                    dataType: "json",
+                    success: function( data ) {
+//                        console.log(data);
+                        var i = 0;
+
+                        var dataset_element = $($(".dataset_dam_id").filter("[value='"+data.dam_id+"']")[0].parentNode);
+
+                        var errors = data.logs_error;
+                        dataset_element.find(".errors")[0].innerHTML = "";
+                        for (i=0; i<errors.length; i++) {
+                            dataset_element.find(".errors").append("<p class='error'>" + errors[i] + "</p>");
+                        }
+
+                        var logs = data.logs;
+                        dataset_element.find(".logs")[0].innerHTML = "";
+                        if (logs.length == 0) {
+                            dataset_element.find(".logs")[0].innerHTML = "<p><i>This ingester has no logs yet.</i></p>";
+                        } else {
+                            for (i=0; i<logs.length; i++) {
+//                                console.log("<p class='level-" + logs[i].level + "'>" + logs[i].timestamp + " " + logs[i].message + "</p>");
+                                dataset_element.find(".logs").append("<p class='level-" + logs[i].level + "'>" + logs[i].timestamp + " " + logs[i].message + "</p>");
+                            }
+                        }
+                        dataset_element.find(".logs").find("p").hide();
+                        dataset_element.addClass('collapsed');
+
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        var dataset_element = $($(".dataset_dam_id").filter("[value='"+data.dam_id+"']")[0].parentNode);
+
+                        dataset_element.find(".errors").append("<p class='error'>Failed to retrieve ingester logs.</p>");
+                    }
+                });
+            }
     </script>
 </span>

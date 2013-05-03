@@ -82,6 +82,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
         if hasattr(model, "__tablename__"):
             work = self.createUnitOfWork()
             self.process_model(model, work.post, work)
+            logger.info("Project processed, exporting to ingesterplatform: %s", model)
             work.commit()
             return model
         else:

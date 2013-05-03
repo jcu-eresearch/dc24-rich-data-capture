@@ -192,8 +192,12 @@
                        <button type="submit" class="buttonText submit">Search</button>
                    </form>
                </div>
-               <div id="title">
-                   <img src="${request.static_url('jcudc24provisioning:static/images/tdh_logo.gif')}" alt="TDH Tropical Data Hub" />
+
+               <div id="enmasse-logo">
+                   <img src="${request.static_url('jcudc24provisioning:static/images/enmasse-logo.png')}" alt="EnMaSSe Logo" />
+               </div>
+               <div id="tdh-logo">
+                   <img src="${request.static_url('jcudc24provisioning:static/images/black_full_logo.png')}" alt="TDH Tropical Data Hub" />
                </div>
                <div id="page_title">
                    <h1><tal:block tal:condition="exists: page_help">
@@ -255,16 +259,18 @@
                 <div metal:define-slot="content"></div>
             </div>
             <div id="footer">
-                <div id="supported_by">
-                    <a id="qcif_logo" href="http://www.qcif.edu.au/"><img src="${request.static_url('jcudc24provisioning:static/images/qcif_logo.bmp')}" alt="the Queensland Cyber Infrastructure Foundation logo" /></a>
-                    <a id="ands_logo" href="http://www.ands.org.au/"><img src="${request.static_url('jcudc24provisioning:static/images/ands_logo.bmp')}" alt="Australian National Data Services logo" /></a>
-                    <p>This project is Supported by the<a href="http://www.ands.org.au/">Australian National Data Service (ANDS)</a> through the <a href="http://ncris.innovation.gov.au/Pages/default.aspx">National Collaborative Research Infrastructure Strategy</a> Program and the <a href="http://www.innovation.gov.au/HigherEducation/Funding/EducationInvestmentFund/Pages/default.aspx">Education Investment Fund (EIF)</a> <a href="http://www.innovation.gov.au/SCIENCE/RESEARCHINFRASTRUCTURE/Pages/SuperScience.aspx">Super Science Initiative</a>, as well as through the <a href="http://www.qcif.edu.au/">Queensland Cyber Infrastructure Foundation (QCIF)</a></p>
-                </div>
-                <div id="developed_by">
-                    <a href="eresearch.jcu.edu.au"><img style="padding-top: 18px;" src="${request.static_url('jcudc24provisioning:static/images/eresearch-logo-sml.png')}" alt="eResearch Centre"/></a>
-                    <a href="www.bajtech.com.au"><img src="${request.static_url('jcudc24provisioning:static/images/bajtech_logo_bw.png')}" alt="Bajtech" /></a>
-                    <p>Designed and developed by <a href="http://www.bajtech.com.au">Bajtech</a> and <a href="http://eresearch.jcu.edu.au">JCU eResearch Centre</a>.</p>
-                </div>
+                <table>
+                    <tr id="supported_by">
+                        <td><a id="qcif_logo" href="http://www.qcif.edu.au/"><img src="${request.static_url('jcudc24provisioning:static/images/qcif_logo.bmp')}" alt="the Queensland Cyber Infrastructure Foundation logo" /></a></td>
+                        <td><p>This project is Supported by the<a href="http://www.ands.org.au/">Australian National Data Service (ANDS)</a> through the <a href="http://ncris.innovation.gov.au/Pages/default.aspx">National Collaborative Research Infrastructure Strategy</a> Program and the <a href="http://www.innovation.gov.au/HigherEducation/Funding/EducationInvestmentFund/Pages/default.aspx">Education Investment Fund (EIF)</a> <a href="http://www.innovation.gov.au/SCIENCE/RESEARCHINFRASTRUCTURE/Pages/SuperScience.aspx">Super Science Initiative</a>, as well as through the <a href="http://www.qcif.edu.au/">Queensland Cyber Infrastructure Foundation (QCIF)</a></p></td>
+                        <td><a id="ands_logo" href="http://www.ands.org.au/"><img src="${request.static_url('jcudc24provisioning:static/images/ands_logo.bmp')}" alt="Australian National Data Services logo" /></a></td>
+                    </tr>
+                    <tr id="developed_by">
+                        <td><a href="eresearch.jcu.edu.au"><img style="padding-top: 18px;" src="${request.static_url('jcudc24provisioning:static/images/eresearch-logo-sml.png')}" alt="eResearch Centre"/></a></td>
+                        <td><p>Designed and developed by <a href="http://www.bajtech.com.au">Bajtech</a> and <a href="http://eresearch.jcu.edu.au">JCU eResearch Centre</a>.</p></td>
+                        <td><a href="www.bajtech.com.au"><img src="${request.static_url('jcudc24provisioning:static/images/bajtech_logo_bw.png')}" alt="Bajtech" /></a></td>
+                    </tr>
+                </table>
             </div>
         </div>
     </div>

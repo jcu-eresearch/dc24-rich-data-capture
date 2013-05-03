@@ -1,5 +1,5 @@
 <div  id="shibboleth_login">
-    <a href="${request.route_url('login_shibboleth')}">
+    <a href="${field.schema.request.route_url('login_shibboleth')}">
         <img alt="AAF Shibboleth Login" src="https://eresearch.jcu.edu.au/researchdata/default/images/aaf/aaf_200x50.png" title="AAF" />
     </a>
 </div>

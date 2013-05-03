@@ -137,7 +137,10 @@ class Layouts(object):
     #            IView, name=info[], default=None)
     #        response = view_callable(self.context, self.request)
 
-        sub_request = Request.blank(path=target, base_url=self.request.route_url("dashboard")[:-1], POST=self.request.POST, referrer=self.request.referrer,
+        # Fix target to work when there is a script_name being used.
+        target = target.replace(self.request.script_name, "", 1)
+
+        sub_request = Request.blank(path=target, POST=self.request.POST, referrer=self.request.referrer,
             referer=self.request.referer)
 
         # Add the user object so the subrequest can authenticate.
@@ -276,18 +279,18 @@ class Layouts(object):
 
         :return: Rendered HTML form ready for display.
         """
-        request = self.request
         logged_in = authenticated_userid(self.request)
 
         if isinstance(self.context, HTTPForbidden):
-            if request.user is None:
+            if self.request.user is None:
                 self.request.session.flash("You are unauthorised to view the requested page, please login first.", "warning")
-            elif "project_id" in request.matchdict :
+            elif "project_id" in self.request.matchdict :
                 self.request.session.flash("You don't have permission to view the requested page, please request permission from the project creator or administrators.", "warning")
             else:
                 self.request.session.flash("You don't have permission to view the requested page, please request permission from the administrators.", "warning")
-
-        form = Form(Login(), action=self.request.route_url("login"), buttons=('Login', ))
+        schema = Login()
+        schema['shibboleth_login'].children[0].request = self.request
+        form = Form(schema, action=self.request.route_url("login"), buttons=('Login', ))
 
         login_url = self.request.route_url('login')
         referrer = self.request.url

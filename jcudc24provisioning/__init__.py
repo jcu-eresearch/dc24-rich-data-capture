@@ -100,6 +100,7 @@ def main(global_config, **settings):
 
 #    --------------JSON Search views--------------------------------
     config.add_route('get_model', '/get_model/{object_type}/{id}', xhr=True)
+    config.add_route('get_ingester_logs', '/get_ingester_logs/{dam_id}/{filtering:.*}', xhr=True)
     config.add_route('add_method_from_template', '/add/{project_id}/{method_id}', xhr=True)
 
     config.add_route('get_activities', '/search/activities/{search_terms}', xhr=True)

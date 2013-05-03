@@ -52,7 +52,7 @@
                         var list_item = $("#item-" + oid)[0];
                         if (list_item) {
                             var list = list_item.parentNode;
-                            var type = $(list).children("li").first().find("select")[0];
+                            var type = $(list).find(".field_type")[0];
 //                            alert(type);
                             type.setAttribute("onchange", "conditional_display('"+oid+"');");
 

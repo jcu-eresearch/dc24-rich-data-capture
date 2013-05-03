@@ -606,8 +606,8 @@ class Metadata(CAModel, Base):
     #        placeholder="To be redeveloped similar to ReDBox", description="Select relevant FOR code/s. ")
     #
     socio_economic_objective = relationship('SocioEconomicObjective', ca_name="dc:subject.anzsrc:seo.0.rdf:resource", ca_order=next(order_counter), ca_title="Socio-Economic Objectives", ca_page="information",
-        cascade="all, delete-orphan",
-        ca_widget=deform.widget.SequenceWidget(template='multi_select_sequence'),
+        cascade="all, delete-orphan", ca_force_required=True,
+        ca_widget=deform.widget.SequenceWidget(template='multi_select_sequence', max_len=3),
         ca_child_title="Socio-Economic Objective",
         ca_help="Select the most applicable Socio-Economic Objective (SEO) from the drop-down menus, and click the 'Add Socio-Economic Objective' button (which is hidden until a code is selected).")
 
@@ -688,10 +688,10 @@ class Metadata(CAModel, Base):
         ca_group_start="legality", ca_group_collapsed=False, ca_group_title="Licenses & Access Rights",
         ca_help="Information how to access the records data, including access restrictions or embargoes based on privacy, security or other policies. A URI is optional.<br/>TODO: Update the list of access rights.")
     # TODO: Pre-populate with a url - still waiting on URL to use
-    access_rights_url = Column(String(256), ca_validator=colander.url, ca_order=next(order_counter), ca_name="dc:accessRights.dc:identifier", ca_title="URL", ca_missing="", ca_page="information",
+    access_rights_url = Column(String(256), ca_validator=colander.url, ca_order=next(order_counter), ca_name="dc:accessRights.dc:identifier", ca_title="Access Rights URL (Advanced)", ca_missing="", ca_page="information",
         ca_requires_admin=True)
 
-    rights = Column(String(256), ca_order=next(order_counter), ca_name="dc:accessRights.dc:RightsStatement.skos:prefLabel", ca_missing="", ca_title="Usage Rights", ca_page="information",
+    rights = Column(String(256), ca_order=next(order_counter), ca_name="dc:accessRights.dc:RightsStatement.skos:prefLabel", ca_missing="", ca_title="Usage Rights (Advanced)", ca_page="information",
         ca_placeholder=" eg. Made available under the Public Domain Dedication and License v1.0", ca_requires_admin=True,
         ca_help="Information about rights held over the collection such as copyright, licences and other intellectual property rights.  A URI is optional.",
         ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
@@ -865,9 +865,9 @@ class LocationOffset(CAModel, Base):
     dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     data_entry_id = Column(Integer, ForeignKey('data_entry.id'), nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
-    x = Column(Float(), ca_title="Lattitude Offset (meters)",ca_order=next(order_counter), ca_placeholder="eg. 1 is East 3m", ca_widget=deform.widget.TextInputWidget(size=10, css_class="full_width", regex_mask="^(((\\\\.\\\\d*)?)|(\\\\d+(\\\\.\\\\d*)?))$", strip=False))
-    y = Column(Float(), ca_title="Longitude Offset (meters)",ca_order=next(order_counter), ca_placeholder="eg. 1 is North 3m", ca_widget=deform.widget.TextInputWidget(size=10, css_class="full_width", regex_mask="^(((\\\\.\\\\d*)?)|(\\\\d+(\\\\.\\\\d*)?))$", strip=False))
-    z = Column(Float(), ca_title="Elevation Offset (meters)",ca_order=next(order_counter), ca_placeholder="eg. 1 is Higher 3m", ca_widget=deform.widget.TextInputWidget(size=10, css_class="full_width", regex_mask="^(((\\\\.\\\\d*)?)|(\\\\d+(\\\\.\\\\d*)?))$", strip=False))
+    x = Column(Float(), ca_title="Latitude Offset/X (meters)",ca_order=next(order_counter), ca_placeholder="eg. 1 is East 3m", ca_widget=deform.widget.TextInputWidget(size=10, css_class="full_width", regex_mask="^(((\\\\.\\\\d*)?)|(\\\\d+(\\\\.\\\\d*)?))$", strip=False))
+    y = Column(Float(), ca_title="Longitude Offset/Y (meters)",ca_order=next(order_counter), ca_placeholder="eg. 1 is North 3m", ca_widget=deform.widget.TextInputWidget(size=10, css_class="full_width", regex_mask="^(((\\\\.\\\\d*)?)|(\\\\d+(\\\\.\\\\d*)?))$", strip=False))
+    z = Column(Float(), ca_title="Elevation Offset/Z (meters)",ca_order=next(order_counter), ca_placeholder="eg. 1 is Higher 3m", ca_widget=deform.widget.TextInputWidget(size=10, css_class="full_width", regex_mask="^(((\\\\.\\\\d*)?)|(\\\\d+(\\\\.\\\\d*)?))$", strip=False))
 
     def __init__(self, x=0, y=0, z=0):
         self.x = x
@@ -965,16 +965,16 @@ class MethodSchemaField(CAModel, Base):
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     method_schema_id = Column(Integer, ForeignKey('method_schema.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
-    type = Column(String(100), ca_title="Field Type",
-        ca_widget=deform.widget.SelectWidget(values=field_types),
-        ca_description="",
-        ca_placeholder="Type of field that should be shown.",ca_force_required=True)
-
     # The ingester name can't have spaces, which is unintuitive to the end user.
     internal_name = Column(String(256), ca_widget=deform.widget.HiddenWidget(),)
     _name = Column(String(256), ca_title="Name", ca_placeholder="eg. Temperature", ca_force_required=True,
         ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_name"),)
     description = Column(Text(), ca_title="Description", ca_placeholder="eg. Calibrated temperature reading", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_description"))
+
+    type = Column(String(100), ca_title="Field Type",
+        ca_widget=deform.widget.SelectWidget(values=field_types, css_class="field_type"),
+        ca_description="",
+        ca_placeholder="Type of field that should be shown.",ca_force_required=True)
 
     units = Column(String(256), ca_placeholder="eg. mm", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_units"),)#ca_force_required=True)
 
@@ -1071,7 +1071,7 @@ def method_schema_validator(form, value):
 
     # Check that there is at least 1 field
     if len(value['method:data_type:custom_fields']) + len(value['method:data_type:parents']) == 0:
-        exc.msg = "The project must have at least one standardised or custom field."
+        exc.msg = "The data configuration must have at least one standardised or custom field."
         error = True
 
     # Check that each field has a name
@@ -1387,7 +1387,8 @@ def dataset_select_widget(node, kw):
                 continue
 
             if dataset.record_metadata is not None:
-                dataset_name = dataset.record_metadata.project_title
+#                dataset_name = dataset.record_metadata.project_title
+                dataset_name = ""
             else:
                 project = DBSession.query(Project).filter_by(id=dataset.project_id).first()
 
@@ -1398,8 +1399,10 @@ def dataset_select_widget(node, kw):
                 if len(dataset.dataset_locations) > 0 and dataset.dataset_locations[0].location is not None:
                     location_text = "%s (%s, %s%s)" % (dataset.dataset_locations[0].name, dataset.dataset_locations[0].get_latitude(),
                                                        dataset.dataset_locations[0].get_longitude(), height_text)
-                dataset_name = "%s at %s collected by %s" %\
-                               (project.information.project_title, location_text, dataset.method.method_name)
+#                dataset_name = "%s at %s collected by %s" %\
+#                               (project.information.project_title, location_text, dataset.method.method_name)
+                dataset_name = "%s at %s" %\
+                               (dataset.method.method_name, location_text)
             dataset_values.append((dataset.id, dataset_name))
         return deform.widget.SelectWidget(values=dataset_values, template="source_dataset_select")
 
@@ -2000,8 +2003,8 @@ class IngesterLogsFiltering(colander.MappingSchema):
                 #                ("WARNING", "Warnings"),
                 #                ("DEBUG", "Debugging"),
         )
-    start_date = colander.SchemaNode(colander.Date(),missing=colander.null)
-    end_date = colander.SchemaNode(colander.Date(),missing=colander.null)
+    start_date = colander.SchemaNode(colander.Date(), missing=colander.null, widget=deform.widget.DateInputWidget())
+    end_date = colander.SchemaNode(colander.Date(), missing=colander.null, widget=deform.widget.DateInputWidget())
     level = colander.SchemaNode(colander.String(),widget=deform.widget.SelectWidget(values=log_levels,
         multiple=False),missing=colander.null)
 
@@ -2031,6 +2034,7 @@ class SharedUser(colander.MappingSchema):
     submit_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.SUBMIT[0],default = False, title="Submit")
     disable_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.DISABLE[0],default = False, title="Disable")
     enable_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.ENABLE[0],default = False, title="Re-Enable")
+    view_data_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_DATA[0],default = False, title="View Data")
     edit_data_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_DATA[0],default = False, title="Manage Data")
     edit_ingester_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_INGESTERS[0],default = False, title="Manage Ingesters")
 

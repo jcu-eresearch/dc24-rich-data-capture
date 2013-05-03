@@ -166,12 +166,14 @@ body {
 #header #search form {
     margin: 0px;
     padding: 0px;
+    z-index: 2;
 }
 
 #header #search {
     position: absolute;
-    right: 1em;;
-    top: 3em;
+    right: 5em;;
+    top: 2em;
+    z-index: 2;
 }
 
 #header #search input[type=text] {
@@ -190,15 +192,33 @@ body {
     padding: 0.25em 0.5em;
 }
 
-#title {
+#tdh-logo {
     float: left;
+    top: 0px;
+}
+#tdh-logo img {
+    height: 100px;
+    position: absolute;
+    z-index: 1;
+    right: 3px;
+    top: 3px;
+}
+
+#enmasse-logo {
+    float: left;
+    top: 0px;
     margin-top: 24px;
+}
+#enmasse-logo img {
+    /*height: 93%;*/
+    position: absolute;
 }
 
 #top_menu {
     position: absolute;
-    right: 1em;
+    right: 5em;
     top: 0;
+    z-index: 2;
 }
 
 #help_menu {
@@ -574,24 +594,23 @@ div#footer {
     /*border: 1px solid #777;*/
 }
 
-div#footer div {
-    display: inline-block;
-    width: 48%;
-}
-
 div#footer img {
     padding: 10px;
-    float: left;
 }
 
 #footer p {
     padding-top: 10px;
+    display: inline-block;
 }
 
 #footer_text {
     float: left;
     padding-left: 10px;
     padding-right: 10px;
+    display: inline-block;
+}
+#footer td {
+    text-align: center;
 }
 
 .half_width {

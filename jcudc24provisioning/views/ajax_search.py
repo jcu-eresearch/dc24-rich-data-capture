@@ -5,6 +5,10 @@ Provides seaching of the provisioning interface database output as JSON for loca
 import ConfigParser
 import json
 from colanderalchemy.types import SQLAlchemyMapping
+from jcudc24ingesterapi.authentication import CredentialsAuthentication
+import datetime
+import jcudc24provisioning
+from jcudc24provisioning.controllers.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.models import DBSession
 from pyramid.view import view_config, view_defaults
 from jcudc24provisioning.controllers.ca_schema_scripts import convert_schema
@@ -22,15 +26,12 @@ class Search(object):
         self.request = request
         self.session = DBSession
 
-        # Read the Fields of research from Mint and store it into a variable for the template to read
-        config = ConfigParser.ConfigParser()
-        if 'defaults.cfg' in config.read('defaults.cfg'):
-            try:
-                self.mint_url = config.get('mint', 'location')
-            except ConfigParser.NoSectionError or ConfigParser.NoOptionError:
-                raise ValueError("Invalid Mint server configuration in defaults.cfg")
-        else:
-            raise ValueError("No Mint server configuration in defaults.cfg")
+        # Read the mint_url from the configuration files.
+        self.config = jcudc24provisioning.global_settings
+        try:
+            self.mint_url = self.config['mint.location']
+        except ConfigParser.NoSectionError or ConfigParser.NoOptionError:
+            raise ValueError("Invalid Mint server configuration in defaults.cfg")
 
     @view_config(route_name="get_model")
     def get_model(self):
@@ -53,6 +54,58 @@ class Search(object):
 
             json_data = json.dumps(data)
             return {'values': json_data}
+
+    @view_config(route_name="get_ingester_logs")
+    def get_ingester_logs(self):
+        """
+        Get event logs for the dataset specified by the passed in dam_id.  The logs are retrieved from the ingesterapi.
+
+        :return: Found ingester logs.
+        """
+        assert 'dam_id' in self.request.matchdict, "Error: Trying to lookup ingester logs without an id."
+        dam_id = self.request.matchdict['dam_id']
+
+        auth = CredentialsAuthentication(self.config["ingesterapi.username"], self.config["ingesterapi.password"])
+        ingester_api = IngesterAPIWrapper(self.config["ingesterapi.url"], auth)
+
+        errors = []
+        logs = []
+        level, start_date, end_date = ("ALL", None, None)
+        if self.request.matchdict['filtering']:
+            level, start_date, end_date = self.request.matchdict['filtering'].split(",")
+
+            try:
+                logs = ingester_api.getIngesterLogs(dam_id)
+
+                for i in reversed(range(len(logs))):
+                    if level and str(level) != "ALL" and str(logs[i].level) != str(level):
+                        del logs[i]
+                        continue
+
+                    try:
+                        log_date = logs[i].timestamp.date()
+                    except Exception as e:
+                        logger.exception("Log date wasn't parsable: %s" % e)
+                        continue
+
+                    if start_date:
+                        start_date = datetime.strptime(start_date.partition('T')[0], '%Y-%m-%d').date()
+                        if log_date < start_date:
+                            del logs[i]
+                            continue
+
+                    if end_date:
+                        end_date = datetime.strptime(end_date.partition('T')[0], '%Y-%m-%d').date()
+                        if log_date > end_date:
+                            del logs[i]
+                            continue
+
+            except Exception as e:
+                logger.exception("Exception getting logs: %s", e)
+                errors.append("Error occurred: %s" % e)
+
+        return {"values": json.dumps({"dam_id": dam_id, "logs": logs, "logs_error": errors})}
+
 
 
 

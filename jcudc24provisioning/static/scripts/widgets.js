@@ -627,7 +627,7 @@ function conditional_display(oid) {
     if (list_item) {
         var list = list_item.parentNode;
 //                alert(list);
-        var type = $(list).children("li").first().find("select")[0];
+        var type = $(list).find(".field_type")[0];
 //                alert(type.value);
 
         var units = $(list).find('.custom_field_units')[0].parentNode.parentNode;

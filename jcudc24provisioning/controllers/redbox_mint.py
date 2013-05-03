@@ -171,6 +171,9 @@ class ReDBoxWrapper(object):
         """
         project = self.session.query(Project).filter_by(id=project_id).first()
 
+        # Set the metadata type to repository as it is about multiple collections and also provides data.
+#        project.information.record_type = "repository"
+
         # 1. TODO: Create service records.
 
         # 2. TODO: Create relationships between each service record and it's dataset.
