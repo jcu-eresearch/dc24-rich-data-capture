@@ -174,7 +174,7 @@ Selection of the data source specifies how data will be ingested but configurati
 
 <i>Collected data is used for metadata records, service records and data ingestion.</i>
 
-<span class="workflow_image" id="methods_page"><img src="{{ site.JB.BASE_PATH }}/images/methods.jpg" /></span>
+<span class="workflow_image" id="methods_page"><img src="{{ site.JB.BASE_PATH }}/images/methods.png" /></span>
 Figure 6: Screenshot of method page <a onclick="enlarge('methods_page');">[Enlarge]</a>.
 
 ###6. Datasets
@@ -218,6 +218,6 @@ What now?
 =========
 Once the project has been setup, submitted and approved:
 * Metadata records are create and exported to ReDBox, which then publishes them nationally to Reseach Data Australia (RDA). This is targetted advertising of the research you have collected, gaining you recognition!
-* Data is streamed directly from the artificial tree into the database, so all you need to do is fix the odd sensor eaten by a possum!
+* Data is streamed directly from the artificial tree into the database.
 
 
