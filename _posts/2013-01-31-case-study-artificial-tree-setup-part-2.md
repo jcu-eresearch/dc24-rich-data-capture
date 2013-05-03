@@ -2,9 +2,9 @@
 layout: post
 title: "Case Study: Artificial Tree Setup (Part 2)"
 description: ""
-author: ""
+author: "casey"
 category: 
-tags: []
+tags: [DIISRTE, fundedByAustralianNationalDataService, andsApps, DC24, richDataCapture]
 ---
 {% include JB/setup %}
 
