@@ -1,0 +1,168 @@
+<fieldset id="mapping-${field.oid}" i18n:domain="deform"
+          tal:attributes="class 'deformMappingFieldset ' + str((field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and ('collapsible-'+str(field.schema.__dict__.get('collapse_group')) or nothing))">
+
+    <ul style="display: inline-block" id="data_filtering-${field.oid}" class="data_filtering">
+        <li class="errorLi" tal:condition="field.errormsg">
+            <h3 class="errorMsgLbl" i18n:translate="">There was a problem with this section</h3>
+
+            <p class="errorMsg">${field.errormsg}</p>
+        </li>
+        <li class="help_text hidden section" tal:condition="field.schema.__dict__.get('help')">
+             <div id="help-${field.oid}" tal:content="structure field.schema.__dict__.get('help')"></div>
+        </li>
+        <li class="section description" tal:condition="field.description">
+            <div id="desc-${field.oid}" tal:content="structure field.description"></div>
+        </li>
+        <input type="hidden" name="__start__" value="${field.name}:mapping"/>
+
+        <div
+                tal:define="rndr field.renderer;
+                   tmpl field.widget.item_template"
+                tal:repeat="f field.children"
+                tal:replace="structure rndr(tmpl,field=f,cstruct=cstruct.get(f.name,null))"/>
+        <input type="hidden" name="__end__" value="${field.name}:mapping"/>
+    </ul>
+
+    <div id="browse_data_results">
+        <div id="results_header">
+            <div id="data_actions" tal:condition="exists:field.schema.selection_actions">
+                <button tal:repeat="action field.schema.selection_actions" name="${action}">${action}</button>
+            </div>
+
+            <div id="num_results"  tal:condition="'num_results' in field.schema.filter_data">Showing ${field.schema.filter_data.get('start_num', 0)} to ${field.schema.filter_data.get('end_num', 0)} of ${field.schema.filter_data.get('num_results', 0)}</div>
+
+            <div id="data_sorting">
+                <span style="display: inline-block;">
+                    <label for="sort_type">Order by</label>
+                    <select id="sort_type" name="order_by" onchange="$('.deform').submit();">
+                        <option value="id" selected="${field.schema.filter_data.get('order_by', None) == 'id'}">ID</option>
+                        <option value="created" selected="${field.schema.filter_data.get('order_by', None) == 'created'}">Date created</option>
+                        <option value="modified" selected="${field.schema.filter_data.get('order_by', None) == 'modified'}">Date Modified</option>
+                        <option value="description" selected="${field.schema.filter_data.get('order_by', None) == 'title'}">Description</option>
+                        <option value="relevancy" selected="${field.schema.filter_data.get('order_by', None) == 'relevancy'}">Relevancy</option>
+                    </select>
+                </span>
+
+                <select id="sort_order" name="order_direction" onchange="$('.deform').submit();">
+                    <option value="ascending" selected="${field.schema.filter_data.get('order_direction', None) == 'ascending'}">Ascending</option>
+                    <option value="descending" selected="${field.schema.filter_data.get('order_direction', None) == 'descending'}">Descending</option>
+                </select>
+
+                <span style="display: inline-block;">
+                    <label for="max_results">Max Results</label>
+                    <select id="max_results" name="limit" onchange="$('.deform').submit();">
+                        <!--<option selected="${field.schema.filter_data.get('limit', None) == '1'}">1</option>-->
+                        <option selected="${field.schema.filter_data.get('limit', None) == '20'}">20</option>
+                        <option selected="${field.schema.filter_data.get('limit', None) == '50'}">50</option>
+                        <option selected="${field.schema.filter_data.get('limit', None) == '100'}">100</option>
+                        <option selected="${field.schema.filter_data.get('limit', None) == '200'}">200</option>
+                        <option selected="${field.schema.filter_data.get('limit', None) == '500'}">500</option>
+                        <!--<option value="-1" selected="${field.schema.filter_data.get('limit', None) == '-1'}">No Limit</option>-->
+                    </select>
+                </span>
+            </div>
+        </div>
+
+        <div class="pagination" tal:condition="'page' in field.schema.filter_data and 'num_pages' in
+                field.schema.filter_data and field.schema.filter_data['num_pages'] > 1">
+            <input type="hidden" value="${field.schema.filter_data.get('page', 0)}" name="page">
+            <span tal:repeat="num range(field.schema.filter_data.get('num_pages', 0))"
+                  tal:attributes="class field.schema.filter_data.get('page', 0) == num and 'current' or nothing"
+                  onclick="$(this).siblings('[name=\'page\']')[0].value='${num}'; $('.deform').submit();">${num}</span>
+        </div>
+
+        <table id="results_data">
+            <thead>
+                <th><input type="checkbox" onclick="$(parentNode.parentNode.parentNode.parentNode).find
+                        ('input[type=\'checkbox\']').prop('checked', (this.checked));"></th>
+                <th>ID</th>
+                <th>Type</th>
+                <th>State</th>
+                <th>Created</th>
+                <th>Modified</th>
+                <th>Description</th>
+            </thead>
+            <tr tal:condition="exists:field.schema.results" tal:repeat="result field.schema.results">
+                <td><input type="checkbox" name="selected_${result['id']}" value="${result['type']}_${result['id']}"></td>
+                <td>${result['type']}_${result['id']}</td>
+                <td>${result['type']}</td>
+                <td><tal:block tal:condition="'state' in result and result['state'] is not None">
+                    ${["Open", "Submitted", "Active", "Disabled"][result['state']]}
+                </tal:block></td>
+                <td>${result['created']}</td>
+                <td>${result['modified']}</td>
+                <td>${result['description']}</td>
+                <td tal:repeat="item result['urls'].items()"><a href="${item[1]}">${item[0]}</a></td>
+            </tr>
+        </table>
+
+
+        <div class="pagination" tal:condition="'page' in field.schema.filter_data and 'num_pages' in
+                field.schema.filter_data and field.schema.filter_data['num_pages'] > 1">
+            <span tal:repeat="num range(field.schema.filter_data.get('num_pages', 0))"
+                  tal:attributes="class field.schema.filter_data.get('page', 0) == num and 'current' or nothing"
+                  onclick="$(parentNode.parentNode).find('input[name=\'page\']')[0].value='${num}'; $('.deform').submit();">${num}</span>
+        </div>
+    </div>
+    <!-- /mapping -->
+
+    <script type="text/javascript">
+        $(window).resize(set_manage_data_size);
+
+        function set_manage_data_size() {
+            $("#browse_data_results").width($("#mapping-${field.oid}").width() - $("#data_filtering-${field.oid}").width() - 30);
+        }
+
+        deform.addCallback(
+                '${field.oid}',
+                function (oid) {
+                    set_manage_data_size();
+                    var type = $("#mapping-" + oid).find(".data_filter[name='type']");
+                    type[0].setAttribute('onchange', 'set_search_type("' + oid + '", this.value)');
+
+                    // Set the type combo based on the URL type matchdict value.
+                    var url_parts = decodeURIComponent(document.URL).replace("https://", "").replace("http://", "").split("/");
+                    if (url_parts.length > 2 && !url_parts[2].match(/id_list=.*/g)) {
+//                        alert(url_parts[2]);
+                        type[0].value = url_parts[2];
+                    }
+                    if (url_parts.length > 3 && url_parts[3].match(/id_list=.*/g)) {
+                        var id_list = $("#mapping-" + oid).find(".id_list[name='id_list']");
+                        id_list.removeClass("placeholder_text");
+                        id_list[0].value = url_parts[3].substr("id_list=".length);
+                    }
+
+                    set_search_type(oid, type[0].value);
+
+                    $(".buttons [name='Search']")[0].setAttribute("onclick", "$('#deform')[0].action='/search';")
+                });
+
+        function set_search_type(oid, type) {
+            var filter_mapping = $("#mapping-" + oid);
+            if (type == "project") {
+                filter_mapping.find(".states").first().parents("li").eq(1).show();
+//                filter_mapping.find(".id_list").first().parents("li").eq(0).show();
+                filter_mapping.find(".search_string").parents("li").eq(0).show();
+                filter_mapping.find(".states[value='0']").parent("li").show();
+                filter_mapping.find(".states[value='1']").parent("li").show();
+//                filter_mapping.find(".states[value='2']").show();
+//                filter_mapping.find(".states[value='3']").show();
+            } else if (type == "dataset") {
+                filter_mapping.find(".states").first().parents("li").eq(1).show();
+//                filter_mapping.find(".id_list").parents("li").eq(0).show();
+                filter_mapping.find(".search_string").parents("li").eq(0).show();
+                filter_mapping.find(".states[value='0']").parent("li").hide();
+                filter_mapping.find(".states[value='1']").parent("li").hide();
+//                filter_mapping.find(".states[value='2']").show();
+//                filter_mapping.find(".states[value='3']").show();
+            } else if (type == "data") {
+                filter_mapping.find(".states").first().parents("li").eq(1).hide();
+                filter_mapping.find(".search_string").parents("li").eq(0).hide();
+//                filter_mapping.find(".id_list").parents("li").eq(0).hide();
+            }
+        }
+    </script>
+</fieldset>
+
+
+

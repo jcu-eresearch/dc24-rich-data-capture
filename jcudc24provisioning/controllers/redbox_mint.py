@@ -279,8 +279,16 @@ class ReDBoxWrapper(object):
         if record.custom_citation is not True:
             self.pre_fill_citation(record)
 
-        if len(record.parties) > 1 and record.parties[0].identifier == record.parties[1].identifier:
-            del record.parties[1]
+        # Make sure all parties are unique
+        party_ids = []
+        for i in range(len(record.parties)):
+            if record.parties[i].identifier in party_ids:
+                del record.parties[i]
+            else:
+                party_ids.append(record.parties[i].identifier)
+
+#        if len(record.parties) > 1 and record.parties[0].identifier == record.parties[1].identifier:
+#            del record.parties[1]
 
         # Use other license instead if it is entered.
 

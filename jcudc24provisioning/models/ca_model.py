@@ -336,7 +336,7 @@ class CAModel(object):
                 else:
                     # If the value hasn't been changed
                     field_type = self._get_field_type(field_name, model_object)
-                    if value == getattr(model_object, field_name) or\
+                    if str(value) == str(getattr(model_object, field_name)) or\
                        (field_type in (int, float, long) and (value is None or value==0) and (getattr(model_object, field_name) is None or getattr(model_object, field_name) == 0)):
                         continue
 
@@ -405,11 +405,15 @@ class CAModel(object):
     
                 if isinstance(value, list):
                     node_list = []
+
+                    while node.widget is not None and len(value) < node.widget.min_len:
+                        value.append(node.children[0]._reg.cls())
+
                     for item in value:
-                        node_list.append(self.convert_sqlalchemy_model_to_data(item,  node.children[0], force_not_empty_lists))
+                        node_list.append(self.convert_sqlalchemy_model_to_data(item,  node.children[0], force_not_empty_lists, dates_as_string))
 
                     if force_not_empty_lists and len(value) == 0:
-                        node_list.append(self.convert_sqlalchemy_model_to_data(node.children[0]._reg.cls(),  node.children[0], force_not_empty_lists))
+                        node_list.append(self.convert_sqlalchemy_model_to_data(node.children[0]._reg.cls(),  node.children[0], force_not_empty_lists, dates_as_string))
     
                     data[node.name] = node_list
 #                elif isinstance(node.typ, deform.FileData) and value is not None:
@@ -423,7 +427,7 @@ class CAModel(object):
 #                                break
     
                 elif len(node.children):
-                    data[node.name] = self.convert_sqlalchemy_model_to_data(value,  node, force_not_empty_lists)
+                    data[node.name] = self.convert_sqlalchemy_model_to_data(value,  node, force_not_empty_lists, dates_as_string)
     
                 elif value is None:
                     data[node.name] = node.default
@@ -440,7 +444,7 @@ class CAModel(object):
 
                     data[node.name] = value
             elif len(node.children) > 0:
-                node_data = self.convert_sqlalchemy_model_to_data(model, node.children, force_not_empty_lists)
+                node_data = self.convert_sqlalchemy_model_to_data(model, node.children, force_not_empty_lists, dates_as_string)
     
                 # Fix data for select mapping schemas
 #                if not ':' in node.name:

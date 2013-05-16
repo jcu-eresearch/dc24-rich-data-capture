@@ -3,22 +3,20 @@
     The intent is to provide template selection and AJAX autocomplete when adding methods.
 -->
 
-<div class="deformSeq"
+<div class="deformSeq methods_page"
      id="${field.oid}"
      tal:define="rndr field.renderer;
                  item_tmpl field.widget.readonly_item_template;
                  min_len field.widget.min_len or 0;
                  max_len field.widget.max_len or 100000;
                  now_len len(subfields);
-                 prototype field.widget.prototype(field)">
+                 prototype field.widget.prototype(field)" xmlns="http://www.w3.org/1999/html">
 
     <!-- sequence -->
 
     <input type="hidden" name="__start__" value="${field.name}:sequence"
            class="deformProto"
-           tal:attributes="prototype prototype
-                         disabled 'disabled';
-                         readonly 'readonly'"/>
+           tal:attributes="prototype prototype"/>
 
     <ul id="seq_items-${field.oid}">
 
@@ -33,6 +31,21 @@
 
     </ul>
 
+    <script type="text/javascript">
+
+
+        deform.addCallback(
+                '${field.oid}',
+                function (oid) {
+                    var oid_node = $('#' + oid);
+
+                    deform.processSequenceButtons(oid_node, ${min_len},
+                            ${max_len}, ${now_len});
+
+                }
+        );
+
+    </script>
 
     <input type="hidden" name="__end__" value="${field.name}:sequence"/>
 

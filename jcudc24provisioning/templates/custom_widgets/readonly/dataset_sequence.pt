@@ -2,7 +2,7 @@
     This template has been modified from sequence.pt specifically for the methods page
     The intent is to provide template selection and AJAX autocomplete when adding methods.
 -->
-<div class="deformSeq"
+<div class="deformSeq dataset_sequence"
      id="${field.oid}"
      tal:define="rndr field.renderer;
                  item_tmpl field.widget.readonly_item_template;

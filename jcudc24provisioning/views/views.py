@@ -33,9 +33,9 @@ logger = logging.getLogger(__name__)
 PAGES = [
     {'route_name': 'dashboard', 'title': 'Home', 'page_title': 'EnMaSSE Dashboard', 'hidden': False},
     {'route_name': 'create', 'title': 'New Project', 'page_title': 'Setup a New Project', 'hidden': False},
-    {'route_name': 'browse', 'title': 'Browse Projects', 'page_title': 'Browse Projects & Data'},
+    {'route_name': 'search', 'title': 'Browse Projects', 'page_title': 'Browse Projects & Data'},
     {'route_name': 'help', 'title': 'Help & Support', 'page_title': 'Associated Information', 'hidden': False},
-    {'route_name': 'search', 'title': 'Search Website', 'page_title': 'Search Website', 'hidden': True},
+#    {'route_name': 'search', 'title': 'Search Website', 'page_title': 'Search Website', 'hidden': True},
     {'route_name': 'admin', 'title': 'Administrator', 'page_title': 'Administrator', 'hidden': False},
     {'route_name': 'login', 'title': 'Log in', 'page_title': 'Log in', 'hidden': True},
     {'route_name': 'login_shibboleth', 'title': 'Log in', 'page_title': 'Log in', 'hidden': True},
@@ -85,11 +85,10 @@ class Layouts(object):
         introspector = self.request.registry.introspector
         hidden = []
         for menu in new_menu:
-            menu['current'] = menu['route_name'] == self.request.matched_route.name
-            request = self.request
+            menu['current'] = (menu['route_name'] == self.request.matched_route.name)
 
             try:
-                menu['href'] = self.request.route_url(menu['route_name'])
+                menu['href'] = self.request.route_url(menu['route_name'], search_info="")
             except Exception as e:
                 logger.error("Menu item has an invalid route_name: %s" % menu['route_name'])
                 raise ValueError("Menu item has an invalid route_name: %s" % menu['route_name'])
@@ -141,7 +140,7 @@ class Layouts(object):
         target = target.replace(self.request.script_name, "", 1)
         referrer = self.request.referrer.replace(self.request.script_name, "", 1)
 
-        sub_request = Request.blank(path=target, POST=self.request.POST, referrer=referrer,
+        sub_request = Request.blank(path=target, POST=[], referrer=referrer,
             referer=referrer)
 
         # Add the user object so the subrequest can authenticate.
@@ -206,17 +205,6 @@ class Layouts(object):
 
         return self._create_response(page_help=page_help)
 
-    @view_config(renderer="../templates/manage_data.pt", route_name="browse")
-    def search_page_view(self):
-        """
-        Search/browse page to allow users to navigate projects and their associated data.
-
-        :return: Rendered HTML form ready for display.
-        """
-    #        raise NotImplementedError("Search hasn't been implemented yet!")
-        self.request.session.flash("This page is still under development.", "warning")
-
-        return self._create_response()
 
     @view_config(renderer="../templates/administrator.pt", route_name="admin",
         permission=DefaultPermissions.ADMINISTRATOR)
@@ -270,6 +258,7 @@ class Layouts(object):
             self.request.session.flash("Project records don't have data directly associated with them, please use the contextual options to access data from related datasets.", "success")
             return HTTPFound(self.request.route_url("general", project_id=metadata.project_id))
 #            return self._redirect_to_target(self.request.route_url("general", project_id=metadata.project_id))
+
 
 
     @forbidden_view_config(renderer='../templates/form.pt')

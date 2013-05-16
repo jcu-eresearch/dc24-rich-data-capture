@@ -225,3 +225,4 @@ class User(CAModel, Base):
         elif username is not None:
             return session.query(cls).filter_by(username=username, auth_type=auth_type).first()
 
+

@@ -13,6 +13,7 @@ alters the ColanderAlchemy generated schema to add additional display options in
 import ast
 from collections import OrderedDict
 from datetime import date
+from beaker.cache import cache_region
 import colander
 from colanderalchemy.types import SQLAlchemyMapping
 import deform
@@ -59,22 +60,23 @@ def convert_schema(schema, restrict_admin=False, **kw):
         schema = _remove_nodes_not_on_page(schema, kw.pop('page'))
 
     # Make fields required (ColanderAlchemy removes the ability to have required fields)
-    _force_required(schema)
+    schema = _force_required(schema)
 
 #    fix_order(schema)
 
     # Wrap elements between ca_group_start and ca_group_end attributes with a MappingSchema (display purposes)
-    schema = _group_nodes(schema)
+    schema = schema = _group_nodes(schema)
 
     # Prepend the elements name with <parent element name>:
     schema = _prevent_duplicate_fields(schema)
 
     # Remove fields that are marked as ca_require_admin=True if restrict_admin is True
     if restrict_admin:
-        _remove_admin_fields(schema)
+        schema = _remove_admin_fields(schema)
 
     return schema
 
+@cache_region('long_term')
 def _remove_admin_fields(schema):
     """
     Remove fields that are marked as ca_require_admin=True
@@ -97,7 +99,7 @@ def _remove_admin_fields(schema):
 
     return schema
 
-
+@cache_region('long_term')
 def _prevent_duplicate_fields(schema):
     """
     Prepend the elements name with <parent element name>:
@@ -114,6 +116,7 @@ def _prevent_duplicate_fields(schema):
             node = _prevent_duplicate_fields(node)
     return schema
 
+@cache_region('long_term')
 def _force_required(schema):
     """
     Make fields required (ColanderAlchemy removes the ability to have required fields)
@@ -130,6 +133,7 @@ def _force_required(schema):
         elif hasattr(node, 'force_required') and not node.force_required:
             setattr(node, 'missing', node.default)
 
+    return schema
 
 def _remove_nodes_not_on_page(schema, page):
     """
@@ -184,6 +188,9 @@ def _fix_sequence_schemas(sequence_node):
     if only_one_displayed and displayed_child:
         sequence_node.children[0].widget = deform.widget.MappingWidget(template="ca_sequence_mapping", item_template="ca_sequence_mapping_item")
 
+    return sequence_node
+
+@cache_region('long_term')
 def _group_nodes(node):
     """
     Wrap elements between ca_group_start and ca_group_end attributes with a MappingSchema (display purposes).

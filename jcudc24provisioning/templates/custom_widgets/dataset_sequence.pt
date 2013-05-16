@@ -2,7 +2,7 @@
     This template has been modified from sequence.pt specifically for the methods page
     The intent is to provide template selection and AJAX autocomplete when adding methods.
 -->
-<div class="deformSeq"
+<div class="deformSeq dataset_sequence"
      id="${field.oid}"
      tal:define="rndr field.renderer;
                  item_tmpl field.widget.item_template;
@@ -54,8 +54,14 @@
            class="deformProto"
            tal:attributes="prototype prototype"/>
 
-    <ul id="seq_items-${field.oid}">
+    <a
+            class="deformSeqAdd datasets_sequence_add_top"
+            id="${field.oid}-seqAdd-top"
+            onclick="deform.appendSequenceItem(this); addNewDataset(this);">
+        <small id="${field.oid}-addtext-1">${add_subitem_text}</small>
+    </a>
 
+    <ul id="seq_items-${field.oid}">
         <div tal:repeat="tup subfields"
              tal:replace="structure rndr(item_tmpl, field=tup[1], cstruct=tup[0],
                       parent=field)"/>

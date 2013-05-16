@@ -4,8 +4,10 @@ configuration as well as maintainence and searching models (eg. anything to do w
 """
 
 from collections import OrderedDict
+from datetime import date, datetime
 import itertools
 import logging
+from beaker.cache import cache_region
 
 import colander
 from sqlalchemy.orm import backref
@@ -89,19 +91,9 @@ def research_theme_validator(form, value):
     if error:
         raise exc
 
-#@cache_region('long_term')
-@colander.deferred
-def getFORCodes(node, kw):
-    """
-    Helper function for retrieving and organising FOR codes from the CSV file that contains them.
-
-    :param node: Node that the returnd values are for.
-    :param kw: Arguments that are passed to the shema's bind() method.
-    :return: OrderedDict of FOR codes nested appropriately.
-    """
-    FOR_CODES_FILE = kw['settings'].get("provisioning.for_codes", {})
-
-    for_codes_file = open(FOR_CODES_FILE).read()
+@cache_region('long_term')
+def get_for_codes_from_file(file):
+    for_codes_file = open(file).read()
     data = OrderedDict()
     data['---Select One---'] = OrderedDict()
 
@@ -136,19 +128,22 @@ def getFORCodes(node, kw):
     return data
 
 
-#@cache_region('long_term')
+
 @colander.deferred
-def getSEOCodes(node, kw):
+def getFORCodes(node, kw):
     """
-    Helper function for retrieving and organising SEO codes from the CSV file that contains them.
+    Helper function for retrieving and organising FOR codes from the CSV file that contains them.
 
     :param node: Node that the returnd values are for.
     :param kw: Arguments that are passed to the shema's bind() method.
-    :return: OrderedDict of SEO codes nested appropriately.
+    :return: OrderedDict of FOR codes nested appropriately.
     """
-    SEO_CODES_FILE = kw['settings'].get("provisioning.seo_codes", {})
+    FOR_CODES_FILE = kw['settings'].get("provisioning.for_codes", {})
+    return get_for_codes_from_file(FOR_CODES_FILE)
 
-    seo_codes_file = open(SEO_CODES_FILE).read()
+@cache_region('long_term')
+def get_seo_codes_from_file(file):
+    seo_codes_file = open(file).read()
     data = OrderedDict()
     data['---Select One---'] = OrderedDict()
 
@@ -181,6 +176,19 @@ def getSEOCodes(node, kw):
             data[item1]['---Select One---'] = OrderedDict()
 
     return data
+
+@colander.deferred
+def getSEOCodes(node, kw):
+    """
+    Helper function for retrieving and organising SEO codes from the CSV file that contains them.
+
+    :param node: Node that the returnd values are for.
+    :param kw: Arguments that are passed to the shema's bind() method.
+    :return: OrderedDict of SEO codes nested appropriately.
+    """
+    SEO_CODES_FILE = kw['settings'].get("provisioning.seo_codes", {})
+
+    return get_seo_codes_from_file(SEO_CODES_FILE)
 
 
 class FieldOfResearch(CAModel, Base):
@@ -457,6 +465,49 @@ class MetadataNote(CAModel, Base):
 #    website = Column(String(256), ca_order=next(order_counter))
 #    website_title = Column(String(256), ca_order=next(order_counter))
 
+
+def metadata_validator(form, value):
+    """
+    Validates that custom citations are correct.
+
+    :param form: Metadata schemas/form to validate
+    :param value: Appstruct/values passed in for validation.
+    :return: None, raise a colander.Invalid exception if the validation fails.
+    """
+    error = False
+    exc = colander.Invalid(form) # Uncomment to add a block message: , 'At least 1 research theme or Not aligned needs to be selected')
+
+    item = value.popitem()
+    value[item[0]] = item[1]
+    key = item[0][:item[0].rindex(":")+1]
+
+    if '%scustom_citation' % key in value and value['%scustom_citation' % key]:
+        citation = value["%scitation" % key]
+        citation_key = "%scitation:" % key
+
+        exc["%scitation" % key] = "Invalid custom citation."
+
+        if citation['%scitation_title' % citation_key] is None or len(citation['%scitation_title' % citation_key]) == 0:
+            exc.children[0]['%scitation_title' % citation_key] = "Required"
+        if not isinstance(citation['%scitation_publish_date' % citation_key], (date, datetime)):
+            exc.children[0]['%scitation_publish_date' % citation_key] = "Required"
+        if not isinstance(citation['%scitation_creators' % citation_key], list) or len(citation['%scitation_title' % citation_key]) == 0:
+            exc.children[0]['%scitation_creators' % citation_key] = "Required"
+        if citation['%scitation_edition' % citation_key] is None or len(citation['%scitation_edition' % citation_key]) == 0:
+            exc.children[0]['%scitation_edition' % citation_key] = "Required"
+        if citation['%scitation_publisher' % citation_key] is None or len(citation['%scitation_publisher' % citation_key]) == 0:
+            exc.children[0]['%scitation_publisher' % citation_key] = "Required"
+        if citation['%scitation_place_of_publication' % citation_key] is None or len(citation['%scitation_place_of_publication' % citation_key]) == 0:
+            exc.children[0]['%scitation_place_of_publication' % citation_key] = "Required"
+        if citation['%scitation_url' % citation_key] is None or len(citation['%scitation_url' % citation_key]) == 0:
+            exc.children[0]['%scitation_url' % citation_key] = "Required"
+        if citation['%scitation_data_type' % citation_key] is None or len(citation['%scitation_data_type' % citation_key]) == 0:
+            exc.children[0]['%scitation_data_type' % citation_key] = "Required"
+
+        error = True
+
+    if error:
+        raise exc
 
 
 class Metadata(CAModel, Base):
@@ -1042,15 +1093,18 @@ class MethodSchema(CAModel, Base):
         primaryjoin=id==method_schema_to_schema.c.child_id,
         secondaryjoin=id==method_schema_to_schema.c.parent_id,
         ca_title="Standardised data fields (Recommended where possible)",
-        ca_widget=deform.widget.SequenceWidget(template="method_schema_parents_sequence"),
+        ca_widget=deform.widget.SequenceWidget(template="method_schema_parents_sequence",
+            readonly_template="readonly/method_schema_parents_sequence"),
         ca_child_title = "Standard Data Field",
-        ca_child_widget=deform.widget.MappingWidget(template="method_schema_parents_mapping", item_template="method_schema_parents_item"),
+        ca_child_widget=deform.widget.MappingWidget(template="method_schema_parents_mapping",
+            readonly_template="readonly/method_schema_parents_mapping", item_template="method_schema_parents_item",
+            readonly_item_template="readonly/method_schema_parents_item"),
         ca_help="<p>Using standardised data fields makes your data more compatible and searchable within the system.</p>",
         ca_description="<i>Please request additional standardised data fields through the contact form.</i>")
 
     custom_fields = relationship("MethodSchemaField", ca_order=next(order_counter), ca_child_title="Custom Field",
         cascade="all, delete-orphan",
-        ca_child_widget=deform.widget.MappingWidget(item_template="method_schema_field_item"),
+        ca_child_widget=deform.widget.MappingWidget(item_template="method_schema_field_item", readonly_item_template="readonly/method_schema_field_item"),
         ca_help="Data that needs to be searchable but isn't a common measurement.",
     )
 
@@ -1386,23 +1440,18 @@ def dataset_select_widget(node, kw):
             if dataset.method is None:
                 continue
 
-            if dataset.record_metadata is not None:
-#                dataset_name = dataset.record_metadata.project_title
-                dataset_name = ""
-            else:
-                project = DBSession.query(Project).filter_by(id=dataset.project_id).first()
+            project = DBSession.query(Project).filter_by(id=dataset.project_id).first()
 
-                height_text = ""
-                if len(dataset.dataset_locations) > 0 and dataset.dataset_locations[0] is not None:
-                    height_text =  (", %sm above MSL") % dataset.dataset_locations[0].elevation
-                location_text = "none"
-                if len(dataset.dataset_locations) > 0 and dataset.dataset_locations[0].location is not None:
-                    location_text = "%s (%s, %s%s)" % (dataset.dataset_locations[0].name, dataset.dataset_locations[0].get_latitude(),
-                                                       dataset.dataset_locations[0].get_longitude(), height_text)
+            height_text = ""
+            if len(dataset.dataset_locations) > 0 and dataset.dataset_locations[0] is not None:
+                height_text =  (", %sm above MSL") % dataset.dataset_locations[0].elevation
+            location_text = "none"
+            if len(dataset.dataset_locations) > 0 and dataset.dataset_locations[0].location is not None:
+                location_text = "%s (%s, %s%s)" % (dataset.dataset_locations[0].name, dataset.dataset_locations[0].get_latitude(),
+                                                   dataset.dataset_locations[0].get_longitude(), height_text)
 #                dataset_name = "%s at %s collected by %s" %\
 #                               (project.information.project_title, location_text, dataset.method.method_name)
-                dataset_name = "%s at %s" %\
-                               (dataset.method.method_name, location_text)
+            dataset_name = "%s at %s" % (dataset.method.method_name, location_text)
             dataset_values.append((dataset.id, dataset_name))
         return deform.widget.SelectWidget(values=dataset_values, template="source_dataset_select")
 
@@ -1570,9 +1619,14 @@ class Dataset(CAModel, Base):
     project_id = Column(Integer, ForeignKey('project.id'),  ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter),
         #        ca_group_start="test_method", ca_group_title="Test Method",
     )
+
+    date_created = Column(Date, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+    date_modified = Column(Date, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+    last_modified_by = Column(Integer, ForeignKey('user.id'),  ca_widget=deform.widget.HiddenWidget(), ca_order=next(order_counter))
+
     method_id = Column(Integer, ForeignKey('method.id'), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
-    disabled = Column(Boolean,ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+    disabled = Column(Boolean,ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(), ca_default=True)
 
     mint_service_id = Column(String(256), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
     mint_service_uri = Column(String(256), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
@@ -1820,7 +1874,6 @@ def method_validator(form, value):
     """
     pass
 
-
 def dataset_validator(form, value):
     """
     Validates that the datasets page either doesn't publish a metadata record, or a valid publish date is given.
@@ -1862,12 +1915,14 @@ class Project(CAModel, Base):
     project_creator = Column(Integer, ForeignKey('user.id'), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
     project_creator = Column(Integer, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
-    creation_date = Column(Date, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+    date_created = Column(Date, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+    date_modified = Column(Date, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+    last_modified_by = Column(Integer, ForeignKey('user.id'),  ca_widget=deform.widget.HiddenWidget(), ca_order=next(order_counter))
 
     template_only = Column(Boolean, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 
     information = relationship('Metadata', ca_title="", ca_order=next(order_counter),
-        cascade="all, delete-orphan",
+        cascade="all, delete-orphan", ca_validator=metadata_validator,
         ca_child_collapsed=False, uselist=False,)
 
     #-----------------------------Method page----------------------------------------------------------
@@ -1879,7 +1934,7 @@ class Project(CAModel, Base):
 #        ca_help="<p>This will be used as the description for data collection in the project metadata record and will provide users of your data with an overview of what the project is researching.</p>"
 #                "<p><i>If you aren't sure what a method is return to this description after completing the Methods page.</i></p>")
 
-    methods = relationship('Method', ca_title="", ca_widget=deform.widget.SequenceWidget(min_len=0, template="method_sequence"), ca_order=next(order_counter), ca_page="methods",
+    methods = relationship('Method', ca_title="", ca_widget=deform.widget.SequenceWidget(min_len=0, template="method_sequence", readonly_template="readonly/method_sequence"), ca_order=next(order_counter), ca_page="methods",
         cascade="all, delete-orphan", ca_child_validator=method_validator,
         ca_child_collapsed=False,)
 #        ca_description="Add one method for each type of data collection method (eg. temperature sensors, manually entered field observations using a form or files retrieved by polling a server...)")
@@ -1985,6 +2040,21 @@ class DataEntry(CAModel, Base):
     dam_version = Column(String(128), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
 
+class DataCalibration(CAModel, Base):
+    """
+    NOT YET IMPLEMENTED
+
+    Represents a point of data in the ingester platform displayed using a Deform schema dynamically generated from the
+    methods data configuration (data schema).
+    """
+    order_counter = itertools.count()
+
+    __tablename__ = 'data_calibration'
+    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    dam_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget())
+    dam_version = Column(String(128), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
+
 
 
 class IngesterLogsFiltering(colander.MappingSchema):
@@ -2071,4 +2141,35 @@ class ManageData(colander.MappingSchema):
     """
     user_id = colander.SchemaNode(colander.Integer())
 
+class DataFiltering(colander.MappingSchema):
+    """
+    Schema for the browse projects/data page - the below fields provide the filtering and this schema should be used
+    with the template set to manage_date.
+    """
+    type = colander.SchemaNode(colander.String(), widget=deform.widget.SelectWidget(css_class="data_filter",
+        values=(("project", "Projects"), ("dataset","Datasets"), ("data","Data"),),
+        ca_help="Only show the selected types of data"),
+        help="Only projects in the selectedstates will be searched.",missing=colander.null)
+    id_list = colander.SchemaNode(colander.String(), missing=colander.null, title="ID List",
+        help="Comma separated list of unique identifiers, the unique identifier format is &lt;type&gt;_&lt;id&gt;",
+        placeholder="eg. project_1, project 2", widget=deform.widget.TextInputWidget(css_class="id_list"))
+    search_string = colander.SchemaNode(colander.String(), missing=colander.null,
+        widget=deform.widget.TextInputWidget(css_class="search_string"))
 
+    state = colander.SchemaNode(colander.Set(), widget=deform.widget.CheckboxChoiceWidget(css_class="states",
+        values=((ProjectStates.OPEN, "Open"), (ProjectStates.SUBMITTED,"Submitted"), (ProjectStates.ACTIVE, "Active"),
+                (ProjectStates.DISABLED, "Disabled"), )),
+        help="Only projects in the selectedstates will be searched.",missing=colander.null)
+
+    start_date = colander.SchemaNode(colander.Date(), widget=deform.widget.DateInputWidget(css_class="data_filter"),
+        help="Only results created afterthe entered date will be shown.",missing=colander.null)
+    end_date = colander.SchemaNode(colander.Date(), widget=deform.widget.DateInputWidget(css_class="data_filter"),
+        help="Only results created beforethe entered date will be shown.", missing=colander.null)
+
+
+class DataFilteringWrapper(colander.MappingSchema):
+    """
+    This class is to get around the first element in a form having its templates ignored as they are replaced with the
+    form template....
+    """
+    data_filtering = DataFiltering(widget=deform.widget.MappingWidget(template="manage_data"),)

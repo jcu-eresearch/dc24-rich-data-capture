@@ -4,24 +4,31 @@ Provides all project related views, this includes project configuration as well 
 """
 
 import cgi
+from copy import deepcopy
 from datetime import datetime, date
 import json
 import logging
+from mhlib import isnumeric
+from operator import not_, itemgetter, or_, and_
 from string import split
 import string
 import inspect
 from sqlalchemy import distinct
+import jcudc24ingesterapi
+from jcudc24ingesterapi.search import DataEntrySearchCriteria
+from beaker.cache import cache_region
 from jcudc24provisioning.resources import enmasse_forms, open_layers, open_layers_js
 from js.jquery import jquery
 from js.jqueryui import jqueryui
 from js.jqueryui import ui_lightness
 from js.jquery_form import jquery_form
 import js.deform
-
+from sqlalchemy import desc, asc
+from pyramid.httpexceptions import HTTPForbidden
 
 from jcudc24provisioning.controllers.authentication import DefaultPermissions
-from jcudc24provisioning.controllers.method_schema_scripts import get_method_schema_preview
-from pyramid.security import authenticated_userid, NO_PERMISSION_REQUIRED, has_permission
+from jcudc24provisioning.controllers.method_schema_scripts import get_method_schema_preview, DataTypeSchema
+from pyramid.security import authenticated_userid, NO_PERMISSION_REQUIRED, has_permission, ACLAllowed
 import sqlalchemy
 from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.orm.util import object_mapper
@@ -41,7 +48,7 @@ from jcudc24provisioning.views.views import Layouts
 from pyramid.renderers import get_renderer
 from jcudc24provisioning.models.project import Metadata, UntouchedPages, IngesterLogs, Location, \
     ProjectTemplate,method_template, Project, project_validator, ProjectStates, Sharing, CreatePage, MetadataNote, \
-    Method, Party, Dataset, MethodSchema, create_project_validator, MethodTemplate, ManageData, ProjectNote
+    Method, Party, Dataset, MethodSchema, create_project_validator, MethodTemplate, ManageData, ProjectNote, DataFiltering, DataFilteringWrapper, DataEntry, DataCalibration, Keyword
 from jcudc24provisioning.controllers.ca_schema_scripts import convert_schema
 from jcudc24provisioning.controllers.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.ajax_mint_lookup import MintLookup
@@ -56,28 +63,30 @@ logger = logging.getLogger(__name__)
 # Configures all menu items in the project workflow/configurations
 WORKFLOW_STEPS = [
         {'href': 'create', 'title': 'Create', 'page_title': 'Create a New Project', 'hidden': True, 'tooltip': '', 'view_permission': DefaultPermissions.CREATE_PROJECT},
-        {'href': 'general', 'title': 'Details', 'page_title': 'General Details', 'tooltip': 'Title, grants, people and collaborators', 'view_permission': DefaultPermissions.VIEW_PROJECT, 'display_leave_confirmation': True},
-        {'href': 'description', 'title': 'Description', 'page_title': 'Description', 'tooltip': 'Project descriptions used for publishing records', 'view_permission': DefaultPermissions.VIEW_PROJECT, 'display_leave_confirmation': True},
-        {'href': 'information', 'title': 'Information', 'page_title': 'Associated Information', 'tooltip': 'Collects metadata for publishing records', 'view_permission': DefaultPermissions.VIEW_PROJECT, 'display_leave_confirmation': True},
-        {'href': 'methods', 'title': 'Methods', 'page_title': 'Data Collection Methods', 'tooltip': 'Ways of collecting data', 'view_permission': DefaultPermissions.VIEW_PROJECT, 'display_leave_confirmation': True},
+        {'href': 'general', 'title': 'Details', 'page_title': 'General Details', 'tooltip': 'Title, grants, people and collaborators', 'view_permission': DefaultPermissions.VIEW_PUBLIC, 'display_leave_confirmation': True},
+        {'href': 'description', 'title': 'Description', 'page_title': 'Description', 'tooltip': 'Project descriptions used for publishing records', 'view_permission': DefaultPermissions.VIEW_PUBLIC, 'display_leave_confirmation': True},
+        {'href': 'information', 'title': 'Information', 'page_title': 'Associated Information', 'tooltip': 'Collects metadata for publishing records', 'view_permission': DefaultPermissions.VIEW_PUBLIC, 'display_leave_confirmation': True},
+        {'href': 'methods', 'title': 'Methods', 'page_title': 'Data Collection Methods', 'tooltip': 'Ways of collecting data', 'view_permission': DefaultPermissions.VIEW_PUBLIC, 'display_leave_confirmation': True},
         {'href': 'datasets', 'title': 'Datasets', 'page_title': 'Datasets (Collections of Data)', 'tooltip': 'Configure each individual data collection location', 'display_leave_confirmation': True},
-        {'href': 'view_record', 'title': 'Generated Dataset Record', 'page_title': 'Generated Dataset Record', 'hidden': True, 'tooltip': 'View datasets generated metadata record', 'view_permission': DefaultPermissions.VIEW_PROJECT, 'display_leave_confirmation': True},
-        {'href': 'edit_record', 'title': 'Generated Dataset Record', 'page_title': 'Generated Dataset Record', 'hidden': True, 'tooltip': 'Edit datasets generated metadata record', 'view_permission': DefaultPermissions.EDIT_PROJECT, 'display_leave_confirmation': True},
-        {'href': 'delete_record', 'title': 'Generated Dataset Record', 'page_title': 'Generated Dataset Record', 'hidden': True, 'tooltip': 'Delete datasets generated metadata record', 'view_permission': DefaultPermissions.EDIT_PROJECT},
         {'href': 'submit', 'title': 'Submit', 'page_title': 'Submit & Approval', 'tooltip': 'Overview, errors and project submission for administrator approval', 'view_permission': DefaultPermissions.VIEW_PROJECT},
         {'href': 'template', 'title': 'Template', 'page_title': 'Template Details', 'hidden': True, 'tooltip': 'Edit template specific details such as category', 'view_permission': DefaultPermissions.ADMINISTRATOR, 'display_leave_confirmation': True},
 ]
 
 # Configures all contextual options in the project side menu.
 WORKFLOW_ACTIONS = [
-        {'href': 'general', 'title': 'Configuration', 'page_title': 'General Details', 'tooltip': 'Project settings used to create this project', 'view_permission': DefaultPermissions.VIEW_PROJECT, 'display_leave_confirmation': True},
-        {'href': 'logs', 'title': 'View Logs', 'page_title': 'Ingester Event Logs', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Event logs received from the data ingester', 'view_permission': DefaultPermissions.VIEW_PROJECT, 'display_leave_confirmation': False},
-#        {'href': 'add_data', 'title': 'Add Data', 'page_title': 'Add Data', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': ''},
-        {'href': 'search', 'title': 'Manage Data', 'page_title': 'Manage Data', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Allows viewing, editing or adding of data and ingester configurations', 'view_permission': DefaultPermissions.VIEW_PROJECT, 'display_leave_confirmation': False},
+        {'href': 'general', 'title': 'Configuration', 'page_title': 'General Details', 'tooltip': 'Project settings used to create this project', 'view_permission': DefaultPermissions.VIEW_PUBLIC, 'display_leave_confirmation': True},
+        {'href': 'logs', 'title': 'View Logs', 'page_title': 'Ingester Event Logs', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Event logs received from the data ingester', 'view_permission': DefaultPermissions.VIEW_DATA, 'display_leave_confirmation': False},
+        {'href': 'search', 'title': 'Manage Data', 'page_title': 'Browse Data', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Allows viewing, editing or adding of data and ingester configurations', 'view_permission': DefaultPermissions.VIEW_DATA, 'display_leave_confirmation': False},
+        {'href': 'data', 'title': 'Data', 'page_title': 'Data (Add, edit or view data)', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': ''},
+        #        {'href': 'browse_projects', 'title': 'Browse Projects', 'page_title': 'Manage Data', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Provides searching for projects and provides links to associated data.', 'view_permission': DefaultPermissions.VIEW_PROJECT, 'display_leave_confirmation': False},
         {'href': 'permissions', 'title': 'Sharing', 'page_title': 'Sharing & Permissions', 'tooltip': 'Change who can access and edit this project', 'view_permission': DefaultPermissions.EDIT_SHARE_PERMISSIONS},
-        {'href': 'duplicate', 'title': 'Duplicate Project', 'page_title': 'Duplicate Project', 'tooltip': 'Create a new project using this project as a template', 'view_permission': DefaultPermissions.VIEW_PROJECT},
+        {'href': 'duplicate', 'title': 'Duplicate Project', 'page_title': 'Duplicate Project', 'tooltip': 'Create a new project using this project as a template', 'view_permission': DefaultPermissions.CREATE_PROJECT},
         {'href': 'create_template', 'title': 'Make into Template', 'page_title': 'Create Project Template', 'tooltip': 'Suggest to the administrators that this project should be a template', 'hidden': True, 'view_permission': DefaultPermissions.ADMINISTRATOR, 'display_leave_confirmation': True},
-]
+        {'href': 'view_record', 'title': 'Generated Dataset Record', 'page_title': 'Generated Dataset Record', 'hidden': True, 'tooltip': 'View datasets generated metadata record', 'view_permission': DefaultPermissions.VIEW_PUBLIC, 'display_leave_confirmation': True},
+        {'href': 'edit_record', 'title': 'Generated Dataset Record', 'page_title': 'Generated Dataset Record', 'hidden': True, 'tooltip': 'Edit datasets generated metadata record', 'view_permission': DefaultPermissions.EDIT_PROJECT, 'display_leave_confirmation': True},
+        {'href': 'edit_dataset', 'title': 'Dataset Ingester', 'page_title': 'Dataset Ingester', 'hidden': True, 'tooltip': 'Edit dataset ingester settings', 'view_permission': DefaultPermissions.EDIT_INGESTERS, 'display_leave_confirmation': True},
+        {'href': 'delete_record', 'title': 'Generated Dataset Record', 'page_title': 'Generated Dataset Record', 'hidden': True, 'tooltip': 'Delete datasets generated metadata record', 'view_permission': DefaultPermissions.EDIT_PROJECT},
+    ]
 
 # Not used currently - this is for if AJAX is enabled
 redirect_options = """
@@ -235,7 +244,7 @@ class Workflows(Layouts):
         if '_page' not in locals():
             self._page = None
             for menu in WORKFLOW_STEPS + WORKFLOW_ACTIONS:
-                if self.request.url.endswith(menu['href']):
+                if self.request.matched_route.name == menu['href']:
                     self._page = menu
                     break
         return self._page
@@ -305,8 +314,8 @@ class Workflows(Layouts):
                 self._model_id = None
             elif self.model_type == Project:
                 self._model_id = self.project_id
-            elif self.model_type.__tablename__ + '_id' in self.request.matchdict:
-                self._model_id = self.request.matchdict[self.model_type.__name__ + '_id']
+            elif self.model_type.__tablename__.lower() + '_id' in self.request.matchdict:
+                self._model_id = self.request.matchdict[self.model_type.__name__.lower() + '_id']
             else:
                 self._model_id = self.request.POST.get(self.model_type.__tablename__ + ":id", None)
         return self._model_id
@@ -331,7 +340,8 @@ class Workflows(Layouts):
                 hidden.append(menu)
 
             # Hide manu items that the user doesn't have permission to see
-            if 'view_permission' in menu and not has_permission(menu['view_permission'], self.context, self.request):
+            if 'view_permission' in menu and not has_permission(menu['view_permission'], self.context,
+                    self.request).boolval:
                 hidden.append(menu)
 
         for menu in hidden:
@@ -356,9 +366,9 @@ class Workflows(Layouts):
                 hidden.append(menu)
 
             # Hide manu items that the user doesn't have permission to see
-            if 'view_permission' in menu and not has_permission(menu['view_permission'], self.context, self.request):
+            if 'view_permission' in menu and not has_permission(menu['view_permission'], self.context,
+                    self.request).boolval:
                 hidden.append(menu)
-
 
         for menu in hidden:
             if menu in new_menu:
@@ -409,14 +419,29 @@ class Workflows(Layouts):
         """
         if self.request.method == 'POST' and len(self.request.POST) > 0:
             # If this is a sub-request called just to save.
+            matched_route = self.request.matched_route
             if self.request.referrer == self.request.path_url:
-                if self._save_form():
-                    self._touch_page()
+                if (
+                        (matched_route == "manage_dataset" and
+                            has_permission(DefaultPermissions.EDIT_INGESTERS, self.context, self.request)) or
+                        (matched_route == "manage_data" and
+                            has_permission(DefaultPermissions.EDIT_DATA, self.context, self.request)) or
+                        (matched_route == "permissions" and
+                            has_permission(DefaultPermissions.EDIT_SHARE_PERMISSIONS, self.context, self.request)) or
+                        (matched_route == "data" and
+                         has_permission(DefaultPermissions.EDIT_DATA, self.context, self.request)) or
+                        has_permission(DefaultPermissions.EDIT_PROJECT, self.context, self.request)
+                    ):
+                    if self._save_form() and self.model_type == Project:
+                        self._touch_page()
+                        self.project.validated = False
 
-                # If this view has been called for saving only, return without rendering.
-                view_name = inspect.stack()[1][3][:-5]
-                if self.request.matched_route.name != view_name:
-                    return True
+                    # If this view has been called for saving only, return without rendering.
+                    view_name = inspect.stack()[1][3][:-5]
+                    if self.request.matched_route.name != view_name:
+                        return True
+                else:
+                    raise HTTPForbidden("You do not have permission to save this data.  Page being saved is %s" % self.title)
             else:
                 self._redirect_to_target(self.request.referrer)
 
@@ -459,6 +484,7 @@ class Workflows(Layouts):
                 if model is not None:
                     self.session.add(model)
                     changed = True
+                    model.date_created = datetime.now().date()
                 else:
                     return
             else:
@@ -471,6 +497,10 @@ class Workflows(Layouts):
                 changed = True
 
         self._model = model
+
+        if changed:
+            model.date_modified = datetime.now().date()
+            model.last_modified_by = self.request.user.id
 
         try:
             self.session.flush()
@@ -526,31 +556,25 @@ class Workflows(Layouts):
         wich is used by the _create_response() helper method.
         """
 
-        if self._is_page_touched() and not self._readonly:
-            try:
-                appstruct = self._get_model_appstruct(dates_as_string=True)
-                if appstruct is None:
-                    return
-                appstruct = self.form.validate_pstruct(appstruct)
-                display = self.form.render(appstruct)
-            except ValidationFailure, e:
-                appstruct = e.cstruct
-                display = e.render()
-
-        else:
+        if not self._is_page_touched():
             try:
                 # Try to display the form without validating
                 appstruct = self._get_model_appstruct(dates_as_string=False)
                 if appstruct is None:
                     return
-                display = self.form.render(appstruct, readonly=self._readonly)
+                return self.form.render(appstruct, readonly=self._readonly)
             except Exception, e:
-                try:
-                    # If it fails, try validating - there are issues with dates where it can't display the string as read from the DB untill it is validated.
-                    appstruct = self.form.validate_pstruct(appstruct)
-                    display = self.form.render(appstruct, readonly=self._readonly)
-                except ValidationFailure, e:
-                    display = e.render()   # Validation failed, ignore that it isn't touched and display the error form
+                logger.exception("Couldn't display untouched form without validating.")
+
+        try:
+            appstruct = self._get_model_appstruct(dates_as_string=True)
+            if appstruct is None:
+                return
+            appstruct = self.form.validate_pstruct(appstruct)
+            display = self.form.render(appstruct, readonly=self._readonly)
+        except ValidationFailure, e:
+            appstruct = e.cstruct
+            display = e.render()
 
         return display
 
@@ -579,10 +603,13 @@ class Workflows(Layouts):
                 self._model = self.session.query(self.model_type).filter_by(id=self.model_id).first()
         return self._model
 
-    def _get_model_appstruct(self, dates_as_string=False):
+    def _get_model_appstruct(self, dates_as_string=None):
         """
         Helper method for getting the current pages model and converting it into a Deform compatible appstruct.
         """
+        if dates_as_string is None:
+            dates_as_string = self._is_page_touched()
+
         if not hasattr(self, '_model_appstruct'):
             if self._get_model() is not None:
                 self._model_appstruct = self._get_model().dictify(self.form.schema, dates_as_string=dates_as_string)
@@ -676,6 +703,13 @@ class Workflows(Layouts):
         response_dict.update(kwargs)
         return response_dict
 
+    def _check_project_page_permissions(self):
+        has_view_permission = has_permission(DefaultPermissions.VIEW_PROJECT, self.context, self.request).boolval
+        project_activated = not (self.project.state == ProjectStates.OPEN or self.project.state == ProjectStates.SUBMITTED)
+
+        if not project_activated and not has_view_permission:
+            raise HTTPForbidden("You don't have permission to view this page.")
+
     # --------------------WORKFLOW STEP VIEWS-------------------------------------------
     @view_config(route_name="create", permission=DefaultPermissions.CREATE_PROJECT)
     def create_view(self):
@@ -726,7 +760,7 @@ class Workflows(Layouts):
             new_project = Project()
 
             new_project.project_creator = self.request.user.id
-            new_project.creation_date = datetime.now()
+            new_project.date_created = datetime.now()
 
             if 'template' in appstruct:
                 template = self.session.query(Project).filter_by(id=appstruct['template']).first()
@@ -792,15 +826,18 @@ class Workflows(Layouts):
 
         return self._create_response(page_help=page_help, page_help_hidden=False, form=self._render_post(readonly=False), readonly=False)
 
-    @view_config(route_name="general", permission=DefaultPermissions.VIEW_PROJECT)
+    @view_config(route_name="general", permission=DefaultPermissions.VIEW_PUBLIC)
     def general_view(self):
         """
         Displays the general details page.  This is a basic page that simply collects and displays data.
 
         :return: HTML rendering of the create page form.
         """
+
+        self._check_project_page_permissions()
+
         page_help = ""
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description=""), page='general', restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request)).bind(request=self.request)
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_description=""), page='general', restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request).boolval).bind(request=self.request)
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', ), use_ajax=False, ajax_options=redirect_options)
 
         # If this page was only called for saving and a rendered response isn't needed, return now.
@@ -813,20 +850,24 @@ class Workflows(Layouts):
         return self._create_response(page_help=page_help)
 
 
-    @view_config(route_name="description", permission=DefaultPermissions.VIEW_PROJECT)
+    @view_config(route_name="description", permission=DefaultPermissions.VIEW_PUBLIC)
     def description_view(self):
         """
         Displays the description page which is a basic page that simply collects and displays data.
 
         :return: HTML rendering of the create page form.
         """
+
+        # Prevent the unauthorised users from seeing projects that aren't submitted and approved.
+        self._check_project_page_permissions()
+
         page_help = "Fully describe your project to encourage other researchers to reuse your data:"\
                     "<ul><li>The entered descriptions will be used for metadata record generation (ReDBox), " \
                     "provide detailed information that is relevant to the project as a whole.</li>"\
                     "<li>Focus on what is being researched, why it is being researched and who is doing the research. " \
                     "The research locations and how the research is being conducted will be covered in the <i>Methods</i>" \
                     " and <i>Datasets</i> steps later on.</li></ul>"
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="description", restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request)).bind(
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="description", restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request).boolval).bind(
             request=self.request)
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
 
@@ -837,13 +878,17 @@ class Workflows(Layouts):
         return self._create_response(page_help=page_help)
 
 
-    @view_config(route_name="information", permission=DefaultPermissions.VIEW_PROJECT)
+    @view_config(route_name="information", permission=DefaultPermissions.VIEW_PUBLIC)
     def information_view(self):
         """
         Displays the information page which is a basic page that simply collects and displays data.
 
         :return: HTML rendering of the create page form.
         """
+
+        # Prevent the unauthorised users from seeing projects that aren't submitted and approved.
+        self._check_project_page_permissions()
+
         open_layers.need()
         open_layers_js.need()
 
@@ -860,7 +905,7 @@ class Workflows(Layouts):
                                    "<li>If specific datasets require additional metadata that cannot be entered through " \
                                    "these forms, you can enter it directly in the ReDBox-Mint records once the project " \
                                    "is submitted and accepted (Look under <i>[to be worked out]</i> for a link).</li></ul>"
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page='information', restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request)).bind(request=self.request, settings=self.config)
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page='information', restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request).boolval).bind(request=self.request, settings=self.config)
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
 
         # If this page was only called for saving and a rendered response isn't needed, return now.
@@ -878,7 +923,7 @@ class Workflows(Layouts):
         """
         return self.session.query(MethodSchema).filter_by(template_schema=1).all()
 
-    @view_config(route_name="methods", permission=DefaultPermissions.VIEW_PROJECT)
+    @view_config(route_name="methods", permission=DefaultPermissions.VIEW_PUBLIC)
     def methods_view(self):
         """
         Displays the methods page which provides a decent amount of dynamic functionality including:
@@ -888,6 +933,10 @@ class Workflows(Layouts):
 
         :return: HTML rendering of the create page form.
         """
+
+        # Prevent the unauthorised users from seeing projects that aren't submitted and approved.
+        self._check_project_page_permissions()
+
         page_help = "<p>Setup methods the project uses for collecting data (not individual datasets themselves as they will " \
                     "be setup in the next step).</p>" \
                     "<p>Each method sets up:</p>"\
@@ -895,7 +944,7 @@ class Workflows(Layouts):
                     "<li>Ways of collecting data (data sources), these may require additional configuration on each dataset (datasets page).</li>" \
                     "<li>Type of data being collected which tells the system how data should be stored, displayed and searched (what fields there are, field types and associated information).</li>" \
                     "<li>Any additional information about this data collection methods - websites or attachments</li></ul>"
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="methods", restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request)).bind(request=self.request)
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="methods", restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request).boolval).bind(request=self.request)
 
         templates = self.session.query(MethodTemplate).order_by(MethodTemplate.category).all()
         categories = []
@@ -966,8 +1015,28 @@ class Workflows(Layouts):
 
         return self._create_response(page_help=page_help)
 
+    def _get_file_fields(self, data_entry_schema):
+        """
+        Helper method for recursively retrieving all fields in a schema of type file.
 
-    @view_config(route_name="datasets", permission=DefaultPermissions.VIEW_PROJECT)
+        :param data_entry_schema: SQLAlchemy object to find all custom and parent fields from.
+        :return: An array of all fields of file type within the provided schema.
+        """
+        if data_entry_schema is None:
+            return []
+
+        fields = []
+
+        for field in data_entry_schema.parents:
+            fields.extend(self._get_file_fields(field))
+
+        for field in data_entry_schema.custom_fields:
+            if field.type == 'file':
+                fields.append((field.id, field.name))
+
+        return fields
+
+    @view_config(route_name="datasets", permission=DefaultPermissions.VIEW_PUBLIC)
     def datasets_view(self):
         """
         Displays the datasets page which provides a decent amount of dynamic functionality including:
@@ -979,29 +1048,11 @@ class Workflows(Layouts):
         :return: HTML rendering of the create page form.
         """
 
+        # Prevent the unauthorised users from seeing projects that aren't submitted and approved.
+        self._check_project_page_permissions()
+
         open_layers.need()
         open_layers_js.need()
-
-        def get_file_fields(data_entry_schema):
-            """
-            Helper method for recursively retrieving all fields in a schema of type file.
-
-            :param data_entry_schema: SQLAlchemy object to find all custom and parent fields from.
-            :return: An array of all fields of file type within the provided schema.
-            """
-            if data_entry_schema is None:
-                return []
-
-            fields = []
-
-            for field in data_entry_schema.parents:
-                fields.extend(get_file_fields(field))
-
-            for field in data_entry_schema.custom_fields:
-                if field.type == 'file':
-                    fields.append((field.id, field.name))
-
-            return fields
 
         page_help = "<p>Add individual datasets that your project will be collecting.  This is the when and where using " \
                     "the selected data collection method (what, why and how).</p><p><i>Such that an iButton sensor that " \
@@ -1009,10 +1060,17 @@ class Workflows(Layouts):
                     " and should be set-up in this step for each site it is used at.</i></p>"
 
         datasets = self.session.query(Dataset).filter_by(project_id=self.project_id).all()
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="datasets", restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request)).bind(request=self.request, datasets=datasets)
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="datasets", restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request).boolval).bind(request=self.request, datasets=datasets)
 
         PREFIX_SEPARATOR = ":"
         DATASETS_INDEX = string.join([schema.name, Project.datasets.key], PREFIX_SEPARATOR)
+        schema[DATASETS_INDEX].children[0].request = self.request
+
+        # Fix any changes made in edit_dataset_view
+        schema[DATASETS_INDEX].children[0]['dataset:publish_dataset'].widget.readonly = False
+        schema[DATASETS_INDEX].children[0]['dataset:publish_date'].widget = deform.widget.DateInputWidget(readonly=False)
+        schema[DATASETS_INDEX].children[0]['dataset:dataset_locations'].widget.readonly = False
+        schema[DATASETS_INDEX].children[0]['dataset:location_offset'].widget.readonly = False
 
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
 
@@ -1071,10 +1129,10 @@ class Workflows(Layouts):
 
             # Add method data to the field for information to create new templates.
             schema[DATASETS_INDEX].children[0].methods = methods
-            schema[DATASETS_INDEX].children[0].widget.get_file_fields = get_file_fields
+            schema[DATASETS_INDEX].children[0].widget.get_file_fields = self._get_file_fields
 
         # Pass the method names into the schema so it can be displayed
-        appstruct = self._get_model_appstruct()
+        appstruct = self._get_model_appstruct(dates_as_string=self._is_page_touched())
         method_names = {}
         if len(appstruct) > 0:
             for dataset_data in appstruct['project:datasets']:
@@ -1116,7 +1174,7 @@ class Workflows(Layouts):
                     "<b>Reopen:</b> Reopen the project for editing, this can only occur when the project has been submitted but not yet accepted (eg. the project may require updates before being approved)<br/><br/>"\
                     "<b>Approve:</b> Approve this project, generate metadata records and setup data ingestion<br/><br/>"\
                     "<b>Disable:</b> Stop data ingestion, this would usually occur once the project has finished."
-        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="submit", restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request)).bind(request=self.request)
+        schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise'), page="submit", restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request).boolval).bind(request=self.request)
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), use_ajax=False)
 
         # Set the default user id to the current user so any notes that are added are set correctly.
@@ -1129,7 +1187,7 @@ class Workflows(Layouts):
             return
 
         # Get validation errors
-        if self.project is not None and (self.project.state == ProjectStates.OPEN or self.project.state == ProjectStates.SUBMITTED):
+        if self.project is not None and (self.project.state == ProjectStates.OPEN or self.project.state == ProjectStates.SUBMITTED) and not self.project.validated:
             # Create full self.project schema and form (without filtering to a single page as usual)
             val_schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise', ca_validator=project_validator, )).bind(request=self.request, settings=self.config)
 
@@ -1139,6 +1197,7 @@ class Workflows(Layouts):
             try:
                 val_form.validate_pstruct(appstruct)
                 self.error = []
+                self.project.validated = True
             except ValidationFailure, e:
                 errors = self.find_errors(e.error)
                 sorted_errors = []
@@ -1176,8 +1235,9 @@ class Workflows(Layouts):
                 reset_record_url = self.request.route_url("delete_record", project_id=self.project_id, dataset_id=dataset.id)
 
             if dataset.publish_dataset and self.project.state not in (ProjectStates.OPEN, ProjectStates.SUBMITTED, None):
-                portal_url = self.request.route_url("record_data", metadata_id=dataset.record_metadata.id)
-                redbox_url = dataset.record_metadata.redbox_uri
+                id = dataset.record_metadata is not None and dataset.record_metadata.id or None
+                portal_url = self.request.route_url("record_data", metadata_id=id)
+                redbox_url = dataset.record_metadata is not None and dataset.record_metadata.redbox_uri or None
 
             datasets.append((dataset_name, portal_url, redbox_url, view_record_url, reset_record_url, record_created,
                              no_errors))
@@ -1212,7 +1272,7 @@ class Workflows(Layouts):
 
         # Handle button presses and actual functionality.
         if SUBMIT_TEXT in self.request.POST and (self.project.state == ProjectStates.OPEN or self.project.state is None) and len(self.error) <= 0:
-            self.project.state = ProjectStates.SUBMITTED and has_permission(DefaultPermissions.SUBMIT, self.context, self.request)
+            self.project.state = ProjectStates.SUBMITTED and has_permission(DefaultPermissions.SUBMIT, self.context, self.request).boolval
 
             # Only update the citation if it is empty
             if self.project.information.custom_citation is not True:
@@ -1225,19 +1285,19 @@ class Workflows(Layouts):
                     self.redbox.pre_fill_citation(dataset.record_metadata)
 
         if REOPEN_TEXT in self.request.POST and self.project.state == ProjectStates.SUBMITTED:
-            self.project.state = ProjectStates.OPEN and has_permission(DefaultPermissions.REOPEN, self.context, self.request)
+            self.project.state = ProjectStates.OPEN and has_permission(DefaultPermissions.REOPEN, self.context, self.request).boolval
 
         if DISABLE_TEXT in self.request.POST and self.project.state == ProjectStates.ACTIVE:
-            self.project.state = ProjectStates.DISABLED and has_permission(DefaultPermissions.DISABLE, self.context, self.request)
+            self.project.state = ProjectStates.DISABLED and has_permission(DefaultPermissions.DISABLE, self.context, self.request).boolval
             # TODO: Disable in CC-DAM
 
         if DELETE_TEXT in self.request.POST and self.project.state == ProjectStates.DISABLED \
-                and has_permission(DefaultPermissions.DELETE, self.context, self.request):
+                and has_permission(DefaultPermissions.DELETE, self.context, self.request).boolval:
             # TODO: Delete
             pass
 
         if APPROVE_TEXT in self.request.POST and self.project.state == ProjectStates.SUBMITTED\
-                and has_permission(DefaultPermissions.APPROVE, self.context, self.request) and len(self.error) <= 0:
+                and has_permission(DefaultPermissions.APPROVE, self.context, self.request).boolval and len(self.error) <= 0:
             # Make sure all dataset record have been created
             for dataset in self.project.datasets:
                 if (dataset.record_metadata is None):
@@ -1270,18 +1330,18 @@ class Workflows(Layouts):
 
         buttons=()
         if (self.project.state == ProjectStates.OPEN or self.project.state is None) and len(self.error) <= 0 and\
-                has_permission(DefaultPermissions.SUBMIT, self.context, self.request):
+                has_permission(DefaultPermissions.SUBMIT, self.context, self.request).boolval:
             buttons += (Button(SUBMIT_TEXT),)
         elif self.project.state == ProjectStates.SUBMITTED:
-            if has_permission(DefaultPermissions.REOPEN, self.context, self.request):
+            if has_permission(DefaultPermissions.REOPEN, self.context, self.request).boolval:
                 buttons += (Button(REOPEN_TEXT),)
-            if has_permission(DefaultPermissions.APPROVE, self.context, self.request):
+            if has_permission(DefaultPermissions.APPROVE, self.context, self.request).boolval:
                 buttons += (Button(APPROVE_TEXT),)
         elif self.project.state == ProjectStates.ACTIVE and\
-                has_permission(DefaultPermissions.DISABLE, self.context, self.request):
+                has_permission(DefaultPermissions.DISABLE, self.context, self.request).boolval:
             buttons += (Button(DISABLE_TEXT),)
         elif self.project.state == ProjectStates.DISABLED and\
-                has_permission(DefaultPermissions.DELETE, self.context, self.request):
+                has_permission(DefaultPermissions.DELETE, self.context, self.request).boolval:
             buttons += (Button(DELETE_TEXT),)
         buttons += (Button("Save Notes"),)
         self.form.buttons = buttons
@@ -1326,7 +1386,7 @@ class Workflows(Layouts):
         dataset_id = self.request.matchdict['dataset_id']
 
         page_help=""
-        schema = convert_schema(SQLAlchemyMapping(Metadata, unknown='raise',), restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request)).bind(request=self.request, settings=self.config)
+        schema = convert_schema(SQLAlchemyMapping(Metadata, unknown='raise', widget=deform.widget.MappingWidget(validator=metadata_validator)), restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request).boolval).bind(request=self.request, settings=self.config)
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id, dataset_id=dataset_id), buttons=("Cancel", "Save & Close", "Save",), use_ajax=False)
 
         # If the form is being saved (there would be 1 item in controls if it is a fresh page with a project id set)
@@ -1390,6 +1450,7 @@ class Workflows(Layouts):
 
         :return: HTML rendering of the create page form.
         """
+
         dataset_id = int(self.request.matchdict['dataset_id'])
         logs = self.ingester_api.getIngesterLogs(dataset_id)
 
@@ -1500,36 +1561,774 @@ class Workflows(Layouts):
             return HTTPFound(self.request.route_url(self.request.referer.split("/")[-1], project_id=duplicate.id))
         return HTTPFound(self.request.route_url("general", project_id=duplicate.id))
 
+    @view_config(route_name="edit_dataset", permission=DefaultPermissions.VIEW_PROJECT)
+    def edit_dataset_view(self):
+        """
+        Hidden view for editing dataset ingester settings, this accessible through search.
+        """
+        readonly = False
+        if self.project.state == ProjectStates.OPEN or self.project.state == ProjectStates.SUBMITTED:
+            self.request.session.flash("Please use the datasets page in project configuration to update projects that haven't been submitted and approved.", "warning")
+            readonly = True
 
-    @view_config(route_name="add_data", permission=DefaultPermissions.EDIT_DATA)
-    def add_data_view(self):
-        raise NotImplementedError("This page hasn't been implemented yet.")
+        open_layers.need()
+        open_layers_js.need()
+
+        dataset_id = self.request.matchdict['dataset_id']
 
         page_help=""
-        schema = IngesterLogs()
-        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Refresh',), use_ajax=False)
 
+        schema = convert_schema(SQLAlchemyMapping(Dataset, unknown='raise'), page="datasets", restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request).boolval).bind(request=self.request, datasets=self.project.datasets)
 
-        return self.handle_form(self.form, schema, page_help)
+        schema['dataset:publish_dataset'].widget.readonly = True
+        schema['dataset:publish_date'].widget = deform.widget.DateInputWidget(readonly=True)
+        schema['dataset:dataset_locations'].widget.readonly = True
+        schema['dataset:location_offset'].widget.readonly = True
 
-    @view_config(route_name="manage_data", permission=NO_PERMISSION_REQUIRED)
-    def manage_data_view(self):
-        """
-        NOT IMPLEMENTED YET
-        Data management contextual option that integrates with the ingesterapi to manage the actual data.
+        schema.methods = self.project.methods
 
-        :return: HTML rendering of the create page form.
-        """
-        page_help=""
-        schema = ManageData()
-        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Refresh',), use_ajax=False)
-
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id, dataset_id=dataset_id), buttons=("Save",), use_ajax=False)
+        self.form.widget.template="edit_dataset_form"
+        self.form.widget.readonly_template="readonly/edit_dataset_form"
+        self.form.widget.get_file_fields = self._get_file_fields
 
         # If this page was only called for saving and a rendered response isn't needed, return now.
         if self._handle_form():
             return
 
-        return self._create_response(page_help=page_help)
+#        self.model_type = Dataset
+        return self._create_response(page_help=page_help, readonly= readonly or not
+            has_permission(DefaultPermissions.EDIT_INGESTERS, self.context, self.request).boolval)
+
+
+    @view_config(renderer="../templates/form.pt", route_name="search", permission=NO_PERMISSION_REQUIRED)
+    def search(self):
+        """
+        Search/browse page to allow users to navigate projects and their associated data.
+
+        :return: Rendered HTML form ready for display.
+        """
+        schema = DataFilteringWrapper()
+        search_info = 'search_info' in self.request.matchdict and self.request.matchdict['search_info'] or ()
+
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, search_info=('',) + search_info), method="POST", buttons=('Search',), use_ajax=False)
+
+        # Initialise empty display data
+        schema['data_filtering'].results = []
+        schema['data_filtering'].filter_data = {}
+        schema['data_filtering'].selection_actions = []
+
+        appstruct = {}
+        # Add the non-deform data directly to the schema (keep filtering data)
+        if self.request.method == "POST":
+            try:
+                appstruct = self.form.validate(self.request.POST.items())
+            except ValidationFailure as e:
+                appstruct = e.cstruct
+                val_error = e
+
+        # Add the filtering data directly to the schema (kind of hackish way of mixing template and deform data together).
+        filter_data = {"order_by": self.request.POST.get('order_by', "creation"),
+                       "order_direction": self.request.POST.get('order_direction', 'descending'),
+                       "limit": self.request.POST.get('limit', "20"),
+                       "page": self.request.POST.get('page', 0),
+                       "num_pages": 0}
+        schema['data_filtering'].filter_data = filter_data
+
+        # Get data from both the address URL and POST data which allows searching URL address and/or form data.
+        search_info = self.request.matchdict['search_info']
+
+        # Display an error if the search data in the matchdict (address url) is invalid.
+        if len(search_info) > 0 and search_info[0] != "data" and search_info[0] != "dataset" and search_info[0] != "project" and 'id_list=' not in search_info[0]:
+            self.request.session.flash("Trying to search on invalid data (in the address bar), data has been ignored.", "Error")
+            search_info = ()
+
+        # Get all search data from both the address URL and the posted form values.
+        search_data = self._get_search_data(search_info, 'data_filtering' in appstruct and appstruct['data_filtering'] or {})
+
+        # Get a list of the id's of all items selected.
+        selected_ids = []
+        if self.request.method == "POST":
+            for key, value in self.request.POST.items():
+                if key[:len("selected_")] == "selected_":
+                    selected_ids.append(value)
+
+        results = []
+        pagination_data = {}
+        actions = []
+
+        # If this is a list of unique identifiers, display the results (of possibly different types)
+        if len(search_data) == 1 and "id_list" in search_data:
+            results = self._get_id_list_results(search_data, pagination_data)
+
+        # Find results when searching projects
+        elif search_data['type'] == "project":
+            results = self._get_project_results(search_data, pagination_data, selected_ids, actions)
+
+        # Find results when searching datasets.
+        elif search_data['type'] == "dataset":
+            results = self._get_dataset_results(search_data, pagination_data, selected_ids, actions)
+
+        # Find results when searching data.
+        elif search_data['type'] == "data":
+            results = self._get_data_results(search_data, pagination_data, selected_ids, actions)
+
+        if isinstance(results, HTTPFound):
+            return results
+
+        # Add the found results and pagination data to the schema to be displayed.
+        schema['data_filtering'].results = results
+
+        schema['data_filtering'].selection_actions = actions
+
+        schema['data_filtering'].filter_data['num_pages'] = pagination_data.get('num_pages', 1)
+        schema['data_filtering'].filter_data['num_results'] = pagination_data.get('num_results', 0)
+        schema['data_filtering'].filter_data['start_num'] = pagination_data.get('start_num', 0)
+        end_num = pagination_data.get("end_num", 0) < pagination_data.get('num_results', 0) and \
+                  pagination_data.get("end_num", 0) or pagination_data.get('num_results', 0)
+        schema['data_filtering'].filter_data['end_num'] = end_num
+
+        if 'val_error' in locals():
+            display = val_error.render()
+        else:
+            display = self.form.render(appstruct)
+
+        return self._create_response(readonly=False, form='display' in locals() and display or None)
+
+    def _get_search_data(self, search_info, appstruct):
+        is_search_info = len(search_info) > 0
+        # If an ID list is provided directly, just display those objects without other search info.
+        if is_search_info and 'id_list' in search_info[0]:
+            return {"id_list": [int(id.strip()) for id in search_info[0][len("id_list="):].split(",")]}
+
+        post_data = self.request.POST
+        search_data = {}
+        if is_search_info:
+            search_data['type'] = search_info[0]
+
+        for item in search_info[1:]:
+            name, value = item.split("=")
+            if "," in value or name == "id_list":
+                value = value.split(",")
+            search_data[name] = value
+
+        if len(self.request.POST) > 0:
+            items = self.request.POST.items()
+            in_deform = False
+            for key, value in items:
+                if key == "__start__" and value == "data_filtering:mapping":
+                    in_deform = True
+                elif in_deform and key == "__end__" and value == "data_filtering:mapping":
+                    in_deform = False
+
+                if not in_deform and key[0] != "_":
+                    if isinstance(value, basestring) and "," in value:
+                        value = value.split(",")
+                    search_data[key] = value
+
+        for key, value in appstruct.items():
+            if key[0] != "_" and value is not None and value is not colander.null:
+                if isinstance(value, basestring) and "," in value:
+                    value = value.split(",")
+                search_data[key] = value
+
+        # Add defaults
+        if len(search_data) == 0:
+            search_data = {
+                "type": "project",
+                "order_by": "modified",
+                "order_direction": "descending",
+                "limit": "20",
+                "page": "0",
+          }
+        elif 'type' not in search_data:
+            search_data['type'] = "project"
+
+        return search_data
+
+    def _get_id_list_results(self, search_data, pagination_data):
+        id_list = search_data['id_list']
+        id_lists = {"dataset": [], "project": [], "data": []}
+        for id in id_list:
+            if id[:len("dataset_")] == "dataset_" and isnumeric(id[len("dataset_"):]):
+                id_lists['dataset'].append(id[len("dataset_"):])
+            elif id[:len("project_")] == "project_" and isnumeric(id[len("project_"):]):
+                id_lists['project'].append(id[len("project_"):])
+            elif id[:len("data_")] == "data_" and isnumeric(id[len("data_"):]):
+                id_lists['data'].append(id[len("data_"):])
+
+        results = self._search_ids(id_lists['project'], id_lists['dataset'], id_lists['data'])
+
+        sorted(results, key=itemgetter(search_data['order_by']), reverse=search_data['order_dir'] == "descending")
+
+        limit = int(search_data.get("limit", 20))
+        page = int(search_data.get("page", 0))
+
+        num_pages = len(results) / int(limit)
+        pagination_data['num_pages'] = num_pages
+        pagination_data['num_results'] = len(results)
+        pagination_data['start_num'] = search_data.get('page', 0) * limit
+        pagination_data['end_num'] = pagination_data['start_num'] + limit
+
+        results = results[page * limit: page * limit + limit]
+
+        return results
+
+    def _search_ids(self, project_ids=None, dataset_ids=None, data_ids=None):
+        results = []
+        if data_ids is not None and len(dataset_ids) > 0:
+            datasets = self.session.query(Dataset).filter(Dataset.id.in_(dataset_ids)).all()
+            for dataset in datasets:
+                results.append(self._dataset_to_search_result(dataset))
+        if project_ids is not None and len(project_ids) > 0:
+            projects = self.session.query(Project).filter(Project.id.in_(project_ids)).all()
+            for project in projects:
+                results.append(self._project_to_search_result(project))
+        if data_ids is not None:
+#            data = ""
+#            return self._dataset_to_search_result(dataset)
+            pass
+        return results
+
+    def _get_project_results(self, search_data, pagination_data, selected_ids, actions):
+        # Retreive all needed data and set defauts if needed.
+        start_date = search_data.get('start_date', None)
+        end_date = search_data.get('end_date', None)
+        order_by = search_data.get('order_by', None)
+        order_dir = search_data.get('order_direction', None)
+        search_string = search_data.get('search_string', None)
+        limit = int(search_data.get('limit', 20))
+        id_list = search_data.get('ids', None)
+        page = int(search_data.get('page', 0))
+        data_type = search_data.get("type", "project")
+
+        actions.append("Disable")
+        actions.append("Enable")
+        actions.append("View Datasets")
+
+        # Handle any actions on selected items (eg. disable/enable the selected projects).
+        actions_result = self._process_project_actions(search_data, selected_ids)
+        if isinstance(actions_result, HTTPFound):
+            return actions_result
+
+        # Query the project table joined with the metadata table, we need the metadata table for sorting.
+        query = self.session.query(Project).outerjoin(Metadata)
+
+        # Filter based on project states.
+        if 'state' in search_data:
+            int_states = []
+            if isinstance(search_data['state'], (list, tuple, dict, set)):
+                for state in search_data['state']:
+                    int_states.append(int(state))
+            else:
+                int_states.append(int(search_data['state']))
+
+            if len(int_states) > 0:
+                query = query.filter(Project.state.in_(int_states))
+
+        # Filter based on start date
+        if isinstance(start_date, date):
+            query = query.filter(Project.date_created > start_date)
+
+        # Filter based on end date
+        if isinstance(end_date, date):
+            query = query.filter(Project.date_created < end_date)
+
+        # Order based on the type and direction
+        if order_by == "id":
+            if order_dir == "ascending":
+                query = query.order_by(Project.id)
+            else:
+                query = query.order_by(Project.id.desc())
+        if order_by == "created":
+            if order_dir == "ascending":
+                query = query.order_by(Project.date_created)
+            else:
+                query = query.order_by(Project.date_created.desc())
+        elif order_by == "modified":
+            if order_dir == "ascending":
+                query = query.order_by(Project.date_modified)
+            else:
+                query = query.order_by(Project.date_modified.desc())
+        elif order_by == "title":
+            if order_dir == "ascending":
+                query = query.order_by(Metadata.project_title)
+            else:
+                query = query.order_by(Metadata.project_title.desc())
+
+
+        # Filter based on the entered search string
+        if search_string:
+            keywords = search_string.split(" ")
+            regex_string = ".*(^| )%s($| ).*"
+
+            for keyword in keywords:
+                query = query.filter(
+                    or_(or_(or_(Metadata.project_title.op('regexp')(regex_string % keyword),
+                        Metadata.brief_desc.op('regexp')(regex_string % keyword)),
+                        or_(Metadata.id.in_(self.session.query(Keyword.metadata_id).filter(
+                            Keyword.keyword.op('regexp')(regex_string % keyword))),
+                            Metadata.full_desc.op('regexp')(regex_string % keyword))),
+                        Metadata.id.in_(self.session.query(MetadataNote.metadata_id).filter(
+                            MetadataNote.note_desc.op('regexp')(regex_string % keyword)))))
+
+        if id_list:
+            id_string = id_list.split(",")
+            id_list = []
+            for id in id_string:
+                if data_type in id:
+                    num = id.strip()[len(data_type) + 1:]
+
+                    if isnumeric(num):
+                        id_list.append(int(num))
+                    else:
+                        self.request.session.flash("Entered ID's must be in the form <type>_<number>, "
+                                                   "eg. project_1.  The bad id is: %s" % id, "warning")
+                else:
+                    self.request.session.flash("Entered ID's must be in the form <type>_<number>, eg. project_1."
+                                               "  Also check that the correct type is selected.  The bad id is: %s" % id, "warning")
+
+            if len(id_list) > 0:
+                query = query.filter(Project.id.in_(id_list))
+
+        num_results = query.count()
+        num_pages = num_results / limit
+        pagination_data['num_pages'] = num_pages
+        pagination_data['num_results'] = num_results
+        pagination_data['start_num'] = page * limit
+        pagination_data['end_num'] = pagination_data['start_num'] + limit
+
+        # Add the results limit (-1 is given for all/no limit)
+        if int(limit) > 0:
+            query = query.limit(limit)
+
+            if page * limit < num_results:
+                query = query.offset(page * limit)
+
+        # Get all results ready to process and send to the template
+        query_results = query.all()
+
+
+        results = []
+        for result in query_results:
+            results.append(self._project_to_search_result(result))
+
+        return results
+
+    def _process_project_actions(self, search_data, selected_ids):
+        if 'Disable' in search_data:
+            for id in selected_ids:
+                num = id[len("project_"):]
+                if isnumeric(num):
+                    # Check the user has permission to disable the project
+                    self.request.matchdict["project_id"] = num
+                    if has_permission(DefaultPermissions.DISABLE, self.context, self.request).boolval:
+                        project = self.session.query(Project).filter_by(id=num).first()
+                        if project is not None and project.state == ProjectStates.ACTIVE:
+                            project.state = ProjectStates.DISABLED
+                            for dataset in project.datasets:
+                                self.ingester_api.disableDataset(dataset.dam_id)
+                        else:
+                            self.request.session.flash("You can't disable a project unless it is in the active state: %s" % num, "warning")
+                    else:
+                        self.request.session.flash("You don't have permission to disable this project: %s" % num, "warning")
+                else:
+                    self.request.session.flash("Trying to use an invalid id for actions: %s" % id, "warning")
+
+        if 'Enable' in search_data:
+            for id in selected_ids:
+                num = id[len("project_"):]
+                if isnumeric(num):
+                    # Check the user has permission to disable the project
+                    self.request.matchdict["project_id"] = num
+                    if has_permission(DefaultPermissions.ENABLE, self.context, self.request).boolval:
+                        project = self.session.query(Project).filter_by(id=num).first()
+                        if project is not None and project.state == ProjectStates.DISABLED:
+                            project.state = ProjectStates.ACTIVE
+                            for dataset in project.datasets:
+                                self.ingester_api.enableDataset(dataset.dam_id)
+                        else:
+                            self.request.session.flash("You can't enable a project unless it is in the disabled state: %s" % num, "warning")
+                    else:
+                        self.request.session.flash("You don't have permission to disable this project: %s" % num, "warning")
+                else:
+                    self.request.session.flash("Trying to use an invalid id for actions: %s" % id, "warning")
+
+        if 'View Datasets' in search_data:
+            id_list = []
+            for id in selected_ids:
+                num = id[len("project_"):]
+                if isnumeric(num):
+                    project = self.session.query(Project).filter_by(id=num).first()
+                    if project is not None:
+                        id_list.extend([str(dataset.id) for dataset in project.datasets])
+
+            return HTTPFound(self.request.route_url("search", search_info='/dataset/id_list=' + ",".join(id_list)))
+
+    def _project_to_search_result(self, project):
+        dataset_id_list = ["dataset_" + str(dataset.id) for dataset in project.datasets]
+        return {
+            "id": project.id,
+            "type": "project",
+            "state": project.state,
+            "created": project.date_created,
+            "modified": project.date_modified,
+            "description": project.information is not None and project.information.project_title or "",
+            "urls": {
+                has_permission(DefaultPermissions.EDIT_DATA, self.context, self.request).boolval and "Edit" or "View":
+                    self.request.route_url("general", project_id=project.id),
+                "Datasets": self.request.route_url("search", search_info="/dataset/id_list=project_%s" % project.id),
+                "Data": self.request.route_url("search", search_info="/data/id_list=project_%s" % project.id),
+            },
+        }
+    def _get_dataset_results(self, search_data, pagination_data, selected_ids, actions):
+        # Retreive all needed data and set defauts if needed.
+        start_date = search_data.get('start_date', None)
+        end_date = search_data.get('end_date', None)
+        order_by = search_data.get('order_by', None)
+        order_dir = search_data.get('order_direction', None)
+        search_string = search_data.get('search_string', None)
+        limit = int(search_data.get('limit', 20))
+        id_list = search_data.get('id_list', None)
+        page = int(search_data.get('page', 0))
+        data_type = search_data.get('type', "dataset")
+
+        actions.append("Disable")
+        actions.append("Enable")
+
+        self._process_dataset_actions(search_data, selected_ids)
+
+        # Query the project table joined with the metadata table, we need the metadata table for sorting.
+        query = self.session.query(Dataset).outerjoin(Method, Metadata)
+
+        # Filter based on project states.
+        if 'state' in search_data:
+            states = []
+            if isinstance(search_data['state'], (list, tuple, dict, set)):
+                for state in search_data['state']:
+                    if int(state) == ProjectStates.ACTIVE:
+                        states.append(0)
+                    elif int(state) == ProjectStates.DISABLED:
+                        states.append(1)
+            else:
+                states.append(int(search_data['state']) == ProjectStates.ACTIVE and 0 or 1)
+
+            if len(states) > 0:
+                query = query.filter(Dataset.disabled.in_(states))
+
+        # Filter based on start date
+        if isinstance(start_date, date):
+            query = query.filter(Dataset.date_created > start_date)
+
+        # Filter based on end date
+        if isinstance(end_date, date):
+            query = query.filter(Dataset.date_created < end_date)
+
+        # Order based on the type and direction
+        if order_by == "id":
+            if order_dir == "ascending":
+                query = query.order_by(Dataset.id)
+            else:
+                query = query.order_by(Dataset.id.desc())
+        if order_by == "created":
+            if order_dir == "ascending":
+                query = query.order_by(Dataset.date_created)
+            else:
+                query = query.order_by(Dataset.date_created.desc())
+        elif order_by == "modified":
+            if order_dir == "ascending":
+                query = query.order_by(Dataset.date_modified)
+            else:
+                query = query.order_by(Dataset.data_modified.desc())
+        elif order_by == "title":
+            if order_dir == "ascending":
+                query = query.order_by(Metadata.project_title)
+            else:
+                query = query.order_by(Metadata.project_title.desc())
+
+
+        # Filter based on the entered search string
+        if search_string:
+            keywords = search_string.split(" ")
+            regex_string = ".*(^| )%s($| ).*"
+
+            for keyword in keywords:
+                query = query.filter(
+                    or_(or_(or_(or_(Metadata.project_title.op('regexp')(regex_string % keyword),
+                        Metadata.brief_desc.op('regexp')(regex_string % keyword)),
+                        or_(Metadata.id.in_(self.session.query(Keyword.metadata_id).filter(
+                            Keyword.keyword.op('regexp')(regex_string % keyword))),
+                            Metadata.full_desc.op('regexp')(regex_string % keyword))),
+                        Metadata.id.in_(self.session.query(MetadataNote.metadata_id).filter(
+                            MetadataNote.note_desc.op('regexp')(regex_string % keyword)))),
+                        or_(Method.method_description.op('regexp')(regex_string % keyword),
+                            Dataset.id.in_(self.session.query(Location.dataset_id).filter(Location.name.op('regexp')(regex_string % keyword))))))
+
+        if id_list:
+            if id_list:
+                normalised_id_list = []
+                if isinstance(id_list, basestring):
+                    id_list = (id_list,)
+
+                for id in id_list:
+                    if isnumeric(id):
+                        normalised_id_list.append(int(id))
+                    elif data_type in id:
+                        num = id.strip()[len(data_type) + 1:]
+
+                        if isnumeric(num):
+                            normalised_id_list.append(int(num))
+                        else:
+                            self.request.session.flash("Entered ID's must be in the form <type>_<number>, "
+                                                       "eg. project_1.  The bad id is: %s" % id, "warning")
+                    elif 'project' in id:
+                        num = id.strip()[len("project") + 1:]
+
+                        if isnumeric(num):
+                            project = self.session.query(Project).filter_by(id=num).first()
+                            if project:
+                                normalised_id_list.extend([dataset.id for dataset in project.datasets])
+                    else:
+                        self.request.session.flash("Entered ID's must be in the form <type>_<number>, eg. project_1."
+                                                   "  Also check that the correct type is selected.  The bad id is: %s" % id, "warning")
+
+            if len(normalised_id_list) > 0:
+                query = query.filter(Dataset.id.in_(normalised_id_list))
+
+        num_results = query.count()
+        num_pages = num_results / int(limit)
+        pagination_data['num_pages'] = num_pages
+        pagination_data['num_results'] = num_results
+        pagination_data['start_num'] = page * limit
+        pagination_data['end_num'] = pagination_data['start_num'] + limit
+
+        # Add the results limit (-1 is given for all/no limit)
+        if int(limit) > 0:
+            query = query.limit(limit)
+
+            if page * limit < num_results:
+                query = query.offset(page * limit)
+
+        # Get all results ready to process and send to the template
+        query_results = query.all()
+
+        results = []
+        for result in query_results:
+            results.append(self._dataset_to_search_result(result))
+
+        return results
+
+    def _process_dataset_actions(self, search_data, selected_ids):
+        if 'Disable' in search_data or "Enable" in search_data:
+            for id in selected_ids:
+                num = id[len("dataset_"):]
+                if isnumeric(num):
+                    dataset = self.session.query(Dataset).filter_by(id=num).first()
+                    if dataset is not None:
+                        search_data["project_id"] = dataset.project_id
+                        # Check the user has permission to disable the project
+                        if has_permission(DefaultPermissions.DISABLE, self.context, self.request).boolval:
+                            if 'Disable' in search_data:
+                                dataset.disabled = 1
+                                self.ingester_api.disableDataset(dataset.dam_id)
+                            else:
+                                dataset.disabled = 0
+                                self.ingester_api.enableDataset(dataset.dam_id)
+                        else:
+                            self.request.session.flash("You don't have permission to enable/disable this project: %s" % num, "warning")
+                    else:
+                        self.request.session.flash("Could not enable/disable a dataset that doesn't exist: %s" % num, "warning")
+                else:
+                    self.request.session.flash("Trying to use an invalid id for actions: %s" % id, "warning")
+
+    def _dataset_to_search_result(self, dataset):
+        result = {
+            "id": dataset.id,
+            "type": "dataset",
+            "state": dataset.disabled is True and ProjectStates.DISABLED or ProjectStates.ACTIVE,
+            "created": dataset.date_created,
+            "modified": dataset.date_modified,
+            "description": dataset.record_metadata and dataset.record_metadata.project_title or dataset.method.method_name,
+            "urls": {
+                has_permission(DefaultPermissions.EDIT_INGESTERS, self.context, self.request).boolval and "Edit" or "View":
+                    self.request.route_url("edit_dataset", project_id=dataset.project_id, dataset_id=dataset.id),
+                "Project": self.request.route_url("general", project_id=dataset.project_id),
+                "Data": self.request.route_url("search", search_info="/data/id_list=dataset_%s" % dataset.id),
+                },
+            }
+        return result
+
+
+
+    @cache_region('default_term')
+    def _search_data(self, search_info):
+        """
+        Implements cached bulk data searching - this functionality could easily go inline except for caching.
+
+        :param search_info: Filtering information such as dataset_id,
+        :return: Bulk results for the data found with the given filtering.
+        """
+        MAX_DATA_RESULTS = 1000
+        dataset_dam_id, start_date, end_date = search_info
+
+        results = self.ingester_api.search(jcudc24ingesterapi.models.data_entry.DataEntry.__xmlrpc_class__, MAX_DATA_RESULTS,
+            criteria=DataEntrySearchCriteria(int(dataset_dam_id), start_time=start_date, end_time=end_date))
+
+        return results
+
+    def _get_data_results(self, search_data, pagination_data, selected_ids, actions):
+        # Retreive all needed data and set defauts if needed.
+        start_date = search_data.get('start_date', None)
+        end_date = search_data.get('end_date', None)
+        order_by = search_data.get('order_by', "created")
+        order_dir = search_data.get('order_direction', "descending")
+        search_string = search_data.get('search_string', None)
+        limit = int(search_data.get('limit', 20))
+        id_list = search_data.get('id_list', None)
+        page = int(search_data.get('page', 0))
+        data_type = search_data.get('type', "dataset")
+
+        actions.append("Add QA")
+
+        results = []
+        if id_list:
+            normalised_id_list = []
+            dataset_list = []
+            for id in id_list:
+                if "%s_" % data_type in id:
+                    id_nums = id.strip()[len(data_type) + 1:].split("_")
+
+                    if len(id_nums) == 2 and isnumeric(id_nums[0]) and isnumeric(id_nums[1]):
+                        dataset_id, data_id = id_nums
+                        normalised_id_list.append((int(dataset_id), int(data_id)))
+                    else:
+                        self.request.session.flash("Entered ID's must be in the form project_<num>, dataset_<num> or data_<num>_<num>."
+                                                   "  The bad id is: %s" % id, "warning")
+                elif 'dataset' in id:
+                    num = id.strip()[len("dataset") + 1:]
+
+                    if isnumeric(num):
+                        dataset_list.append(num)
+                elif 'project' in id:
+                    num = id.strip()[len("project") + 1:]
+
+                    if isnumeric(num):
+                        project = self.session.query(Project).filter_by(id=num).first()
+                        if project:
+                            dataset_list.extend([dataset.id for dataset in project.datasets])
+                else:
+                    self.request.session.flash("Entered ID's must be in the form project_<num>, dataset_<num> or data_<num>_<num>."
+                                               "  The bad id is: %s" % id, "warning")
+
+            data_entries = []
+            if len(dataset_list) > 0:
+                for dataset_id in dataset_list:
+                    # TODO: Update this section.
+                    dam_id = self.session.query(Dataset.dam_id).filter_by(id=dataset_id).first()
+                    if len(dam_id) > 0 and dam_id[0] is not None:
+                        data_entries.extend(self._search_data((dam_id[0], start_date, end_date)))
+
+            if len(normalised_id_list) > 0:
+                for dataset_id, data_id in id_list:
+                    data_entries.append(self.ingester_api.getDataEntry(dataset_id, data_id))
+
+            for data_entry in data_entries:
+                results.append(self._data_to_search_result(data_entry))
+
+        else:
+            self.request.session.flash("Data must be searched using the ID List, other fields filter those results."
+                                       "  It is recommended that you view data associated with a dataset rather "
+                                       "than trying to search data directly.", "warning")
+
+        sorted(results, key=itemgetter(order_by), reverse=order_dir == "descending")
+
+        limit = limit
+        page = page
+
+        num_pages = len(results) / int(limit)   # TODO: Update this
+        pagination_data['num_pages'] = num_pages
+        pagination_data['num_results'] = len(results)
+        pagination_data['start_num'] = search_data.get('page', 0) * limit
+        pagination_data['end_num'] = pagination_data['start_num'] + limit
+
+        results = results[page * limit: page * limit + limit]
+
+        return results
+
+    def _data_to_search_result(self, data):
+        dataset_data = self.session.query(Dataset.project_id, Dataset.id).filter_by(dam_id=data.dataset).first()
+        if not dataset_data:
+            logger.error("Ingester dataset doesn't exist within the Provisioning Interface.  dam_id: %s" % data.dam_id)
+            project_id = None
+            dataset_id = None
+        else:
+            project_id, dataset_id = dataset_data
+
+        return {
+            "id": "%s_%s" % (data.dataset, data.id),
+            "type": "data",
+            "state": None,
+            "created": data.timestamp,
+            "modified": data.timestamp,
+            "description": str(data),
+            "urls": {
+                has_permission(DefaultPermissions.EDIT_DATA, self.context, self.request).boolval and "Edit" or "View":
+                    self.request.route_url("data", project_id=project_id, dataset_id=dataset_id, data_id=data.id),
+                "Dataset": self.request.route_url("edit_dataset", project_id=project_id, dataset_id=dataset_id),
+                "Project": self.request.route_url("general", project_id=project_id),
+                },
+            }
+
+    @view_config(route_name="data", permission=DefaultPermissions.VIEW_DATA)
+    def add_data_view(self):
+        """
+
+        :return:
+        """
+        dataset_id = self.request.matchdict['dataset_id']
+        if dataset_id is None or dataset_id == "None":
+            return HTTPFound(self.request.route_url("search", search_info="/data/id_list=project_%s" % self.project_id))
+
+        data_id = self.request.matchdict['data_id']
+        if isinstance(data_id, tuple) and len(data_id) > 0:
+            data_id = data_id[0]
+        else:
+            data_id = None
+
+        page_help=""
+
+        method_id = self.session.query(Dataset.method_id).filter_by(id=dataset_id).first()[0]
+        schema_id = self.session.query(Method.method_schema_id).filter_by(id=method_id).first()[0]
+        schema = DataTypeSchema(self.session.query(MethodSchema).filter_by(id=schema_id).first())
+        schema = schema.bind(request=self.request)
+        self.form = Form(schema,
+            action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id,
+                dataset_id=dataset_id, data_id=data_id),
+            buttons=(data_id is not None and len(data_id) > 0 and 'Save' or 'Add',), use_ajax=False)
+
+
+        # If this page was only called for saving and a rendered response isn't needed, return now.
+        if self.request.referrer != self.request.path_url:
+            self._handle_form()
+        else:
+            return
+
+        if isnumeric(dataset_id) and data_id is not None and isnumeric(data_id):
+            data_entry = self.ingester_api.getDataEntry(int(dataset_id), int(data_id))
+            self._model_appstruct = deepcopy(data_entry.data)
+
+            to_delete = []
+            for key in self._model_appstruct:
+                if isinstance(self._model_appstruct[key], jcudc24ingesterapi.models.data_entry.FileObject):
+                    to_delete.append(key)
+
+            for key in to_delete:
+                del self._model_appstruct[key]
+
+        # Create the response and display the form
+        return self._create_response(
+            readonly=not has_permission(DefaultPermissions.EDIT_DATA, self.context, self.request).boolval)
+
 
     @view_config(route_name="permissions", permission=DefaultPermissions.EDIT_SHARE_PERMISSIONS)
     def permissions_view(self):
@@ -1560,24 +2359,24 @@ class Workflows(Layouts):
                 if user.id in users_to_delete:
                     users_to_delete.remove(user.id)
 
-                has_permission = False
+                has_this_permission = False
                 for field_name, value in share.items():
                     if field_name == 'user_id':
                         continue
 
                     permission = self.session.query(Permission).filter_by(name=field_name).first()
 
-                    has_permission = False
+                    has_this_permission = False
                     for i in range(len(user.project_permissions)):
                         if user.project_permissions[i].project_id == long(self.project_id) and user.project_permissions[i].permission_id == permission.id:  # If the user already has this permission
                             if value == 'false' or value is False:
                                 user_permission = user.project_permissions[i]
                                 self.session.delete(user_permission)
 
-                            has_permission = True
+                            has_this_permission = True
                             break
 
-                    if not has_permission and value is True:
+                    if not has_this_permission and value is True:
                         user.project_permissions.append(ProjectPermissions(self.project_id, permission.id, user.id))
 
             for user_id in users_to_delete:
@@ -1604,7 +2403,8 @@ class Workflows(Layouts):
         self._model_appstruct = appstruct
 
         # Create the response and display the form
-        return self._create_response()
+        return self._create_response(
+            readonly=not has_permission(DefaultPermissions.EDIT_SHARE_PERMISSIONS, self.context, self.request).boolval)
 
     # --------------------WORKFLOW EXCEPTION VIEWS-------------------------------------------
     @view_config(context=Exception, route_name="workflow_exception", permission=NO_PERMISSION_REQUIRED)

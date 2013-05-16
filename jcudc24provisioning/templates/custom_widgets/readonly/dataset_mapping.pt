@@ -1,11 +1,11 @@
-<fieldset id="mapping-${field.oid}" i18n:domain="deform"
-          tal:attributes="class 'deformMappingFieldset ' + str((field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and ('collapsible-'+str(field.schema.__dict__.get('collapse_group')) or nothing))">
+<fieldset id="dataset_mapping-${field.oid}" i18n:domain="deform"
+          tal:attributes="class 'deformMappingFieldset dataset_mapping ' + str((field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and ('collapsible-'+str(field.schema.__dict__.get('collapse_group')) or nothing))">
     <!-- mapping -->  <!--<legend 1tal:condition="field.schema.__dict__.get('collapsed')"><span class="collapse_icon">+ </span>${field.title}</legend>-->
     <legend class="collapsible"
             tal:condition="(field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and field.title"
             tal:define="symbol (field.schema.__dict__.get('collapsed') == True and '+') or '-'">
             <span class="help_icon" onclick="toggleHelp(this);" tal:condition="field.schema.__dict__.get('help')">?</span>
-            <span onclick="toggleCollapse(this.parentNode, '${field.schema.__dict__.get('collapse_group')}');" class="collapse_icon">${symbol}</span> ${field.title}
+            <span onclick="toggleCollapse(this.parentNode, '${field.schema.__dict__.get('collapse_group')}');" class="collapse_icon">${symbol}</span> ${field.title} for ${field.schema.method_names.get(str(cstruct.get("dataset:method_id")))} <a tal:condition="cstruct.get('dataset:disabled', None) == 'false'" href="${field.schema.request.route_url('edit_dataset', project_id=cstruct.get('dataset:project_id', None), dataset_id=cstruct.get('dataset:id', None))}">[Edit Ingester]</a> <a tal:condition="cstruct.get('dataset:disabled', None) == 'false'" href="${field.schema.request.route_url('search', search_info='/data/id_list=dataset_%s' % cstruct.get('dataset:id', None))}">[Manage Data]</a>
         <!--#[<a class="expand_all" onclick="expandAll('${field.schema.__dict__.get('collapse_group')}');">Expand All</a>/<a onclick="collapseAll('${field.schema.__dict__.get('collapse_group')}');" class="collapse_all">Collapse All</a>]-->
     </legend>
     <legend tal:condition="not (field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and field.title">
@@ -34,7 +34,7 @@
             <div tal:condition="not 'data_source' in f.name" tal:replace="structure rndr(tmpl,field=f,cstruct=cstruct.get(f.name,null))" />
             <tal:block repeat="method field.schema.methods" tal:condition="'data_source' in f.name">
                 <!--If this is the correct data source-->
-                <tal:block tal:condition="str(method.id)==str(cstruct.get(field.schema.children[4].name,null))">
+                <tal:block tal:condition="str(method.id)==str(cstruct.get(field.schema.children[7].name,null))">
                     <!--If the method doesn't have any datasource setup-->
                     <tal:block tal:condition="not hasattr(method, 'no_data_source') and method.data_source is None or str(method.data_source) == ''">
                          <div tal:define="dummy setattr(method, 'no_data_source', True)">

@@ -3,7 +3,7 @@
     The intent is to provide template selection and AJAX autocomplete when adding methods.
 -->
 
-<div class="deformSeq"
+<div class="deformSeq methods_page"
      id="${field.oid}"
      tal:define="rndr field.renderer;
                  item_tmpl field.widget.item_template;
@@ -49,6 +49,12 @@
     <input type="hidden" name="__start__" value="${field.name}:sequence"
            class="deformProto"
            tal:attributes="prototype prototype"/>
+
+    <a class="deformSeqAdd methods_add_top"
+            id="${field.oid}-seqAdd"
+            onclick="deform.appendSequenceItem(this); addNewMethod(this);">
+        <small id="${field.oid}-addtext">${add_subitem_text}</small>
+    </a>
 
     <ul id="seq_items-${field.oid}">
 

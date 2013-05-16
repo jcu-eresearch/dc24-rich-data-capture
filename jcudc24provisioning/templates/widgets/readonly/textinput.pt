@@ -1,13 +1,10 @@
 <span tal:omit-tag="">
-    <tal:block define="placeholder field.schema.__dict__.get('placeholder') or nothing;
-                       default_text cstruct or field.schema.default or placeholder">
+    <tal:block>
 
-        <input type="text" name="${field.name}" value="${default_text}"
+        <input type="text" name="${field.name}" value="${cstruct or ''}"
                tal:attributes="readonly 'readonly';
                                size field.widget.size;
-                               class (field.widget.css_class or '') + (default_text == field.schema.__dict__.get('placeholder') and ' placeholder_text' or '')"
-               onfocus="if (value == '${field.schema.__dict__.get('placeholder')}') {className = className.replace( /(?:^|\s)placeholder_text(?!\S)/g , '' ); value='';}"
-               onblur="if (value == '') {value='${placeholder}'; className += ' placeholder_text';}"
+                               class field.widget.css_class or nothing"
                id="${field.oid}"/>
     </tal:block>
 </span>

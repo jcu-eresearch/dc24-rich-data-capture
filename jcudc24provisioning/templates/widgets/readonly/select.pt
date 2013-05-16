@@ -6,6 +6,7 @@
                     readonly 'readonly'">
  <option tal:repeat="(value, name) values"
          tal:attributes="selected value == cstruct and 'selected';
+                         disabled 'disabled';
                          class field.widget.css_class"
          value="${value}">${name}</option>
 </select>

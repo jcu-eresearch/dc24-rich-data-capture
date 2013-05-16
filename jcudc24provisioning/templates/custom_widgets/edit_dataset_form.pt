@@ -1,0 +1,96 @@
+
+<form
+  id="${field.formid}"
+  action="${field.action}"
+  method="${field.method}"
+  enctype="multipart/form-data"
+  accept-charset="utf-8"
+  i18n:domain="deform"
+  tal:attributes="class field.css_class">
+
+
+  <fieldset class="deformFormFieldset">
+
+    <legend tal:condition="field.title">${field.title}</legend>
+
+    <input type="hidden" name="_charset_" />
+    <input type="hidden" name="__formid__" value="${field.formid}"/>
+    <ul>
+
+      <li class="errorLi" tal:condition="field.error">
+        <h3 class="errorMsgLbl" i18n:translate=""
+            >There was a problem with your submission</h3>
+        <p class="errorMsg" i18n:translate="" i18n:domain="deform"
+           >Errors have been highlighted below</p>
+        <p class="errorMsg">${field.errormsg}</p>
+      </li>
+
+      <li tal:condition="field.description">
+        <div class="section first description" tal:content="structure field.description"></div>
+      </li>
+        <tal:block
+                tal:define="rndr field.renderer;
+                   tmpl field.widget.item_template"
+                tal:repeat="f field.children">
+            <div tal:condition="not 'data_source' in f.name" tal:replace="structure rndr(tmpl,field=f,cstruct=cstruct.get(f.name,null))" />
+            <tal:block repeat="method field.schema.methods" tal:condition="'data_source' in f.name">
+                <!--If this is the correct data source-->
+                <tal:block tal:condition="str(method.id)==str(cstruct.get(field.schema.children[7].name,null))">
+
+                    <!--If the method doesn't have any datasource setup-->
+                    <tal:block tal:condition="not hasattr(method, 'no_data_source') and method.data_source is None or str(method.data_source) == ''">
+                        <div tal:define="dummy setattr(method, 'no_data_source', True)">
+                            <legend>Data Source Configuration</legend>
+                            <p class="error">There is no data source configured for this datasets' method, please go to the <i>Method</i> step and select a data source.</p>
+                        </div>
+                    </tal:block>
+
+                    <tal:block tal:condition="str(method.data_source) in f.name" >
+
+                        <!--If this is a pull_data_source-->
+                        <tal:block tal:condition="'pull_data_source' in f.name or 'sos_scraper_data_source' in f.name">
+                            <tal:block tal:define="test setattr(f.schema.children[3].widget, 'values',field.widget.get_file_fields(method.data_type)) "></tal:block>
+                        </tal:block>
+
+                        <div tal:replace="structure rndr(tmpl,field=f,cstruct=cstruct.get(f.name,null))" />
+                    </tal:block>
+                </tal:block>
+            </tal:block>
+        </tal:block>
+
+      <li class="buttons">
+        <tal:block repeat="button field.buttons">
+          <button
+              tal:attributes="disabled button.disabled"
+              id="${field.formid+button.name}"
+              name="${button.name}"
+              type="${button.type}"
+              class="btnText submit"
+              value="${button.value}">
+            <span>${button.title}</span>
+          </button>
+        </tal:block>
+      </li>
+
+    </ul>
+
+  </fieldset>
+<script type="text/javascript" tal:condition="field.use_ajax">
+  deform.addCallback(
+     '${field.formid}',
+     function(oid) {
+       var options = {
+         target: '#' + oid,
+         replaceTarget: true,
+         success: function() {
+           deform.processCallbacks();
+           deform.focusFirstInput();
+         }
+       };
+       var extra_options = ${field.ajax_options} || {};
+       $('#' + oid).ajaxForm($.extend(options, extra_options));
+     }
+  );
+</script>
+
+</form>

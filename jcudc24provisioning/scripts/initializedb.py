@@ -46,7 +46,7 @@ def initialise_all_db(settings):
     """
 
     # Initialise the database connection.
-    engine = engine_from_config(settings, 'sqlalchemy.')
+    engine = engine_from_config(settings, 'sqlalchemy.', pool_recycle=3600)
     DBSession.configure(bind=engine)
 
     # Test if the database has already been initialised with default data (is this the first time its run?)

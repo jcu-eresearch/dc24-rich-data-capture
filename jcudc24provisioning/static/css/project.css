@@ -136,3 +136,84 @@
 .deform #data_configuration_preview form {
     min-height: 0px !important;
 }
+
+.data_filter, .data_filtering .help_text  {
+    width: 150px;
+}
+
+#browse_data_results {
+    vertical-align: top;
+    display: inline-block;
+    /*width: 200px;*/
+    /*height: 200px;*/
+    /*border: 1px solid red;*/
+    float: right;
+}
+
+#browse_data_results .pagination {
+    text-align: center;
+    margin: 10px;
+    color: blue;
+    clear: both;
+}
+
+#num_results {
+    display: inline-block;
+    text-align: center;
+    margin: auto;
+    width: 100%;
+    position: absolute;
+    left: 0;
+    top: 45px;
+}
+
+#browse_data_results .pagination span {
+    cursor: pointer;
+    padding: 10px 5px;
+}
+#browse_data_results .pagination span:hover {
+    text-decoration: underline;
+}
+
+#data_actions {
+    display: inline-block;
+}
+
+#data_sorting {
+    display: inline-block;
+    float: right;
+    padding-bottom: 20px;
+    clear: right;
+}
+
+#data_actions button {
+    float: none;
+}
+
+#results_data {
+    margin-top: 20px;
+    margin-bottom: 20px;
+    width: 100%;
+    border-collapse:collapse;
+}
+
+#results_data td, #results_data th {
+    border: 1px solid rgb(253, 185, 19);
+    text-align: center;
+    padding: 0px 3px;
+}
+
+#results_data tr:nth-child(even) {
+    background-color: #ddd;
+}
+
+.dataset_mapping legend:nth-of-type(1) a, .dataset_mapping legend:nth-of-type(1) a:visited, .dataset_mapping legend:nth-of-type(1) a:hover {
+    text-decoration: none;
+    color: blue;
+    font-size: 0.8em;
+}
+
+.dataset_mapping legend:nth-of-type(1) a:hover {
+    text-decoration: underline !important;
+}
+

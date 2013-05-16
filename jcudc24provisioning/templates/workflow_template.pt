@@ -38,10 +38,12 @@
                                       <a title="${menu.tooltip}" form="deform" onclick="false" class="current" value="${menu.title}">${menu.title}</a>
                                   </tal:block>
                                   <tal:block tal:condition="not menu.current and not readonly">
-                                      <a title="${menu.tooltip}" form="deform" onclick="$('#deform')[0].action='${request.route_url(menu.href, project_id=view.project_id)}'; window.onbeforeunload = null; $('#deform')[0].submit();" value="${menu.title}">${menu.title}</a>
+                                      <a tal:define="id_list ['dataset_' + str(dataset.id) for dataset in view.project.datasets]"
+                                         title="${menu.tooltip}" form="deform" onclick="$('#deform')[0].action='${request.route_url(menu.href, project_id=view.project_id, dataset_id=view.request.matchdict.get('dataset_id', None), data_id=view.request.matchdict.get('data_id', ''), search_info='/dataset/id_list='+','.join(id_list))}'; window.onbeforeunload = null; $('#deform')[0].submit();" value="${menu.title}">${menu.title}</a>
                                   </tal:block>
                                   <tal:block tal:condition="readonly and not menu.current">
-                                      <a title="${menu.tooltip}" href="${request.route_url(menu.href, project_id=view.project_id)}">${menu.title}</a>
+                                      <a tal:define="id_list ['dataset_' + str(dataset.id) for dataset in view.project.datasets]"
+                                         title="${menu.tooltip}" href="${request.route_url(menu.href, project_id=view.project_id, dataset_id=view.request.matchdict.get('dataset_id', None), data_id=view.request.matchdict.get('data_id', ''), search_info='/dataset/id_list='+','.join(id_list))}">${menu.title}</a>
                                   </tal:block>
                               </li>
                           </ul>

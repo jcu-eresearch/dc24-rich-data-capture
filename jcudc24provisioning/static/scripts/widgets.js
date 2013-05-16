@@ -187,6 +187,10 @@ function addMapFeatures(oid) {
 
 // Update the map feature from the updated textual representation (eg. the latitude was changed so move the point).
 function locationTextModified(input) {
+    if (input.original_background === undefined) {
+        input.original_background = input.style.backgroundColor;
+    }
+
     var geometry_type = input.value.substr(0, input.value.indexOf("("));
     var displayProj = new OpenLayers.Projection("EPSG:4326");
     var proj = new OpenLayers.Projection("EPSG:900913");
@@ -221,7 +225,7 @@ function locationTextModified(input) {
     }
 
     newGeometry.transform(displayProj, proj);
-    input.style.background = "white";
+    input.style.background = input.original_background;
 
     var layer;
     var j = 0, k = 0;

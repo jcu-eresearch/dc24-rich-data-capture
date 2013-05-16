@@ -61,18 +61,8 @@ def main(global_config, **settings):
     my_session_factory = session_factory_from_settings(settings)
     config = Configurator(settings=settings, session_factory = my_session_factory, root_factory=RootFactory)
 
-    config.add_route('dashboard', '/')                                      # Home page/user dashboard
-    config.add_route('login', '/login')                                     # Login page
-    config.add_route('login_shibboleth', '/login/shibboleth')                                     # Login page
-    config.add_route('logout', '/logout')                                     # logout and redirect page
-    config.add_route('search', '/search_page')                                   # Search and manage projects and data
-    config.add_route('browse', '/project')                                     # administer user permissions + view admin required items
-    config.add_route('admin', '/admin')                                     # administer user permissions + view admin required items
-    config.add_route('help', '/help')                                     # administer user permissions + view admin required items
-    config.add_route('record_data', '/{metadata_id}')
 
 #    ---------------Project/Workflow pages------------------------
-    config.add_route('share', '/project/share')                             # Set project permissions
     config.add_route('create', '/project/create')              # Project creation wizard - templates, pre-fill etc.
     config.add_route('general', '/project/{project_id}/general')              # Project creation wizard - templates, pre-fill etc.
     config.add_route('description', '/project/{project_id}/description')    # descriptions
@@ -81,6 +71,7 @@ def main(global_config, **settings):
     config.add_route('datasets', '/project/{project_id}/datasets')          # Datasets or collections of data
     config.add_route('view_record', '/project/{project_id}/datasets/{dataset_id}/view_record')          # Datasets or collections of data
     config.add_route('edit_record', '/project/{project_id}/datasets/{dataset_id}/edit_record')          # Datasets or collections of data
+    config.add_route('edit_dataset', '/project/{project_id}/datasets/{dataset_id}')          # Datasets or collections of data
     config.add_route('delete_record', '/project/{project_id}/datasets/{dataset_id}/delete_record')          # Datasets or collections of data
     config.add_route('submit', '/project/{project_id}/submit')              # Submit, review and approval
     config.add_route('manage', '/project/{project_id}/manage')              # Manage projecct data, eg. change sample rates, add data values
@@ -88,12 +79,17 @@ def main(global_config, **settings):
     # Project action pages
     config.add_route('dataset_logs', '/project/{project_id}/logs/dataset_{dataset_id}_logs.txt')
     config.add_route('logs', '/project/{project_id}/logs')
-    config.add_route('add_data', '/project/{project_id}/add_data')
     config.add_route('manage_dataset', '/project/{project_id}/manage_dataset/{dataset_id}')
-    config.add_route('manage_data', '/project/{project_id}/manage_data/{data_entry_id}')
+    config.add_route('data', '/project/{project_id}/datasets/{dataset_id}/data/*data_id')
     config.add_route('permissions', '/project/{project_id}/permissions')
     config.add_route('duplicate', '/project/{project_id}/duplicate')
     config.add_route('create_template', '/project/{project_id}/create_template')
+    config.add_route('search', '/search*search_info')
+#    config.add_route('browse', '/browse')
+#    config.add_route('browse_projects', '/browse/projects/*search_info')
+#    config.add_route('browse', '/browse/datasets')
+#    config.add_route('browse', '/browse/data')
+#    config.add_route('browse', '/browse/data/calibrations')
 
     # Exception handler
     config.add_route('workflow_exception', '/project/{route:.*}')
@@ -106,6 +102,14 @@ def main(global_config, **settings):
     config.add_route('get_activities', '/search/activities/{search_terms}', xhr=True)
     config.add_route('get_parties', '/search/parties/{search_terms}', xhr=True)
     config.add_route('get_from_identifier', '/search/{identifier:.*}', xhr=True)
+
+    config.add_route('dashboard', '/')                                      # Home page/user dashboard
+    config.add_route('login', '/login')                                     # Login page
+    config.add_route('login_shibboleth', '/login/shibboleth')                                     # Login page
+    config.add_route('logout', '/logout')                                     # logout and redirect page
+    config.add_route('admin', '/admin')                                     # administer user permissions + view admin required items
+    config.add_route('help', '/help')                                     # administer user permissions + view admin required items
+    config.add_route('record_data', '/{metadata_id}')
 
     #    --------------Static resources--------------------------------
     config.add_static_view('deform_static', 'deform:static', cache_max_age=0)

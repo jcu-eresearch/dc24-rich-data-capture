@@ -1,3 +1,7 @@
+.deform {
+    position: relative;
+}
+
 .deform a.deformSeqAdd {
     color: #0066cc;
     font-size: 1.1em;
@@ -11,6 +15,22 @@
 
 .deform .normal_font + label {
     font-weight: normal !important;
+}
+
+.dataset_sequence > ul > li, .methods_page > ul > li {
+    margin-bottom: 20px;
+    border-bottom: 2px solid rgba(247, 147, 30, 1);
+}
+
+.datasets_sequence_add_top, .methods_add_top {
+    margin-bottom: 20px;
+}
+
+[readonly=readonly] {
+    border: 1px solid rgba(247, 147, 30, 0.5) !important;
+    background-color: rgb(247, 252, 255);
+    padding: 0.5em;
+    margin: 0px 0px 3px;
 }
 
 .deform .deformClosebutton {

@@ -24,6 +24,15 @@ enmasse_widgets = Resource(
     depends=(jquery, open_layers, js.deform.deform_js)
 )
 
+# Fix the removal of browser for newer versions of jquery (datepicker relies on it).
+jquery_mb_browser = Resource(
+    library,
+    'libraries/jquery.mb.browser-master/jquery.mb.browser.js',
+    bottom=False,
+    minified="libraries/jquery.mb.browser-master/jquery.mb.browser.min.js",
+    depends=(jquery, open_layers, js.deform.deform_js)
+)
+
 regex_mask = Resource(
     library,
     'libraries/jquery-regex-mask-plugin-master/regex-mask-plugin.js',
@@ -63,8 +72,11 @@ enmasse_css = Group([
 
 enmasse_requirements = Group([
     enmasse_css,
+    jquery_mb_browser,
     jquery,
     jqueryui.jqueryui,
+    jqueryui.ui_datepicker,
+    jqueryui.ui_datepicker_en_AU,
     jqueryui.base,
     jqueryui.ui_lightness,
     js.deform.deform,

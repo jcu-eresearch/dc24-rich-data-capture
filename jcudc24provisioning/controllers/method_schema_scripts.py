@@ -4,6 +4,7 @@ Converts MethodSchema's (data configurations) into Deform schemas.  There is als
 """
 
 from collections import namedtuple
+from beaker.cache import cache_region
 from deform.form import Form
 import random
 import string
@@ -40,6 +41,7 @@ class DummySession(object):
     def changed(self):
         pass
 
+#@cache_region('long_term')
 def get_method_schema_preview(method_schema_id):
     """
     Create and render the method schema identified by method_schema_id as HTML.
@@ -74,10 +76,11 @@ class DataTypeSchema(colander.SchemaNode):
         self.__dict__['params'] = params
         super(DataTypeSchema, self).__init__(colander.Mapping('ignore'), **params)
 
-        fields = get_schema_fields(method_schema)
+        if isinstance(method_schema, MethodSchema):
+            fields = get_schema_fields(method_schema)
 
-        for field in fields:
-            self.add(field)
+            for field in fields:
+                self.add(field)
 
 #def method_schema_to_model(method_schema):
 #    """
@@ -87,6 +90,7 @@ class DataTypeSchema(colander.SchemaNode):
 #    model_schema = colander._SchemaMeta(str(method_schema.name), (colander._SchemaNode,), fields)
 #    return model_schema
 
+#@cache_region('long_term')
 def get_schema_fields(method_schema):
     """
     Create all fields/elements of the MethodSchema, this includes:
@@ -133,7 +137,8 @@ def get_schema_fields(method_schema):
 
         children = []
         params = {
-            'name': "%s%s" % (field.name, field.units and " (%s)" % field.units or ""),
+            'name': field.internal_name,
+            'title': "%s%s" % (field.name, field.units and " (%s)" % field.units or ""),
             'widget': widget,
             'description': field.description,
             'placeholder': field.placeholder,

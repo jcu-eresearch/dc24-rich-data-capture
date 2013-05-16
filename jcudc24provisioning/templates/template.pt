@@ -128,7 +128,7 @@
             }
         });
 
-        <tal:block tal:condition="exists:display_leave_confirmation">
+        <tal:block tal:condition="exists:display_leave_confirmation"><tal:block tal:condition="display_leave_confirmation">
         window.onbeforeunload = function (e) {
             var message = "Are you sure you want to leave this page, all unsaved data will be lost.",
             e = e || window.event;
@@ -143,7 +143,7 @@
                 window.onbeforeunload = null;
             });
         });
-        </tal:block>
+        </tal:block></tal:block>
 
 
 
@@ -266,9 +266,9 @@
                         <td><a id="ands_logo" href="http://www.ands.org.au/"><img src="${request.static_url('jcudc24provisioning:static/images/ands_logo.bmp')}" alt="Australian National Data Services logo" /></a></td>
                     </tr>
                     <tr id="developed_by">
-                        <td><a href="eresearch.jcu.edu.au"><img style="padding-top: 18px;" src="${request.static_url('jcudc24provisioning:static/images/eresearch-logo-sml.png')}" alt="eResearch Centre"/></a></td>
+                        <td><a href="http://eresearch.jcu.edu.au"><img style="padding-top: 18px;" src="${request.static_url('jcudc24provisioning:static/images/eresearch-logo-sml.png')}" alt="eResearch Centre"/></a></td>
                         <td><p>Designed and developed by <a href="http://www.bajtech.com.au">Bajtech</a> and <a href="http://eresearch.jcu.edu.au">JCU eResearch Centre</a>.</p></td>
-                        <td><a href="www.bajtech.com.au"><img src="${request.static_url('jcudc24provisioning:static/images/bajtech_logo_bw.png')}" alt="Bajtech" /></a></td>
+                        <td><a href="http://www.bajtech.com.au"><img src="${request.static_url('jcudc24provisioning:static/images/bajtech_logo_bw.png')}" alt="Bajtech" /></a></td>
                     </tr>
                 </table>
             </div>

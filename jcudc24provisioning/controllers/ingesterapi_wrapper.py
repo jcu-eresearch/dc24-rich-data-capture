@@ -13,9 +13,10 @@ import ast
 import copy
 import logging
 from beaker.cache import cache_region
+from jcudc24ingesterapi.schemas.data_entry_schemas import DataEntrySchema
 import jcudc24provisioning
 from jcudc24ingesterapi.authentication import CredentialsAuthentication
-from jcudc24ingesterapi.ingester_platform_api import IngesterPlatformAPI
+from jcudc24ingesterapi.ingester_platform_api import IngesterPlatformAPI, Marshaller
 from jcudc24ingesterapi.ingester_platform_api import UnitOfWork
 import jcudc24ingesterapi
 from jcudc24provisioning.models import DBSession, Base
@@ -83,6 +84,39 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             work = self.createUnitOfWork()
             self.process_model(model, work.post, work)
             logger.info("Project processed, exporting to ingesterplatform: %s", model)
+
+
+#            marshaller = Marshaller()
+#
+#            schemas = []
+#            locations = []
+#            datasets = []
+#            for item in work.to_insert:
+#                if isinstance(item, jcudc24ingesterapi.schemas.data_entry_schemas.DataEntrySchema):
+#                    schemas.append(item)
+#                if isinstance(item, jcudc24ingesterapi.models.locations.Location):
+#                    locations.append(item)
+#                if isinstance(item, jcudc24ingesterapi.models.dataset.Dataset):
+#                    datasets.append(item)
+#
+#            for schema in schemas:
+#                print "Adding schema: %s" % marshaller.obj_to_dict(schema)
+#                schema.id = None
+#                schema.version = 1
+#                super(IngesterAPIWrapper, self).post(schema)
+#
+#            for location in locations:
+#                print "Adding location: %s" % marshaller.obj_to_dict(location)
+#                location.id = None
+#                super(IngesterAPIWrapper, self).post(location)
+#
+#            for dataset in datasets:
+#                print "Adding location: %s" % marshaller.obj_to_dict(dataset)
+#                dataset.id = None
+#                super(IngesterAPIWrapper, self).post(dataset)
+
+
+
             work.commit()
             return model
         else:
@@ -105,7 +139,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             work.commit()
             return model
         else:
-            return super(IngesterAPIWrapper, self).post(model)
+            return super(IngesterAPIWrapper, self).insert(model)
 
     def update(self, model):
         """
@@ -298,9 +332,9 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             elif field.type == 'file':
                 schema_field =  FileDataType(field.internal_name, field.description, field.units)
             elif field.type == 'date':
-                schema_field =  DateTime(field.internal_name, field.description, field.units)
+                schema_field = DateTime(field.internal_name, field.description, field.units)
             else:
-                assert True, "Unknown field typ: " + field.type
+                raise ValueError("Unknown field typ: " + field.type)
 
             new_schema.addAttr(schema_field)
 
@@ -385,6 +419,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
         model.dam_id = command(new_dataset)
         new_dataset.provisioning_model = model
         new_dataset.set_listener(model_id_listener)
+        model.disabled = False
         return new_dataset.id
 
 

@@ -5,7 +5,6 @@
 
     This template is based directly off the sequence.pt (after modifications - see the modified sequence.pt for details)
 -->
-
 <div class="deformMapSeq"
      id="${field.oid}"
      tal:define="rndr field.renderer;

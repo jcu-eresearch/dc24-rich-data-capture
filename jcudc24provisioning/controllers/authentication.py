@@ -30,6 +30,7 @@ class DefaultPermissions(object):
     Permissions are defined as 2 element tuples (<permission name>, <permission description>).  The description is
     only there to explain the permissions purpose to users and developers.
     """
+    VIEW_PUBLIC = ("open", "This permission is for unrestricted pages (allows flexibility to change who is classed as open).")
     ADMINISTRATOR = ("admin", "User can access the administrators page.")
     CREATE_PROJECT = ("create_project", "User is allowed to create new projects.")
     VIEW_PROJECT = "view_project", "Allows viewing of project workflow pages.",
@@ -43,7 +44,7 @@ class DefaultPermissions(object):
     ENABLE = "enable", "Allows enabling of ingesters (which effects data ingesters).",
     DELETE = "delete", "Allows deleting projects (Non-reversible).",
 
-    EDIT_DATA = "view_data", "Allows viewing of data and calibrations.",
+    VIEW_DATA = "view_data", "Allows viewing of data and calibrations.",
     EDIT_DATA = "edit_data", "Allows editing of current data and calibrations.",
     EDIT_INGESTERS = "edit_ingesters", "Allows editing of ingester configurations such as sampling rate or custom processors.",
 
@@ -74,6 +75,9 @@ class DefaultRoles(object):
     SUPER_ADMIN = ("g:super_admin", "Has all permissions",
                    [getattr(_permissions, name) for name in dir(_permissions) if not name.startswith("_")])
 
+    # Special role for giving all users permissions for open access projects.
+    OPEN_ACCESS = "g:open_access", "Give all users view rights on open access projects.", [DefaultPermissions.VIEW_PROJECT, DefaultPermissions.VIEW_DATA]
+
     SHARE_VIEW_PROJECT = "s:view_project", "Shared view permissions for a project.", [DefaultPermissions.VIEW_PROJECT]
     SHARE_EDIT_PROJECT = "s:edit_project", "Shared edit permissions for a project.", [DefaultPermissions.EDIT_PROJECT]
     SHARE_SUBMIT = "s:submit", "Shared submit permissions for a project.", [DefaultPermissions.SUBMIT]
@@ -92,6 +96,7 @@ class RootFactory(object):
     """
 
     __acl__ = [
+        ("Allow", Everyone, [DefaultPermissions.VIEW_PUBLIC]),
         #        (Allow, Everyone, DefaultRoles.SUPER_ADMIN[2]),     # Only for testing, this disables all permissions.
     ]
     __name__ = "Root"
@@ -174,6 +179,12 @@ class ShibbolethAuthenticationPolicy(object):
                 project_creator = project_creator[0]
                 if project_creator is not None and int(project_creator) == int(user.id):
                     principals.append(DefaultRoles.CREATOR[0])
+
+        # If the project is open access, give everyone view permissions.
+        if 'project_id' in request.matchdict:
+            access_rights = self.session.execute("SELECT `access_rights` FROM `metadata` WHERE `project_id`='%s'" % int(request.matchdict['project_id'])).first()
+            if len(access_rights) > 0 and access_rights[0] == "Open Access":
+                principals.append(DefaultRoles.OPEN_ACCESS[0])
 
         return principals
 
