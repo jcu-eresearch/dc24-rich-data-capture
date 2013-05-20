@@ -1,0 +1,103 @@
+<!--
+    This template has been modified by removing the href from the add link, this stops the page from jumping to the
+    top whenever an item is added.
+-->
+<!--If remove stops working update deform.js
+    line 129    var $before_node = $oid_node.children('ul').first().children('.deformInsertBefore').first();
+-->
+
+<div class="deformSeq"
+     id="${field.oid}"
+     tal:define="rndr field.renderer;
+                 item_tmpl field.widget.item_template;
+                 min_len field.widget.min_len or 0;
+                 max_len field.widget.max_len or 100000;
+                 now_len len(subfields);
+                 prototype field.widget.prototype(field)">
+
+    <div id="transition_note_panel" style="display:none;">
+        <h3>Transition Note <i>(Required)</i></h3>
+        <p><i>This note will be added to the submit page and emailed to users configured to receive project notifications.</i></p>
+        <textarea id="transition_comment" name="transition_comment"></textarea>
+        <button id="transition_note_button" onclick="add_transition_note(this)"></button>
+        <button onclick="$(parentNode).hide(); $(parentNode).children('textarea')[0].value = ''; return false;">Cancel</button>
+    </div>
+
+    <!-- sequence -->
+
+    <input type="hidden" name="__start__" value="${field.name}:sequence"
+           class="deformProto"
+           tal:attributes="prototype prototype"/>
+
+    <ul id="seq_items-${field.oid}">
+
+        <div tal:repeat="tup subfields"
+             tal:replace="structure rndr(item_tmpl, field=tup[1], cstruct=tup[0],
+                      parent=field)"/>
+
+    <span class="deformInsertBefore"
+          tal:attributes="min_len min_len; 
+                          max_len max_len; 
+                          now_len now_len"></span>
+
+    </ul>
+
+    <a class="deformSeqAdd hidden"
+            id="${field.oid}-seqAdd"
+            onclick="deform.appendSequenceItem(this); ">
+        <small id="${field.oid}-addtext">${add_subitem_text}</small>
+    </a>
+
+
+    <script type="text/javascript">
+        <tal:block tal:condition="not field.schema.can_edit">
+            $('#${field.oid}').find(".deformClosebutton").hide();
+        </tal:block>
+
+        deform.addCallback(
+                '${field.oid}',
+                function (oid) {
+                    var oid_node = $('#' + oid);
+                    deform.processSequenceButtons(oid_node, ${min_len},
+                            ${max_len}, ${now_len});
+
+                    $("#deform").parent().prepend($('#transition_note_panel')[0]);
+
+                    var transition_buttons = $(".buttons").find("button[name!='Save_Notes']");
+
+                    for (var i=0; i<transition_buttons.length; i++) {
+                        var button = transition_buttons[i];
+                        button.setAttribute("onclick",
+                                    "if (this.value == this.name) {" +
+                                        "var note_panel = $('#transition_note_panel'); " +
+                                        "var button = note_panel.find('#transition_note_button')[0];" +
+                                        "button.innerHTML = this.value;" +
+                                        "button.original_button = this;" +
+                                        "note_panel.show();" +
+                                        "return false;" +
+                                    "}"
+                        )
+                    }
+
+                }
+        );
+
+        function add_transition_note(button) {
+            var text = $(button.parentNode).children('textarea')[0].value;
+            if (text == '') {
+                $(button.parentNode).find('i')[0].style.color = 'red';
+                return false;
+            }
+            $('#${field.oid}-seqAdd').click();
+
+            button.original_button.value = text;
+            $(button.original_button).click();
+            return true;
+        }
+    </script>
+
+    <input type="hidden" name="__end__" value="${field.name}:sequence"/>
+
+    <!-- /sequence -->
+
+</div>

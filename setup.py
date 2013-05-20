@@ -27,6 +27,7 @@ requires = [
     'js.deform',            # BSD
     'js.jquery',            # BSD
     'js.jqueryui',          # BSD
+    'pyramid_mailer',
 ]
 
 setup(name='jcu.dc24.provisioning',

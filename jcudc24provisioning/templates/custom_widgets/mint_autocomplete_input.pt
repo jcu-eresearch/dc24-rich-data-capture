@@ -3,6 +3,7 @@
                            default_text cstruct or field.schema.default or placeholder">
         <div class="ui-widget">
             <input type="hidden" value="${default_text}" name="${field.name}" id="${field.oid}"/>
+            <input type="hidden" value="${field.widget.identifier_path}" id="${field.oid}-identifier_path"/>
             <input type="text"
                    tal:attributes="size field.widget.size;
                         class field.widget.css_class"
@@ -38,7 +39,7 @@
         deform.addCallback(
                 '${field.oid}',
                 function (oid) {
-                    get_name_from_identifier(oid, $("#"+oid)[0].value);
+                    get_name_from_identifier(oid, $("#"+oid)[0].value, $("#"+oid+"-identifier_path")[0].value);
                     var lookup = partial(lookup_mint, ($('#' + oid + '-url')[0].value));
 
                     $('#' + oid +"-autocomplete").autocomplete({

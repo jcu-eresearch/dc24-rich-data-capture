@@ -58,7 +58,7 @@ def initialise_all_db(settings):
     # If this is the first run, initialise all default database data.
     if not initialised:
         with transaction.manager:
-            session = DBSession
+            session = DBSession()
             initialise_default_schemas(session)
             initialise_project_templates(session)
             initialise_method_templates(session)

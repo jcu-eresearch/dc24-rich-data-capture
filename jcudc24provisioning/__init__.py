@@ -1,7 +1,6 @@
 """
 Initialise and start the EnMaSSe provisioning interface application.
 """
-
 from paste.deploy.converters import asint
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
@@ -9,7 +8,9 @@ from pyramid.security import NO_PERMISSION_REQUIRED
 from controllers.sftp_filesend import SFTPFileSend
 from jcudc24provisioning.controllers.authentication import RootFactory
 from jcudc24provisioning.controllers.authentication import ShibbolethAuthenticationPolicy, get_user
+from jcudc24provisioning.controllers.authentication import ShibbolethAuthenticationPolicy, get_user
 from jcudc24provisioning.scripts.create_redbox_config import create_json_config
+from pyramid_mailer.mailer import Mailer
 
 import os
 
@@ -61,7 +62,6 @@ def main(global_config, **settings):
     my_session_factory = session_factory_from_settings(settings)
     config = Configurator(settings=settings, session_factory = my_session_factory, root_factory=RootFactory)
 
-
 #    ---------------Project/Workflow pages------------------------
     config.add_route('create', '/project/create')              # Project creation wizard - templates, pre-fill etc.
     config.add_route('general', '/project/{project_id}/general')              # Project creation wizard - templates, pre-fill etc.
@@ -82,6 +82,7 @@ def main(global_config, **settings):
     config.add_route('manage_dataset', '/project/{project_id}/manage_dataset/{dataset_id}')
     config.add_route('data', '/project/{project_id}/datasets/{dataset_id}/data/*data_id')
     config.add_route('permissions', '/project/{project_id}/permissions')
+    config.add_route('notifications', '/project/{project_id}/notifications')
     config.add_route('duplicate', '/project/{project_id}/duplicate')
     config.add_route('create_template', '/project/{project_id}/create_template')
     config.add_route('search', '/search*search_info')
@@ -99,9 +100,9 @@ def main(global_config, **settings):
     config.add_route('get_ingester_logs', '/get_ingester_logs/{dam_id}/{filtering:.*}', xhr=True)
     config.add_route('add_method_from_template', '/add/{project_id}/{method_id}', xhr=True)
 
-    config.add_route('get_activities', '/search/activities/{search_terms}', xhr=True)
-    config.add_route('get_parties', '/search/parties/{search_terms}', xhr=True)
-    config.add_route('get_from_identifier', '/search/{identifier:.*}', xhr=True)
+    config.add_route('get_activities', '/mint/activities/{search_terms}', xhr=True)
+    config.add_route('get_parties', '/mint/parties/{search_terms}', xhr=True)
+    config.add_route('get_from_identifier', '/mint/{identifier:.*}', xhr=True)
 
     config.add_route('dashboard', '/')                                      # Home page/user dashboard
     config.add_route('login', '/login')                                     # Login page
@@ -120,6 +121,7 @@ def main(global_config, **settings):
     config.set_authentication_policy(authn_policy)
     config.set_authorization_policy(authz_policy)
     config.set_default_permission(NO_PERMISSION_REQUIRED)
+
     config.add_request_method(get_user, 'user', reify=True)
 
     config.scan()
@@ -155,6 +157,8 @@ def main(global_config, **settings):
         os.mkdir(settings.get("redbox.tmpdir"))
     if not os.path.exists(settings.get("workflows.files")):
             os.mkdir(settings.get("workflows.files"))
+#    if not os.path.exists(settings.get("mail.queue_path")):
+#        os.mkdir(settings.get("mail.queue_path"))
 
     return config.make_wsgi_app()
 

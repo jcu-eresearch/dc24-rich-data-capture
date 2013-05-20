@@ -730,9 +730,9 @@ function updateParentItem(add_button) {
 
 
 //--------------------MINT AUTOCOMPLETE INPUT--------------------------
-function get_name_from_identifier(oid, identifier) {
+function get_name_from_identifier(oid, identifier, url) {
     $.ajax({
-        url: "/search/" + identifier,
+        url: url + identifier,
         dataType: "json",
         success: function( data ) {
             var data_all = data['result-metadata']['all'];
@@ -788,6 +788,7 @@ function get_name_from_identifier(oid, identifier) {
         error: function(jqXHR, textStatus, errorThrown) {
 //                    alert(textStatus);
 //                    alert(errorThrown);
+            console.error("Error looking up mint identifier: " + textStatus);
         }
     });
 }
@@ -844,8 +845,9 @@ function autocomplete_selected(event, ui){
 
 //------------------SHARING SEQUENCE----------------------
 function autocomplete_selected(event, ui) {
-    $("#"+ event.target.id + "Id")[0].value = ui.item.identifier;
-    $("#"+ event.target.id)[0].value = ui.item.label;
+    var element = $(event.target);
+    element[0].value = ui.item.label;
+    element.prev('input')[0].value = ui.item.identifier;
 }
 
 function add_user(add_button) {

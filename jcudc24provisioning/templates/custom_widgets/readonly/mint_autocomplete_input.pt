@@ -3,11 +3,12 @@
                            default_text cstruct or field.schema.default or placeholder">
         <div class="ui-widget">
             <input type="hidden" value="${default_text}" name="${field.name}" id="${field.oid}"/>
-            <input type="text"
+            <input type="hidden" value="${field.widget.identifier_path}" id="${field.oid}-identifier_path"/>
+            <input type="text" readonly="readonly"
                    tal:attributes="size field.widget.size;
                         class field.widget.css_class"
                    id="${field.oid}-autocomplete"/>
-            <a class="mint-more-info hidden buttonText" onclick="$('.more_info_panel').not($(this).siblings('.more_info_panel')).hide(); $('.mint-more-info').not($(this)).removeClass('current'); $(this).siblings('.more_info_panel').toggle(); $(this).toggleClass('current');" style="float:none;">More Info</a>
+            <a class="mint-more-info hidden buttonText" onclick="$('.more_info_panel').not($(this).siblings('.more_info_panel')).hide(); $('.mint-more-info').not($(this)).removeClass('current'); $(this).siblings('.more_info_panel').toggle(); $(this).toggleClass('current');" style="float:none;z-index: 10;">More Info</a>
             <div class="more_info_panel hidden"></div>
 
         </div>
@@ -35,124 +36,10 @@
             }
         </style>
     <script tal:condition="field.widget.values" type="text/javascript">
-        function get_name_from_identifier(oid, identifier) {
-            $.ajax({
-                url: "/search/" + identifier,
-                dataType: "json",
-                success: function( data ) {
-                    var data_all = data['result-metadata']['all'];
-                    var value = "";
-                    if (identifier.match(/.*people.*/g)) {
-                        value = data_all['Honorific'][0] + " " + data_all['Given_Name'][0] + " ";
-                        for (var i=0; i<data_all['Other_Names'].length; i++) {
-                            if (data_all['Other_Names'][i].trim().length > 0) {
-                                value += data_all['Other_Names'][i] + " ";
-                            }
-                        }
-                        value = value.trim() + " " + data_all['Family_Name'][0];
-                    } else if (identifier.match(/.*activities.*/g)) {
-                        value = data['dc:title'];
-                    }
-
-                    $("#" + oid + "-autocomplete")[0].value = value;
-
-
-//                    $('#' + oid).siblings("a.mint-more-info")[0].href = data['rdf:about'];
-                    $('#' + oid).siblings("a.mint-more-info").removeClass('hidden');
-
-                    var more_info_panel = $('#' + oid).siblings("div.more_info_panel");
-                    more_info_panel.children().remove();
-
-                    more_info_panel.append("<div><b>Name:</b> " + value + "</div>");
-                    if (data_all['Email'] && data_all['Email'][0].length > 0) {
-                        more_info_panel.append("<div><b>Email:</b> <a href='mailto:" + data_all['Email'][0] + "'>" + data_all['Email'] + "</div>");
-                    }
-                    if (data_all['dc_description'] && data_all['dc_description'][0].length > 0) {
-                        more_info_panel.append("<div><b>Description:</b>" + data_all['dc_description'][0] + "</div>");
-                    }
-
-                    var links_panel = "<div><b>Links:</b> <ul>";
-                    if (data_all['Personal_Homepage'] && data_all['Personal_Homepage'][0]) {
-                        links_panel += "<li><a style='overflow: hidden;' target='_blank' href='" + data_all['Personal_Homepage'][0] + "'>Personal Homepage</li>";
-                    }
-                    if (data_all['Staff_Profile_Homepage'] && data_all['Staff_Profile_Homepage'][0]) {
-                        links_panel += "<li><a style='overflow: hidden;' target='_blank' href='" + data_all['Staff_Profile_Homepage'][0] + "'>Staff Profile</li>";
-                    }
-                    if (data_all['Personal_URI'] && data_all['Personal_URI'][0]) {
-                        links_panel += "<li><a style='overflow: hidden;' target='_blank' href='" + data_all['Personal_URI'][0] + "'>Personal URI</li>";
-                    }
-                    links_panel += "<li><a style='overflow: hidden;' target='_blank' href='" + data['rdf:about'] + "'>Mint Record</li>";
-
-                    links_panel += "</ul></div>";
-                    more_info_panel.append(links_panel);
-
-                    var onclick = '$("#' + oid + '").siblings(".more_info_panel").hide(); $("#' + oid + '").siblings("a").removeClass("current");';
-                    var close = "<div class='close_button buttonText' onclick='" + onclick + "' >Close</div>";
-                    more_info_panel.append(close);
-                },
-                error: function(jqXHR, textStatus, errorThrown) {
-//                    alert(textStatus);
-//                    alert(errorThrown);
-                }
-            });
-        }
-
-        function lookup_mint(url, request, response) {
-            $.ajax({
-                url: url + request.term,
-                dataType: "json",
-                success: function( data ) {
-                    if (data.length == 0) {
-                        return response([{
-                            label: "None available",
-                            value: "",
-                            identifier: ""
-                        }]);
-                    }
-
-                    response($.map( data, function( item ) {
-                        return {
-                            label: item.label,
-                            value: item.label,
-                            identifier: item.value
-                        }
-                    }));
-                },
-                error: function(jqXHR, textStatus, errorThrown) {
-                    return response([{
-                        label: "None available",
-                        value: "",
-                        identifier: ""
-                    }]);
-                },
-                open: function() {
-                    $( this ).removeClass( "ui-corner-all" ).addClass( "ui-corner-top" );
-                },
-                close: function() {
-                    $( this ).removeClass( "ui-corner-top" ).addClass( "ui-corner-all" );
-                }
-            });
-         }
-
-        function partial(func /*, 0..n args */) {
-          var args = Array.prototype.slice.call(arguments, 1);
-          return function() {
-            var allArguments = args.concat(Array.prototype.slice.call(arguments));
-            return func.apply(this, allArguments);
-          };
-        }
-
-        function autocomplete_selected(event, ui){
-            $("#"+ event.target.id.replace("-autocomplete", ""))[0].value = ui.item.identifier;
-            get_name_from_identifier(event.target.id.replace("-autocomplete", ""), ui.item.identifier);
-        }
-
-
-
         deform.addCallback(
                 '${field.oid}',
                 function (oid) {
-                    get_name_from_identifier(oid, $("#"+oid)[0].value);
+                    get_name_from_identifier(oid, $("#"+oid)[0].value, $("#"+oid+"-identifier_path")[0].value);
                     var lookup = partial(lookup_mint, ($('#' + oid + '-url')[0].value));
 
                     $('#' + oid +"-autocomplete").autocomplete({

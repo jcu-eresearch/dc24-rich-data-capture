@@ -186,7 +186,20 @@ def _fix_sequence_schemas(sequence_node):
             displayed_child = sub_child
 
     if only_one_displayed and displayed_child:
-        sequence_node.children[0].widget = deform.widget.MappingWidget(template="ca_sequence_mapping", item_template="ca_sequence_mapping_item")
+        if sequence_node.children[0].widget is None:
+            sequence_node.children[0].widget = deform.widget.MappingWidget(template="ca_sequence_mapping",
+                readonly_template="readonly/ca_sequence_mapping", item_template="ca_sequence_mapping_item",
+                readonly_item_template="readonly/ca_sequence_mapping_item")
+        else:
+            if sequence_node.children[0].widget.template == "mapping":
+                sequence_node.children[0].widget.template = "ca_sequence_mapping"
+            if sequence_node.children[0].widget.readonly_template == "readonly/mapping":
+                sequence_node.children[0].widget.readonly_template = "readonly/ca_sequence_mapping"
+            if sequence_node.children[0].widget.item_template == "mapping_item":
+                sequence_node.children[0].widget.item_template = "ca_sequence_mapping_item"
+            if sequence_node.children[0].widget.readonly_item_template == "readonly/mapping_item":
+                sequence_node.children[0].widget.readonly_item_template="readonly/ca_sequence_mapping_item"
+
 
     return sequence_node
 

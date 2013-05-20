@@ -16,7 +16,7 @@ from jcudc24provisioning.controllers.ca_schema_scripts import convert_schema
 
 class TestModelConversion(unittest.TestCase):
     def test_conversion_equality(self):
-        session = DBSession
+        session = DBSession()
         PROJECT_ID = 2
 
         schema = convert_schema(SQLAlchemyMapping(Project, unknown='raise',))
@@ -41,7 +41,7 @@ class TestIngesterPlatform(unittest.TestCase):
         engine = engine_from_config(settings, 'sqlalchemy.')
         DBSession.configure(bind=engine)
         Base.metadata.create_all(engine)
-        self.session = DBSession
+        self.session = DBSession()
 
         self.auth = CredentialsAuthentication(self.config.get("app:main", "ingesterapi.username"), self.config.get("app:main", "ingesterapi.password"))
         self.ingester_api = IngesterAPIWrapper(self.config.get("app:main", "ingesterapi.url"), self.auth)

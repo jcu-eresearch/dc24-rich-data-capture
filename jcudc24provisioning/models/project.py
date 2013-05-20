@@ -242,6 +242,20 @@ relationship_types = (
     ("hasCollector", "Aggregated by")
     , ("isEnrichedBy", "Enriched by"))
 
+@colander.deferred
+def search_parties_widget(node, kw):
+    search_path = kw['request'].route_url("get_parties", search_terms="")
+    identifier_path = kw['request'].route_url("get_from_identifier", identifier="")
+    return deform.widget.AutocompleteInputWidget(min_length=1, values=search_path, identifier_path=identifier_path,
+        template="mint_autocomplete_input", readonly_template="readonly/mint_autocomplete_input", size="70", delay=10)
+
+@colander.deferred
+def search_activities_widget(node, kw):
+    search_path = kw['request'].route_url("get_activities", search_terms="")
+    identifier_path = kw['request'].route_url("get_from_identifier", identifier="")
+    return deform.widget.AutocompleteInputWidget(min_length=1, values=search_path, identifier_path=identifier_path,
+        template="mint_autocomplete_input", readonly_template="readonly/mint_autocomplete_input", size="70", delay=10)
+
 class Party(CAModel, Base):
     """
     Parties associated with a project/metadata record, currently parties are only people which are selected from a
@@ -281,8 +295,7 @@ class Party(CAModel, Base):
 
 
     identifier = Column(String(100), ca_order=next(order_counter), ca_title="Person", ca_force_required=True,
-        ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/parties/', template="mint_autocomplete_input", size="70", delay=10),
-    )
+        ca_widget=search_parties_widget)
 #    person = relationship('Person', ca_order=next(order_counter), uselist=False)
 
 
@@ -573,7 +586,7 @@ class Metadata(CAModel, Base):
     grant_label = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="foaf:fundedBy.vivo:Grant.1.skos:prefLabel",)
     grant = Column(String(256), ca_order=next(order_counter), ca_title="Research Grant", ca_page="general",
         ca_missing="", ca_help="Enter the associated research grant associated with this record (this field will autocomplete).",
-        ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/activities/', template="mint_autocomplete_input", delay=10))
+        ca_widget=search_activities_widget)
 
     #    services = Column(String(256), ca_title="Services - Remove this?", ca_order=next(order_counter), ca_placeholder="Autocomplete - Mint/Mint DB", ca_page="general",
     #            ca_help="Indicate any related Services to this Collection. A lookup works against Mint, or you can enter known information about remote Services."
@@ -1772,6 +1785,25 @@ class Location(CAModel, Base):
         """
         return [[]]
 
+class TransitionNote(CAModel, Base):
+    """
+    Simple text field to leave notes about a project on the submit page.
+    """
+    order_counter = itertools.count()
+
+    __tablename__ = 'transition_note'
+    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    project_id = Column(Integer, ForeignKey('project.id'), nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    user_id = Column(Integer, ForeignKey('user.id'), nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    date_created = Column(Date, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+
+    transition =  Column(String(128), ca_widget=deform.widget.SelectWidget(values=(("none", "Note Only"),
+                                                                                   ("submitted", "Submitted"), ("approved", "Approved"), ("reopened", "Re-Opened"), ("disabled", "Disabled"),
+                                                                                   ("enabled", "Re-Enabled")), readonly_template="readonly/text"))
+    comment = Column(Text(),
+        ca_placeholder="eg. Please enter all metadata, the supplied processing script has errors, please extend the existing temperature data type so that your data is searchable, etc..."
+        , ca_widget=deform.widget.TextAreaWidget(rows=3))
+
 class ProjectNote(CAModel, Base):
     """
     Simple text field to leave notes about a project on the submit page.
@@ -1953,14 +1985,18 @@ class Project(CAModel, Base):
     validated = Column(Boolean, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(template="submit_validation"), default=False,
         ca_group_start="validation", ca_group_end="validation", ca_group_title="Validation", ca_group_collapsed=False, ca_page="submit",)
 
-    datasets_ready = Column(Boolean(), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(template="submit_overview", true_val='true', false_val='false'), default=False,
+    datasets_ready = Column(Integer(), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(template="submit_overview"),
         ca_group_start="overview", ca_group_end="overview", ca_group_title="Summary of Datasets & Records", ca_group_collapsed=False, ca_page="submit",)
 
+    transition_notes = relationship("TransitionNote", ca_title="State Change Notes",  ca_order=next(order_counter), ca_page="submit",
+        ca_child_title="State Change Note", ca_child_name="transition_note", ca_child_widget=deform.widget.MappingWidget(template="transition_mapping"),
+        cascade="all, delete-orphan", ca_widget=deform.widget.SequenceWidget(template="transition_note_sequence"),
+        ca_help="Project comments that are only relevant to the provisioning system (eg. comments as to why the project was reopened after the creator submitted it).")
+
     project_notes = relationship("ProjectNote", ca_title="Project Notes",  ca_order=next(order_counter), ca_page="submit",
-            ca_child_title="Project Note",
+            ca_child_title="Project Note", ca_child_widget=deform.widget.MappingWidget(template="comment_mapping", readonly_template="comment_mapping"),
             cascade="all, delete-orphan", ca_widget=deform.widget.SequenceWidget(min_len=1),
             ca_help="Project comments that are only relevant to the provisioning system (eg. comments as to why the project was reopened after the creator submitted it).")
-
 
     project_template = relationship("ProjectTemplate", ca_order=next(order_counter), ca_missing=colander.null,
         cascade="all, delete-orphan", ca_widget=deform.widget.HiddenWidget(), ca_exclude=True)
@@ -1994,7 +2030,7 @@ class CreatePage(colander.MappingSchema):
         missing=colander.null, required=False,
         help="Enter title of the research grant associated with this record (Autocomplete).  The grant will be looked up for additional information that can be pre-filled.",
         description="Un-Select 'There is an associated research grant' above if your project isn't associated with a research grant.",
-        widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/activities/', template="mint_autocomplete_input", delay=10))
+        widget=search_activities_widget)
 
     #    services = Column(String(256), ca_title="Services - Remove this?", ca_order=next(order_counter), ca_placeholder="Autocomplete - Mint/Mint DB", ca_page="general",
     #            ca_help="Indicate any related Services to this Collection. A lookup works against Mint, or you can enter known information about remote Services."
@@ -2003,11 +2039,11 @@ class CreatePage(colander.MappingSchema):
 
 
     data_manager = colander.SchemaNode(colander.String(), title="Data Manager (Primary contact)",
-        widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/parties/', template="mint_autocomplete_input", delay=10),
+        widget=search_parties_widget,
         help="Primary contact for the project, this should be the person in charge of the data and actively working on the project.<br /><br />"\
                 "<i>Autocomplete from most universities and large organisations, if the person you are trying to select isn't available please organise an external JCU account for them.</i>")
     project_lead = colander.SchemaNode(colander.String(), title="Project Lead (Supervisor)",
-        widget=deform.widget.AutocompleteInputWidget(min_length=1, values='/search/parties/', template="mint_autocomplete_input", delay=10),
+        widget=search_parties_widget,
         help="Head supervisor of the project that should be contacted when the data manager is unavailable.<br /><br />"\
                 "<i>Autocomplete from most universities and large organisations, if the person you are trying to select isn't available please organise an external JCU account for them.</i>")
 
@@ -2130,6 +2166,60 @@ class Sharing(colander.MappingSchema):
         widget=deform.widget.SequenceWidget(template="sharing_sequence"),
     )
 
+
+class NotificationConfig(CAModel, Base):
+    """
+    """
+    order_counter = itertools.count()
+
+    __tablename__ = 'notification_config'
+    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+
+    state_changes = Column(Boolean(), ca_order=next(order_counter), ca_title="State Changes (eg. submitted)")
+    ingester_changes = Column(Boolean(), ca_order=next(order_counter), ca_title="Dataset/Ingester changes")
+    permission_changes = Column(Boolean(), ca_order=next(order_counter))
+    log_errors = Column(Boolean(), ca_order=next(order_counter))
+    log_warnings = Column(Boolean(), ca_order=next(order_counter))
+    new_projects = Column(Boolean(), ca_order=next(order_counter), ca_widget=deform.widget.CheckboxWidget(),)
+
+class ProjectNotificationConfig(CAModel, Base):
+    """
+    """
+    order_counter = itertools.count()
+
+    __tablename__ = 'project_notification_config'
+    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    project_id = Column(Integer, ForeignKey('project.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
+    user_notification_config_id = Column(Integer, ForeignKey('user_notification_config.id'), nullable=True,
+        ca_widget=deform.widget.HiddenWidget())
+
+    notification_config_id = Column(Integer, ForeignKey('notification_config.id'), nullable=True,
+        ca_widget=deform.widget.HiddenWidget())
+
+    notification_config = relationship('NotificationConfig', single_parent=True, uselist=False, ca_order=next(order_counter),
+        cascade="all, delete-orphan", ca_title="Project Notification Settings",
+        ca_widget=deform.widget.MappingWidget(template="inline_mapping", readonly_template="readonly/inline_mapping"))
+
+class UserNotificationConfig(CAModel, Base):
+    """
+    """
+    order_counter = itertools.count()
+
+    __tablename__ = 'user_notification_config'
+    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+    user_id = Column(Integer, ForeignKey('user.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
+    default_notification_config_id = Column(Integer, ForeignKey('notification_config.id'), nullable=True,
+        ca_widget=deform.widget.HiddenWidget())
+
+    default_notification_config = relationship('NotificationConfig', ca_title="Default Notification Settings",
+        ca_help="These settings will be applied to new projects you create as well as projects that other users share with you.",
+        single_parent=True, uselist=False, ca_order=next(order_counter),
+        cascade="all, delete-orphan",
+        ca_widget=deform.widget.MappingWidget(template="inline_mapping", readonly_template="readonly/inline_mapping", show_label=True))
+    notification_configs = relationship('ProjectNotificationConfig', ca_title="Notification Settings", ca_order=next(order_counter),
+        ca_help="You can configure what email notifications you will receive for each project you have created, had shared with you or added notifications on.",
+        cascade="all, delete-orphan", ca_child_title="notification settings for the current project",
+        ca_child_widget=deform.widget.MappingWidget(template="notifications_mapping", readonly_template="readonly/notifications_mapping"))
 
 class ManageData(colander.MappingSchema):
     """

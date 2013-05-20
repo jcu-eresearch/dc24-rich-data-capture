@@ -1,0 +1,56 @@
+<!--Custom display template for transition notes.  Display the comment how we want and leave the actual data hidden.-->
+<fieldset id="mapping-${field.oid}" i18n:domain="deform"
+          tal:attributes="class 'deformMappingFieldset ' + str((field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and ('collapsible-'+str(field.schema.__dict__.get('collapse_group')) or nothing))">
+    <!-- mapping -->  <!--<legend 1tal:condition="field.schema.__dict__.get('collapsed')"><span class="collapse_icon">+ </span>${field.title}</legend>-->
+
+    <!--Display the notes how we want-->
+    <legend>${cstruct.get('transition_note:transition', None)} by ${field.schema.get_user_name(cstruct.get('transition_note:user_id', None))}</legend>
+    <textarea readonly=readonly>${cstruct.get('transition_note:comment', None)}</textarea>
+
+
+    <!--Leave the usual mapping items so the data is still stored and sent on submit - just hide it-->
+    <ul class='hidden' tal:attributes="style ('display: ' + str(field.schema.__dict__.get('collapsed') == True and 'none'));">
+        <li class="errorLi" tal:condition="field.errormsg">
+            <h3 class="errorMsgLbl" i18n:translate="">There was a problem with this section</h3>
+
+            <p class="errorMsg">${field.errormsg}</p>
+        </li>
+        <li class="help_text hidden section" tal:condition="field.schema.__dict__.get('help')">
+             <div id="help-${field.oid}" tal:content="structure field.schema.__dict__.get('help')"></div>
+        </li>
+        <li class="section description" tal:condition="field.description">
+            <div id="desc-${field.oid}" tal:content="structure field.description"></div>
+        </li>
+        <input type="hidden" name="__start__" value="${field.name}:mapping"/>
+
+        <div
+                tal:define="rndr field.renderer;
+                   tmpl field.widget.readonly_item_template"
+                tal:repeat="f field.children"
+                tal:replace="structure rndr(tmpl,field=f,cstruct=cstruct.get(f.name,null))"/>
+        <input type="hidden" name="__end__" value="${field.name}:mapping"/>
+    </ul>
+    <!-- /mapping -->
+
+    <script type="text/javascript" tal:condition="(field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False)">
+        deform.addCallback(
+                '${field.oid}',
+                function (oid) {
+//                    var collapse_span = $("#mapping-" + oid).find(".collapse_icon");
+//                    if (collapse_span.length <= 0) {
+//                        return;
+//                    }
+//
+//                    var collapsed = collapse_span.html().match(/\-/) == null;
+//                    var group = $("#mapping-" + oid)[0].className.split(" ")[1].split("-")[1];
+//                    if (collapsed == false && group != "None") {
+//                        var group_items = $(".collapsible-" + group + "[id!=mapping-" + oid + "]");
+//                        group_items.find(".collapsible_items").slideUp(200);
+//                        group_items.find(".collapse_icon").html('+');
+//                    }
+                });
+    </script>
+</fieldset>
+
+
+

@@ -48,6 +48,7 @@ class DefaultPermissions(object):
     EDIT_DATA = "edit_data", "Allows editing of current data and calibrations.",
     EDIT_INGESTERS = "edit_ingesters", "Allows editing of ingester configurations such as sampling rate or custom processors.",
 
+    EDIT_NOTIFICATIONS = "edit_notifications", "Allows configuration of who receives email notification for project changes.",
     EDIT_SHARE_PERMISSIONS = "edit_share_permissions", "Allows granting/removing of a limited set of project permissions per project (namely view and edit).",
     EDIT_USER_PERMISSIONS = "edit_user_permissions", "Allows granting/removing of permissions and roles",
     EDIT_PERMISSIONS = "edit_permissions", "Allows editing of permissions and roles",
@@ -66,7 +67,7 @@ class DefaultRoles(object):
     _permissions = DefaultPermissions()
     CREATOR = "g:creator", "Creator of the project, this will be dynamically assigned based on the login credentials.", [
         DefaultPermissions.VIEW_PROJECT, DefaultPermissions.EDIT_PROJECT, DefaultPermissions.SUBMIT,
-        DefaultPermissions.EDIT_DATA, DefaultPermissions.EDIT_SHARE_PERMISSIONS]
+        DefaultPermissions.EDIT_DATA, DefaultPermissions.EDIT_SHARE_PERMISSIONS, DefaultPermissions.EDIT_NOTIFICATIONS]
     AUTHENTICATED = (Authenticated, "Any logged in user.", [DefaultPermissions.CREATE_PROJECT])
     ADMIN = ("g:admin", "Standard administrators of the system.",
              [getattr(_permissions, name) for name in dir(_permissions) if
@@ -119,7 +120,7 @@ class ShibbolethAuthenticationPolicy(object):
     def __init__(self, settings, prefix="auth."):
         self.prefix = prefix
         self.userid_key = self.prefix + ".userid"
-        self.session = DBSession()
+        self.session = DBSession
 
     def remember(self, request, principal, **kw):
         request.session[self.userid_key] = principal
@@ -183,7 +184,7 @@ class ShibbolethAuthenticationPolicy(object):
         # If the project is open access, give everyone view permissions.
         if 'project_id' in request.matchdict:
             access_rights = self.session.execute("SELECT `access_rights` FROM `metadata` WHERE `project_id`='%s'" % int(request.matchdict['project_id'])).first()
-            if len(access_rights) > 0 and access_rights[0] == "Open Access":
+            if access_rights is not None and len(access_rights) > 0 and access_rights[0] == "Open Access":
                 principals.append(DefaultRoles.OPEN_ACCESS[0])
 
         return principals
@@ -199,5 +200,5 @@ def get_user(request):
     userid = authenticated_userid(request)
     if userid is not None:
         user = User.get_user(userid)
-        DBSession().expunge(user)
+        DBSession.expunge(user)
         return user
