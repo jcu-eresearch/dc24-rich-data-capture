@@ -838,7 +838,7 @@ function partial(func /*, 0..n args */) {
     };
 }
 
-function autocomplete_selected(event, ui){
+function mint_autocomplete_selected(event, ui){
     $("#"+ event.target.id.replace("-autocomplete", ""))[0].value = ui.item.identifier;
     get_name_from_identifier(event.target.id.replace("-autocomplete", ""), ui.item.identifier);
 }

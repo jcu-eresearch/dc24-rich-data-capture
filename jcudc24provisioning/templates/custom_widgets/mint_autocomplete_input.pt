@@ -44,7 +44,7 @@
 
                     $('#' + oid +"-autocomplete").autocomplete({
                         source: lookup,
-                        select: autocomplete_selected
+                        select: mint_autocomplete_selected
                         });
                     $('#' + oid +"-autocomplete").autocomplete("option", ${options});
                 }
