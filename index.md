@@ -6,7 +6,7 @@ tagline: Environmental Monitoring and Sensor Storage
 {% include JB/setup %}
 
 
-Welcome to EnMaSSe!
+# Welcome to EnMaSSe!
 
 EnMaSSe allows researchers to setup projects that involve the collection of environmental monitoring data using sensors, 
 video, audio recorders and/or manual observation methods. Once all the required information is provided the system configures
