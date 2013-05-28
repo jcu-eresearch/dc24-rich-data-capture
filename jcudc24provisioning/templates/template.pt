@@ -3,10 +3,11 @@
       xmlns:tal="http://xml.zope.org/namespaces/tal" xmlns="http://www.w3.org/1999/html" metal:define-macro="layout"
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://xml.zope.org/namespaces/metal ">
 <head>
-    <title><span tal:condition="exists: page_title" tal:replace="structure page_title" /> - Research Data Provisioning</title>
+    <title><span tal:condition="exists: page_title" tal:replace="structure page_title" /> - EnMaSSe (Environmental Monitoring and Sensor Storage)</title>
     <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
-    <meta name="keywords" content="python web application"/>
-    <meta name="description" content="pyramid web application"/>
+    <meta name="keywords" content="research data, research metadata, research, environmental research, environment, environmental, sensor, sensor streaming, sensor data, data storage, sensor data storage, James Cook University, JCU, EnMaSSe"/>
+    <meta name="description" content="EnMaSSe is a user friendly interface for flexible and scalable research data ingestion (both streamed or manually input) providing high quality, fine grained, project based, metadata creation and export (eg. Enter 1 record, export many) as well as administerable and maintainable project lifecycle and workflows.
+"/>
     <link rel="shortcut icon" href="${request.static_url('jcudc24provisioning:static/images/favicon.ico')}"/>
     <!--<link rel="stylesheet" href="${"static/pylons.css" type="text/css" media="screen" charset="utf-8" /> -->
     <!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js"></script>-->
@@ -129,20 +130,20 @@
         });
 
         <tal:block tal:condition="exists:display_leave_confirmation"><tal:block tal:condition="display_leave_confirmation">
-        window.onbeforeunload = function (e) {
-            var message = "Are you sure you want to leave this page, all unsaved data will be lost.",
-            e = e || window.event;
+            window.onbeforeunload = function (e) {
+                var message = "Are you sure you want to leave this page, all unsaved data will be lost.",
+                e = e || window.event;
 
-            if (e) {
-                e.returnValue = message;
-            }
-            return message;
-        };
-        $(function() {
-            $("#deform").submit(function(){
-                window.onbeforeunload = null;
+                if (e) {
+                    e.returnValue = message;
+                }
+                return message;
+            };
+            $(function() {
+                $("#deform").submit(function(){
+                    window.onbeforeunload = null;
+                });
             });
-        });
         </tal:block></tal:block>
 
 
@@ -176,12 +177,12 @@
         <div id="inner_wrapper">
            <div id="header">
                <div id="logo">
-                   <a href="www.jcu.edu.au"><img src="${request.static_url('jcudc24provisioning:static/images/jcu_logo.gif')}" alt="James Cook University logo"/></a>
+                   <a href="http://www.jcu.edu.au"><img src="${request.static_url('jcudc24provisioning:static/images/jcu_logo.gif')}" alt="James Cook University logo"/></a>
                </div>
 
                <div id="top_menu" tal:define="user view.get_user">
-                   <div tal:condition="user" id="user_name">Welcome ${user.display_name}!</div>
-                   <div id="help_menu">Help &#x25BC;</div>
+                   <div tal:condition="user" id="user_name">Welcome <b>${user.display_name}!</b></div>
+                   <!--<div id="help_menu">Help &#x25BC;</div>-->
                    <div tal:condition="not user" id="login"><a href="${request.route_url('login')}">Log in</a></div>
                    <div tal:condition="user" id="login"><a href="${request.route_url('logout')}">Log out</a></div>
                </div>

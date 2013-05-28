@@ -9,3 +9,4 @@ DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
 
 # Base SQLAlchemy model for all database models to extend.
 Base = declarative_base()
+

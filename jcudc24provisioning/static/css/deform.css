@@ -33,7 +33,7 @@
     margin: 0px 0px 3px;
 }
 
-.deform .deformClosebutton {
+.deform .deformClosebutton, .deformClosebutton {
     color: #FF3333;
 }
 
@@ -286,12 +286,12 @@ div.more_info_panel, .parent_schema_preview_panel {
 #transition_note_panel {
     z-index: 100;
     width: 50%;
-    top: 50px;
+    top: 25%;
     left: 25%;
     padding: 10px;
     border: 1px solid #b6b6b6;
     background: #fff;
-    position: absolute;
+    position: fixed;
     border-radius: 5px;
     box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.48);
     /*top: 50%; left: 50%*/
@@ -318,7 +318,8 @@ div.more_info_panel, .parent_schema_preview_panel {
     display: inline-block;
     margin-right: 5px;
     /*position: relative;*/
-    margin-bottom: 0.1em;
+    margin-bottom: -5px;
+    margin-top: -5px;
     font-size: 1.3em;
     padding: 0.1em 0.4em;
 }
@@ -360,7 +361,7 @@ div.more_info_panel, .parent_schema_preview_panel {
 .deform .errorLi {
     background: rgba(255, 0, 0, 0.19);
     border-width: 1px medium;
-    border: solid 1px rgb(233, 79, 53);;
+    border: solid 1px rgb(233, 79, 53);
     border-radius: 2px;
     width: 100%;
     padding-left: 0;
@@ -472,7 +473,7 @@ div.more_info_panel, .parent_schema_preview_panel {
     border: 1px solid rgb(253, 185, 19);
 }
 
-.ui-tabs-panel div.selected:not(.selectable) {
+.ui-tabs-panel div.selected:not(.selectable),  div.dataset_select .selected {
     border: 1px solid rgb(233, 79, 53);
 }
 

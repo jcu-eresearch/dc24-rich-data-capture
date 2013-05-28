@@ -81,10 +81,10 @@ enmasse_requirements = Group([
     jqueryui.ui_lightness,
     js.deform.deform,
     jquery_form,
+    enmasse_widgets
 ])
 
 enmasse_forms = Group([
     enmasse_requirements,
-    enmasse_widgets,
     regex_mask,
 ])

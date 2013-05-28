@@ -279,7 +279,7 @@ class Party(CAModel, Base):
                 "<b>Enriched by</b>: Helped the project in some other way<br />"
                 "<b>Associated With</b>: The project has something to do with this person<br />")
 
-    name = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(),)              # TODO: Pre-fill these fields when a party is selected.
+    name = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(),)  # TODO: Fill these fields when a party is selected.
     title = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(),)
     #                Party.coprimary: "dc:creator.foaf:Person.1.redbox:isCoPrimaryInvestigator",
     #                Party.primary: "dc:creator.foaf:Person.1.redbox:isPrimaryInvestigator",
@@ -573,37 +573,12 @@ class Metadata(CAModel, Base):
                 "<li>Keep the description relevant to all generated records.</li>"\
                 "<li>The title should be unique to the data, ie. do not use the publication title as the data title.</li></ul>")
 
-    # TODO: Refactor template, activity and data_manager/project_lead into setup page - use the autocomplete functionality to add details to project.
-    #    template = Column(String(512), ca_order=next(order_counter), ca_page="general", ca_force_required=True,
-    #        ca_description="<b>TODO: Implement templating</b>",)
-    #
-    #    no_activity = Column(Boolean(), ca_order=next(order_counter), ca_title="There is no associated research grant", ca_page="general",
-    #        ca_description="Must be selected if a research grant isn't provided below.")
-    #
-
     internal_grant = Column(Boolean, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="foaf:fundedBy.vivo:Grant.1.redbox:internalGrant", ca_default="false")
     grant_number = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="foaf:fundedBy.vivo:Grant.1.redbox:grantNumber",)
     grant_label = Column(String(256), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter), name="foaf:fundedBy.vivo:Grant.1.skos:prefLabel",)
     grant = Column(String(256), ca_order=next(order_counter), ca_title="Research Grant", ca_page="general",
         ca_missing="", ca_help="Enter the associated research grant associated with this record (this field will autocomplete).",
         ca_widget=search_activities_widget)
-
-    #    services = Column(String(256), ca_title="Services - Remove this?", ca_order=next(order_counter), ca_placeholder="Autocomplete - Mint/Mint DB", ca_page="general",
-    #            ca_help="Indicate any related Services to this Collection. A lookup works against Mint, or you can enter known information about remote Services."
-    #            , ca_missing="",
-    #            ca_group_end="associations")
-
-
-    #    data_manager = Column(String(256), ca_order=next(order_counter), ca_title="Data Manager (Primary contact)", ca_page="general", ca_force_required=True,
-    #        ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values=choices),
-    #        ca_placeholder="eg. TODO: data manager of artificial tree",
-    #        ca_help="Primary contact for the project, this should be the person in charge of the data and actively working on the project.<br /><br />" \
-    #                       "<i>Autocomplete from most universities and large organisations, if the person you are trying to select isn't available please organise an external JCU account for them.</i>")
-    #    project_lead = Column(String(256), ca_order=next(order_counter), ca_title="Project Lead (Supervisor)", ca_page="general",
-    #        ca_widget=deform.widget.AutocompleteInputWidget(min_length=1, values=choices), ca_force_required=True,
-    #        ca_placeholder="eg. Dr Jeremy Vanderwal",
-    #        ca_help="Head supervisor of the project that should be contacted when the data manager is unavailable.<br /><br />" \
-    #                       "<i>Autocomplete from most universities and large organisations, if the person you are trying to select isn't available please organise an external JCU account for them.</i>")
 
     #-------------associations--------------------
     parties = relationship('Party', ca_title="People", ca_order=next(order_counter),
@@ -681,7 +656,7 @@ class Metadata(CAModel, Base):
     #        ca_description="Select one or more of the 4 themes, or \'Not aligned to a University theme\'.", required=True)
 
     #-------Research themese---------------------
-    no_research_theme = Column(Boolean(), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())   # TODO: On save, set this if no other selected, else unset.
+    no_research_theme = Column(Boolean(), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
     ecosystems_conservation_climate = Column(Boolean(), ca_name="jcu:research.themes.tropicalEcoSystems", ca_order=next(order_counter), ca_widget=deform.widget.CheckboxWidget(css_class="normal_font"), ca_page="information",
         ca_title='Tropical Ecosystems, Conservation and Climate Change',
         ca_group_start="research_themes", ca_group_title="Research Themes",ca_group_validator=research_theme_validator,
@@ -745,13 +720,11 @@ class Metadata(CAModel, Base):
 
 
     #-------------legal--------------------
-    # TODO: Make this into a drop down - still need the list of options though.
     #    access_rights_label = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
     access_rights = Column(String(256), ca_name="dc:accessRights.skos:prefLabel", ca_order=next(order_counter), ca_title="Access Rights", ca_page="information",
         ca_widget=deform.widget.SelectWidget(values=(("Open Access", "Open Access"),("Contact Manager","Contact project manager"), ("Contact Owner", "Contact project owner"))),
         ca_group_start="legality", ca_group_collapsed=False, ca_group_title="Licenses & Access Rights",
         ca_help="Information how to access the records data, including access restrictions or embargoes based on privacy, security or other policies. A URI is optional.<br/>TODO: Update the list of access rights.")
-    # TODO: Pre-populate with a url - still waiting on URL to use
     access_rights_url = Column(String(256), ca_validator=colander.url, ca_order=next(order_counter), ca_name="dc:accessRights.dc:identifier", ca_title="Access Rights URL (Advanced)", ca_missing="", ca_page="information",
         ca_requires_admin=True)
 
@@ -761,7 +734,7 @@ class Metadata(CAModel, Base):
         ca_widget=deform.widget.TextInputWidget(css_class="full_width"))
     rights_url = Column(String(256), ca_validator=colander.url,  ca_requires_admin=True,
         ca_name="dc:accessRights.dc:RightsStatement.dc:identifier", ca_order=next(order_counter), ca_title="Usage Rights URL (Advanced)", ca_missing="", ca_page="information",)
-    #    TODO: Link to external sources
+    #    TODO: Link to external sources (there is a redbox url for this)
 
     licenses = (
         ("http://creativecommons.org/licenses/by-nc-nd/3.0/au", "CC BY-NC-ND: Attribution-Noncommercial-No Derivatives 3.0 AU"),
@@ -927,7 +900,7 @@ class LocationOffset(CAModel, Base):
     dam_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dam_version = Column(String(128), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    data_entry_id = Column(Integer, ForeignKey('data_entry.id'), nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    data_entry_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
     x = Column(Float(), ca_title="Latitude Offset/X (meters)",ca_order=next(order_counter), ca_placeholder="eg. 1 is East 3m", ca_widget=deform.widget.TextInputWidget(size=10, css_class="full_width", regex_mask="^(((\\\\.\\\\d*)?)|(\\\\d+(\\\\.\\\\d*)?))$", strip=False))
     y = Column(Float(), ca_title="Longitude Offset/Y (meters)",ca_order=next(order_counter), ca_placeholder="eg. 1 is North 3m", ca_widget=deform.widget.TextInputWidget(size=10, css_class="full_width", regex_mask="^(((\\\\.\\\\d*)?)|(\\\\d+(\\\\.\\\\d*)?))$", strip=False))
@@ -1013,7 +986,6 @@ method_schema_to_schema = Table("schema_to_schema", Base.metadata,
     Column("parent_id", Integer, ForeignKey("method_schema.id"), primary_key=True)
 )
 
-# TODO: Test that schemas are fully recursive (eg. parents can have parents)
 class MethodSchemaField(CAModel, Base):
     """
     A custom fields to add to a MethodSchema this includes:
@@ -1027,7 +999,7 @@ class MethodSchemaField(CAModel, Base):
 
     __tablename__ = 'method_schema_field'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    method_schema_id = Column(Integer, ForeignKey('method_schema.id'),  nullable=False, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    method_schema_id = Column(Integer, ForeignKey('method_schema.id'),  ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
     # The ingester name can't have spaces, which is unintuitive to the end user.
     internal_name = Column(String(256), ca_widget=deform.widget.HiddenWidget(),)
@@ -1120,9 +1092,6 @@ class MethodSchema(CAModel, Base):
         ca_child_widget=deform.widget.MappingWidget(item_template="method_schema_field_item", readonly_item_template="readonly/method_schema_field_item"),
         ca_help="Data that needs to be searchable but isn't a common measurement.",
     )
-
-#    method_id = Column(Integer, ForeignKey('method.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-#    methods = relationship("Method", ca_order=next(order_counter), ca_exclude=True,)
 
 def method_schema_validator(form, value):
     """
@@ -1327,7 +1296,6 @@ class PullDataSource(CAModel, Base):
     #        ca_help="Select the custom field (setup in data configuration on the methods page) that the file read from the above folder address will be saved to (this is the raw data).<br />",
     #        ca_description="<i>This will be empty if the methods, data configuration doesn't have a custom field of type file.</i>")
 
-    # TODO: filename_patterns
     filename_pattern=Column(String(100),ca_order=next(order_counter), ca_title="(Advanced) Filename Pattern (Regex)",
         ca_description="<i>Unless you know how to use this or that you need this, just leave it blank.</i><br />",
         ca_help="Allows filtering of file names, <b>it is recommended that you seek help</b>.  For the brave, <a href='http://docs.python.org/2/library/re.html'> here is the the programmer documentation</a>.")
@@ -1359,7 +1327,7 @@ class PullDataSource(CAModel, Base):
 #                "sampling script below.</p><p>The sampling script API can be found <a href="">here</a></p>.")
 #
 #
-#    #    stop_conditions = Column(String(100),ca_order=next(order_counter), ca_title="Stop conditions (TODO)", ca_child_title="todo")
+#    #    stop_conditions = Column(String(100),ca_order=next(order_counter), ca_title="Stop conditions )
 #
 #    custom_sampling_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
 #        ca_group_start="custom_sampling", ca_group_title="Custom Data Sampling/Filtering",
@@ -1460,8 +1428,8 @@ def dataset_select_widget(node, kw):
                 height_text =  (", %sm above MSL") % dataset.dataset_locations[0].elevation
             location_text = "none"
             if len(dataset.dataset_locations) > 0 and dataset.dataset_locations[0].location is not None:
-                location_text = "%s (%s, %s%s)" % (dataset.dataset_locations[0].name, dataset.dataset_locations[0].get_latitude(),
-                                                   dataset.dataset_locations[0].get_longitude(), height_text)
+                location_text = "%s (%s, %s%s)" % (dataset.dataset_locations[0].name, dataset.dataset_locations[0].get_longitude(),
+                                                   dataset.dataset_locations[0].get_latitude(), height_text)
 #                dataset_name = "%s at %s collected by %s" %\
 #                               (project.information.project_title, location_text, dataset.method.method_name)
             dataset_name = "%s at %s" % (dataset.method.method_name, location_text)
@@ -1486,8 +1454,7 @@ class DatasetDataSource(CAModel, Base):
     id = Column(Integer, primary_key=True, nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
     dataset_id = Column(Integer, ForeignKey('dataset.id'),  nullable=True, ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
-    # TODO: Selection of datasets
-    dataset_data_source_id = Column(Text(), ca_title="Source Dataset", ca_order=next(order_counter), ca_widget=dataset_select_widget,
+    dataset_data_source_id = Column(Integer(), ca_title="Source Dataset", ca_order=next(order_counter), ca_widget=dataset_select_widget,
         ca_help="The dataset to retrieve processed data from.  This allows chaining of data and processing such that:"
                 "<ul>"
                 "<li>A dataset could be configured to use a pull datasource to read files from an external folder and save the file as raw data.</li>"
@@ -1639,6 +1606,8 @@ class Dataset(CAModel, Base):
 
     method_id = Column(Integer, ForeignKey('method.id'), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
 
+    # Submitted for approval - this is only used for datasets created on active projects.
+    submitted = Column(Boolean,ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(), ca_default=False)
     disabled = Column(Boolean,ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(), ca_default=True)
 
     mint_service_id = Column(String(256), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
@@ -1766,7 +1735,7 @@ class Location(CAModel, Base):
         get the latitude, this is only relevant for points - other types will return a NotImplementedError
         """
         if self.is_point():
-            return float(self.location[6:-1].split(" ")[0].strip())
+            return float(self.location[6:-1].split(" ")[1].strip())
 
         raise NotImplementedError("Get location latitude is not implemented for anything other than points.")
 
@@ -1775,7 +1744,7 @@ class Location(CAModel, Base):
         get the longitude, this is onlyrelevantt for points - other types will return a NotImplementedError
         """
         if self.is_point():
-            return float(self.location[6:-1].split(" ")[1].strip())
+            return float(self.location[6:-1].split(" ")[0].strip())
 
         raise NotImplementedError("Get location longitude is not implemented for anything other than points.")
 
@@ -1798,8 +1767,8 @@ class TransitionNote(CAModel, Base):
     date_created = Column(Date, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 
     transition =  Column(String(128), ca_widget=deform.widget.SelectWidget(values=(("none", "Note Only"),
-                                                                                   ("submitted", "Submitted"), ("approved", "Approved"), ("reopened", "Re-Opened"), ("disabled", "Disabled"),
-                                                                                   ("enabled", "Re-Enabled")), readonly_template="readonly/text"))
+                                                                                   ("Submit", "Submitted"), ("Approve", "Approved"), ("Reopen", "Re-Opened"), ("Disable", "Disabled"),
+                                                                                   ("renable", "Re-Enabled")), readonly_template="readonly/text"))
     comment = Column(Text(),
         ca_placeholder="eg. Please enter all metadata, the supplied processing script has errors, please extend the existing temperature data type so that your data is searchable, etc..."
         , ca_widget=deform.widget.TextAreaWidget(rows=3))
@@ -1944,12 +1913,10 @@ class Project(CAModel, Base):
     id = Column(Integer, ca_order=next(order_counter), primary_key=True, ca_widget=deform.widget.HiddenWidget())
     state = Column(Integer, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget(), ca_missing=ProjectStates.OPEN, ca_default=ProjectStates.OPEN)
 
-    project_creator = Column(Integer, ForeignKey('user.id'), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-
-    project_creator = Column(Integer, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
+    created_by = Column(Integer, ForeignKey('user.id'), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
+    last_modified_by = Column(Integer, ForeignKey('user.id'),  ca_widget=deform.widget.HiddenWidget(), ca_order=next(order_counter))
     date_created = Column(Date, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
     date_modified = Column(Date, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
-    last_modified_by = Column(Integer, ForeignKey('user.id'),  ca_widget=deform.widget.HiddenWidget(), ca_order=next(order_counter))
 
     template_only = Column(Boolean, ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
 
@@ -1995,13 +1962,20 @@ class Project(CAModel, Base):
 
     project_notes = relationship("ProjectNote", ca_title="Project Notes",  ca_order=next(order_counter), ca_page="submit",
             ca_child_title="Project Note", ca_child_widget=deform.widget.MappingWidget(template="comment_mapping", readonly_template="comment_mapping"),
-            cascade="all, delete-orphan", ca_widget=deform.widget.SequenceWidget(min_len=1),
+            cascade="all, delete-orphan", ca_widget=deform.widget.SequenceWidget(),
             ca_help="Project comments that are only relevant to the provisioning system (eg. comments as to why the project was reopened after the creator submitted it).")
 
     project_template = relationship("ProjectTemplate", ca_order=next(order_counter), ca_missing=colander.null,
         cascade="all, delete-orphan", ca_widget=deform.widget.HiddenWidget(), ca_exclude=True)
 
     touched_pages = relationship("UntouchedPages", uselist=False, ca_order=next(order_counter),
+        cascade="all, delete-orphan", ca_exclude=True)
+
+    notification_configs = relationship("ProjectNotificationConfig", ca_order=next(order_counter),
+        cascade="all, delete-orphan", ca_exclude=True)
+
+
+    notification_configs = relationship("ProjectPermissions", ca_order=next(order_counter),
         cascade="all, delete-orphan", ca_exclude=True)
 
 
@@ -2060,39 +2034,6 @@ method_template = colander.SchemaNode(colander.Integer, title="Select a template
 ########################################################################################################################
 ########################################### MODELS FOR CONTEXTUAL OPTIONS ##############################################
 ########################################################################################################################
-
-class DataEntry(CAModel, Base):
-    """
-    NOT YET IMPLEMENTED
-
-    Represents a point of data in the ingester platform displayed using a Deform schema dynamically generated from the
-    methods data configuration (data schema).
-    """
-    order_counter = itertools.count()
-
-    __tablename__ = 'data_entry'
-    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    dam_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget())
-    dam_version = Column(String(128), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
-
-class DataCalibration(CAModel, Base):
-    """
-    NOT YET IMPLEMENTED
-
-    Represents a point of data in the ingester platform displayed using a Deform schema dynamically generated from the
-    methods data configuration (data schema).
-    """
-    order_counter = itertools.count()
-
-    __tablename__ = 'data_calibration'
-    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
-    dam_id = Column(Integer, nullable=True, ca_widget=deform.widget.HiddenWidget())
-    dam_version = Column(String(128), ca_widget=deform.widget.HiddenWidget(),ca_order=next(order_counter))
-    dataset_id = Column(Integer, ForeignKey('dataset.id'), nullable=True, ca_widget=deform.widget.HiddenWidget())
-
-
-
 class IngesterLogsFiltering(colander.MappingSchema):
     """
     Provides filtering of ingester platform logs.  Filtering is based on:
@@ -2133,24 +2074,26 @@ class SharedUser(colander.MappingSchema):
     Provides an interface for editing user share permissions for the current project.
 
     This is a direct Deform schema, not a ColanderAlchemy schema wich is assocated with an SQLalchemy database table.
+
+    The name is set with a prepend of _permission to prevent the submit element from breaking the form submit.
     """
     user_id = colander.SchemaNode(colander.Integer(),widget=deform.widget.HiddenWidget())
-    view_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.VIEW_PROJECT[0], default = True, title="View")
-    edit_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_PROJECT[0],default = False, title="Edit")
-    submit_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.SUBMIT[0],default = False, title="Submit")
-    disable_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.DISABLE[0],default = False, title="Disable")
-    enable_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.ENABLE[0],default = False, title="Re-Enable")
-    view_data_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_DATA[0],default = False, title="View Data")
-    edit_data_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_DATA[0],default = False, title="Manage Data")
-    edit_ingester_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_INGESTERS[0],default = False, title="Manage Ingesters")
+    view_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.VIEW_PROJECT[0] + "_permission", default = False, title="View")
+    edit_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_PROJECT[0] + "_permission",default = False, title="Edit")
+    submit_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.SUBMIT[0] + "_permission",default = False, title="Submit")
+    disable_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.DISABLE[0] + "_permission",default = False, title="Disable")
+    enable_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.ENABLE[0] + "_permission",default = False, title="Re-Enable")
+    view_data_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_DATA[0] + "_permission",default = False, title="View Data")
+    edit_data_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_DATA[0] + "_permission",default = False, title="Manage Data")
+    edit_ingester_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_INGESTERS[0] + "_permission",default = False, title="Manage Ingesters")
 
 class SharedUsers(colander.SequenceSchema):
     """
     Converts the SharedUser into a sequence/list.
 
-    This is a direct Deform schema, not a ColanderAlchemy schema wich is assocated with an SQLalchemy database table.
+    This is a direct Deform schema, not a ColanderAlchemy schema which is assocated with an SQLalchemy database table.
     """
-    user = SharedUser(widget=deform.widget.MappingWidget(template="inline_mapping", readonly_template="readonly/inline_mapping", show_label=True))
+    user = SharedUser(widget=deform.widget.MappingWidget(template="sharing_inline_mapping", readonly_template="readonly/sharing_inline_mapping", show_label=True))
 #
 #@colander.deferred
 #def get_users(node, kw):
@@ -2160,15 +2103,43 @@ class Sharing(colander.MappingSchema):
     """
     Page that displays the list of shared user permissions.
 
-    This is a direct Deform schema, not a ColanderAlchemy schema wich is assocated with an SQLalchemy database table.
+    This is a direct Deform schema, not a ColanderAlchemy schema which is assocated with an SQLalchemy database table.
     """
     shared_with = SharedUsers(title="Users Who This Project Is Shared With",
         widget=deform.widget.SequenceWidget(template="sharing_sequence"),
     )
 
 
+class Notification(CAModel, Base):
+    """
+    """
+    order_counter = itertools.count()
+
+    __tablename__ = 'notification'
+    id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
+
+    type = Column(String(128), ca_order=next(order_counter))        # Type as per NotificationConfig.xxx.key
+    recipients = Column(String(512), ca_order=next(order_counter))  # Email/listeniong recipients (comma-seperated emails)
+    subject = Column(String(256), ca_order=next(order_counter))     # Email subject
+    message = Column(String(1024), ca_order=next(order_counter))    # Email message
+    change = Column(String(128), ca_order=next(order_counter))      # Relevant change (eg. for type=state_change it could be submitted)
+    variables = Column(String(512), ca_order=next(order_counter))   # Comma-separated list of variables (eg. project_id, user_id/name, etc.)
+
+    def __init__(self, type, recipients, subject, message, change, variables):
+        self.type = type
+        self.recipients = recipients
+        self.subject = subject
+        self.message = message
+        self.change = change
+        self.variables = variables
+
 class NotificationConfig(CAModel, Base):
     """
+    Configures what notifications the user will receive, this model is used for both the default/system wide settings
+    as well as per project settings.
+
+    NOTE:  The template used to display notification configs hides fields with a ca_defaults_only attribute from per
+    project configurations (they are still shown for the defaults).  The value of ca_defaults_only doesn't matter.
     """
     order_counter = itertools.count()
 
@@ -2180,7 +2151,8 @@ class NotificationConfig(CAModel, Base):
     permission_changes = Column(Boolean(), ca_order=next(order_counter))
     log_errors = Column(Boolean(), ca_order=next(order_counter))
     log_warnings = Column(Boolean(), ca_order=next(order_counter))
-    new_projects = Column(Boolean(), ca_order=next(order_counter), ca_widget=deform.widget.CheckboxWidget(),)
+    new_projects = Column(Boolean(), ca_order=next(order_counter), ca_widget=deform.widget.CheckboxWidget(), ca_defaults_only=True,)
+    new_datasets = Column(Boolean(), ca_order=next(order_counter), ca_title="New datasets", ca_widget=deform.widget.CheckboxWidget(), ca_defaults_only=True)
 
 class ProjectNotificationConfig(CAModel, Base):
     """
@@ -2198,7 +2170,7 @@ class ProjectNotificationConfig(CAModel, Base):
 
     notification_config = relationship('NotificationConfig', single_parent=True, uselist=False, ca_order=next(order_counter),
         cascade="all, delete-orphan", ca_title="Project Notification Settings",
-        ca_widget=deform.widget.MappingWidget(template="inline_mapping", readonly_template="readonly/inline_mapping"))
+        ca_widget=deform.widget.MappingWidget(template="notifications_mapping_config", readonly_template="readonly/notifications_mapping_config"))
 
 class UserNotificationConfig(CAModel, Base):
     """
@@ -2217,6 +2189,7 @@ class UserNotificationConfig(CAModel, Base):
         cascade="all, delete-orphan",
         ca_widget=deform.widget.MappingWidget(template="inline_mapping", readonly_template="readonly/inline_mapping", show_label=True))
     notification_configs = relationship('ProjectNotificationConfig', ca_title="Notification Settings", ca_order=next(order_counter),
+        ca_widget=deform.widget.SequenceWidget(template="notifications_sequence"),
         ca_help="You can configure what email notifications you will receive for each project you have created, had shared with you or added notifications on.",
         cascade="all, delete-orphan", ca_child_title="notification settings for the current project",
         ca_child_widget=deform.widget.MappingWidget(template="notifications_mapping", readonly_template="readonly/notifications_mapping"))

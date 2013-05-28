@@ -6,7 +6,7 @@ from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.security import NO_PERMISSION_REQUIRED
 from controllers.sftp_filesend import SFTPFileSend
-from jcudc24provisioning.controllers.authentication import RootFactory
+from jcudc24provisioning.controllers.authentication import RootFactory, DefaultPermissions
 from jcudc24provisioning.controllers.authentication import ShibbolethAuthenticationPolicy, get_user
 from jcudc24provisioning.controllers.authentication import ShibbolethAuthenticationPolicy, get_user
 from jcudc24provisioning.scripts.create_redbox_config import create_json_config
@@ -56,7 +56,7 @@ def main(global_config, **settings):
 
     deform_templates = resource_filename('deform', 'templates')
     search_path = (resource_filename('jcudc24provisioning', 'templates/widgets'),resource_filename('jcudc24provisioning', 'templates/widgets/readonly'), resource_filename('jcudc24provisioning', 'templates/custom_widgets'), resource_filename('jcudc24provisioning', 'templates/custom_widgets/readonly'), deform_templates)
-    Form.set_zpt_renderer(search_path)
+    Form.set_zpt_renderer(search_path, encoding="latin-1")
 
     set_cache_regions_from_settings(settings)
     my_session_factory = session_factory_from_settings(settings)
@@ -69,23 +69,23 @@ def main(global_config, **settings):
     config.add_route('information', '/project/{project_id}/information')    # metadata or associated information
     config.add_route('methods', '/project/{project_id}/methods')            # Data collection methods
     config.add_route('datasets', '/project/{project_id}/datasets')          # Datasets or collections of data
-    config.add_route('view_record', '/project/{project_id}/datasets/{dataset_id}/view_record')          # Datasets or collections of data
-    config.add_route('edit_record', '/project/{project_id}/datasets/{dataset_id}/edit_record')          # Datasets or collections of data
-    config.add_route('edit_dataset', '/project/{project_id}/datasets/{dataset_id}')          # Datasets or collections of data
-    config.add_route('delete_record', '/project/{project_id}/datasets/{dataset_id}/delete_record')          # Datasets or collections of data
     config.add_route('submit', '/project/{project_id}/submit')              # Submit, review and approval
-    config.add_route('manage', '/project/{project_id}/manage')              # Manage projecct data, eg. change sample rates, add data values
 
     # Project action pages
-    config.add_route('dataset_logs', '/project/{project_id}/logs/dataset_{dataset_id}_logs.txt')
+    config.add_route('dataset_log', '/project/{project_id}/logs/dataset_{dataset_id}_logs.txt')
     config.add_route('logs', '/project/{project_id}/logs')
-    config.add_route('manage_dataset', '/project/{project_id}/manage_dataset/{dataset_id}')
+    config.add_route('dataset_calibration', '/project/{project_id}/dataset/{dataset_id}/calibration/*calibration_id')
+    config.add_route('dataset', '/project/{project_id}/dataset/*dataset_id')          # Datasets or collections of data
+    config.add_route('data_calibration', '/project/{project_id}/datasets/{dataset_id}/data/{id_list}/calibration/*calibration_id')
     config.add_route('data', '/project/{project_id}/datasets/{dataset_id}/data/*data_id')
     config.add_route('permissions', '/project/{project_id}/permissions')
     config.add_route('notifications', '/project/{project_id}/notifications')
     config.add_route('duplicate', '/project/{project_id}/duplicate')
     config.add_route('create_template', '/project/{project_id}/create_template')
     config.add_route('search', '/search*search_info')
+    config.add_route('dataset_record', '/project/{project_id}/datasets/{dataset_id}/record')          # Datasets or collections of data
+    config.add_route('delete_record', '/project/{project_id}/datasets/{dataset_id}/delete_record')          # Datasets or collections of data
+
 #    config.add_route('browse', '/browse')
 #    config.add_route('browse_projects', '/browse/projects/*search_info')
 #    config.add_route('browse', '/browse/datasets')
@@ -114,7 +114,8 @@ def main(global_config, **settings):
 
     #    --------------Static resources--------------------------------
     config.add_static_view('deform_static', 'deform:static', cache_max_age=0)
-    config.add_static_view('static', 'static')
+    config.add_static_view('static', 'jcudc24provisioning:static')
+    config.add_static_view('project_uploads', "jcudc24provisioning:project_uploads", permission=DefaultPermissions.VIEW_PROJECT)
 
     authn_policy = ShibbolethAuthenticationPolicy(settings)
     authz_policy = ACLAuthorizationPolicy()

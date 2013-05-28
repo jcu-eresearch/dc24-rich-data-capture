@@ -204,8 +204,55 @@ class ReDBoxWrapper(object):
         project.information.date_added_to_redbox = datetime.now()
 
         for dataset in project.datasets:
-            if dataset.publish_dataset:
-                dataset.record_metadata.date_added_to_redbox = datetime.now()
+            dataset.record_metadata.date_added_to_redbox = datetime.now()
+
+        #9. Remove the tmp directory
+        shutil.rmtree(self.working_dir)
+
+        return True
+
+    def insert_dataset(self, dataset_id):
+        """
+        Generate metadata record for this dataset and export it to ReDBox.
+
+        :param dataset_id: The dataset to generate and export a metadata record for.
+        :return: True if the export was successful, otherwise False.
+        """
+        dataset = self.session.query(Dataset).filter_by(id=dataset_id).first()
+        if not dataset.publish_dataset:
+            return True
+
+        project = self.session.query(Project).filter_by(id=dataset.project_id).first()
+
+        # Set the metadata type to repository as it is about multiple collections and also provides data.
+        #        project.information.record_type = "repository"
+
+        # 1. TODO: Create service records.
+
+        # 2. TODO: Create relationships between each service record and it's dataset.
+
+        # 3. Create a temporary project record so that we can add the relationship
+        project_record = self._prepare_record(project.information).to_xml().getroot()
+
+        dataset_metadata = self._prepare_record(dataset.record_metadata)
+        dataset_record = dataset_metadata.to_xml().getroot()
+
+        # 4. Add relationships between all dataset records.
+        self._add_relationships(project_record, dataset_record)
+
+        # 5. Create the tmp directory
+        self._create_working_dir()
+
+        # 6. Write all records (dataset and service) to a tmp directory ready for upload.
+        self._write_to_tmp([dataset_record])
+
+        # 7. Upload all files in the
+        self._upload_record_files()
+
+        #8. Alert ReDBox that there are new records
+        self._alert_redbox()
+
+        dataset.record_metadata.date_added_to_redbox = datetime.now()
 
         #9. Remove the tmp directory
         shutil.rmtree(self.working_dir)

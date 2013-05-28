@@ -174,7 +174,7 @@ class ShibbolethAuthenticationPolicy(object):
                         share_principles.append(role.name)
 
                 principals.extend(share_principles)
-                project_creator = self.session.execute("SELECT `project_creator` FROM `project` WHERE `id`='%s'" % project_id).first()
+                project_creator = self.session.execute("SELECT `created_by` FROM `project` WHERE `id`='%s'" % project_id).first()
                 if project_creator is None:
                     raise HTTPClientError("You are trying to access a project that doesn't exist.  Either you have edited the address bar directly or the project no longer exists.")
                 project_creator = project_creator[0]

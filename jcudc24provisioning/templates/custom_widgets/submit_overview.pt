@@ -3,7 +3,7 @@
 <div tal:condition="exists:field.schema.datasets" class="submit_overview">
     <div tal:condition="len(field.schema.datasets) <= 0">
         <p class="error">There are no datasets.</p>
-        <input id="${field.oid}" name="${field.name}" type="hidden" value="${field.schema.widget.false_val}">
+        <input id="${field.oid}" name="${field.name}" type="hidden" value="${cstruct}">
     </div>
     <div tal:condition="len(field.schema.datasets) > 0">
         <table>
@@ -21,5 +21,5 @@
 </div>
 <div tal:condition="not:exists:field.schema.datasets">
     <p class="error">Datasets haven't been added to schema in submit view.</p>
-    <input id="${field.oid}" name="${field.name}" type="hidden" value="${field.schema.widget.false_val}">
+    <input id="${field.oid}" name="${field.name}" type="hidden" value="${cstruct}">
 </div>

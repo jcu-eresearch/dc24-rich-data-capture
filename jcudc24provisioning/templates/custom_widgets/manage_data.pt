@@ -33,7 +33,7 @@
 
             <div id="data_sorting">
                 <span style="display: inline-block;">
-                    <label for="sort_type">Order by</label>
+                    <label for="sort_type" tal:attributes="disabled cstruct.get('type', 'project') == 'data' and 'disabled' or nothing">Order by</label>
                     <select id="sort_type" name="order_by" onchange="$('.deform').submit();">
                         <option value="id" selected="${field.schema.filter_data.get('order_by', None) == 'id'}">ID</option>
                         <option value="created" selected="${field.schema.filter_data.get('order_by', None) == 'created'}">Date created</option>
@@ -43,7 +43,8 @@
                     </select>
                 </span>
 
-                <select id="sort_order" name="order_direction" onchange="$('.deform').submit();">
+                <select id="sort_order" name="order_direction" onchange="$('.deform').submit();"
+                        tal:attributes="disabled cstruct.get('type', 'project') == 'data' and 'disabled' or nothing">
                     <option value="ascending" selected="${field.schema.filter_data.get('order_direction', None) == 'ascending'}">Ascending</option>
                     <option value="descending" selected="${field.schema.filter_data.get('order_direction', None) == 'descending'}">Descending</option>
                 </select>
@@ -64,11 +65,29 @@
         </div>
 
         <div class="pagination" tal:condition="'page' in field.schema.filter_data and 'num_pages' in
-                field.schema.filter_data and field.schema.filter_data['num_pages'] > 1">
+                field.schema.filter_data and field.schema.filter_data['num_pages'] > 1"
+             tal:define="num_pages int(field.schema.filter_data.get('num_pages', 0));
+                         current_page int(field.schema.filter_data.get('page', 0))">
             <input type="hidden" value="${field.schema.filter_data.get('page', 0)}" name="page">
-            <span tal:repeat="num range(field.schema.filter_data.get('num_pages', 0))"
-                  tal:attributes="class field.schema.filter_data.get('page', 0) == num and 'current' or nothing"
-                  onclick="$(this).siblings('[name=\'page\']')[0].value='${num}'; $('.deform').submit();">${num}</span>
+             <span onclick="$(this).siblings('[name=\'page\']')[0].value='${current_page - 1}'; $('.deform').submit();"
+                     tal:condition="current_page != 0">
+                   << PREV
+            </span>
+            <tal:block
+                       tal:repeat="num range(num_pages)">
+                <span tal:condition="num < 1 or abs(num_pages - num) <= 1 or abs(num - current_page) <= 10"
+                      tal:attributes="class current_page == num and 'current' or nothing"
+                      onclick="$(this).siblings('[name=\'page\']')[0].value='${num}'; $('.deform').submit();">
+                    ${num}
+                </span>
+                <tal:block tal:condition="(num == 1 and abs(num - current_page) > 10) or (num == (num_pages - 2) and abs(num - current_page) > 10)">
+                    ...
+                </tal:block>
+            </tal:block>
+             <span onclick="$(this).siblings('[name=\'page\']')[0].value='${current_page + 1}'; $('.deform').submit();"
+                   tal:condition="current_page != num_pages - 1">
+                   NEXT >>
+            </span>
         </div>
 
         <table id="results_data">
@@ -98,10 +117,27 @@
 
 
         <div class="pagination" tal:condition="'page' in field.schema.filter_data and 'num_pages' in
-                field.schema.filter_data and field.schema.filter_data['num_pages'] > 1">
-            <span tal:repeat="num range(field.schema.filter_data.get('num_pages', 0))"
-                  tal:attributes="class field.schema.filter_data.get('page', 0) == num and 'current' or nothing"
-                  onclick="$(parentNode.parentNode).find('input[name=\'page\']')[0].value='${num}'; $('.deform').submit();">${num}</span>
+                field.schema.filter_data and field.schema.filter_data['num_pages'] > 1"
+             tal:define="num_pages int(field.schema.filter_data.get('num_pages', 0));
+                                   current_page int(field.schema.filter_data.get('page', 0))">
+            <span onclick="$(parentNode.parentNode).find('input[name=\'page\']')[0].value='${current_page - 1}'; $('.deform').submit();"
+                  tal:condition="current_page != 0">
+                   << PREV
+            </span>
+            <tal:block tal:repeat="num range(num_pages)">
+                <span tal:condition="num < 1 or abs(num_pages - num) <= 1 or abs(num - current_page) <= 10"
+                      tal:attributes="class current_page == num and 'current' or nothing"
+                      onclick="$(parentNode.parentNode).find('input[name=\'page\']')[0].value='${num}'; $('.deform').submit();">
+                    ${num}
+                </span>
+                <tal:block tal:condition="(num == 1 and abs(num - current_page) > 10) or (num == (num_pages - 2) and abs(num - current_page) > 10)">
+                    ...
+                </tal:block>
+            </tal:block>
+            <span onclick="$(parentNode.parentNode).find('input[name=\'page\']')[0].value='${current_page + 1}'; $('.deform').submit();"
+                  tal:condition="current_page != num_pages - 1">
+                   NEXT >>
+            </span>
         </div>
     </div>
     <!-- /mapping -->
@@ -125,6 +161,11 @@
                     if (url_parts.length > 2 && !url_parts[2].match(/id_list=.*/g)) {
 //                        alert(url_parts[2]);
                         type[0].value = url_parts[2];
+
+                        if (url_parts[2] == 'data') {
+                            $("#sort_type").attr("disabled", "disabled");
+                            $("#sort_order").attr("disabled", "disabled");
+                        }
                     }
                     if (url_parts.length > 3 && url_parts[3].match(/id_list=.*/g)) {
                         var id_list = $("#mapping-" + oid).find(".id_list[name='id_list']");

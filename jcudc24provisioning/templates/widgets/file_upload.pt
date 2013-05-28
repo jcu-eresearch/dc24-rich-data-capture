@@ -1,14 +1,30 @@
 <div class="deformFileupload">
     <input type="hidden" name="__start__" value="${field.name}:mapping"/>
 
-    <div class="deformReplaces" tal:condition="cstruct.get('uid')">
-
-        <input type="hidden" name="uid" value="${cstruct['uid']}"
-               id="${field.oid}-uid"/>
-        <span id="${field.oid}-filename"><span class="deformClosebutton" onclick="$('#${field.oid}-uid')[0].value=''; $(parentNode).remove(); "></span> ${cstruct.get('filename')}</span>
-
+    <!--Show preview of external files that weren't uploaded here-->
+    <div class="deformReplaces" tal:condition="cstruct is not None and cstruct.get('is_external')">
+        <input type="hidden" name="filepath" value="${cstruct['filepath']}" id="${field.oid}-uid"/>
+        <input type="hidden" name="filename" value="${cstruct['filename']}" />
+        <input type="hidden" name="is_external" value="True"/>
+        <span id="${field.oid}-filename">
+            <span class="deformClosebutton deformClosebuttonActive" title="Remove"
+                  onclick="$('#${field.oid}-uid')[0].value=''; $(parentNode).remove();"></span>
+            <a href="${cstruct.get('filepath') or nothing}">${cstruct.get('filename')}</a>
+        </span>
     </div>
-    <input type="file" onchange="$('#${field.oid}-uid')[0].value=''; $(parentNode).children('.deformReplaces').remove(); "
+
+    <!--Show preview and store data of previously uploaded files-->
+    <div class="deformReplaces" tal:condition="cstruct is not None and cstruct.get('uid')">
+        <input type="hidden" name="uid" value="${cstruct['uid']}" id="${field.oid}-uid"/>
+        <span id="${field.oid}-filename">
+            <span class="deformClosebutton deformClosebuttonActive"
+                  title="Remove" onclick="$('#${field.oid}-uid')[0].value=''; $(parentNode).remove(); "></span>
+            <a href="${field.schema.bindings['request'].static_url('jcudc24provisioning:project_uploads/%s.%s' % (cstruct.get('uid'), cstruct.get('filename')))}">${cstruct.get('filename')}</a>
+        </span>
+    </div>
+
+
+    <input type="file" onchange="var uid=$('#${field.oid}-uid')[0]; if (uid != undefined) {uid.value='';} $(parentNode).children('.deformReplaces').remove(); "
            tal:attributes="size field.widget.size;
                          class field.widget.css_class"
            id="${field.oid}"

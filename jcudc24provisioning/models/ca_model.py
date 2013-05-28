@@ -37,10 +37,11 @@ class CAModel(object):
         if not hasattr(self, 'id'):
             raise AttributeError("All CAModel's must have an 'id' unique identifier.")
 
+        self._schema = schema
+
         if appstruct is not None:
             self.update(appstruct)
 
-        self._schema = schema
 
     @property
     def schema(self):
@@ -86,11 +87,20 @@ class CAModel(object):
         :param model_object:
         :return:
         """
-        class_manager = model_object._sa_class_manager[field_name]
-        parent = getattr(class_manager, 'parententity', getattr(class_manager, '_parententity', None)) # Seems to have either or?
-        if field_name not in parent.columns._data: # its a relationship with a value of none
-            return None
-        return parent.columns._data[field_name].type.python_type
+        if hasattr(model_object, '_sa_class_manager'):
+            class_manager = model_object._sa_class_manager[field_name]
+            parent = getattr(class_manager, 'parententity', getattr(class_manager, '_parententity', None)) # Seems to have either or?
+            if field_name not in parent.columns._data: # its a relationship with a value of none
+                return None
+            return parent.columns._data[field_name].type.python_type
+        elif hasattr(model_object, '_schema'):
+            for child in model_object._schema.children:
+                if child.name == field_name:
+                    if hasattr(child, 'python_type'):
+                        return child.python_type
+                    else:
+                        return type(child.typ)
+
 #        return model_object._sa_class_manager[field_name]._parententity.columns._data[field_name].type.python_type
 
     def _get_ca_registry(self, field_name, model_class):
@@ -105,7 +115,7 @@ class CAModel(object):
         """
         try:
             ca_registry = None
-            if field_name in model_class._sa_class_manager:
+            if hasattr(model_class, '_sa_class_manager') and field_name in model_class._sa_class_manager:
                 if hasattr(model_class._sa_class_manager[field_name].comparator, 'mapper') and field_name in model_class._sa_class_manager[field_name].comparator.mapper.columns._data:
                     ca_registry = model_class._sa_class_manager[field_name].comparator.mapper.columns._data[field_name]._ca_registry
                 elif hasattr(model_class._sa_class_manager[field_name], '_parententity') and field_name in model_class._sa_class_manager[field_name]._parententity.columns._data:
@@ -161,9 +171,11 @@ class CAModel(object):
         try:
             # Normalise values returned from forms
             if not isinstance(value, list) and not isinstance(value, dict):
-                if value == 'false' or (isinstance(getattr(model_object, field_name), bool) and not bool(value)):
+                # Best attempt, cast all values to their required type
+                field_type = self._get_field_type(field_name, model_object)
+                if field_type == bool and (value == 'false' or not bool(value)):
                     value = False
-                elif value == 'true' or (isinstance(getattr(model_object, field_name), bool) and bool(value)):
+                elif field_type == bool and (value == 'true' or bool(value)):
                     value = True
                 elif value == colander.null or value == 'None' or value == 'colander.null' or isinstance(value, str) and value == '':
 #                    field_type = self._get_field_type(field_name, model_object)
@@ -172,11 +184,15 @@ class CAModel(object):
 #                    else:
                     value = None
 
-                # Best attempt, cast all values to their required type
-                field_type = self._get_field_type(field_name, model_object)
                 if value is not None:
                     if issubclass(field_type, (int, long, float)):
-                        value = (field_type)(value)
+                        try:
+                            value = (field_type)(value)
+                        except Exception as e:
+                            value = field_type()    # Set the value to the default for its field type
+                            logger.error("Error casting value (%s) to field type (%s) for %s of %s.  "
+                                         "Value set to default (%s)." %
+                                         (value, field_type, field_name, model_object.__class__, value))
                     elif issubclass(field_type, basestring):
                         if isinstance(value, unicode):
                             value = value.encode("utf-8")
@@ -197,7 +213,9 @@ class CAModel(object):
         :param model_object: Object to get the class for
         :return: The class that the pased in model represents.
         """
-        return model_object._sa_instance_state.class_
+        if not hasattr(self, '_model_class'):
+            self._model_class = model_object._sa_instance_state.class_
+        return self._model_class
 
 
     def create_sqlalchemy_model(self, data, model_class=None, model_object=None):
@@ -336,6 +354,8 @@ class CAModel(object):
                 else:
                     # If the value hasn't been changed
                     field_type = self._get_field_type(field_name, model_object)
+                    str(value)
+                    str(getattr(model_object, field_name))
                     if str(value) == str(getattr(model_object, field_name)) or\
                        (field_type in (int, float, long) and (value is None or value==0) and (getattr(model_object, field_name) is None or getattr(model_object, field_name) == 0)):
                         continue
@@ -349,7 +369,7 @@ class CAModel(object):
 
                         # Don't use default values to determine if the data is a new object.
                         ca_registry = self._get_ca_registry(field_name, model_class)
-                        if 'default' not in ca_registry or not value == ca_registry['default'] or not new_model:
+                        if ca_registry is None or ('default' not in ca_registry or not value == ca_registry['default'] or not new_model):
                             is_data_empty = False
                         setattr(model_object, field_name, value)
 
@@ -391,8 +411,7 @@ class CAModel(object):
                 if isinstance(value, basestring):
                     if isinstance(value, unicode):
                         value = value.encode("utf-8")
-                    else:
-                        value = unicode(value, "utf-8")
+                    value = unicode(value, "utf-8")
     
                 if isinstance(value, date) and dates_as_string:
                     value = str(value)
@@ -493,6 +512,45 @@ class CAModel(object):
         root.append(self._add_xml_elements(root, self.dictify()))
 
         return etree.ElementTree(root.getroottree().getroot())
+
+#    def __getattribute__(self, name):
+#        """
+#        Convert string values read from the database into utf-8 encoded unicode (supports non-alphanumeric characters)
+#
+#        :param name:
+#        :return:
+#        """
+#        value = super(CAModel, self).__getattribute__(name)
+#
+#        if name == "brief_desc":
+#            test = 1
+#
+#        try:
+#            if isinstance(value, basestring):
+##                if isinstance(original_value, unicode):
+##                    value = original_value.encode("utf-8")
+##                value = unicode(original_value, "utf-8")
+#                if isinstance(value, str):
+#                    value = value.decode("utf-8")
+#
+#                if isinstance(value, unicode):
+#                    value = value.encode("utf-8")
+#
+#            return value
+#        except Exception as e:
+#            return value
+#
+#    def __setattr__(self, name, value):
+#        if isinstance(value, basestring):
+#            if isinstance(value, str):
+#                value = value.decode("utf-8")
+#
+#            if isinstance(value, unicode):
+#                value = value.encode("utf-8")
+#
+#        return super(CAModel, self).__setattr__(name, value)
+
+
 
     
 

@@ -5,21 +5,24 @@ well as exception views.
 
 import ConfigParser
 import logging
+from mhlib import isnumeric
 from string import split
 import urllib2
-from jcudc24provisioning.controllers.authentication import DefaultPermissions
+from jcudc24provisioning.controllers.authentication import DefaultPermissions, DefaultRoles
 from jcudc24provisioning.models.ca_model import CAModel
-from jcudc24provisioning.models.project import Metadata
+from jcudc24provisioning.models.project import Metadata, Dataset
 from jcudc24provisioning.resources import enmasse_requirements
 import pyramid
 from pyramid.httpexceptions import HTTPNotFound, HTTPFound, HTTPClientError, HTTPBadRequest, HTTPForbidden
 from pyramid.interfaces import IRoutesMapper, IViewClassifier, IView
 from pyramid.view import view_config, forbidden_view_config, view_defaults, render_view_to_response
-from pyramid.security import remember, forget, authenticated_userid
+from pyramid.security import remember, forget, authenticated_userid, has_permission
 from deform.form import Form
-from jcudc24provisioning.models.website import Login, User, LocalLogin
+from jcudc24provisioning.models.website import Login, User, LocalLogin, user_roles_table, Role
 from jcudc24provisioning.models import DBSession
 from pyramid.request import Request
+from pyramid_mailer import get_mailer
+from pyramid_mailer.message import Message
 from zope.interface import providedBy
 import deform
 
@@ -32,11 +35,11 @@ logger = logging.getLogger(__name__)
 
 PAGES = [
     {'route_name': 'dashboard', 'title': 'Home', 'page_title': 'EnMaSSE Dashboard', 'hidden': False},
-    {'route_name': 'create', 'title': 'New Project', 'page_title': 'Setup a New Project', 'hidden': False},
+    {'route_name': 'create', 'title': 'New Project', 'page_title': 'Setup a New Project', 'hidden': False, },
     {'route_name': 'search', 'title': 'Browse Projects', 'page_title': 'Browse Projects & Data'},
-    {'route_name': 'help', 'title': 'Help & Support', 'page_title': 'Associated Information', 'hidden': False},
+    {'route_name': 'help', 'title': 'Help & Support', 'page_title': 'Help & Support', 'hidden': False},
 #    {'route_name': 'search', 'title': 'Search Website', 'page_title': 'Search Website', 'hidden': True},
-    {'route_name': 'admin', 'title': 'Administrator', 'page_title': 'Administrator', 'hidden': False},
+    {'route_name': 'admin', 'title': 'Administrator', 'page_title': 'Administrator', 'view_permission': DefaultPermissions.ADMINISTRATOR},
     {'route_name': 'login', 'title': 'Log in', 'page_title': 'Log in', 'hidden': True},
     {'route_name': 'login_shibboleth', 'title': 'Log in', 'page_title': 'Log in', 'hidden': True},
 ]
@@ -53,6 +56,8 @@ class Layouts(object):
         self.request = request
         self.config = request.registry.settings
         self.session = DBSession
+        global pyramid_request
+        pyramid_request = request
 
     @reify
     def global_template(self):
@@ -95,6 +100,10 @@ class Layouts(object):
 
             if 'hidden' in menu and menu['hidden'] is True:
                 hidden.append(menu)
+
+            if 'view_permission' in menu and not has_permission(menu['view_permission'], self.context, self.request):
+                hidden.append(menu)
+
 
         for menu in hidden:
             new_menu.remove(menu)
@@ -201,14 +210,14 @@ class Layouts(object):
         :return: Rendered HTML form ready for display.
         """
         page_help = "TODO: Video or picture slider."
-        self.request.session.flash("This page is still under development.", "warning")
+#        self.request.session.flash("This page is still under development.", "warning")
 
         return self._create_response(page_help=page_help)
 
 
     @view_config(renderer="../templates/administrator.pt", route_name="admin",
         permission=DefaultPermissions.ADMINISTRATOR)
-    def admin_page_view(self):
+    def admin_view(self):
         """
         NOT YET IMPLEMENTED
 
@@ -225,17 +234,35 @@ class Layouts(object):
         return self._create_response()
 
     @view_config(renderer="../templates/help.pt", route_name="help")
-    def help_page_view(self):
+    def help_view(self):
         """
         NOT YET IMPLEMENTED
         Help page that provides an overview, contact form and links to additonal help.
 
         :return: Rendered HTML form ready for display.
         """
-        self.request.session.flash("This page is still under development.", "warning")
-    #        raise NotImplementedError("Search hasn't been implemented yet!")
 
-        return self._create_response()
+        admin_role_id = self.session.query(Role.id).filter_by(name=DefaultRoles.ADMIN[0]).first()[0]
+        admins = self.session.query(User).join(user_roles_table).filter(Role.id==admin_role_id).all()
+        admin_contact = [(admin.display_name, admin.email, admin.phone) for admin in admins]
+
+        data = {
+            'email': self.request.POST.get('email', '').strip(' '),
+            'subject': self.request.POST.get('subject', '').strip(' '),
+            'message': self.request.POST.get('message', '').strip(' '),
+        }
+        if 'Send' in self.request.POST:
+            recipients = [admin.email for admin in admins]
+
+            try:
+                mailer = get_mailer(self.request)
+                message = Message(subject=data['subject'], sender=data['email'], recipients=recipients, body=data['message'])
+                mailer.send(message)
+                self.request.session.flash("Message sent successfully.", "success")
+            except Exception as e:
+                self.request.session.flash("Failed to send email message: %s" % e, "error")
+
+        return self._create_response(data=data, admins=admin_contact)
 
     @view_config(route_name="record_data")
     def record_data_view(self):
@@ -246,14 +273,16 @@ class Layouts(object):
         :return: Page redirect respons or the results of the internally redirected page.
         """
         metadata_id = self.request.matchdict['metadata_id']
+        if metadata_id is None or not isnumeric(metadata_id):
+            raise ValueError("You are trying to view data associated with a metadata record with an invalid identifier - you have probably manually entered an invalid website address.")
 
         metadata = self.session.query(Metadata).filter_by(id=metadata_id).first()
         if metadata is None:
             raise ValueError("Record does not exist!")
 
         if metadata.dataset_id is not None:
-            return HTTPFound(self.request.route_url("manage_dataset", project_id=metadata.project_id, dataset_id=metadata.dataset_id))
-#            return self._redirect_to_target(self.request.route_url("manage_dataset", project_id=metadata.project_id, dataset_id=metadata.dataset_id))
+            dataset = self.session.query(Dataset).filter_by(id=metadata.dataset_id).first()
+            return HTTPFound(self.request.route_url("dataset", project_id=dataset.project_id, dataset_id=dataset.id))
         else:
             self.request.session.flash("Project records don't have data directly associated with them, please use the contextual options to access data from related datasets.", "success")
             return HTTPFound(self.request.route_url("general", project_id=metadata.project_id))
@@ -283,7 +312,7 @@ class Layouts(object):
         form = Form(schema, action=self.request.route_url("login"), buttons=('Login', ))
 
         login_url = self.request.route_url('login')
-        referrer = self.request.url
+        referrer = self.request.referrer
         if referrer == login_url or referrer == "":
             referrer = self.request.route_url("dashboard") # never use the login form itself as came_from
         came_from = self.request.params.get('came_from', referrer)
@@ -369,7 +398,7 @@ class Layouts(object):
 
         headers = forget(self.request)
 
-        return HTTPFound(location=self.request.route_url("dashboard"),
+        return HTTPFound(self.request.referrer,
             headers=headers)
 
     @view_config(context=Exception, renderer="../templates/exception.pt")
@@ -379,10 +408,9 @@ class Layouts(object):
 
         :return: Rendered view showing the exception message.
         """
-    #        # TODO: Update standard exception screen to fit.
         logger.exception("An exception occurred in global exception view: %s", self.context)
 
-        self.request.session.flash('Sorry, an exception has occurred - please try again.', 'error_messages')
+        self.request.session.flash('An exception has occurred - please try again.', 'error_messages')
         return self._create_response(page_title="Exception Has Occurred", exception="%s" % self.context)
 
 

@@ -4,6 +4,7 @@ Provides all project related views, this includes project configuration as well 
 """
 
 import cgi
+from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime, date
 from email.mime.text import MIMEText
@@ -17,8 +18,13 @@ import string
 import inspect
 from sqlalchemy import distinct
 import jcudc24ingesterapi
-from jcudc24ingesterapi.search import DataEntrySearchCriteria
+from jcudc24ingesterapi.search import DataEntrySearchCriteria, DataEntryMetadataSearchCriteria
 from beaker.cache import cache_region
+from jcudc24ingesterapi.schemas.metadata_schemas import DataEntryMetadataSchema
+from jcudc24ingesterapi.models.metadata import MetadataEntry
+from jcudc24ingesterapi.ingester_platform_api import Marshaller
+from jcudc24ingesterapi.models.data_entry import DataEntry, FileObject
+from jcudc24provisioning.models.file_upload import ProvisioningFileUploadWidget
 from jcudc24provisioning.resources import enmasse_forms, open_layers, open_layers_js
 from js.jquery import jquery
 from js.jqueryui import jqueryui
@@ -31,7 +37,7 @@ from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
 
 from jcudc24provisioning.controllers.authentication import DefaultPermissions
-from jcudc24provisioning.controllers.method_schema_scripts import get_method_schema_preview, DataTypeSchema
+from jcudc24provisioning.controllers.method_schema_scripts import get_method_schema_preview, DataTypeSchema, DataTypeModel
 from pyramid.security import authenticated_userid, NO_PERMISSION_REQUIRED, has_permission, ACLAllowed
 import sqlalchemy
 from sqlalchemy.orm.properties import ColumnProperty
@@ -52,8 +58,8 @@ from jcudc24provisioning.views.views import Layouts
 from pyramid.renderers import get_renderer
 from jcudc24provisioning.models.project import Metadata, UntouchedPages, IngesterLogs, Location, \
     ProjectTemplate,method_template, Project, project_validator, ProjectStates, Sharing, CreatePage, MetadataNote, \
-    Method, Party, Dataset, MethodSchema, create_project_validator, MethodTemplate, ManageData, ProjectNote, DataFiltering, DataFilteringWrapper, DataEntry, DataCalibration, Keyword, TransitionNote, UserNotificationConfig
-from jcudc24provisioning.controllers.ca_schema_scripts import convert_schema
+    Method, Party, Dataset, MethodSchema, create_project_validator, MethodTemplate, ManageData, ProjectNote, DataFiltering, DataFilteringWrapper, Keyword, TransitionNote, UserNotificationConfig, ProjectNotificationConfig, NotificationConfig, Notification, dataset_validator, metadata_validator
+from jcudc24provisioning.controllers.ca_schema_scripts import convert_schema, fix_schema_field_name
 from jcudc24provisioning.controllers.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.ajax_mint_lookup import MintLookup
 from jcudc24provisioning.models.website import User, ProjectPermissions, Permission
@@ -78,18 +84,19 @@ WORKFLOW_STEPS = [
 
 # Configures all contextual options in the project side menu.
 WORKFLOW_ACTIONS = [
-        {'href': 'general', 'title': 'Configuration', 'page_title': 'General Details', 'tooltip': 'Project settings used to create this project', 'view_permission': DefaultPermissions.VIEW_PUBLIC, 'display_leave_confirmation': True},
-        {'href': 'logs', 'title': 'View Logs', 'page_title': 'Ingester Event Logs', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Event logs received from the data ingester', 'view_permission': DefaultPermissions.VIEW_DATA, 'display_leave_confirmation': False},
-        {'href': 'search', 'title': 'Manage Data', 'page_title': 'Browse Data', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Allows viewing, editing or adding of data and ingester configurations', 'view_permission': DefaultPermissions.VIEW_DATA, 'display_leave_confirmation': False},
-        {'href': 'data', 'title': 'Data', 'page_title': 'Data (Add, edit or view data)', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': ''},
-        #        {'href': 'browse_projects', 'title': 'Browse Projects', 'page_title': 'Manage Data', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Provides searching for projects and provides links to associated data.', 'view_permission': DefaultPermissions.VIEW_PROJECT, 'display_leave_confirmation': False},
-        {'href': 'permissions', 'title': 'Sharing', 'page_title': 'Sharing & Permissions', 'tooltip': 'Change who can access and edit this project', 'view_permission': DefaultPermissions.EDIT_SHARE_PERMISSIONS},
-        {'href': 'notifications', 'title': 'Email Notifications', 'page_title': 'Email Notifications', 'tooltip': 'Configure who gets notified by email when the project changes.', 'view_permission': DefaultPermissions.EDIT_SHARE_PERMISSIONS},
-        {'href': 'duplicate', 'title': 'Duplicate Project', 'page_title': 'Duplicate Project', 'tooltip': 'Create a new project using this project as a template', 'view_permission': DefaultPermissions.CREATE_PROJECT},
+        {'href': 'general', 'title': 'Project Settings', 'page_title': 'General Details', 'tooltip': 'Project settings used to create this project', 'view_permission': DefaultPermissions.VIEW_PUBLIC, 'display_leave_confirmation': True},
+        {'href': 'search', 'title': 'Browse Datasets', 'page_title': 'Browse Data', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Allows viewing, editing or adding of data and ingester configurations', 'view_permission': DefaultPermissions.VIEW_DATA, 'display_leave_confirmation': False},
+        {'href': 'data_calibration', 'title': 'QA Data', 'page_title': 'Quality Assurance & Calibration', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Add/edit quality assurance & calibration data', 'visible_pages': ['data']},
+        {'href': 'dataset', 'title': 'Add Dataset', 'page_title': 'Dataset Ingester', 'tooltip': 'Edit dataset ingester settings', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'view_permission': DefaultPermissions.EDIT_INGESTERS, 'display_leave_confirmation': True},
+        {'href': 'data', 'title': 'Add Data', 'page_title': 'Data (Add, edit or view data)', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Data (Add, edit or view data)', 'visible_pages': ['dataset']},
+        {'href': 'dataset_calibration', 'title': 'Dataset Notes', 'page_title': 'Dataset Calibrations & Changes', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Record dataset changes and calibrations', 'visible_pages': ['dataset']},
+        {'href': 'logs', 'title': 'View Logs', 'page_title': 'Ingester Event Logs', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Event logs received from the data ingester', 'view_permission': DefaultPermissions.VIEW_DATA, 'display_leave_confirmation': False},# 'visible_pages': ['general', 'description', 'information', 'methods', 'datasets', 'submit']},
+        {'href': 'dataset_log', 'title': 'View Dataset Log', 'page_title': 'Ingester Event Log', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Event logs received from the data ingester', 'view_permission': DefaultPermissions.VIEW_DATA, 'display_leave_confirmation': False, 'visible_pages': ['dataset']},
+        {'href': 'permissions', 'title': 'Sharing', 'page_title': 'Sharing & Permissions', 'tooltip': 'Change who can access and edit this project', 'view_permission': DefaultPermissions.EDIT_SHARE_PERMISSIONS}, # 'visible_pages': ['general', 'description', 'information', 'methods', 'datasets', 'submit']},
+        {'href': 'notifications', 'title': 'Email Notifications', 'page_title': 'Email Notifications', 'tooltip': 'Configure what project changes you will get notified by email.', 'view_permission': DefaultPermissions.EDIT_SHARE_PERMISSIONS},# 'visible_pages': ['general', 'description', 'information', 'methods', 'datasets', 'submit']},
+        {'href': 'duplicate', 'title': 'Duplicate Project', 'page_title': 'Duplicate Project', 'tooltip': 'Create a new project using this project as a template', 'view_permission': DefaultPermissions.CREATE_PROJECT}, # 'visible_pages': ['general', 'description', 'information', 'methods', 'datasets', 'submit']},
         {'href': 'create_template', 'title': 'Make into Template', 'page_title': 'Create Project Template', 'tooltip': 'Suggest to the administrators that this project should be a template', 'hidden': True, 'view_permission': DefaultPermissions.ADMINISTRATOR, 'display_leave_confirmation': True},
-        {'href': 'view_record', 'title': 'Generated Dataset Record', 'page_title': 'Generated Dataset Record', 'hidden': True, 'tooltip': 'View datasets generated metadata record', 'view_permission': DefaultPermissions.VIEW_PUBLIC, 'display_leave_confirmation': True},
-        {'href': 'edit_record', 'title': 'Generated Dataset Record', 'page_title': 'Generated Dataset Record', 'hidden': True, 'tooltip': 'Edit datasets generated metadata record', 'view_permission': DefaultPermissions.EDIT_PROJECT, 'display_leave_confirmation': True},
-        {'href': 'edit_dataset', 'title': 'Dataset Ingester', 'page_title': 'Dataset Ingester', 'hidden': True, 'tooltip': 'Edit dataset ingester settings', 'view_permission': DefaultPermissions.EDIT_INGESTERS, 'display_leave_confirmation': True},
+        {'href': 'dataset_record', 'title': 'Generated Dataset Record', 'page_title': 'Generated Dataset Record', 'hidden': True, 'tooltip': 'Edit datasets generated metadata record', 'view_permission': DefaultPermissions.EDIT_PROJECT, 'display_leave_confirmation': True},
         {'href': 'delete_record', 'title': 'Generated Dataset Record', 'page_title': 'Generated Dataset Record', 'hidden': True, 'tooltip': 'Delete datasets generated metadata record', 'view_permission': DefaultPermissions.EDIT_PROJECT},
     ]
 
@@ -303,7 +310,10 @@ class Workflows(Layouts):
         Read the model class from the set form.  This is a simple helper function that abstracts functionality that may
         potentially change to one location.
         """
-        if self.form is None or not hasattr(self.form.schema, '_reg'):
+        if hasattr(self, "_model_type"):
+            return self._model_type
+
+        if not hasattr(self, 'form') or not hasattr(self.form.schema, '_reg'):
             return None
 
         return self.form.schema._reg.cls
@@ -314,7 +324,7 @@ class Workflows(Layouts):
         """
         Read the model id from the project property or the POST variables depending on the model type.
         """
-        if '_model_id' not in locals():
+        if '_model_id' not in locals() and not hasattr(self, '_model_id'):
             if self.model_type is None:
                 self._model_id = None
             elif self.model_type == Project:
@@ -370,6 +380,10 @@ class Workflows(Layouts):
             if ('hidden' in menu and menu['hidden'] is True) or ('hidden_states' in menu and self.project is not None and self.project.state in menu['hidden_states']):
                 hidden.append(menu)
 
+            # Hide menu items that are only to be displayed on set pages.
+            if 'visible_pages' in menu and not self.request.matched_route.name in menu['visible_pages']:
+                hidden.append(menu)
+
             # Hide manu items that the user doesn't have permission to see
             if 'view_permission' in menu and not has_permission(menu['view_permission'], self.context,
                     self.request).boolval:
@@ -416,7 +430,7 @@ class Workflows(Layouts):
         renderer = get_renderer("../templates/workflow_template.pt")
         return renderer.implementation().macros['layout']
 # --------------------WORKFLOW STEP METHODS-------------------------------------------
-    def _handle_form(self):
+    def _handle_form(self, dont_touch=False):
         """
         Abstract saving and internal redirects to save the referring page correctly.
 
@@ -437,14 +451,20 @@ class Workflows(Layouts):
                          has_permission(DefaultPermissions.EDIT_DATA, self.context, self.request)) or
                         has_permission(DefaultPermissions.EDIT_PROJECT, self.context, self.request)
                     ):
-                    if self._save_form() and self.model_type == Project:
+                    if self._save_form():
                         self._form_changed = True
-                        self._touch_page()
-                        self.project.validated = False
+
+                        if self.model_type == Project:
+                            if not dont_touch:
+                                self._touch_page()
+                            self.project.validated = False
 
                         if matched_route.name == "datasets" or matched_route.name == "methods":
                             # Indicate that the datasets changed.
-                            self.project.datasets_ready += 1
+                            if self.project.datasets_ready is None:
+                                self.project.datasets_ready = 0
+                            else:
+                                self.project.datasets_ready += 1
                     else:
                         self._form_changed = False
 
@@ -499,10 +519,11 @@ class Workflows(Layouts):
                     self.session.add(model)
                     changed = True
                     model.date_created = datetime.now().date()
+                    model.create_by = self.request.user.id
                 else:
                     return
             else:
-                raise ValueError("No project found for the given project id(" + model_id + "), please do not directly edit the address bar.")
+                raise ValueError("No project found for the given project id(" + str(model_id) + "), please do not directly edit the address bar.")
 
         else:
             # Update the model with all fields in the data
@@ -564,11 +585,30 @@ class Workflows(Layouts):
 ##        else:
 #        return HTTPFound(self.request.route_url(target, project_id=self.project_id))
 
+    def _reset_form(self, node=None):
+        if node == None:
+            node = self.form
+
+        if hasattr(node, 'cstruct') and node.cstruct is not None:
+            del node.cstruct
+        if hasattr(node, 'error') and node.error is not None:
+            del node.error
+
+        for child in node.children:
+            self._reset_form(child)
+
     def _render_model(self):
         """
         Abstract the functionality behind rendering Deform schemas to HTML, including touched/untouched based validation
         wich is used by the _create_response() helper method.
         """
+
+        # Remove errors that occurred during normal processing (this is usually stuff like invalid ID's for newly added
+        # models.)
+        if hasattr(self.form, "error") and self.form.error is not None:
+            self._reset_form()
+
+        self.form = self.form.clone()
 
         if not self._is_page_touched():
             try:
@@ -632,25 +672,37 @@ class Workflows(Layouts):
 
         return self._model_appstruct
 
-    def _clone_model(self, source):
+    def _clone_model(self, source, parent=None, copies={}):
         """
         Clone a database model, this returns a duplicate model with the ID removed.
+
+        :param: parent may be used to test if an ID links to a parent item.
+        :param: copies is used to hold all duplicated models so models that are referenced twice only get duplicated once.
         """
         if source is None:
             return None
 
-        new_object = type(source)()
+        if source.__tablename__ + str(source.id) in copies:
+            return copies[source.__tablename__ + str(source.id)]
+        else:
+            new_object = type(source)()
+            copies[source.__tablename__ + str(source.id)] = new_object
+
         for prop in object_mapper(source).iterate_properties:
-            if (isinstance(prop, ColumnProperty) or isinstance(prop, RelationshipProperty) and prop.secondary is not None) and not prop.key == "id":
+            if isinstance(source, (Dataset, Method)):
+                test = 1
+
+            if (isinstance(prop, ColumnProperty) or isinstance(prop, RelationshipProperty) and prop.secondary is not None) \
+                    and not prop.key == "id":
                 setattr(new_object, prop.key, getattr(source, prop.key))
-            elif isinstance(prop, RelationshipProperty) and 'exclude' not in prop.ca_registry:
+            elif isinstance(prop, RelationshipProperty):
                 if isinstance(getattr(source, prop.key), list):
                     items = []
                     for item in getattr(source, prop.key):
-                        items.append(self._clone_model(item))
+                        items.append(self._clone_model(item, parent=source, copies=copies))
                     setattr(new_object, prop.key, items)
                 else:
-                    setattr(new_object, prop.key, self._clone_model(getattr(source, prop.key)))
+                    setattr(new_object, prop.key, self._clone_model(getattr(source, prop.key), parent=source, copies=copies))
 
         if hasattr(new_object, "id"):
             new_object.id = None
@@ -724,7 +776,123 @@ class Workflows(Layouts):
         if not project_activated and not has_view_permission:
             raise HTTPForbidden("You don't have permission to view this page.")
 
-    # --------------------WORKFLOW STEP VIEWS-------------------------------------------
+    def _send_email_notifications(self, type, project=None, **kw):
+        """
+        Send email notifications to all users that are configured to receive them for the current project and
+        notification type.
+
+        :param type: Name of the configuration type (eg. NotificationsConfig.new_projects.key)
+        Lparam project: Optionally pass in the project that this notification is for (this will usually be for creating
+                        new projects, as self.project isn't setup correctly yet).
+        :return: Nothing.
+        """
+        if project is None:
+            project = self.project
+
+        config_ids = [id_tuple[0] for id_tuple in self.session.query(NotificationConfig.id).filter(getattr(NotificationConfig, type)==True).all()]
+        users = []
+        if len(config_ids) > 0:
+            user_notification_config_ids = [id_tuple[0] for id_tuple in self.session.query(ProjectNotificationConfig.user_notification_config_id).filter_by(project_id=project.id).filter(ProjectNotificationConfig.notification_config_id.in_(config_ids)).all()]
+            if len(user_notification_config_ids) > 0:
+                user_ids = [tuple_id[0] for tuple_id in self.session.query(UserNotificationConfig.user_id).filter(UserNotificationConfig.id.in_(user_notification_config_ids)).all()]
+                if len(user_ids) > 0:
+                    users = self.session.query(User).filter(User.id.in_(user_ids)).all()
+        email_to = [user.email for user in users]
+        variables = {"name": self.request.user.display_name, "title": project.information.project_title,
+                     "project_id": project.id, "url": self.request.route_url("general", project_id=project.id)}
+        variables.update(kw)
+        for key, value in variables.items():
+            if isinstance(value, basestring):
+                if isinstance(value, unicode):
+                    variables[key] = value.encode("latin-1")
+                else:
+                    variables[key] = unicode(value, "latin-1")
+
+
+        if type == NotificationConfig.state_changes.key:
+            email_subject="[%(transition)s] EnMaSSe Project State Changed" % variables
+            email_message = "Hi EnMaSSe User,<br /><p><a href='%(url)s'>project_%(project_id)s: %(title)s</a> has "\
+                            "transitioned to the %(transition)s state by %(name)s:</p><p style='padding-left: 10px;'>"\
+                            "%(message)s</p>"\
+                            "<br />Regards,<br/>EnMaSSe System" % variables
+
+            # Add a record of the notification to the database
+            notification = Notification(type, ','.join(email_to), email_subject, email_message,
+                    variables['transition'],
+                    ','.join("%s=%s" % (key, value) for key, value in variables.items()))
+            self.session.add(notification)
+
+        elif type == NotificationConfig.permission_changes.key:
+            email_subject="EnMaSSe Project Share Permissions Changed" % variables
+            email_message = "Hi EnMaSSe User,<br />"\
+                            "<p><a href='%(url)s'>project_%(project_id)s: %(title)s</a> permissions were changed by %(name)s:</p>"\
+                            "<p style='padding-left: 10px;'>%(modified)s</p>" \
+                            "<br />Regards,<br/>EnMaSSe System"
+            email_message = email_message % variables
+
+            # Add a record of the notification to the database
+            notification = Notification(type, ','.join(email_to), email_subject, email_message,
+                variables['modified'],
+                ','.join("%s=%s" % (key, value) for key, value in variables.items()))
+            self.session.add(notification)
+
+        elif type == NotificationConfig.ingester_changes.key:
+            variables["url"] = self.request.route_url("dataset", project_id=project.id, dataset_id=kw['dataset_id'])
+            email_subject="EnMaSSe Dataset Ingester Changed" % variables
+            email_message = "Hi EnMaSSe User,<br />"\
+                            "<p><a href='%(url)s'>project_%(project_id)s: %(title)s</a> ingester configurations were changed by %(name)s.</p>"\
+                            "<br />Regards,"\
+                            "<br/>EnMaSSe System" % variables
+
+            # Add a record of the notification to the database
+            notification = Notification(type, ','.join(email_to), email_subject, email_message,
+                "[%s] %s" % (variables['dataset_id'], variables['title']),
+                ','.join("%s=%s" % (key, value) for key, value in variables.items()))
+            self.session.add(notification)
+
+        elif type == NotificationConfig.log_errors.key:
+            pass # Not implemented yet.
+        elif type == NotificationConfig.log_warnings.key:
+            pass # Not implemeneted yet
+        elif type == NotificationConfig.new_projects.key:
+            # New projects is a special case where the default configurations are used instead of per project configurations.
+            email_to = [user.email for user in self.session.query(User).join(UserNotificationConfig, NotificationConfig).filter(NotificationConfig.new_projects==True).all()]
+
+            email_subject="New EnMaSSe Project Created" % variables
+            email_message = "Hi EnMaSSe User,<br />"\
+                            "<p><a href='%(url)s'>project_%(project_id)s</a>: A new project has been created by %(name)s</p>"\
+                            "<br />Regards,<br/>EnMaSSe System"
+            email_message = email_message % variables
+
+            # Add a record of the notification to the database
+            notification = Notification(type, ','.join(email_to), email_subject, email_message,
+                variables['project_id'],
+                ','.join("%s=%s" % (key, value) for key, value in variables.items()))
+            self.session.add(notification)
+        elif type == NotificationConfig.new_datasets.key:
+            # New projects is a special case where the default configurations are used instead of per project configurations.
+            email_to = [user.email for user in self.session.query(User).join(UserNotificationConfig, NotificationConfig).filter(NotificationConfig.new_datasets==True).all()]
+
+            email_subject="New EnMaSSe Dataset Created" % variables
+            email_message = "Hi EnMaSSe User,<br />"\
+                            "<p><a href='%(url)s'>project_%(project_id)s: %(title)s</a>: A new dataset <a href='%(dataset_url)s'>(dataset_%(dataset_id)s)</a> has been added to the project by %(name)s</p>"\
+                            "<p style='padding-left: 10px;'>%(message)s</p>" +\
+                            "<br />Regards,<br/>EnMaSSe System"
+            email_message = email_message % variables
+
+            # Add a record of the notification to the database
+            notification = Notification(type, ','.join(email_to), email_subject, email_message,
+                variables['project_id'],
+                ','.join(["%s=%s" % (key, value) for key, value in variables.items()]))
+            self.session.add(notification)
+
+        if len(email_to) > 0:
+            mailer = get_mailer(self.request)
+            message = Message(subject=email_subject, recipients=email_to, html=email_message)
+            mailer.send(message)
+
+
+# --------------------WORKFLOW STEP VIEWS-------------------------------------------
     @view_config(route_name="create", permission=DefaultPermissions.CREATE_PROJECT)
     def create_view(self):
         """
@@ -773,7 +941,7 @@ class Workflows(Layouts):
             # In either of the below cases get the data as a dict and get the rendered form
             new_project = Project()
 
-            new_project.project_creator = self.request.user.id
+            new_project.created_by = self.request.user.id
             new_project.date_created = datetime.now()
 
             if 'template' in appstruct:
@@ -828,23 +996,10 @@ class Workflows(Layouts):
                 self.session.flush()
                 self.request.session.flash('New project successfully created.', 'success')
 
-                # Send notification emails
-                variables = {"name": self.request.user.display_name,
-                             "title": new_project.information.project_title,
-                             "project_id": new_project.id, "url": self.request.route_url("general", project_id=new_project.id)}
-                email_subject="New EnMaSSe Project Created" % variables
-                email_message = "Hi EnMaSSe User,<br />"\
-                                "<p><a href='%(url)s'>project_%(project_id)s</a>: A new project has been created by %(name)s</p>"\
-                                "<br />Regards,<br/>EnMaSSe System"
-                email_message = email_message % variables
-                email_to = "casey@bajtech.com.au"
-                email_from = ["casey@bajtech.com.au"]
-                #email_to = ",".join([user.display_name for user in self.session.query(User).join(UserNotifications).filter()])
-                #email_from = self.config.get("enmasse.email", "EnMaSSe System")
+                self._add_default_notification_configs(self.request.user.id, self.project_id)
 
-                mailer = get_mailer(self.request)
-                message = Message(subject=email_subject, recipients=email_from, html=email_message)
-                mailer.send(message)
+                # Send notification emails
+                self._send_email_notifications(NotificationConfig.new_projects.key, new_project)
 
             except Exception as e:
                 logger.exception("SQLAlchemy exception while flushing after project creation: %s" % e)
@@ -1010,8 +1165,13 @@ class Workflows(Layouts):
         # Because the same appstruct
         appstruct = self._get_post_appstruct()
 
+        adding_new = False
         if len(appstruct) > 0:
             for new_method_data in appstruct['project:methods']:
+                if not new_method_data['method:id']:
+                    adding_new = True
+
+                # Pre-fill the new method from the template.
                 if not new_method_data['method:id'] and 'method:method_template_id' in new_method_data and new_method_data['method:method_template_id']:
                     template = self.session.query(MethodTemplate).filter_by(id=new_method_data['method:method_template_id']).first()
                     if template is None:
@@ -1033,8 +1193,11 @@ class Workflows(Layouts):
                     del new_method_data
 
         # If this page was only called for saving and a rendered response isn't needed, return now.
-        if self._handle_form():
+        if self._handle_form(dont_touch=adding_new):
             return
+
+        # Getting the appstruct requires validation of the form - once the form is validated it can't be rendered without validation... So re-create the form.
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
 
         if self._get_model() is not None:
             for method in self._get_model().methods:
@@ -1104,11 +1267,13 @@ class Workflows(Layouts):
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
 
         # If a new dataset was added through the wizard - Update the appstruct with that datasets' template's data
+        adding_new = False
         appstruct = self._get_post_appstruct()
         if len(appstruct) > 0:
             for new_dataset_data in appstruct['project:datasets']:
                 # If this is a newly created dataset
                 if not new_dataset_data['dataset:id'] and 'dataset:method_id' in new_dataset_data and new_dataset_data['dataset:method_id']:
+                    adding_new = True
                     method = self.session.query(Method).filter_by(id=new_dataset_data['dataset:method_id']).first()
                     template_dataset = self.session.query(Dataset).join(MethodTemplate).filter(Dataset.id == MethodTemplate.dataset_id).\
                     filter(MethodTemplate.id == method.method_template_id).first()
@@ -1146,7 +1311,7 @@ class Workflows(Layouts):
 
 
         # If this page was only called for saving and a rendered response isn't needed, return now.
-        if self._handle_form():
+        if self._handle_form(dont_touch=adding_new):
             return
 
         if self.project_id is not None:
@@ -1176,6 +1341,9 @@ class Workflows(Layouts):
         schema[DATASETS_INDEX].children[0].method_names = method_names
         self.session.flush()
 
+        # Getting the appstruct requires validation of the form - once the form is validated it can't be rendered without validation... So re-create the form.
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Next', 'Save', 'Previous'), use_ajax=False)
+
         return self._create_response(page_help=page_help)
 
     @cache_region('daily')
@@ -1194,7 +1362,7 @@ class Workflows(Layouts):
         for dataset in self.project.datasets:
             dataset_name = "dataset for %s method" % dataset.method.method_name
             portal_url = None
-            view_record_url = self.request.route_url("view_record", project_id=self.project_id, dataset_id=dataset.id)
+            view_record_url = self.request.route_url("dataset_record", project_id=self.project_id, dataset_id=dataset.id)
             reset_record_url = None
             no_errors = len(self.error) == 0
             record_created = dataset.record_metadata is not None
@@ -1255,21 +1423,25 @@ class Workflows(Layouts):
         TRANSITION_NOTE_KEY = "%s:%s" % (schema.name, Project.transition_notes.key)
         PROJECT_NOTE_USER_KEY = "%s:%s" % (schema[PROJECT_NOTE_KEY].children[0].name, ProjectNote.user_id.key)
         PROJECT_NOTE_USER_KEY = "%s:%s" % (schema[PROJECT_NOTE_KEY].children[0].name, ProjectNote.user_id.key)
-        schema[PROJECT_NOTE_KEY].children[0][PROJECT_NOTE_USER_KEY].default = self.request.user.id
-        schema[PROJECT_NOTE_KEY].children[0].user_id = self.request.user.id
+        user_id = self.request.user is not None and self.request.user.id or None
+        schema[PROJECT_NOTE_KEY].children[0][PROJECT_NOTE_USER_KEY].default = user_id
+        schema[PROJECT_NOTE_KEY].children[0].user_id = user_id
 
         def get_user_name(user_id):
+            if user_id is None or user_id is colander.null:
+                return None
             user_name = self.session.query(User.display_name).filter_by(id=user_id).first()
             return user_name is not None and user_name[0] or None
         schema[TRANSITION_NOTE_KEY].children[0].get_user_name = get_user_name
+        schema[PROJECT_NOTE_KEY].children[0].get_user_name = get_user_name
         schema[TRANSITION_NOTE_KEY].can_edit = has_permission(DefaultPermissions.EDIT_PROJECT, self.context, self.request).boolval
 
         post = self.request.POST
         pressed_button = SUBMIT_TEXT in post and SUBMIT_TEXT or\
                          REOPEN_TEXT in post and REOPEN_TEXT or\
-                         DISABLE_TEXT in post and REOPEN_TEXT or\
-                         APPROVE_TEXT in post and REOPEN_TEXT or\
-                         DELETE_TEXT in post and REOPEN_TEXT or\
+                         DISABLE_TEXT in post and DISABLE_TEXT or\
+                         APPROVE_TEXT in post and APPROVE_TEXT or\
+                         DELETE_TEXT in post and DELETE_TEXT or\
                          None
 
         if pressed_button is not None:
@@ -1280,29 +1452,14 @@ class Workflows(Layouts):
             for transition_note in appstruct[TRANSITION_NOTE_KEY]:
                 if transition_note['%s:id' % TransitionNote.__tablename__] is colander.null:
                     # Save the transition note.
-                    transition_note["%s:user_id" % TransitionNote.__tablename__] = self.request.user.id
+                    transition_note["%s:user_id" % TransitionNote.__tablename__] = user_id
                     transition_note["%s:transition" % TransitionNote.__tablename__] = pressed_button
                     transition_note["%s:comment" % TransitionNote.__tablename__] = transition_comment
                     transition_note["%s:date_create" % TransitionNote.__tablename__] = datetime.now().date()
                     transition_note["%s:project_id" % TransitionNote.__tablename__] = self.project_id
 
             # Send notification emails
-            variables = {"transition": pressed_button, "name": self.request.user.display_name,
-                         "message": transition_comment, "title": self.project.information.project_title,
-                         "project_id": self.project_id, "url": self.request.route_url("general", project_id=self.project_id)}
-            email_subject="[%(transition)s] EnMaSSe Project State Changed" % variables
-            email_message = "Hi EnMaSSe User,<br /><p><a href='%(url)s'>project_%(project_id)s: %(title)s</a> has " \
-                            "transitioned to the %(transition)s state by %(name)s:</p><p style='padding-left: 10px;'>" \
-                            "%(message)s</p>" \
-                            "<br />Regards,<br/>EnMaSSe System" % variables
-            email_to = "casey@bajtech.com.au"
-            email_from = ["casey@bajtech.com.au"]
-            #email_to = ",".join([user.display_name for user in self.session.query(User).join(UserNotifications).filter()])
-            #email_from = self.config.get("enmasse.email", "EnMaSSe System")
-
-            mailer = get_mailer(self.request)
-            message = Message(subject=email_subject, recipients=email_from, html=email_message)
-            mailer.send(message)
+            self._send_email_notifications(NotificationConfig.state_changes.key, message=transition_comment, transition=pressed_button)
 
         # If this page was only called for saving and a rendered response isn't needed, return now.
         if self._handle_form():
@@ -1333,8 +1490,6 @@ class Workflows(Layouts):
                 self.error = sorted_errors
         else:
             self.error = []
-
-            # TODO: Validate the project and set the validation to self for all workflow steps to use.
 
         # Get all generated (and to-be-generated) metadata records
         # + Get a summary of all ingesters to be setup
@@ -1376,17 +1531,37 @@ class Workflows(Layouts):
                 if dataset.record_metadata is not None and dataset.record_metadata.custom_citation is False:
                     self.redbox.pre_fill_citation(dataset.record_metadata)
 
-        if REOPEN_TEXT in self.request.POST and self.project.state == ProjectStates.SUBMITTED:
-            self.project.state = ProjectStates.OPEN and has_permission(DefaultPermissions.REOPEN, self.context, self.request).boolval
+        if REOPEN_TEXT in self.request.POST and self.project.state == ProjectStates.SUBMITTED\
+                and has_permission(DefaultPermissions.REOPEN, self.context, self.request).boolval:
+            self.project.state = ProjectStates.OPEN
 
-        if DISABLE_TEXT in self.request.POST and self.project.state == ProjectStates.ACTIVE:
-            self.project.state = ProjectStates.DISABLED and has_permission(DefaultPermissions.DISABLE, self.context, self.request).boolval
-            # TODO: Disable in CC-DAM
+            for dataset in self.project.datasets:
+                if dataset.dam_id is not None:
+                    self.ingester_api.enableDataset(dataset.dam_id)
+
+        if DISABLE_TEXT in self.request.POST and self.project.state == ProjectStates.ACTIVE\
+                and has_permission(DefaultPermissions.DISABLE, self.context, self.request).boolval:
+            self.project.state = ProjectStates.DISABLED
+            for dataset in self.project.datasets:
+                if dataset.dam_id is not None:
+                    self.ingester_api.disableDataset(dataset.dam_id)
 
         if DELETE_TEXT in self.request.POST and self.project.state == ProjectStates.DISABLED \
                 and has_permission(DefaultPermissions.DELETE, self.context, self.request).boolval:
-            # TODO: Delete
-            pass
+            schemas = []
+            for dataset in self.project.datasets:
+                if dataset.dam_id is not None:
+                    schema = dataset.method.data_type
+                    if schema not in schemas:
+                        schemas.append(schema)
+
+                    self.ingester_api.delete(dataset.dataset_locations[0])
+                    self.ingester_api.delete(dataset)
+
+                for schema in schemas:
+                    self.ingester_api.delete(schema)
+
+            self.session.delete(self.project)
 
         if APPROVE_TEXT in self.request.POST and self.project.state == ProjectStates.SUBMITTED\
                 and has_permission(DefaultPermissions.APPROVE, self.context, self.request).boolval and len(self.error) <= 0:
@@ -1455,16 +1630,16 @@ class Workflows(Layouts):
         record = self.session.query(Metadata).filter_by(dataset_id=dataset_id).first()
         if record is not None:
             self.session.delete(record)
+            self.project.datasets_ready += 1
 
-        self.request.session.flash('Dataset record successfully deleted (will be recreated when needed).', 'success')
+        self.request.session.flash('Dataset record successfully deleted (A new record will be created when needed).', 'success')
 
         target = 'submit'
         return HTTPFound(self.request.route_url(target, project_id=self.project_id))
 
 #-----------------------Dataset Record View/Edit-----------------------------------
-    @view_config(route_name="view_record", permission=DefaultPermissions.VIEW_PROJECT)
-    @view_config(route_name="edit_record", permission=DefaultPermissions.EDIT_PROJECT)
-    def edit_record_view(self):
+    @view_config(route_name="dataset_record", permission=DefaultPermissions.EDIT_PROJECT)
+    def dataset_record_view(self):
         """
         Displays the generated metadata record for the selected dataset, this is basically the genral details,
         description and information models all on one form.
@@ -1519,13 +1694,11 @@ class Workflows(Layouts):
         template_clone.project_id = None
         template_clone.dataset_id = dataset_id
 
-        # TODO:  Finalise generation of dataset specific metadata
-
         dataset = self.session.query(Dataset).filter_by(id=dataset_id).first()
         height_text =  (", %sm above MSL") % dataset.dataset_locations[0].elevation if dataset.dataset_locations[0].elevation is not None else ""
         template_clone.project_title = "%s at %s (%s, %s%s) collected by %s" % \
-                               (template_clone.project_title, dataset.dataset_locations[0].name, dataset.dataset_locations[0].get_latitude(),
-                                dataset.dataset_locations[0].get_longitude(), height_text, dataset.method.method_name)
+                               (template_clone.project_title, dataset.dataset_locations[0].name, dataset.dataset_locations[0].get_longitude(),
+                                 dataset.dataset_locations[0].get_latitude(),height_text, dataset.method.method_name)
 
         method_note = MetadataNote()
         method_note.note_desc = dataset.method.method_description
@@ -1535,15 +1708,16 @@ class Workflows(Layouts):
 
 
     # --------------------WORKFLOW ACTION/SIDEBAR VIEWS-------------------------------------------
-    @view_config(route_name="dataset_logs", permission=DefaultPermissions.VIEW_PROJECT)
-    def dataset_logs_view(self):
+    @view_config(route_name="dataset_log", permission=DefaultPermissions.VIEW_PROJECT)
+    def dataset_log_view(self):
         """
         Retrieves all ingester platform events/logs for the selected dataset from the ingesterapi and displays them.
 
         :return: HTML rendering of the create page form.
         """
 
-        dataset_id = int(self.request.matchdict['dataset_id'])
+        dataset_id = self.request.matchdict['dataset_id']
+
         logs = self.ingester_api.getIngesterLogs(dataset_id)
 
         content = ''.join(["%s - %s - %s - %s - %s - %s.\n" % (log['id'], log['dataset_id'], log['timestamp'], log['class'], log['level'], log['message'].strip()) for log in logs])
@@ -1644,6 +1818,14 @@ class Workflows(Layouts):
         self._handle_form()
 
         duplicate = self._clone_model(self.project)
+        duplicate.state = ProjectStates.OPEN
+        duplicate.date_created = datetime.now().date()
+        duplicate.date_modified = datetime.now().date()
+        duplicate.created_by = self.request.user.id
+        duplicate.last_modified_by = None
+        duplicate.template_only = False
+        duplicate.transition_notes = []
+        duplicate.notification_configs = []
         self.session.add(duplicate)
         self.session.flush()
 
@@ -1653,8 +1835,8 @@ class Workflows(Layouts):
             return HTTPFound(self.request.route_url(self.request.referer.split("/")[-1], project_id=duplicate.id))
         return HTTPFound(self.request.route_url("general", project_id=duplicate.id))
 
-    @view_config(route_name="edit_dataset", permission=DefaultPermissions.VIEW_PROJECT)
-    def edit_dataset_view(self):
+    @view_config(route_name="dataset", permission=DefaultPermissions.VIEW_PROJECT)
+    def dataset_view(self):
         """
         Hidden view for editing dataset ingester settings, this accessible through search.
         """
@@ -1663,49 +1845,134 @@ class Workflows(Layouts):
             self.request.session.flash("Please use the datasets page in project configuration to update projects that haven't been submitted and approved.", "warning")
             readonly = True
 
+        if not has_permission(DefaultPermissions.EDIT_INGESTERS, self.context, self.request).boolval:
+            readonly = True
+
         open_layers.need()
         open_layers_js.need()
 
         dataset_id = self.request.matchdict['dataset_id']
+        if len(dataset_id) == 0 or dataset_id[0] == 'None':
+            dataset_id = None
+        else:
+            dataset_id = int(dataset_id[0])
+
+        self._model_id = dataset_id
+        self._model_type = Dataset
+        dataset = self._get_model()
+        is_approved = dataset is not None and dataset.dam_id is not None
 
         page_help=""
 
         schema = convert_schema(SQLAlchemyMapping(Dataset, unknown='raise'), page="datasets", restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request).boolval).bind(request=self.request, datasets=self.project.datasets)
 
-        schema['dataset:publish_dataset'].widget.readonly = True
-        schema['dataset:publish_date'].widget = deform.widget.DateInputWidget(readonly=True)
-        schema['dataset:dataset_locations'].widget.readonly = True
-        schema['dataset:location_offset'].widget.readonly = True
+        schema['dataset:publish_dataset'].widget.readonly = readonly or is_approved
+        schema['dataset:publish_date'].widget = deform.widget.DateInputWidget(readonly=readonly or is_approved)
+        schema['dataset:dataset_locations'].widget.readonly = readonly or readonly or is_approved
+        schema['dataset:location_offset'].widget.readonly = readonly or readonly or is_approved
 
         schema.methods = self.project.methods
+        schema.validator = dataset_validator
 
-        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id, dataset_id=dataset_id), buttons=("Save",), use_ajax=False)
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id, dataset_id=dataset_id),
+            buttons=("Save",), use_ajax=False)
         self.form.widget.template="edit_dataset_form"
         self.form.widget.readonly_template="readonly/edit_dataset_form"
         self.form.widget.get_file_fields = self._get_file_fields
+
+        # If a new dataset was just added, set it's project before it gets added.
+        appstruct = self._get_post_appstruct()
+        if dataset is None and len(appstruct) > 0:
+            appstruct["dataset:project_id"] = self.project_id
+            appstruct["dataset:disabled"] = True
 
         # If this page was only called for saving and a rendered response isn't needed, return now.
         if self._handle_form():
             return
 
-        if self._form_changed:
-            # Send notification emails
-            variables = {"name": self.request.user.display_name,
-                         "title": self.project.information.project_title,
-                         "project_id": self.project_id, "url": self.request.route_url("general", project_id=self.project_id)}
-            email_subject="EnMaSSe Dataset Ingester Changed" % variables
-            email_message = "Hi EnMaSSe User,<br />"\
-                            "<p><a href='%(url)s'>project_%(project_id)s: %(title)s</a> ingester configurations were changed by %(name)s.</p>"\
-                            "<br />Regards," \
-                            "<br/>EnMaSSe System" % variables
-            email_to = "casey@bajtech.com.au"
-            email_from = ["casey@bajtech.com.au"]
-            #email_to = ",".join([user.display_name for user in self.session.query(User).join(UserNotifications).filter()])
-            #email_from = self.config.get("enmasse.email", "EnMaSSe System")
+        # Get the updated model with the newly saved data.
+        dataset = self._get_model()
 
-            mailer = get_mailer(self.request)
-            message = Message(subject=email_subject, recipients=email_from, html=email_message)
-            mailer.send(message)
+        # If this is a new dataset that needs to be submitted/activated, show the submit/approve buttons.
+        if dataset is not None and not is_approved:
+            if has_permission(DefaultPermissions.ADMINISTRATOR, self.context, self.request) and dataset.submitted:
+                self.form.buttons.append(Button("Approve"))
+            elif not dataset.submitted:
+                self.form.buttons.append(Button("Submit for Approval"))
+
+        if hasattr(self, '_form_changed') and self._form_changed:
+            # If a new dataset was just added, redirect to its edit page.
+            if dataset_id is None:
+                dataset_id = self._model.id
+                new_url = self.request.route_url(self.request.matched_route.name, project_id=self.project_id,
+                        dataset_id=dataset_id)
+                return HTTPFound(new_url)
+            elif is_approved:
+                # TODO: Find changes and add DatasetMetadataEntry to record it.
+
+                self._send_email_notifications(NotificationConfig.ingester_changes.key, dataset_id=dataset_id)
+
+        # Otherwise, Send notification emails that the dataset has changed.
+        if 'Approve' in self.request.POST:
+            try:
+                # Check that the model validates (will throw an exception if it is invalid).
+                self.form.validate_pstruct(self._get_model_appstruct(dates_as_string=True))
+
+                # Activate the project (Export ReDBox record and setup the data ingester).
+                # Make sure all dataset record have been created
+                if (dataset.record_metadata is None):
+                    dataset.record_metadata = self.generate_dataset_record(dataset.id)
+                self.session.flush()
+
+                success = True
+
+                # Setup data ingestion to the ingester platform.
+                if success:
+                    try:
+                        self.ingester_api.post(dataset)
+                        self.ingester_api.close()
+                        logger.info("Dataset has been added to ingesterplatform successfully: %s", dataset.id)
+                    except Exception as e:
+                        success = False
+                        logger.exception("Dataset failed to add to ingesterplatform - Dataset ID: %s", dataset.id)
+                        self.request.session.flash("Failed to configure data storage and ingestion.", 'error')
+                        self.request.session.flash("Error: %s" % e, 'error')
+
+                # Export dataset metadata record to ReDBox.
+                if success and dataset.publish_dataset:
+                    try:
+                        self.redbox.insert_dataset(dataset.id)
+                    except Exception as e:
+                        success = False
+                        logger.exception("Dataset failed to add to ReDBox: %s", dataset.id)
+                        self.request.session.flash("Dataset failed to generate or add metadata records to ReDBox.", 'error')
+                        self.request.session.flash("Error: %s" % e, 'error')
+
+                if success:
+                    self.request.session.flash("Dataset successfully approved.", "success")
+                    self._send_email_notifications(NotificationConfig.new_datasets.key, dataset_id=dataset_id
+                        , dataset_url=self.request.route_url(self.request.matched_route.name, project_id=self.project_id,
+                            dataset_id=dataset_id), message="The dataset has been approved and is now active.")
+
+
+            except ValidationFailure as e:
+                self.request.session.flash("You cannot approve the dataset while it has validation errors.", "error")
+
+        elif 'Submit_for_Approval' in self.request.POST:
+            try:
+                # Check that the model validates (will throw an exception if it is invalid).
+                self.form.validate_pstruct(self._get_model_appstruct(dates_as_string=True))
+
+                dataset.submitted = True
+                self._send_email_notifications(NotificationConfig.new_datasets.key, dataset_id=dataset_id
+                    , dataset_url=self.request.route_url(self.request.matched_route.name, project_id=self.project_id,
+                        dataset_id=dataset_id), message="The dataset requires administrator approval.")
+            except ValidationFailure as e:
+                self.request.session.flash("You cannot submit the dataset for approval while it has validation errors.", "error")
+
+        # Remove the appstruct created during submit/approval so the form renders correctly.
+        if hasattr(self, '_model_appstruct'):
+            delattr(self, '_model_appstruct')
 
 #        self.model_type = Dataset
         return self._create_response(page_help=page_help, readonly= readonly or not
@@ -1713,7 +1980,7 @@ class Workflows(Layouts):
 
 
     @view_config(renderer="../templates/form.pt", route_name="search", permission=NO_PERMISSION_REQUIRED)
-    def search(self):
+    def search_view(self):
         """
         Search/browse page to allow users to navigate projects and their associated data.
 
@@ -1722,7 +1989,7 @@ class Workflows(Layouts):
         schema = DataFilteringWrapper()
         search_info = 'search_info' in self.request.matchdict and self.request.matchdict['search_info'] or ()
 
-        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, search_info=('',) + search_info), method="POST", buttons=('Search',), use_ajax=False)
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, search_info=('',)), method="POST", buttons=('Search',), use_ajax=False)
 
         # Initialise empty display data
         schema['data_filtering'].results = []
@@ -2085,12 +2352,13 @@ class Workflows(Layouts):
             "created": project.date_created,
             "modified": project.date_modified,
             "description": project.information is not None and project.information.project_title or "",
-            "urls": {
-                has_permission(DefaultPermissions.EDIT_DATA, self.context, self.request).boolval and "Edit" or "View":
-                    self.request.route_url("general", project_id=project.id),
-                "Datasets": self.request.route_url("search", search_info="/dataset/id_list=project_%s" % project.id),
-                "Data": self.request.route_url("search", search_info="/data/id_list=project_%s" % project.id),
-            },
+            "urls": OrderedDict([
+                (has_permission(DefaultPermissions.EDIT_DATA, self.context, self.request).boolval and "Edit" or "View",
+                    self.request.route_url("general", project_id=project.id)),
+                ("Add Dataset", self.request.route_url("dataset", project_id=project.id, dataset_id='')),
+                ("Datasets", self.request.route_url("search", search_info="/dataset/id_list=project_%s" % project.id)),
+                ("Data", self.request.route_url("search", search_info="/data/id_list=project_%s" % project.id)),
+            ]),
         }
     def _get_dataset_results(self, search_data, pagination_data, selected_ids, actions):
         # Retreive all needed data and set defauts if needed.
@@ -2259,12 +2527,13 @@ class Workflows(Layouts):
             "state": dataset.disabled is True and ProjectStates.DISABLED or ProjectStates.ACTIVE,
             "created": dataset.date_created,
             "modified": dataset.date_modified,
-            "description": dataset.record_metadata and dataset.record_metadata.project_title or dataset.method.method_name,
+            "description": dataset.record_metadata and dataset.record_metadata.project_title or dataset.method and dataset.method.method_name or '',
             "urls": {
                 has_permission(DefaultPermissions.EDIT_INGESTERS, self.context, self.request).boolval and "Edit" or "View":
-                    self.request.route_url("edit_dataset", project_id=dataset.project_id, dataset_id=dataset.id),
+                    self.request.route_url("dataset", project_id=dataset.project_id, dataset_id=dataset.id),
                 "Project": self.request.route_url("general", project_id=dataset.project_id),
-                "Data": self.request.route_url("search", search_info="/data/id_list=dataset_%s" % dataset.id),
+                "Add Data": self.request.route_url("data", project_id=dataset.project_id, dataset_id=dataset.id, data_id=None),
+                "Browse Data": self.request.route_url("search", search_info="/data/id_list=dataset_%s" % dataset.id),
                 },
             }
         return result
@@ -2279,11 +2548,10 @@ class Workflows(Layouts):
         :param search_info: Filtering information such as dataset_id,
         :return: Bulk results for the data found with the given filtering.
         """
-        MAX_DATA_RESULTS = 1000
-        dataset_dam_id, start_date, end_date = search_info
+        dataset_dam_id, start_date, end_date, page, limit = search_info
 
-        results = self.ingester_api.search(jcudc24ingesterapi.models.data_entry.DataEntry.__xmlrpc_class__, MAX_DATA_RESULTS,
-            criteria=DataEntrySearchCriteria(int(dataset_dam_id), start_time=start_date, end_time=end_date))
+        results = self.ingester_api.search(DataEntrySearchCriteria(int(dataset_dam_id), start_time=start_date, end_time=end_date),
+            page * limit, limit)
 
         return results
 
@@ -2296,10 +2564,15 @@ class Workflows(Layouts):
         search_string = search_data.get('search_string', None)
         limit = int(search_data.get('limit', 20))
         id_list = search_data.get('id_list', None)
+        if not isinstance(id_list, (list, tuple)):
+            id_list = [id_list]
         page = int(search_data.get('page', 0))
         data_type = search_data.get('type', "dataset")
 
+        actions.append("Add Data")
         actions.append("Add QA")
+
+        self._process_data_actions(search_data, selected_ids)
 
         results = []
         if id_list:
@@ -2332,15 +2605,25 @@ class Workflows(Layouts):
                                                "  The bad id is: %s" % id, "warning")
 
             data_entries = []
+            num_results = 0
             if len(dataset_list) > 0:
                 for dataset_id in dataset_list:
-                    # TODO: Update this section.
                     dam_id = self.session.query(Dataset.dam_id).filter_by(id=dataset_id).first()
                     if len(dam_id) > 0 and dam_id[0] is not None:
-                        data_entries.extend(self._search_data((dam_id[0], start_date, end_date)))
+                        search_results = self._search_data((dam_id[0], start_date, end_date, page, limit))
+                        num_results += search_results.count
+                        data_entries.extend(search_results.results)
+
+            # There is no way to paginate over multiple searches, so just limit the results
+            if len(dataset_list) > 1:
+                self.request.session.flash("Results pagination is disabled while you are searching across multiple "
+                                           "datasets, either select to display more results from the dropdown at the "
+                                           "top-right or search on only 1 dataset.")
+                num_results = limit
 
             if len(normalised_id_list) > 0:
                 for dataset_id, data_id in id_list:
+                    num_results += 1
                     data_entries.append(self.ingester_api.getDataEntry(dataset_id, data_id))
 
             for data_entry in data_entries:
@@ -2351,20 +2634,26 @@ class Workflows(Layouts):
                                        "  It is recommended that you view data associated with a dataset rather "
                                        "than trying to search data directly.", "warning")
 
-        sorted(results, key=itemgetter(order_by), reverse=order_dir == "descending")
+#        sorted(results, key=itemgetter(order_by), reverse=order_dir == "descending")
 
         limit = limit
         page = page
 
-        num_pages = len(results) / int(limit)   # TODO: Update this
+        num_pages = num_results / int(limit)
         pagination_data['num_pages'] = num_pages
-        pagination_data['num_results'] = len(results)
-        pagination_data['start_num'] = search_data.get('page', 0) * limit
-        pagination_data['end_num'] = pagination_data['start_num'] + limit
+        pagination_data['num_results'] = num_results
+        pagination_data['start_num'] = int(search_data.get('page', 0)) * limit
+        pagination_data['end_num'] = int(pagination_data['start_num']) + limit
 
-        results = results[page * limit: page * limit + limit]
+#        results = results[page * limit: page * limit + limit]
 
         return results
+
+
+    def _process_data_actions(self, search_data, selected_ids):
+        if 'Add QA' in search_data:
+            data_ids = [id for id in selected_ids]
+
 
     def _data_to_search_result(self, data):
         dataset_data = self.session.query(Dataset.project_id, Dataset.id).filter_by(dam_id=data.dataset).first()
@@ -2385,23 +2674,131 @@ class Workflows(Layouts):
             "urls": {
                 has_permission(DefaultPermissions.EDIT_DATA, self.context, self.request).boolval and "Edit" or "View":
                     self.request.route_url("data", project_id=project_id, dataset_id=dataset_id, data_id=data.id),
-                "Dataset": self.request.route_url("edit_dataset", project_id=project_id, dataset_id=dataset_id),
+                "Dataset": self.request.route_url("dataset", project_id=project_id, dataset_id=dataset_id),
                 "Project": self.request.route_url("general", project_id=project_id),
                 },
             }
 
+    @view_config(route_name="data_calibration", permission=DefaultPermissions.VIEW_DATA)
+    def data_calibration_view(self):
+        """
+
+        :return:
+        """
+        dataset_id = int(self.request.matchdict['dataset_id'])
+        dataset_dam_id = int(self.session.query(Dataset.dam_id).filter_by(id=dataset_id).first()[0])
+        id_list = self.request.matchdict['id_list'].split(",")
+        data_ids = []
+        for id in id_list:
+            if id is not None and len(id) > 0 and isnumeric(id):
+                data_ids.append(int(id))
+
+        calibration_id = self.request.matchdict.get('calibration_id', None)
+        if isinstance(calibration_id, tuple) and len(calibration_id) > 0 and calibration_id[0] != 'None':
+            calibration_id = calibration_id[0]
+        else:
+            calibration_id = None
+
+        page_help="Sets the quality assurance information for all selected data to the entered values, this will" \
+                  "over-write any previous quality assurance."
+
+        schema_object = self.session.query(MethodSchema).filter_by(schema_type=DataEntryMetadataSchema.__xmlrpc_class__).first()
+        schema = DataTypeSchema(schema_object).bind(request=self.request)
+        self.form = Form(schema,
+            action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id,
+                dataset_id=dataset_id, id_list=self.request.matchdict['id_list'], calibration_id=calibration_id),
+            buttons=calibration_id is not None and len(calibration_id) > 0 and ('Save',) or ('Add & Create New', 'Add',), use_ajax=False)
+
+                #todo
+        appstruct = {}
+        calibration = None
+        # If we are currently looking at a single DataEntry, get the calibration information (if looking at multiple
+        # DataEntries the calibrations may be different - so don't load any data).
+        if len(data_ids) == 1:
+            calibrations = self.ingester_api.search(DataEntryMetadataSearchCriteria(int(dataset_dam_id), int(data_ids[0])), offset=0, limit=1000)
+
+            # A DataEntry can have 1 calibration for each schema, so make sure we are looking at the correct one.
+            for result in calibrations.results:
+                if result.metadata_schema == schema_object.dam_id:
+                    # When we have the correct calibration - set the appstruct as its data.
+                    appstruct = deepcopy(result.data)
+
+                    to_delete = []
+                    for key in appstruct:
+                        if isinstance(appstruct[key], jcudc24ingesterapi.models.data_entry.FileObject):
+                            file_stream = self.ingester_api.getDataEntryStream(int(dam_id), int(data_ids[0]), key)
+                            # TODO
+                    calibration = result
+                    break
+
+        # If this page was navigated to from another form, save that form.
+        if self.request.referrer != self.request.path_url:
+            self._handle_form()
+        elif len(self.request.POST) > 0:
+            # Load the form data
+            appstruct = self._get_post_appstruct()
+            # Convert the data and schema to a CAModel which provides correct data types etc.
+            model = DataTypeModel(schema, appstruct=appstruct)
+            files = []
+            to_delete = []
+
+            if calibration is None:
+                calibration = MetadataEntry(metadata_schema_id=schema_object.dam_id)
+
+            for field in model._schema.children:
+                key = field.name
+                calibration_value = calibration.get(key, None)
+
+                if isinstance(field.widget, ProvisioningFileUploadWidget):
+                    if key in appstruct and appstruct[key] is not colander.null:
+                        calibration_value.f_path = appstruct[key]
+                        tmp_filename = appstruct[key].split("\\")[-1]
+                        calibration_value.file_name = tmp_filename.split(".", 1)[1]
+                    else:
+                        to_delete.append(key)
+                    files.append(key)
+                else:
+                    calibration[key] = getattr(model, key)
+
+            for key in to_delete:
+                if key in calibration.data:
+                    del calibration.data[key]
+
+            old_appstruct = appstruct
+
+            # Save the calibration to all DataEntry(s)
+            for id in data_ids:
+                data_calibration = deepcopy(calibration)
+                data_calibration.object_id = id
+                saved_calibration = self.ingester_api.post(data_calibration)
+
+            appstruct = saved_calibration.data
+
+            # Fix file fields as they aren't returned from the provisioning interface.
+            for file in files:
+                appstruct[file] = old_appstruct[file]
+
+        self._model_appstruct = appstruct
+
+        # Create the response and display the form
+        return self._create_response(
+            readonly=not has_permission(DefaultPermissions.EDIT_DATA, self.context, self.request).boolval)
+
+
     @view_config(route_name="data", permission=DefaultPermissions.VIEW_DATA)
-    def add_data_view(self):
+    def data_view(self):
         """
 
         :return:
         """
         dataset_id = self.request.matchdict['dataset_id']
-        if dataset_id is None or dataset_id == "None":
+        if dataset_id is None or dataset_id == "None" or not isnumeric(dataset_id):
             return HTTPFound(self.request.route_url("search", search_info="/data/id_list=project_%s" % self.project_id))
 
+        dam_id = int(self.session.query(Dataset.dam_id).filter_by(id=dataset_id).first()[0])
+
         data_id = self.request.matchdict['data_id']
-        if isinstance(data_id, tuple) and len(data_id) > 0:
+        if isinstance(data_id, tuple) and len(data_id) > 0 and data_id[0] != 'None':
             data_id = data_id[0]
         else:
             data_id = None
@@ -2415,26 +2812,95 @@ class Workflows(Layouts):
         self.form = Form(schema,
             action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id,
                 dataset_id=dataset_id, data_id=data_id),
-            buttons=(data_id is not None and len(data_id) > 0 and 'Save' or 'Add',), use_ajax=False)
+            buttons=data_id is not None and len(data_id) > 0 and ('Save',) or ('Add & Create New', 'Add'), use_ajax=False)
 
+        appstruct = {}
+        data_entry = None
+        if data_id is not None and isnumeric(data_id):
+            data_entry = self.ingester_api.getDataEntry(int(dam_id), int(data_id))
+            appstruct = deepcopy(data_entry.data)
+
+            to_delete = []
+            for key in appstruct:
+                if isinstance(appstruct[key], jcudc24ingesterapi.models.data_entry.FileObject):
+                    file_stream = self.ingester_api.getDataEntryStream(int(dam_id), int(data_id), key)
+                    file_stream.fp.close()
+                    appstruct[key] = {
+                        "is_external": True,
+                        "filepath": file_stream.url,
+                        "filename": file_stream.url.split("/")[-1]
+                    }
 
         # If this page was only called for saving and a rendered response isn't needed, return now.
         if self.request.referrer != self.request.path_url:
             self._handle_form()
-        else:
-            return
 
-        if isnumeric(dataset_id) and data_id is not None and isnumeric(data_id):
-            data_entry = self.ingester_api.getDataEntry(int(dataset_id), int(data_id))
-            self._model_appstruct = deepcopy(data_entry.data)
-
+        elif len(self.request.POST) > 0:
+            appstruct = self._get_post_appstruct()
+            model = DataTypeModel(schema, appstruct=appstruct)
+            files = []
             to_delete = []
-            for key in self._model_appstruct:
-                if isinstance(self._model_appstruct[key], jcudc24ingesterapi.models.data_entry.FileObject):
-                    to_delete.append(key)
+
+            if data_entry is None:
+                data_entry = DataEntry(dataset=dam_id, timestamp=datetime.now())
+
+            empty = True
+            for field in model._schema.children:
+                key = field.name
+                data_value = data_entry.data.get(key, None)
+
+                if isinstance(field.widget, ProvisioningFileUploadWidget):
+                    # If the file was set/left as it was.
+                    if isinstance(appstruct.get(key, colander.null), basestring):
+                        file_val = appstruct[key]
+                        # If the current data file hasn't been changed
+                        if file_val.startswith("{") and file_val.endswith("}"):
+                            to_delete.append(key) # Remove the field so that it isn't changed.
+
+                        # Else if a new file was uploaded
+                        else:
+                            tmp_filename = file_val.split("\\")[-1]
+                            f_name = tmp_filename.split(".", 1)[1]
+                            file = FileObject(f_path=file_val, file_name=f_name)
+                            data_entry[key] = file
+                            empty = False
+
+                    # Else if the data file was deleted.
+                    else:
+                        to_delete.append(key) # Remove the field so that it isn't changed.
+                    files.append(key)
+                else:
+                    data_entry[key] = getattr(model, key)
+                    if data_entry[key] is not None:
+                        empty = False
 
             for key in to_delete:
-                del self._model_appstruct[key]
+                if key in data_entry.data:
+                    del data_entry.data[key]
+
+            if not empty:
+                old_appstruct = appstruct
+                unit = self.ingester_api.createUnitOfWork()
+                saved_data_entry = unit.post(data_entry)
+                unit.commit()
+
+                # This ensures the shown data is what is actually saved.
+                appstruct = data_entry.data
+
+                # Fix file fields as they aren't returned from the provisioning interface.
+                for file in files:
+                    appstruct[file] = old_appstruct[file]
+
+                if data_id is None:
+                    if 'Add' in self.request.POST:
+                    # If we just added a new DataEntry redirect to editing the newly added DataEntry.
+                        return HTTPFound(self.request.route_url(self.request.matched_route.name, project_id=self.project_id,
+                            dataset_id=dataset_id, data_id=data_entry.id))
+                    else:
+                        # Add the data and goto a blank form for adding another.
+                        appstruct = {}
+
+        self._model_appstruct = appstruct
 
         # Create the response and display the form
         return self._create_response(
@@ -2451,9 +2917,12 @@ class Workflows(Layouts):
         """
         page_help=""
 
-        users = json.dumps([{"label": user.display_name, "identifier": user.id} for user in self.session.query(User).all()])
+        all_users = self.session.query(User).all()
+        json_users = json.dumps([{"label": user.display_name, "identifier": user.id} for user in all_users])
+        user_mapping = {str(user.id): user.display_name for user in all_users}
         schema = Sharing()
-        schema['shared_with'].users=users
+        schema['shared_with'].users=json_users
+        schema['shared_with'].children[0].user_mapping=user_mapping
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id), buttons=('Save',), use_ajax=False)
 
         # Update the user permissions
@@ -2477,7 +2946,9 @@ class Workflows(Layouts):
                     if field_name == 'user_id':
                         continue
 
-                    permission = self.session.query(Permission).filter_by(name=field_name).first()
+                    permission_name = field_name[:-len("_permission")]
+
+                    permission = self.session.query(Permission).filter_by(name=permission_name).first()
 
                     has_this_permission = False
                     for i in range(len(user.project_permissions)):
@@ -2494,6 +2965,8 @@ class Workflows(Layouts):
                         user.project_permissions.append(ProjectPermissions(self.project_id, permission.id, user.id))
                         modified.append(("Add", permission.name, user.display_name))
 
+                        self._add_default_notification_configs(user.id, self.project_id)
+
             for user_id in users_to_delete:
 #                del_permissions = self.session.query(ProjectPermissions).filter_by(project_id=self.project_id).filter_by(user_id=user_id).all()
                 self.session.query(ProjectPermissions).filter_by(project_id=self.project_id).filter_by(user_id=user_id).delete()
@@ -2501,6 +2974,7 @@ class Workflows(Layouts):
 
             self.session.flush()
 
+        # Update how the modified permissions will be displayed in the sent emails.
         for changed_permissions in modified:
             if isinstance(changed_permissions[1], (int, long)):
                 user = self.session.query(User).filter_by(id=changed_permissions[1]).first()
@@ -2509,27 +2983,13 @@ class Workflows(Layouts):
             if isinstance(changed_permissions[2], (int, long)):
                 permission = self.session.query(Permission).filter_by(id=changed_permissions[2]).first()
                 if permission is not None:
-                    changed_permissions[2] = permission.name
+                    modified.append((changed_permissions[0], changed_permissions[1], permission.name))
+                    modified.remove(changed_permissions)
 
         # Send notification emails
-        variables = {"name": self.request.user.display_name,
-                     "title": self.project.information.project_title,
-                     "project_id": self.project_id, "url": self.request.route_url("general", project_id=self.project_id)}
-        email_subject="EnMaSSe Project Share Permissions Changed" % variables
-        email_message = "Hi EnMaSSe User,<br />" \
-                        "<p><a href='%(url)s'>project_%(project_id)s: %(title)s</a> permissions were changed by %(name)s:</p>"\
-                        "<p style='padding-left: 10px;'>" + \
-                        "<br />".join(["%s %s for %s" % changed_permission for changed_permission in modified]) + "</p>"\
-                        "<br />Regards,<br/>EnMaSSe System"
-        email_message = email_message % variables
-        email_to = "casey@bajtech.com.au"
-        email_from = ["casey@bajtech.com.au"]
-        #email_to = ",".join([user.display_name for user in self.session.query(User).join(UserNotifications).filter()])
-        #email_from = self.config.get("enmasse.email", "EnMaSSe System")
-
-        mailer = get_mailer(self.request)
-        message = Message(subject=email_subject, recipients=email_from, html=email_message)
-        mailer.send(message)
+        if len(modified) > 0:
+            modified_text = "<br />".join(["%s %s for %s" % changed_permission for changed_permission in modified])
+            self._send_email_notifications(NotificationConfig.permission_changes.key, modified=modified_text)
 
         # Create the initial form data from the current state
         appstruct = {'shared_with': []}
@@ -2543,14 +3003,35 @@ class Workflows(Layouts):
                 appstruct['shared_with'].append(current_user)
                 current_user['user_id'] = project_permission.user_id
 
-            current_user[project_permission.permission.name] = 'true'
+            current_user[project_permission.permission.name + "_permission"] = 'true'
 
         # Directly set the model appstruct by-passing the usual workflow appstruct generation (because this view isn't directly mapped to an ColanderAlchemy model)
         self._model_appstruct = appstruct
+        self.form.cstruct = {'shared_with': colander.null}
+        delattr(self.form.children[0], 'sequence_fields')
 
         # Create the response and display the form
         return self._create_response(
             readonly=not has_permission(DefaultPermissions.EDIT_SHARE_PERMISSIONS, self.context, self.request).boolval)
+
+    def _add_default_notification_configs(self, user_id, project_id):
+        # Add email notification configurations for the user.
+        user_notification_configs = self.session.query(UserNotificationConfig).filter_by(user_id=user_id).first()
+        if user_notification_configs is None:
+            user_notification_configs = UserNotificationConfig()
+            user_notification_configs.default_notification_config = NotificationConfig()
+            user_notification_configs.user_id = user_id
+
+        if self.session.query(ProjectNotificationConfig).filter_by(user_notification_config_id=user_notification_configs.id, project_id=project_id).count() == 0:
+            new_config = ProjectNotificationConfig()
+            new_config.project_id = project_id
+            new_config.user_notification_config_id = user_notification_configs.id
+            new_config.notification_config = NotificationConfig()
+            for config in new_config.notification_config.schema.children:
+                name = fix_schema_field_name(config.name)
+                setattr(new_config.notification_config, name, getattr(user_notification_configs.default_notification_config,name))
+            user_notification_configs.notification_configs.append(new_config)
+
 
     @view_config(route_name="notifications", permission=DefaultPermissions.VIEW_DATA)
     def notifications_view(self):
@@ -2563,6 +3044,19 @@ class Workflows(Layouts):
         page_help = ""
         self._check_project_page_permissions()
 
+        self._model_type = UserNotificationConfig
+
+        configs = self.session.query(UserNotificationConfig.id).filter_by(user_id=self.request.user.id).first()
+        if configs is None:
+            self._model = UserNotificationConfig()
+            self._model.user_id = self.request.user.id
+            self._model.default_notification_config = NotificationConfig()
+            self.session.add(self._model)
+            self.session.flush()
+            self._model_id = self._model.id
+        else:
+            self._model_id = configs[0]
+
         page_help = ""
         schema = convert_schema(SQLAlchemyMapping(UserNotificationConfig, unknown='raise', ca_description="")).bind(
             request=self.request)
@@ -2570,28 +3064,70 @@ class Workflows(Layouts):
 
         DEFAULT_CONFIGS_INDEX = 'usernotificationconfig:default_notification_config'
         DEFAULT_NEW_PROJECT_INDEX = DEFAULT_CONFIGS_INDEX + ":new_projects"
+        DEFAULT_NEW_DATASET_INDEX = DEFAULT_CONFIGS_INDEX + ":new_datasets"
         PROJECT_CONFIGS_INDEX = 'usernotificationconfig:notification_configs'
         PROJECT_NOTIFICATION_CONFIG_INDEX = "projectnotificationconfig:notification_config"
         PROJECT_NOTIFICATION_NEW_PROJECT_INDEX = "projectnotificationconfig:notification_config:new_projects"
 
         has_admin_permission = has_permission(DefaultPermissions.ADMINISTRATOR, self.context, self.request).boolval
         schema[DEFAULT_CONFIGS_INDEX][DEFAULT_NEW_PROJECT_INDEX].widget.hidden=not has_admin_permission
-        schema[PROJECT_CONFIGS_INDEX].children[0][PROJECT_NOTIFICATION_CONFIG_INDEX][PROJECT_NOTIFICATION_NEW_PROJECT_INDEX].widget.hidden=not has_admin_permission
+        schema[DEFAULT_CONFIGS_INDEX][DEFAULT_NEW_DATASET_INDEX].widget.hidden=not has_admin_permission
+#        schema[PROJECT_CONFIGS_INDEX].children[0][PROJECT_NOTIFICATION_CONFIG_INDEX][PROJECT_NOTIFICATION_NEW_PROJECT_INDEX].widget.hidden = True
 
         def get_project_description(project_id):
-            return 'asdf'
-            return "<a href='%s'>[%s]: %s</a>" % (
+            if project_id is None or project_id is colander.null or project_id == '':
+                project_id = self.project_id
+
+            description_string = "<a href='%s'>[%s]: %s</a>"
+            if project_id == self.project_id:
+                description_string = "(Current project) " + description_string
+
+            # Handle special characters.
+            project_title = self.session.query(Metadata.project_title).filter_by(project_id=project_id).first()[0]
+            if isinstance(project_title, basestring):
+                if isinstance(project_title, unicode):
+                    project_title = project_title.encode("utf-8")
+                else:
+                    project_title = unicode(project_title, "utf-8")
+
+            return description_string % (
                 self.request.route_url("general", project_id=project_id), project_id,
-                self.session.query(Metadata.project_title).filter_by(project_id=project_id).first()[0])
-        schema[PROJECT_CONFIGS_INDEX].children[0][PROJECT_NOTIFICATION_CONFIG_INDEX].get_project_description = get_project_description
+                project_title)
+        schema[PROJECT_CONFIGS_INDEX].children[0].get_project_description = get_project_description
 
         self.form = Form(schema,
             action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id),
             buttons=('Save', ), use_ajax=False, ajax_options=redirect_options)
 
-        # If this page was only called for saving and a rendered response isn't needed, return now.
+        appstruct = self._get_post_appstruct()
+        if PROJECT_CONFIGS_INDEX in appstruct:
+            for notification_settings in appstruct[PROJECT_CONFIGS_INDEX]:
+                key_prefix = "projectnotificationconfig:"
+
+                # If this is a newly added configuration, set the project_id and user_notification_config_id.
+                if notification_settings[key_prefix + ProjectNotificationConfig.project_id.key] in (None, colander.null):
+                    notification_settings[key_prefix + ProjectNotificationConfig.project_id.key] = self.project_id
+                    notification_settings[key_prefix + ProjectNotificationConfig.user_notification_config_id.key] = self._model_id
+
+                    # If this page was only called for saving and a rendered response isn't needed, return now.
         if self._handle_form():
             return
+
+        # Selectivly show the add configuration for this project based on if it is already added.
+        has_notification_settings = self.session.query(ProjectNotificationConfig).filter_by(project_id=self.project_id,
+            user_notification_config_id=self._model_id).count() > 0
+        schema[PROJECT_CONFIGS_INDEX].widget.show_add = not has_notification_settings
+
+        # Set the limit to the current number + 1 so that the user can't add a configuration for this project twice.
+        notifications_settings_widget_max_len = self.session.query(ProjectNotificationConfig).filter_by(
+            user_notification_config_id=self._model_id).count()
+        schema[PROJECT_CONFIGS_INDEX].widget.max_len = notifications_settings_widget_max_len + 1
+
+        # Set the default values based on the users notification defaults.
+        defaults = self._get_model().default_notification_config
+        for config in schema[PROJECT_CONFIGS_INDEX].children[0][PROJECT_NOTIFICATION_CONFIG_INDEX]:
+            normalised_name = fix_schema_field_name(config.name)
+            config.default = getattr(defaults, normalised_name)
 
         return self._create_response(page_help=page_help, readonly=False)
 

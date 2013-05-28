@@ -161,10 +161,10 @@
     display: inline-block;
     text-align: center;
     margin: auto;
-    width: 100%;
     position: absolute;
-    left: 0;
+    left: 50%;
     top: 45px;
+    z-index: 1;
 }
 
 #browse_data_results .pagination span {
@@ -184,6 +184,11 @@
     float: right;
     padding-bottom: 20px;
     clear: right;
+    z-index: 1;
+}
+
+#sort_type, #sort_order {
+    z-index: 20;
 }
 
 #data_actions button {

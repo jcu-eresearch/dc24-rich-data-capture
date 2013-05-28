@@ -248,6 +248,12 @@ def initialise_default_schemas(session):
     density_schema.custom_fields.append(density_field)
     session.add(density_schema)
 
+    #----------Date schema--------------
+    date_schema = MethodSchema()
+    date_schema.name = "Date"
+    date_schema.template_schema = True
+    date_schema.schema_type = "DataEntryMetadataSchema"
+
     session.flush()
 
 def initialise_project_templates(session):

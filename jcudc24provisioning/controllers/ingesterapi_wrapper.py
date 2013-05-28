@@ -61,7 +61,6 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
         * Persistent connection using beaker sessions
     """
 
-#    @cache_region('long_term') # TODO: Check that this is secure
     def __init__(self, service_url, auth=None):
         """
             Call parent constructor, but also add cacheing of the connection
@@ -301,13 +300,10 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
         """
         assert isinstance(model, MethodSchema), "Invalid schema: " + str(model)
         if model.dam_id is not None:# and model.dam_id >= 0:
-            # Schema's cannot be changed TODO: Update this to test if shema has changed, if it has - add a new schema
+            # Schema's cannot be changed
             return model.dam_id
 
-        if True: # TODO: If the data entries don't need offsets
-            new_schema = jcudc24ingesterapi.schemas.data_entry_schemas.DataEntrySchema(model.name)
-        else:
-            pass #TODO: new_schema = jcudc24ingesterapi.schemas.data_entry_schemas.OffsetDataEntrySchema()
+        new_schema = jcudc24ingesterapi.schemas.data_entry_schemas.DataEntrySchema(model.name)
 
         # Set the schema parents/extends
         new_schema.extends = []
@@ -387,7 +383,6 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
 
         # Create the dataset and setup standard fields.
         new_dataset = jcudc24ingesterapi.models.dataset.Dataset()
-        new_dataset.redbox_uri = None   # TODO: Add redbox link
         new_dataset.enabled = True
         new_dataset.description = model.record_metadata.project_title
 
@@ -516,12 +511,13 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
                 data_source.url = provisioning_data_source.uri
 
             if hasattr(data_source, "field"):
-                data_source.field = provisioning_data_source.data_file
+                data_file = self.session.query(MethodSchemaField).filter_by(id=provisioning_data_source.data_file).first()
+                data_source.field = data_file.internal_name
 
 
             # Add the processing script
             script = None
-            if hasattr(provisioning_data_source, 'custom_processor'):
+            if hasattr(provisioning_data_source, 'custom_processor') and provisioning_data_source.custom_processor is not None:
                 script = self._create_custom_processing_script(provisioning_data_source.custom_processor)
                 data_source.processing_script = script
 
@@ -575,35 +571,3 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             raise ValueError("Could not read custom processing script: %s" % custom_processor.custom_processor_script)
 
         return script
-
-
-    def process_data_entry(self, model, command, work):
-        """
-        Convert the provisioning interface DataEntry into an ingesterapi DataEntry and call the ingesterapi command with
-        it.
-
-        :param model: The model to process/convert
-        :param command: How the ingesterapi should be called with the model (eg. delete/post/...)
-        :param work: Unit of work that the command will be called on with the created ingesterapi model.
-        :return: ID of the created ingesterapi model
-        """
-        pass # TODO: data_entries
-
-    def process_metadata(self, model, command, work):
-        """
-        Convert the provisioning interface Calibration into an ingesterapi metadata and call the ingesterapi command
-        with it.
-
-        :param model: The model to process/convert
-        :param command: How the ingesterapi should be called with the model (eg. delete/post/...)
-        :param work: Unit of work that the command will be called on with the created ingesterapi model.
-        :return: ID of the created ingesterapi model
-        """
-        pass # TODO: metadata
-
-
-
-
-
-
-

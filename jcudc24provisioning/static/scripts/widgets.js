@@ -731,6 +731,9 @@ function updateParentItem(add_button) {
 
 //--------------------MINT AUTOCOMPLETE INPUT--------------------------
 function get_name_from_identifier(oid, identifier, url) {
+    if (identifier.length == 0) {
+        return;
+    }
     $.ajax({
         url: url + identifier,
         dataType: "json",
@@ -788,7 +791,7 @@ function get_name_from_identifier(oid, identifier, url) {
         error: function(jqXHR, textStatus, errorThrown) {
 //                    alert(textStatus);
 //                    alert(errorThrown);
-            console.error("Error looking up mint identifier: " + textStatus);
+            console.error("Error looking up mint identifier: " + textStatus + " for " + url + identifier);
         }
     });
 }
@@ -839,8 +842,11 @@ function partial(func /*, 0..n args */) {
 }
 
 function mint_autocomplete_selected(event, ui){
-    $("#"+ event.target.id.replace("-autocomplete", ""))[0].value = ui.item.identifier;
-    get_name_from_identifier(event.target.id.replace("-autocomplete", ""), ui.item.identifier);
+    var oid = event.target.id.replace("-autocomplete", "");
+    $("#"+ oid)[0].value = ui.item.identifier;
+
+    var identifier_path = $("#"+oid+"-identifier_path")[0].value;
+    get_name_from_identifier(event.target.id.replace("-autocomplete", ""), ui.item.identifier, identifier_path);
 }
 
 //------------------SHARING SEQUENCE----------------------

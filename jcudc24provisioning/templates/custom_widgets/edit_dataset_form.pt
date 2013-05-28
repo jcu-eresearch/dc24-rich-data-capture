@@ -1,4 +1,3 @@
-
 <form
   id="${field.formid}"
   action="${field.action}"
@@ -15,8 +14,30 @@
 
     <input type="hidden" name="_charset_" />
     <input type="hidden" name="__formid__" value="${field.formid}"/>
-    <ul>
+    <ul tal:condition="'None' in str(cstruct['dataset:id']) or 'colander.null' in str(cstruct['dataset:id'])">
+        <div id="${field.oid}-template_panel" class="wizard" style="border: none !important">
+            <h2>Add A New Dataset</h2>
+            <p>Select the method that this dataset is for, this will pre-fill the dataset with the correct data schema (how the data is stored), data source as well as any data setup within the method template.</p>
+            <p>If you the existing methods can't be used you will need to contact the administrators.</p>
 
+            <div class="dataset_select">
+                <div tal:repeat="method field.schema.methods" onclick="$(this).siblings().not($(this)).removeClass('selected'); $(this).toggleClass('selected');">
+                    <input class="method_id" type="hidden" value="${method.id}" />
+                    <h3 tal:condition="method.method_name">${method.method_name}</h3>
+                    <h3 tal:condition="not method.method_name"><i>Un-named method</i></h3>
+                    <p tal:condition="method.method_description" tal:content="structure method.method_description"></p>
+                    <p tal:condition="not method.method_description"><i>No description has been provided for this method.</i></p>
+                </div>
+            </div>
+            <p class="required_message error hidden"><b>Required:</b> Please select a method by clicking on one of the items above.</p>
+
+
+            <div style="clear: both; position: relative; height: 60px;">
+                <button id="${field.oid}-button"  class="button_text submit" onclick="return create_dataset(this);">Create Dataset</button>
+            </div>
+        </div>
+    </ul>
+    <ul tal:attributes="style ('None' in str(cstruct['dataset:id']) or 'colander.null' in str(cstruct['dataset:id'])) and 'display: none' or nothing">
       <li class="errorLi" tal:condition="field.error">
         <h3 class="errorMsgLbl" i18n:translate=""
             >There was a problem with your submission</h3>
@@ -75,6 +96,25 @@
     </ul>
 
   </fieldset>
+
+<script type="text/javascript">
+    function create_dataset(create_button) {
+        var oid = create_button.id.replace("-button", '');
+        var create_panel = $(create_button.parentNode.parentNode);
+        var selected_item = create_panel.find(".dataset_select .selected");
+
+        if (selected_item.length == 0) {
+            create_panel.find(".required_message").show(200);
+            return false;
+        } else {
+            var method_id = selected_item.find(".method_id")[0].value;
+            $("[name='dataset:method_id']")[0].value = method_id;
+            $("#deform")[0].submit();
+        }
+        return true;
+    }
+</script>
+
 <script type="text/javascript" tal:condition="field.use_ajax">
   deform.addCallback(
      '${field.formid}',

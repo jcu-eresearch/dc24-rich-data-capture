@@ -63,6 +63,9 @@
 
                     $("#deform").parent().prepend($('#transition_note_panel')[0]);
 
+                    $("#" + oid + "-seqAdd").hide();
+                    $("#" + oid).find(".deformClosebuttonActive").hide();
+
                     var transition_buttons = $(".buttons").find("button[name!='Save_Notes']");
 
                     for (var i=0; i<transition_buttons.length; i++) {

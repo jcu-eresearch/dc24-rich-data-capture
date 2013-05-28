@@ -33,17 +33,22 @@
                      <tal:block tal:condition="not view.is_hidden_workflow">
                           <h3 tal:condition="len(view.workflow_action) > 0">Contextual Options</h3>
                           <ul>
-                              <li tal:repeat="menu view.workflow_action">
+                              <li tal:repeat="menu view.workflow_action"
+                                    tal:define="dataset_ids ['dataset_' + str(dataset.id) for dataset in view.project.datasets];
+                                                    dataset_id (isinstance(view.request.matchdict.get('dataset_id', None), tuple) and len(view.request.matchdict.get('dataset_id', None)) > 0) and view.request.matchdict.get('dataset_id', None)[0] or view.request.matchdict.get('dataset_id', None);
+                                                    search_info '/dataset/id_list='+','.join(dataset_ids);
+                                                    id_list isinstance(view.request.matchdict.get('data_id', ('',)), tuple) and view.request.matchdict.get('data_id', ('',))[0] or view.request.matchdict.get('data_id', ('',));
+                                                    data_id isinstance(view.request.matchdict.get('data_id', None), tuple) and view.request.matchdict.get('data_id', None)[0] or view.request.matchdict.get('data_id', None);
+                                                    calibration_id isinstance(view.request.matchdict.get('calibration_id', ''), tuple) and view.request.matchdict.get('calibration_id', '')[0] or view.request.matchdict.get('calibration_id', '');
+                                                    ">
                                   <tal:block tal:condition="menu.current">
                                       <a title="${menu.tooltip}" form="deform" onclick="false" class="current" value="${menu.title}">${menu.title}</a>
                                   </tal:block>
                                   <tal:block tal:condition="not menu.current and not readonly">
-                                      <a tal:define="id_list ['dataset_' + str(dataset.id) for dataset in view.project.datasets]"
-                                         title="${menu.tooltip}" form="deform" onclick="$('#deform')[0].action='${request.route_url(menu.href, project_id=view.project_id, dataset_id=view.request.matchdict.get('dataset_id', None), data_id=view.request.matchdict.get('data_id', ''), search_info='/dataset/id_list='+','.join(id_list))}'; window.onbeforeunload = null; $('#deform')[0].submit();" value="${menu.title}">${menu.title}</a>
+                                         <a title="${menu.tooltip}" form="deform" onclick="$('#deform')[0].action='${request.route_url(menu.href, project_id=view.project_id, dataset_id=dataset_id, data_id=data_id, search_info=search_info, id_list=id_list, calibration_id=calibration_id)}'; window.onbeforeunload = null; $('#deform.deform').submit();" value="${menu.title}">${menu.title}</a>
                                   </tal:block>
                                   <tal:block tal:condition="readonly and not menu.current">
-                                      <a tal:define="id_list ['dataset_' + str(dataset.id) for dataset in view.project.datasets]"
-                                         title="${menu.tooltip}" href="${request.route_url(menu.href, project_id=view.project_id, dataset_id=view.request.matchdict.get('dataset_id', None), data_id=view.request.matchdict.get('data_id', ''), search_info='/dataset/id_list='+','.join(id_list))}">${menu.title}</a>
+                                      <a title="${menu.tooltip}" href="${request.route_url(menu.href, project_id=view.project_id, dataset_id=dataset_id, data_id=data_id, search_info=search_info, id_list=id_list, calibration_id=calibration_id)}">${menu.title}</a>
                                   </tal:block>
                               </li>
                           </ul>

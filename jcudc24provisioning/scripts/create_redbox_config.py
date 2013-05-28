@@ -53,31 +53,6 @@ def create_json_config():
     :return: JSON configuration of XPATH mappings for ReDBox.  The XPATH maps from provisioning interface metadata table
              fields to ReDBox fields.
     """
-# TODO: Work out if any of these fields are needed?
-#    "dc:extent": "",                                   # Size of data
-
-# Data management fields
-#na     "redbox:disposalDate": "",                      # Data owner
-#na     "locrel:own.foaf:Agent.0.foaf:name": "",        # Data owner
-#na     "locrel:dtm.foaf:Agent.foaf:name": "",          # Data custodian - TODO: Should this be filled with JCU?
-#     "foaf:Organization.dc:identifier": "",            # Data affiliation
-#     "foaf:Organization.skos:prefLabel": "",           # Data affiliation
-#     "swrc:ResearchProject.dc:title": "",   # TODO: Should this be added? - would map to the project title field?
-#na     "locrel:dpt.foaf:Person.foaf:name": "",         # Depositor
-#na    "dc:SizeOrDuration": "",                         # Data size
-#na     "dc:Policy": "",                                # Institutional data management policy
-#na    "redbox:ManagementPlan.redbox:hasPlan": null,    # Data management policy
-#na     "redbox:ManagementPlan.skos:note": "",          # Data management policy
-#na     "skos:note.0.dc:created": "",
-#na     "skos:note.0.foaf:name": "",                    # Seems to be a notes squence that is split between muliple places as individual fields
-#na     "skos:note.0.dc:description": "",
-
-
-#    # TODO: What is the metalist?
-##    "metaList": [...]
-
-
-
     dict_config = {
         "comment": "This James Cook University's XML mapping is generated from the DC24 RichDataCapture provisioning interface.  It is generated on startup to create a ReDBox json configuration file that matches the models XML conversion.",
         "mappings": {
@@ -89,8 +64,7 @@ def create_json_config():
                 Metadata.view_id.key: "viewId",
                 Metadata.package_type.key: "packageType",
                 Metadata.record_origin.key: "dc:identifier.redbox:origin",
-                #TODO: What should this be prefilled with? Internal or something like rdc?
-                Metadata.new_redbox_form.key: "redbox:newForm", #TODO: Should this be true?
+                Metadata.new_redbox_form.key: "redbox:newForm",
                 Metadata.redbox_form_version.key: "redbox:formVersion",
                 Metadata.record_type.key: "dc:type.rdf:PlainLiteral",
                 Metadata.record_type_label.key: "dc:type.skos:prefLabel",
@@ -115,8 +89,6 @@ def create_json_config():
                     Party.identifier.key: ["dc:creator.foaf:Person.0.dc:identifier", "locrel:prc.foaf:Person.dc:identifier"],
                     Party.name.key: "dc:creator.foaf:Person.0.foaf:name",
                     Party.title.key: ["dc:creator.foaf:Person.0.foaf:title", "locrel:prc.foaf:Person.foaf:title"],
-                    #                Party.coprimary: "dc:creator.foaf:Person.0.redbox:isCoPrimaryInvestigator",       # TODO: Are these needed?
-                    #                Party.primary: "dc:creator.foaf:Person.0.redbox:isPrimaryInvestigator",
                     Party.given_name.key: ["dc:creator.foaf:Person.0.foaf:givenName", "locrel:prc.foaf:Person.foaf:givenName"],
                     Party.family_name.key: ["dc:creator.foaf:Person.0.foaf:familyName", "locrel:prc.foaf:Person.foaf:familyName"],
                     Party.association.key: "dc:creator.foaf:Person.0.foaf:Organization.dc:identifier",
@@ -157,8 +129,7 @@ def create_json_config():
 #                Metadata.location_description.key: "",
                 Metadata.locations.key + "/*": {
                     Location.location_type.key: "dc:coverage.vivo:GeographicLocation.0.dc:type",
-                    # TODO: create hidden field prefilled with text.
-                    Location.name.key: "", #TODO: Do something with location names and elevations.
+                    Location.name.key: "", # TODO: Do something with location names and elevations.
                     Location.location.key: ["dc:coverage.vivo:GeographicLocation.0.redbox:wktRaw",
                                             "dc:coverage.vivo:GeographicLocation.0.rdf:PlainLiteral"],
                     Location.elevation.key: "",
@@ -186,7 +157,6 @@ def create_json_config():
 #                Metadata.citation_publish_date.key: "publication-date-citation",
                 Metadata.citation_dates.key + "/*": {
                     CitationDate.label.key: "dc:biblioGraphicCitation.dc:hasPart.dc:date.0.dc:type.skos:prefLabel",
-                    # TODO: Get this label as the name in the dropdown (datetype is the value)
                     CitationDate.type.key: "dc:biblioGraphicCitation.dc:hasPart.dc:date.0.dc:type.rdf:PlainLiteral",
                     CitationDate.date.key: "dc:biblioGraphicCitation.dc:hasPart.dc:date.0.rdf:PlainLiteral",
                 },
@@ -196,7 +166,6 @@ def create_json_config():
                 Metadata.send_citation.key: "dc:biblioGraphicCitation.redbox:sendCitation",
                 Metadata.citation_string.key: "dc:biblioGraphicCitation.skos:prefLabel",
                 Metadata.use_curation.key: "dc:biblioGraphicCitation.dc:hasPart.dc:identifier.skos:note",
-                # TODO: Citation->use identifier provided during curation? - Ask if this should be on?
                 Metadata.retention_period.key: "redbox:retentionPeriod",
                 Metadata.related_publications.key + "/*": {
                         RelatedPublication.title.key: "dc:relation.swrc:Publication.0.dc:title",
@@ -224,9 +193,7 @@ def create_json_config():
                     "origin": "dc:relation.vivo:Dataset.0.redbox:origin",
                     "publish": "dc:relation.vivo:Dataset.0.redbox:publish",
                 }
-                #
-                #
-                #            # TODO: This is the related servces fields
+                #            # TODO: This is the related services fields
                 #            "dc:relation.vivo:Service.0.dc:identifier": "some_identifier",
                 #            "dc:relation.vivo:Service.0.vivo:Relationship.rdf:PlainLiteral": "isProducedBy",
                 #            "dc:relation.vivo:Service.0.vivo:Relationship.skos:prefLabel": "Is produced by:",

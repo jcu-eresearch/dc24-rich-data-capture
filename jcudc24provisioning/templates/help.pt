@@ -1,21 +1,183 @@
-<div metal:use-macro="view.global_template">
+<div metal:use-macro="view.global_template" xmlns="http://www.w3.org/1999/html">
     <div metal:fill-slot="content">
-        <div id="help_content" style="width: 70%; float: left; border: red 1px blue;">
-            <div style="border: red 1px solid; height: 100px">Help intro & links to docs, blogs and github.</div>
-            <div style="border: red 1px solid; height: 200px;">FAQ</div>
-            <div style="border: red 1px solid; height: 600px">Help text summary & links to specific topics.</div>
+        <div id="help_content">
+            <div>
+                We understand that there are some complex concepts behind EnMaSSe and we strive to provide
+                the best support possible, we encourage you to first look at the comprehensive <a href="https://tdh-rich-data-capture-documentation.readthedocs.org/en/latest/">online documentation</a> and it's often quicker and easier to find the answers to most questions there!
+                <!--<ul>-->
+                    <!--<li><a href="https://tdh-rich-data-capture-documentation.readthedocs.org/en/latest/enmasse-user.html">User Guide</a>.</li>-->
+                    <!--<li><a href="https://tdh-rich-data-capture-documentation.readthedocs.org/en/latest/enmasse-admin.html">Administrator Guide</a>.</li>-->
+                    <!--<li><a href="https://tdh-rich-data-capture-documentation.readthedocs.org/en/latest/enmasse-developer.html">Developer Guide</a>.</li>-->
+                <!--</ul>-->
+                <p>
+                    If you don't find your answers in the online documenation you can contact our administrators
+                    using the contact form or contact details to the right.
+                </p>
+
+            </div>
+            <div id="faq">
+                <h3>Frequently Asked Questions</h3>
+                <div class="question"><b>Question:</b> How do I get an account?</div>
+                <div class="answer">
+                    <b>Answer:</b> EnMaSSe uses Shibboleth which allows you to login with your organisations
+                    authentication details (eg. use your JCU account through Shibboleth).
+                </div>
+                <div class="question"><b>Question:</b> Why is there the option for local login?</div>
+                <div class="answer">
+                    <b>Answer:</b> For administration purposes such as logging in if the connection to
+                    Shibboleth goes down.
+                </div>
+                <div class="question"><b>Question:</b> Why can't I delete a project?</div>
+                <div class="answer">
+                    <b>Answer:</b> A core principle behind EnMaSSe is to ensure the persistence of data and metadata
+                    records, so even when a project is completed its data still needs to be stored.  Please contact the
+                    administrators if you have a valid reason to delete a project.
+                </div>
+                <div class="question"><b>Question:</b> Why can't I edit my project after it is submitted and approved?</div>
+                <div class="answer">
+                    <b>Answer:</b> There are a number of reasons that modifications to metadata or ingester configurations are restricted:
+                    <ul>
+                        <li>When your project is approved most of the information is exported to external systems
+                            that cannot be changed.</li>
+                        <li>When your project is approved it is publicly published and we aim to prevent the situation
+                            where metadata or data is changed after external researchers have used or cited it.</li>
+                        <li>If ingester configurations are changed after data has been input the state of the data may become unknown.</li>
+                    </ul>
+                    The only part of projects that can be changed after approval are ingester data sources (how the data
+                    is ingested, not what the data is or how it is stored).
+                </div>
+                <div class="question"><b>Question:</b> My project has been running correctly for a while but a sensor died, what do I do?</div>
+                <div class="answer">
+                    <b>Answer:</b> If you can replace it with an identical sensor where nothing needs to change in EnMaSSE, just replace the sensor.
+                    <p>If an identical sensor can't be found or the sensor requires individual calibration data you need to:</p>
+                    <ol>
+                        <li>Disable the dataset for the old sensor.</li>
+                        <li>Create and activate a new dataset for the new sensor.</li>
+                    </ol>
+                </div>
+                <div class="question"><b>Question:</b> Methods and datasets are so confusing, what should I do?</div>
+                <div class="answer">
+                    <b>Answer:</b> Take a look at the <a href="https://tdh-rich-data-capture-documentation.readthedocs.org/en/latest/enmasse-user.html#data-concepts">data concepts</a>
+                    section of the user guide.
+                </div>
+                <div class="question"><b>Question:</b> What is an exception and why do I keep getting them?</div>
+                <div class="answer">
+                    <b>Answer:</b> Exceptions are errors within the EnMaSSe application, if the error message doesn't
+                    make sense to you it is a bug within the system and should be reported to the administrators.
+                </div>
+                <div class="question"><b>Question:</b> How do I download the data from a project?</div>
+                <div class="answer">
+                    <b>Answer:</b> EnMaSSe doesn't currently support bulk data downloads, you should use the
+                    <a href="http://dam.hpc.jcu.edu.au:8085/login">CoastalCOMS data portal</a>.
+                </div>
+                <div class="question"><b>Question:</b> I'm starting a new research project, should I use EnMaSSe?</div>
+                <div class="answer">
+                    <b>Answer:</b> EnMaSSe is specifically designed for research projects that require streamed sensor
+                    data, if you are using many sensors EnMaSSe is for you.  If your research project only uses manual
+                    data input methods (such as observation forms) then you may not require EnMaSSe.
+                    <p>Feel free to contact our administrators if you are unsure!</p>
+                </div>
+
+            </div>
+            <p>Some other links that you may be interested in:</p>
+            <ul>
+                <li>Developer <a href="http://jcu-eresearch.github.io/TDH-rich-data-capture/">blog posts</a> can be found on github.</li>
+                <li>Source code repositories can be found on github and all come under the 3-clause BSD license:
+                    <ul>
+                        <li><a href="https://github.com/jcu-eresearch/EnMaSSe-Deployment">Deployment</a> - Simplifies installation of EnMaSSe.</li>
+                        <li><a href="https://github.com/jcu-eresearch/TDH-rich-data-capture">Provisioning Interface</a> - User interface for EnMaSSe.</li>
+                        <li><a href="https://github.com/jcu-eresearch/jcu.dc24.ingesterapi">Ingester API</a> - Used to integrate the user interface and data streaming.</li>
+                        <li><a href="https://github.com/jcu-eresearch/TDH-dc24-ingester-platform">Ingester Platform</a> - Data streaming for EnMaSSe.</li>
+                        <li><a href="https://github.com/jcu-eresearch/python-simplesos">Python-SimpleSOS</a> - Library for Sensor Observation Service integration.</li>
+                    </ul>
+                </li>
+            </ul>
         </div>
-        <div id="help_sidebar" style="border: blue 1px solid; width: 200px; float: left;">
-            <div style="border: red 1px solid; height: 200px">Contact Form</div>
-            <div style="border: red 1px solid;  height: 300px">Contact details</div>
+        <div id="help_sidebar">
+            <div>
+                <h3>Contact details</h3>
+                <p>
+                    <a href="eresearch.jcu.edu.au/">eResearch Centre</a><br />
+                    Building 17, Room 145<br />
+                    Douglas Campus<br />
+                    James Cook University<br />
+                    TOWNSVILLE  QLD  4810
+                </p>
+
+                <b>Administrators</b>
+                <tal:block tal:repeat="admin admins">
+                    ${admin}
+                    <span tal:condition="admin[2] is not None" tal:replace="structure '<dl><dt>%s</dt><dd>Email: <a href=\'mailto:%s\'>%s</a></dd><dd>Phone: %s</dd></dl>' % (admin[:1] + admin[1:])" />
+                    <span tal:condition="admin[2] is None" tal:replace="structure '<dl><dt>%s</dt><dd>Email: <a href=\'mailto:%s\'>%s</a></dd></dl>' % (admin[:-1] + (admin[1],))" />
+                </tal:block>
+
+            </div>
+            <div id="contact-form" asdf="$(this).toggleClass('active');">
+                <h3>Contact Form</h3>
+                <form method="post">
+                    <label for="email">Email</label>
+                    <input type="text" id="email" name="email" value="${data['email']}">
+                    <br />
+                    <label for="subject">Subject</label>
+                    <input type="text" id="subject"  name="subject" value="${data['subject']}">
+                    <br />
+                    <label for="help_message">Message</label><br />
+                    <textarea id="help_message" name="message"> ${data['message']}</textarea>
+                    <button class="btnText submit" name="Send" onclick="return check_email();">Send</button>
+                </form>
+
+            </div>
         </div>
 
         <script type="text/javascript">
+            function check_email() {
+                var error = false;
+                var email = $('#email')[0];
+                if (!email.value.trim() || !validateEmail(email.value)) {
+                    email.className='error';
+                    error = true;
+                    $(email).prev()[0].className='error';
+                } else {
+                    email.className='';
+                    $(email).prev()[0].className='';
+                }
+
+
+                var subject = $('#subject')[0];
+                if (!subject.value.trim()) {
+                    subject.className='error';
+                    $(subject).prev()[0].className='error';
+                    error = true;
+                } else {
+                    subject.className='';
+                    $(subject).prev()[0].className='';
+                }
+
+
+                var message = $('#help_message')[0];
+                if (!message.value.trim()) {
+                    message.className='error';
+                    $(message).prev().prev()[0].className='error';
+                    error = true;
+                } else {
+                    message.className='';
+                    $(message).prev().prev()[0].className='';
+                }
+                return !error;
+            }
+
+            function validateEmail(email) {
+                var re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+                return re.test(email);
+            }
+
+            $(".question").attr('onclick', '$(this).next().toggle(200);');
+
             $(window).resize(set_help_sidebar_size);
 
             function set_help_sidebar_size() {
 //            console.log($("#center").width() - $("#sidebar").width());
-                $("#help_content").width($("#center").width() - $("#help_sidebar").width() - 15);
+                $("#help_content").width($("#center").width() - $("#help_sidebar").width() - 45);
             }
             set_help_sidebar_size();
         </script>

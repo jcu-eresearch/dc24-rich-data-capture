@@ -104,8 +104,8 @@
                         showAdd(oid, false);
                     };
                     second_select.onchange = function () {
-                        showAdd(oid, true);
                         updateThirdFields(oid);
+                        showAdd(oid, true);
                     };
                     third_select.onchange = function () {
                         showAdd(oid, true);

@@ -4,6 +4,7 @@ Converts MethodSchema's (data configurations) into Deform schemas.  There is als
 """
 
 from collections import namedtuple
+from datetime import date
 from beaker.cache import cache_region
 from deform.form import Form
 import random
@@ -11,7 +12,8 @@ import string
 import colander
 import deform
 from jcudc24provisioning.models import DBSession
-from jcudc24provisioning.models.project import MethodSchema, field_types
+from jcudc24provisioning.models.ca_model import CAModel
+from jcudc24provisioning.models.project import MethodSchema, field_types, Project
 from jcudc24provisioning.models.file_upload import upload_widget
 
 __author__ = 'xjc01266'
@@ -67,6 +69,22 @@ def get_method_schema_preview(method_schema_id):
     display = display[display.index(">")+1:].replace("</form>", "").strip()
     return display
 
+class DataTypeModel(CAModel):
+    def __init__(self, schema=None, appstruct=None):
+        self.id = None
+
+        if schema is not None:
+            attrs = {child.name: None for child in schema.children}
+            self.__dict__.update(attrs)
+
+            model_class = type(schema.name, (DataTypeModel,), attrs)
+            test2 = model_class()
+
+            self._model_class = model_class
+
+        super(DataTypeModel, self).__init__(schema=schema, appstruct=appstruct)
+
+
 class DataTypeSchema(colander.SchemaNode):
     """
     Base Deform schema that dynamically adds all elements of a MethodSchema (including parent schema elements).
@@ -111,13 +129,19 @@ def get_schema_fields(method_schema):
                field.type == field_types[DATE_INDEX][0] and colander.DateTime() or \
                colander.String()
 
+        python_type = field.type == field_types[INTEGER_INDEX][0] and int or\
+                      field.type == field_types[DECIMAL_INDEX][0] and float or\
+                      field.type == field_types[FILE_INDEX][0] and file or\
+                      field.type == field_types[DATE_INDEX][0] and date or\
+                      str
+
         if field.values is not None:
             value_items = field.values.split(",")
             values = ()
             for value in value_items:
                 values = values + ((value.strip(", ").lower().replace(" ", "_"), value),)
 
-        #TODO: Website regex is basic but should validate blatant mistakes such as user misinterpreting the field for email
+        # Website regex is basic but should validate blatant mistakes such as user misinterpreting the field for email
         widget = field.type == field_types[INTEGER_INDEX][0] and deform.widget.TextInputWidget(regex_mask="^\\\\d*$", strip=False) or\
                  field.type == field_types[DECIMAL_INDEX][0] and deform.widget.TextInputWidget(regex_mask="^(((\\\\.\\\\d*)?)|(\\\\d+(\\\\.\\\\d*)?))$", strip=False) or\
                  field.type == field_types[TEXT_AREA_INDEX][0] and deform.widget.TextAreaWidget() or\
@@ -142,7 +166,8 @@ def get_schema_fields(method_schema):
             'widget': widget,
             'description': field.description,
             'placeholder': field.placeholder,
-            'default': field.default
+            'default': field.default,
+            'python_type': python_type,
         }
 
         fields.append(colander.SchemaNode(field_type, *children, **params))

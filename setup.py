@@ -57,7 +57,9 @@ setup(name='jcu.dc24.provisioning',
       [paste.app_factory]
       main = jcudc24provisioning:main
       [console_scripts]
-      initialize_jcu.dc24.provisioning_db = jcudc24provisioning.scripts.initializedb:main
+      initialize_provisioning_db = jcudc24provisioning.scripts.initializedb:main
+      check_ingester_logs = jcudc24provisioning.scripts.check_ingester_logs:main
+      delete_all_tables = jcudc24provisioning.scripts.delete_all_tables
       [fanstatic.libraries]
       jcudc24provisioning = jcudc24provisioning.resources:library
       """,

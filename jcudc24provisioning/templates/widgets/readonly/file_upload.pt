@@ -5,7 +5,7 @@
 
         <input type="hidden" name="uid" value="${cstruct['uid']}"
                id="${field.oid}-uid"/>
-        <span id="${field.oid}-filename"><span class="deformClosebutton" onclick="$('#${field.oid}-uid')[0].value=''; $(parentNode).remove(); "></span> ${cstruct.get('filename')}</span>
+        <span id="${field.oid}-filename"><span class="deformClosebutton" onclick="$('#${field.oid}-uid')[0].value=''; $(parentNode).remove(); "></span><a href="${field.schema.bindings['request'].static_url('jcudc24provisioning:project_uploads/%s.%s' % (cstruct.get('uid'), cstruct.get('filename')))}">${cstruct.get('filename')}</a></span>
 
     </div>
     <input type="text" onchange="$('#${field.oid}-uid')[0].value=''; $(parentNode).children('.deformReplaces').remove(); "

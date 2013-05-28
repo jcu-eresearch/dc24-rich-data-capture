@@ -793,7 +793,7 @@ DROP TABLE IF EXISTS `project`;
 CREATE TABLE `project` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `state` int(11) DEFAULT NULL,
-  `project_creator` varchar(100) DEFAULT NULL,
+  `created_by` int(11) DEFAULT NULL,
   `creation_date` date DEFAULT NULL,
   `template_only` tinyint(1) DEFAULT NULL,
   `validated` tinyint(1) DEFAULT NULL,

@@ -1,6 +1,7 @@
 """
 Customised widgets and functionality for file uploads in the EnMaSSe provisioning interface.
 """
+import ast
 
 import binascii
 import colander
@@ -144,9 +145,13 @@ class ProvisioningFileUploadWidget(FileUploadWidget):
             cstruct = {}
 
         if isinstance(cstruct, basestring):
-            cstruct = self.tmpstore.get(cstruct)
+            # IF this is a str(dict)
+            if cstruct[0] == '{' and cstruct[-1] == '}' and ":" in cstruct:
+                cstruct = ast.literal_eval(cstruct)
+            else:
+                cstruct = self.tmpstore.get(cstruct)
 
-        if cstruct:
+        if 'uid' in cstruct:
             uid = cstruct['uid']
             if not uid in self.tmpstore:
                 self.tmpstore[uid] = cstruct
@@ -164,6 +169,9 @@ class ProvisioningFileUploadWidget(FileUploadWidget):
             pstruct = self.tmpstore.get(pstruct)
             if pstruct is None:
                 return colander.null
+
+        if pstruct.get('is_external', False):
+            return pstruct
 
         upload = pstruct.get('upload')
         uid = pstruct.get('uid')

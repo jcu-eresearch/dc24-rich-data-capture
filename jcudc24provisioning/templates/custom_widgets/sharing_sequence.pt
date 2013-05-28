@@ -40,7 +40,7 @@
     <a
        class="deformSeqAdd"
        id="${field.oid}-seqAdd"
-       onclick="deform.appendSequenceItem(this); add_user(this);">
+       onclick="deform.appendSequenceItem(this); add_user(this); $('#${field.oid}-userSelection')[0].value = ''">
         <small id="${field.oid}-addtext">${add_subitem_text}</small>
     </a>
 

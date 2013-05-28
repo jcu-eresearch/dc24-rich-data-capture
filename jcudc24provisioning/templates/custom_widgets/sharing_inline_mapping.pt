@@ -1,0 +1,38 @@
+<!--
+    inline_mapping is a template for a mapping_schema lays children out inline rather than in lists.
+
+    This template is based directly off the mapping.pt
+-->
+<span class="deformInlineMappingFieldset" i18n:domain="deform">
+
+  <!-- mapping -->
+    <legend>
+        ${field.schema.user_mapping.get((cstruct.get('user_id', None)), 'asdf')}
+    </legend>
+
+  <ul class="inline_mapping" style="display: inline;">
+
+    <li class="errorLi" tal:condition="field.errormsg">
+      <h3 class="errorMsgLbl" i18n:translate="">There was a problem with this section</h3>
+      <p class="errorMsg">${field.errormsg}</p>
+    </li>
+
+    <li class="hidden help_text section" tal:condition="field.schema.__dict__.get('help')">
+        <div id="help-${field.oid}" tal:content="structure field.schema.__dict__.get('help')"></div>
+    </li>
+    <li class="section description" tal:condition="field.description">
+        <div id="desc-${field.oid}" tal:content="structure field.description"></div>
+    </li>
+    <input type="hidden" name="__start__" value="${field.name}:mapping"/>
+
+
+    <div
+       tal:define="rndr field.renderer;
+                   tmpl field.widget.item_template"
+       tal:repeat="f field.children"
+       tal:replace="structure rndr(tmpl,field=f,cstruct=cstruct.get(f.name,null))"/>
+    <input type="hidden" name="__end__" value="${field.name}:mapping"/>
+  </ul>
+  <!-- /mapping -->
+</span>
+<div style="clear: both;"></div>

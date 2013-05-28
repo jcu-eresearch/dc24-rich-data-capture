@@ -6,7 +6,7 @@
         <input type="hidden" class="dataset_dam_id" value="${dataset.dam_id}">
 
         <h3 tal:condition="dataset.record_metadata is not None">${dataset.record_metadata.project_title}</h3>
-        <a href="${field.schema.request.route_url('dataset_logs', project_id=dataset.project_id, dataset_id=dataset.id)}" style="position: absolute; right: 5px; top: 0; background-color: white; z-index: 0; padding-left: 3px; padding-right: 3px;">dataset_${dataset.id}_logs.txt</a>
+        <a href="${field.schema.request.route_url('dataset_log', project_id=dataset.project_id, dataset_id=dataset.id)}" style="position: absolute; right: 5px; top: 0; background-color: white; z-index: 0; padding-left: 3px; padding-right: 3px;">dataset_${dataset.id}_logs.txt</a>
         <div class="errors">
             <p tal:repeat="error dataset.logs_error" class="error" tal:condition="hasattr(dataset, 'logs_error')">${error}</p>
         </div>
@@ -29,7 +29,7 @@
                     function (oid) {
                         $(".logs_dataset p").hide();
                         $('.logs_dataset').addClass('collapsed');
-                        $(".logs_dataset").attr("onclick", "$('.logs_dataset').not($(this)).find('logs').find('p').hide(); $('.logs_dataset').not($(this)).addClass('collapsed');  $(this).find('.logs').find('p').toggle(); $(this).toggleClass('collapsed');");
+                        $(".logs_dataset").attr("onclick", "$('.logs_dataset').not($(this)).find('.logs').find('p').hide(); $('.logs_dataset').not($(this)).addClass('collapsed');  $(this).find('.logs').find('p').toggle(); $(this).toggleClass('collapsed');");
 
                         var datasets = $("#ingester_logs-" + oid).find(".logs_dataset");
                         var filtering = $("#ingester_logs-" + oid).find(".filtering-values")[0].value;

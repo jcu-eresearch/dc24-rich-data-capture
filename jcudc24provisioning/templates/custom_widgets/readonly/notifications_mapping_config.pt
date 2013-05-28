@@ -1,0 +1,48 @@
+<!--
+    inline_mapping is a template for a mapping_schema lays children out inline rather than in lists.
+
+    This template is based directly off the mapping.pt
+-->
+<span class="deformInlineMappingFieldset" i18n:domain="deform">
+
+  <!-- mapping -->
+    <tal:block tal:condition="exists:field.widget.show_label">
+        <legend class="collapsible"
+                tal:condition="(field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and field.title"
+                tal:define="symbol (field.schema.__dict__.get('collapsed') == True and '+') or '-'">
+            <span class="help_icon" onclick="toggleHelp(this);" tal:condition="field.schema.__dict__.get('help')">?</span>
+            <span onclick="toggleCollapse(this.parentNode, '${field.schema.__dict__.get('collapse_group')}');" class="collapse_icon">${symbol}</span> ${field.title}
+            <!--#[<a class="expand_all" onclick="expandAll('${field.schema.__dict__.get('collapse_group')}');">Expand All</a>/<a onclick="collapseAll('${field.schema.__dict__.get('collapse_group')}');" class="collapse_all">Collapse All</a>]-->
+        </legend>
+        <legend tal:condition="not (field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and field.title">
+            <span class="help_icon" onclick="$(this.parentNode.parentNode).find('.help_text').first().toggle(200)" tal:condition="field.schema.__dict__.get('help')">?</span>
+            ${field.title}
+        </legend>
+    </tal:block>
+
+  <ul class="inline_mapping" style="display: inline;">
+
+      <li class="errorLi" tal:condition="field.errormsg">
+          <h3 class="errorMsgLbl" i18n:translate="">There was a problem with this section</h3>
+          <p class="errorMsg">${field.errormsg}</p>
+      </li>
+
+      <li class="hidden help_text section" tal:condition="field.schema.__dict__.get('help')">
+          <div id="help-${field.oid}" tal:content="structure field.schema.__dict__.get('help')"></div>
+      </li>
+      <li class="section description" tal:condition="field.description">
+          <div id="desc-${field.oid}" tal:content="structure field.description"></div>
+      </li>
+      <input type="hidden" name="__start__" value="${field.name}:mapping"/>
+
+
+      <div
+              tal:define="rndr field.renderer;
+                   tmpl field.widget.readonly_item_template"
+              tal:repeat="f field.children"
+              tal:replace="structure not hasattr(f.schema, 'defaults_only') and rndr(tmpl,field=f,cstruct=cstruct.get(f.name,null)) or nothing"/>
+      <input type="hidden" name="__end__" value="${field.name}:mapping"/>
+  </ul>
+  <!-- /mapping -->
+</span>
+<div style="clear: both;"></div>

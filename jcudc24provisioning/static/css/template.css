@@ -32,6 +32,10 @@ h1, h2, h3, h4, h5, h6 {
     line-height: 1.5em;
 }
 
+a, a:visited, a:link {
+    color: blue;
+}
+
 /*input, textarea, select, input.checkbox, input.radio {*/
 /*border-color: rgb(247, 147, 30);*/
 /*}*/
@@ -101,8 +105,8 @@ input[type=text]:not(.hasDatepicker), input[type=text].half_width, input[type=pa
 }
 
 #page_title {
-    padding: 0px 20px;
-    padding-top: 20px;
+    position: relative;
+    top: 30px;
 }
 
 #page_title h1 {
@@ -110,7 +114,7 @@ input[type=text]:not(.hasDatepicker), input[type=text].half_width, input[type=pa
     margin-top: 0px;
     padding-top: 0px;
     float: left;
-    margin-left: 30px;
+    margin-left: 10px;
 }
 
 .page_help_text {
@@ -160,7 +164,10 @@ body {
 #logo {
     float: left;
     height: 69px;
-    padding: 16px;
+    position: relative;
+    margin-right: 32px;
+    top: 16px;
+    left: 16px;
 }
 
 #header #search form {
@@ -207,11 +214,15 @@ body {
 #enmasse-logo {
     float: left;
     top: 0px;
-    margin-top: 24px;
+    display: block;
+    width: 330px;
+    height: 55px;
 }
 #enmasse-logo img {
     /*height: 93%;*/
+    height: 55px;
     position: absolute;
+    top: 25;
 }
 
 #top_menu {
@@ -293,6 +304,7 @@ body {
     margin: 0px;
     padding: 0px;
     position: relative;
+    margin-top: 32px;
     margin-bottom: 0.5em;
     float: left;
     width: 100%;
@@ -570,7 +582,7 @@ div#workflow_nav ul li button, div#workflow_nav ul li a {
 
 div#workflow_nav ul li a {
     display: inline-block;
-    padding: 11px !important;
+    padding: 12px !important;
 }
 
 div#workflow_nav ul li button.current, div#workflow_nav ul li a.current {

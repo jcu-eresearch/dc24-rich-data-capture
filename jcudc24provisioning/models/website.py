@@ -142,6 +142,7 @@ class User(CAModel, Base):
     __tablename__ = 'user'
     id = Column(Integer, primary_key=True, ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
     display_name = Column(String(128), ca_order=next(order_counter), nullable=False)
+    phone = Column(String(20), ca_order=next(order_counter), nullable=True)
     username = Column(String(80), ca_order=next(order_counter), nullable=False)
     _password = Column(String(80), ca_name="password", ca_order=next(order_counter), nullable=False)
     email = Column(String(80), ca_name="email", ca_order=next(order_counter), nullable=False)
