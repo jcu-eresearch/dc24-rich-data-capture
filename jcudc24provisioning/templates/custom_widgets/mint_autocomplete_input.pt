@@ -39,7 +39,10 @@
         deform.addCallback(
                 '${field.oid}',
                 function (oid) {
-                    get_name_from_identifier(oid, $("#"+oid)[0].value, $("#"+oid+"-identifier_path")[0].value);
+                    if (!$("#"+oid)[0].value.match(/.*colander.null.*/)) {
+                        get_name_from_identifier(oid, $("#"+oid)[0].value, $("#"+oid+"-identifier_path")[0].value);
+                    }
+
                     var lookup = partial(lookup_mint, ($('#' + oid + '-url')[0].value));
 
                     $('#' + oid +"-autocomplete").autocomplete({

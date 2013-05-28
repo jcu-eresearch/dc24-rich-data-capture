@@ -282,9 +282,10 @@ class Layouts(object):
 
         if metadata.dataset_id is not None:
             dataset = self.session.query(Dataset).filter_by(id=metadata.dataset_id).first()
+            self.request.session.flash("Click on the Browse Data contextual option to access data.", "success")
             return HTTPFound(self.request.route_url("dataset", project_id=dataset.project_id, dataset_id=dataset.id))
         else:
-            self.request.session.flash("Project records don't have data directly associated with them, please use the contextual options to access data from related datasets.", "success")
+            self.request.session.flash("Project records don't have data directly associated with them, please use the browse datasets contextual option to access data from related datasets.", "success")
             return HTTPFound(self.request.route_url("general", project_id=metadata.project_id))
 #            return self._redirect_to_target(self.request.route_url("general", project_id=metadata.project_id))
 

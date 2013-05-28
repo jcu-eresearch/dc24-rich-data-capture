@@ -106,7 +106,6 @@
 
                 <b>Administrators</b>
                 <tal:block tal:repeat="admin admins">
-                    ${admin}
                     <span tal:condition="admin[2] is not None" tal:replace="structure '<dl><dt>%s</dt><dd>Email: <a href=\'mailto:%s\'>%s</a></dd><dd>Phone: %s</dd></dl>' % (admin[:1] + admin[1:])" />
                     <span tal:condition="admin[2] is None" tal:replace="structure '<dl><dt>%s</dt><dd>Email: <a href=\'mailto:%s\'>%s</a></dd></dl>' % (admin[:-1] + (admin[1],))" />
                 </tal:block>

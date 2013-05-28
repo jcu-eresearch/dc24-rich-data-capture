@@ -8,7 +8,7 @@ import colander
 import itertools
 from sqlalchemy.orm import subqueryload, subqueryload_all, backref
 from colanderalchemy.declarative import Column, relationship
-from sqlalchemy import Integer, ForeignKey, String, Text, Table
+from sqlalchemy import Integer, ForeignKey, String, Text, Table, Date
 import deform
 from jcudc24provisioning.models import Base, DBSession
 from jcudc24provisioning.models.ca_model import CAModel
@@ -225,5 +225,23 @@ class User(CAModel, Base):
             return session.query(cls).filter_by(id=userid).first()
         elif username is not None:
             return session.query(cls).filter_by(username=username, auth_type=auth_type).first()
+
+
+class PageLock(CAModel, Base):
+    """
+    Records when a user enters and leaves a page so users can be informed if someone else is already editing the page.
+    """
+    order_counter = itertools.count()
+
+    __tablename__ = 'page_lock'
+    id = Column(Integer, primary_key=True, ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
+    user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
+    route_name = Column(String(80), ca_order=next(order_counter), nullable=False)
+    expire_date = Column(Date(), ca_order=next(order_counter), nullable=False)
+
+    def __init__(self, user_id, route_name, expire_date):
+        self.user_id = user_id
+        self.route_name = route_name
+        self.expire_date = expire_date
 
 

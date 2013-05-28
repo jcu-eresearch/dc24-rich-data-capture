@@ -21,7 +21,7 @@ import jcudc24ingesterapi
 from jcudc24ingesterapi.search import DataEntrySearchCriteria, DataEntryMetadataSearchCriteria
 from beaker.cache import cache_region
 from jcudc24ingesterapi.schemas.metadata_schemas import DataEntryMetadataSchema
-from jcudc24ingesterapi.models.metadata import MetadataEntry
+from jcudc24ingesterapi.models.metadata import MetadataEntry, DataEntryMetadataEntry
 from jcudc24ingesterapi.ingester_platform_api import Marshaller
 from jcudc24ingesterapi.models.data_entry import DataEntry, FileObject
 from jcudc24provisioning.models.file_upload import ProvisioningFileUploadWidget
@@ -62,7 +62,7 @@ from jcudc24provisioning.models.project import Metadata, UntouchedPages, Ingeste
 from jcudc24provisioning.controllers.ca_schema_scripts import convert_schema, fix_schema_field_name
 from jcudc24provisioning.controllers.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.ajax_mint_lookup import MintLookup
-from jcudc24provisioning.models.website import User, ProjectPermissions, Permission
+from jcudc24provisioning.models.website import User, ProjectPermissions, Permission, PageLock
 
 
 __author__ = 'Casey Bajema'
@@ -85,9 +85,10 @@ WORKFLOW_STEPS = [
 # Configures all contextual options in the project side menu.
 WORKFLOW_ACTIONS = [
         {'href': 'general', 'title': 'Project Settings', 'page_title': 'General Details', 'tooltip': 'Project settings used to create this project', 'view_permission': DefaultPermissions.VIEW_PUBLIC, 'display_leave_confirmation': True},
-        {'href': 'search', 'title': 'Browse Datasets', 'page_title': 'Browse Data', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Allows viewing, editing or adding of data and ingester configurations', 'view_permission': DefaultPermissions.VIEW_DATA, 'display_leave_confirmation': False},
+        {'href': 'search', 'title': 'Browse Datasets', 'page_title': 'Browse Datasets', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Allows viewing, editing or adding of data and ingester configurations', 'view_permission': DefaultPermissions.VIEW_DATA, 'display_leave_confirmation': False},
         {'href': 'data_calibration', 'title': 'QA Data', 'page_title': 'Quality Assurance & Calibration', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Add/edit quality assurance & calibration data', 'visible_pages': ['data']},
         {'href': 'dataset', 'title': 'Add Dataset', 'page_title': 'Dataset Ingester', 'tooltip': 'Edit dataset ingester settings', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'view_permission': DefaultPermissions.EDIT_INGESTERS, 'display_leave_confirmation': True},
+        {'href': 'search', 'title': 'Browse Data', 'page_title': 'Browse Data', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Data (Add, edit or view data)', 'visible_pages': ['dataset']},
         {'href': 'data', 'title': 'Add Data', 'page_title': 'Data (Add, edit or view data)', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Data (Add, edit or view data)', 'visible_pages': ['dataset']},
         {'href': 'dataset_calibration', 'title': 'Dataset Notes', 'page_title': 'Dataset Calibrations & Changes', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Record dataset changes and calibrations', 'visible_pages': ['dataset']},
         {'href': 'logs', 'title': 'View Logs', 'page_title': 'Ingester Event Logs', 'hidden_states': [ProjectStates.OPEN, ProjectStates.SUBMITTED], 'tooltip': 'Event logs received from the data ingester', 'view_permission': DefaultPermissions.VIEW_DATA, 'display_leave_confirmation': False},# 'visible_pages': ['general', 'description', 'information', 'methods', 'datasets', 'submit']},
@@ -741,6 +742,17 @@ class Workflows(Layouts):
 
         :return: Rendered HTML form ready for display.
         """
+
+        display_leave_confirmation =  kwargs.pop("display_leave_confirmation", "display_leave_confirmation" in self.page and self.page["display_leave_confirmation"])
+
+        # If this is a form (something that the user edits) - Check to see if other users are viewing/editing the page.
+        if display_leave_confirmation:
+            users_viewing_page = self.session.query(PageLock.user_id).filter_by(route_name=self.request.matched_route.name).filter(PageLock.expire_date >= datetime.now()).all()
+            for user_id in users_viewing_page:
+                display_name = self.session.query(User.display_name).filter_by(id=user_id[0]).first()
+                self.request.session.flash("%s is already viewing this page, take care not to overwrite each others updates." % display_name, "warning")
+
+
         response_dict = {
             "page_title": kwargs.pop("page_title", self.title),
             "form": kwargs.pop("form", None),
@@ -752,7 +764,7 @@ class Workflows(Layouts):
             "page_help": kwargs.pop("page_help", ""),
             "logged_in": authenticated_userid(self.request),
             "page_help_hidden": kwargs.pop("page_help_hidden", True),
-            "display_leave_confirmation": kwargs.pop("display_leave_confirmation", "display_leave_confirmation" in self.page and self.page["display_leave_confirmation"]),
+            "display_leave_confirmation": display_leave_confirmation,
         }
 
         # Don't use a default directly in pop as it initialises the default even if not needed, this causes self.project
@@ -2305,6 +2317,7 @@ class Workflows(Layouts):
                         if project is not None and project.state == ProjectStates.ACTIVE:
                             project.state = ProjectStates.DISABLED
                             for dataset in project.datasets:
+                                dataset.disabled = True
                                 self.ingester_api.disableDataset(dataset.dam_id)
                         else:
                             self.request.session.flash("You can't disable a project unless it is in the active state: %s" % num, "warning")
@@ -2324,6 +2337,7 @@ class Workflows(Layouts):
                         if project is not None and project.state == ProjectStates.DISABLED:
                             project.state = ProjectStates.ACTIVE
                             for dataset in project.datasets:
+                                dataset.disabled = False
                                 self.ingester_api.enableDataset(dataset.dam_id)
                         else:
                             self.request.session.flash("You can't enable a project unless it is in the disabled state: %s" % num, "warning")
@@ -2707,7 +2721,7 @@ class Workflows(Layouts):
         self.form = Form(schema,
             action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id,
                 dataset_id=dataset_id, id_list=self.request.matchdict['id_list'], calibration_id=calibration_id),
-            buttons=calibration_id is not None and len(calibration_id) > 0 and ('Save',) or ('Add & Create New', 'Add',), use_ajax=False)
+            buttons=calibration_id is not None and len(calibration_id) > 0 and ('Save',) or ('Add',), use_ajax=False)
 
                 #todo
         appstruct = {}
@@ -2722,13 +2736,19 @@ class Workflows(Layouts):
                 if result.metadata_schema == schema_object.dam_id:
                     # When we have the correct calibration - set the appstruct as its data.
                     appstruct = deepcopy(result.data)
+                    calibration = result
 
                     to_delete = []
                     for key in appstruct:
                         if isinstance(appstruct[key], jcudc24ingesterapi.models.data_entry.FileObject):
-                            file_stream = self.ingester_api.getDataEntryStream(int(dam_id), int(data_ids[0]), key)
-                            # TODO
-                    calibration = result
+                            # TODO: Customised schemas for data calibrations aren't implmeneted yet, but when they are, we will need a getDataEntryCalibrationStream or similar.
+                            file_stream = self.ingester_api.getDataEntryStream(int(dataset_dam_id), int(data_ids[0]), key)
+                            file_stream.fp.close()
+                            appstruct[key] = {
+                                "is_external": True,
+                                "filepath": file_stream.url,
+                                "filename": file_stream.url.split("/")[-1]
+                            }
                     break
 
         # If this page was navigated to from another form, save that form.
@@ -2741,42 +2761,68 @@ class Workflows(Layouts):
             model = DataTypeModel(schema, appstruct=appstruct)
             files = []
             to_delete = []
+            empty = True
 
             if calibration is None:
-                calibration = MetadataEntry(metadata_schema_id=schema_object.dam_id)
+                if schema_object.dam_id is None:
+                    self.ingester_api.post(schema_object)
+                calibration = DataEntryMetadataEntry(metadata_schema_id=int(schema_object.dam_id), dataset_id=dataset_dam_id)
 
             for field in model._schema.children:
                 key = field.name
-                calibration_value = calibration.get(key, None)
+                calibration_value = calibration.data.get(key, None)
 
                 if isinstance(field.widget, ProvisioningFileUploadWidget):
-                    if key in appstruct and appstruct[key] is not colander.null:
-                        calibration_value.f_path = appstruct[key]
-                        tmp_filename = appstruct[key].split("\\")[-1]
-                        calibration_value.file_name = tmp_filename.split(".", 1)[1]
+                    if isinstance(appstruct.get(key, colander.null), basestring):
+                        file_val = appstruct[key]
+                        # If the current data file hasn't been changed
+                        if file_val.startswith("{") and file_val.endswith("}"):
+                            to_delete.append(key) # Remove the field so that it isn't changed.
+
+                        # Else if a new file was uploaded
+                        else:
+                            tmp_filename = file_val.split("\\")[-1]
+                            f_name = tmp_filename.split(".", 1)[1]
+                            file = FileObject(f_path=file_val, file_name=f_name)
+                            calibration[key] = file
+                            empty = False
                     else:
                         to_delete.append(key)
                     files.append(key)
                 else:
                     calibration[key] = getattr(model, key)
+                    if calibration[key] is not None:
+                        empty = False
 
             for key in to_delete:
                 if key in calibration.data:
                     del calibration.data[key]
 
-            old_appstruct = appstruct
+            if not empty:
+                old_appstruct = appstruct
+                unit = self.ingester_api.createUnitOfWork()
+                # Save the calibration to all DataEntry(s)
+                for id in data_ids:
+                    data_calibration = deepcopy(calibration)
+                    data_calibration.object_id = id
+                    saved_calibration = self.ingester_api.post(data_calibration)
+                unit.commit()
 
-            # Save the calibration to all DataEntry(s)
-            for id in data_ids:
-                data_calibration = deepcopy(calibration)
-                data_calibration.object_id = id
-                saved_calibration = self.ingester_api.post(data_calibration)
+                # This ensures the shown data is what is actually saved.
+                appstruct = saved_calibration.data
 
-            appstruct = saved_calibration.data
+                # Fix file fields as they aren't returned from the provisioning interface.
+                for file in files:
+                    appstruct[file] = old_appstruct[file]
 
-            # Fix file fields as they aren't returned from the provisioning interface.
-            for file in files:
-                appstruct[file] = old_appstruct[file]
+#                if calibration_id is None:
+#                    if 'Add' in self.request.POST:
+#                    # If we just added a new DataEntry redirect to editing the newly added DataEntry.
+#                        return HTTPFound(self.request.route_url(self.request.matched_route.name, project_id=self.project_id,
+#                            dataset_id=dataset_id, data_id=calibration.id))
+#                    else:
+#                        # Add the data and goto a blank form for adding another.
+#                        appstruct = {}
 
         self._model_appstruct = appstruct
 

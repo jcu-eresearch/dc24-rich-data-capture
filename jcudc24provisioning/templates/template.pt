@@ -59,8 +59,74 @@
     </style>
 
     <script type="text/javascript">
-        $(window).resize(set_content_size);
+        // Lock/Un-lcok pages on load/onbeforeunload
+        <tal:block tal:condition="request.user is not None"><tal:block tal:condition="exists:readonly"><tal:block tal:condition="not readonly">
+            $(function() {
+                $.ajax({
+                    url: "${request.route_url('lock_page', route=request.matched_route.name, user_id=request.user.id)}",
+                    dataType: "json",
+                    success: function( data ) {
+                        window.lock_id = data['id'];
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        console.log(errorThrown);
+                    }
+                });
+            });
+        </tal:block></tal:block></tal:block>
 
+        window.onbeforeunload = function (e) {
+            // Lock/Un-lcok pages on load/onbeforeunload
+            <tal:block tal:condition="request.user is not None"><tal:block tal:condition="exists:readonly"><tal:block tal:condition="not readonly">
+
+                $(function() {
+                    $.ajax({
+                        url: "${request.route_url('unlock_page', lock_id='')}" + window.lock_id,
+                        dataType: "json",
+                        async: false,
+                        success: function( data ) {
+                        },
+                        error: function(jqXHR, textStatus, errorThrown) {
+                            console.log("Error unlocking page: " + jqXHR);
+                        }
+                    });
+                });
+            </tal:block></tal:block></tal:block>
+
+            // Provide confirmation dialogs when leaving form pages.
+            window.display_leave_confirmation = true;
+            <tal:block tal:condition="exists:display_leave_confirmation"><tal:block tal:condition="display_leave_confirmation">
+                if (window.display_leave_confirmation) {
+                    var message = "Are you sure you want to leave this page, all unsaved data will be lost.",
+                            e = e || window.event;
+
+                    if (e) {
+                        e.returnValue = message;
+                    }
+                    return message;
+                }
+            </tal:block></tal:block>
+        };
+
+
+        <tal:block tal:condition="exists:display_leave_confirmation"><tal:block tal:condition="display_leave_confirmation">
+            // Remove confirmation dialog if there is no form.
+            $(function () {
+                if ($("#deform").length <= 0 ||$("#deform").attr('readonly') == 'readonly') {
+                    window.display_leave_confirmation = false;
+                }
+            });
+
+            // Remove confirmation dialogs if submitting the form.
+            $(function() {
+                $("#deform").submit(function(){
+                    window.display_leave_confirmation = false;
+                });
+            });
+        </tal:block></tal:block>
+
+        // Fix the widths of components on resize
+        $(window).resize(set_content_size);
         function set_content_size() {
 //            console.log($("#center").width() - $("#sidebar").width());
             $("#content").width($("#center").width() - $("#sidebar").width() - 15);
@@ -123,28 +189,6 @@
            });
        }); */
 
-        $(function () {
-            if ($("#deform").length <= 0 ||$("#deform").attr('readonly') == 'readonly') {
-                window.onbeforeunload = null;
-            }
-        });
-
-        <tal:block tal:condition="exists:display_leave_confirmation"><tal:block tal:condition="display_leave_confirmation">
-            window.onbeforeunload = function (e) {
-                var message = "Are you sure you want to leave this page, all unsaved data will be lost.",
-                e = e || window.event;
-
-                if (e) {
-                    e.returnValue = message;
-                }
-                return message;
-            };
-            $(function() {
-                $("#deform").submit(function(){
-                    window.onbeforeunload = null;
-                });
-            });
-        </tal:block></tal:block>
 
 
 

@@ -110,6 +110,8 @@ def main(global_config, **settings):
     config.add_route('logout', '/logout')                                     # logout and redirect page
     config.add_route('admin', '/admin')                                     # administer user permissions + view admin required items
     config.add_route('help', '/help')                                     # administer user permissions + view admin required items
+    config.add_route('lock_page', '/lock_page/{route}/{user_id}')
+    config.add_route('unlock_page', '/unlock_page/{lock_id}')
     config.add_route('record_data', '/{metadata_id}')
 
     #    --------------Static resources--------------------------------
