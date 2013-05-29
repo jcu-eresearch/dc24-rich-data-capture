@@ -24,10 +24,10 @@ EnMaSSe will ensure that all research data is securely stored and catalogued to 
 
 Links and further information:
 
-* [https://www.google.com/url?q=https%3A%2F%2Ftdh-rich-data-capture-documentation.readthedocs.org%2Fen%2Flatest%2Findex.html&sa=D&sntz=1&usg=AFQjCNHVYgytsLZgXTRAriJ1W7dXeg5rEQ](Primary EnMaSSe Documentation) including the [https://www.google.com/url?q=https%3A%2F%2Ftdh-rich-data-capture-documentation.readthedocs.org%2Fen%2Flatest%2Fenmasse-user.html&sa=D&sntz=1&usg=AFQjCNHAYXOeJltzSNI6PPgFgKxzXWE1UQ](Users Guide), [Administrators Guide](https://www.google.com/url?q=https%3A%2F%2Ftdh-rich-data-capture-documentation.readthedocs.org%2Fen%2Flatest%2Fenmasse-admin.html&sa=D&sntz=1&usg=AFQjCNHEdmaiGQml4oST7wg7hTcDyIcs-g) and [Developers Guide](https://www.google.com/url?q=https%3A%2F%2Ftdh-rich-data-capture-documentation.readthedocs.org%2Fen%2Flatest%2Fenmasse-developer.html&sa=D&sntz=1&usg=AFQjCNGSjMTDWuQKXHNBqr4Oyc6gty1vbg).
-* Notes on [https://www.google.com/url?q=https%3A%2F%2Ftdh-rich-data-capture-documentation.readthedocs.org%2Fen%2Flatest%2Freusability.html&sa=D&sntz=1&usg=AFQjCNFe2roF9WIQcjJZqPICZWT1zPK4Ww](Project Reusability).
-* [http://www.google.com/url?q=http%3A%2F%2Fjcu-eresearch.github.io%2FTDH-rich-data-capture%2F&sa=D&sntz=1&usg=AFQjCNFbgEifwBf4vZMG_JcGeyWcX9h2uA](Developer Blog Posts)
-* [http://research.jcu.edu.au/enmasse-demo](EnMaSSe Demo site)
-* [http://research.jcu.edu.au/enmasse](JCU EnMaSSe deployment)
+* [Primary EnMaSSe Documentation](https://www.google.com/url?q=https%3A%2F%2Ftdh-rich-data-capture-documentation.readthedocs.org%2Fen%2Flatest%2Findex.html&sa=D&sntz=1&usg=AFQjCNHVYgytsLZgXTRAriJ1W7dXeg5rEQ) including the [Users Guide](https://www.google.com/url?q=https%3A%2F%2Ftdh-rich-data-capture-documentation.readthedocs.org%2Fen%2Flatest%2Fenmasse-user.html&sa=D&sntz=1&usg=AFQjCNHAYXOeJltzSNI6PPgFgKxzXWE1UQ), [Administrators Guide](https://www.google.com/url?q=https%3A%2F%2Ftdh-rich-data-capture-documentation.readthedocs.org%2Fen%2Flatest%2Fenmasse-admin.html&sa=D&sntz=1&usg=AFQjCNHEdmaiGQml4oST7wg7hTcDyIcs-g) and [Developers Guide](https://www.google.com/url?q=https%3A%2F%2Ftdh-rich-data-capture-documentation.readthedocs.org%2Fen%2Flatest%2Fenmasse-developer.html&sa=D&sntz=1&usg=AFQjCNGSjMTDWuQKXHNBqr4Oyc6gty1vbg).
+* Notes on [Project Reusability](https://www.google.com/url?q=https%3A%2F%2Ftdh-rich-data-capture-documentation.readthedocs.org%2Fen%2Flatest%2Freusability.html&sa=D&sntz=1&usg=AFQjCNFe2roF9WIQcjJZqPICZWT1zPK4Ww).
+* [Developer Blog Posts](http://www.google.com/url?q=http%3A%2F%2Fjcu-eresearch.github.io%2FTDH-rich-data-capture%2F&sa=D&sntz=1&usg=AFQjCNFbgEifwBf4vZMG_JcGeyWcX9h2uA)
+* [EnMaSSe Demo site](http://research.jcu.edu.au/enmasse-demo)
+* [JCU EnMaSSe deployment](http://research.jcu.edu.au/enmasse)
 
 
