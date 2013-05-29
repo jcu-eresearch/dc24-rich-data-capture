@@ -25,14 +25,16 @@ This project has been developed as part of EnMaSSe (Environmental Monitoring and
 
 Links
 -----
-* [User Guide]:"https://tdh-rich-data-capture-documentation.readthedocs.org/en/latest/enmasse-user.html"
-* [Administrator Guide]:"https://tdh-rich-data-capture-documentation.readthedocs.org/en/latest/enmasse-admin.html"
-* [Developer Dcumentation]:"https://tdh-rich-data-capture-documentation.readthedocs.org/en/latest/enmasse-developer.html"
-* [TDH-Rich Data Capture Blog]:"http://jcu-eresearch.github.com/TDH-rich-data-capture/"
-* [Sensor Observation Service (SOS)]::"http://www.opengeospatial.org/standards/sos"
-* [Australian National Data Service (ANDS)]:"http://www.ands.org.au/"
-* [RIF-CS (metadata)]:"http://www.ands.org.au/guides/content-providers-guide.html"
-* [Research Data Australia (RDA)]:"http://researchdata.ands.org.au/"
+* [Project Blog](http://jcu-eresearch.github.com/TDH-rich-data-capture/)
+* Manuals:
+ * [User Guide](https://tdh-rich-data-capture-documentation.readthedocs.org/en/latest/enmasse-user.html)
+ * [Administrator Guide](https://tdh-rich-data-capture-documentation.readthedocs.org/en/latest/enmasse-admin.html)
+ * [Developer Dcumentation](https://tdh-rich-data-capture-documentation.readthedocs.org/en/latest/enmasse-developer.html)
+* Related material:
+ * [Sensor Observation Service (SOS)](http://www.opengeospatial.org/standards/sos)
+ * [Australian National Data Service (ANDS)](http://www.ands.org.au/)
+ * [RIF-CS (metadata)](http://www.ands.org.au/guides/content-providers-guide.html)
+ * [Research Data Australia (RDA)](http://researchdata.ands.org.au/)
 
 
 Credits
