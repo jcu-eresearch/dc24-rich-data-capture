@@ -15,7 +15,7 @@ This project has been developed as part of EnMaSSe (Environmental Monitoring and
 * [Documentation](https://github.com/jcu-eresearch/TDH-Rich-Data-Capture-Documentation) - Contains full user, administrator and developer guides.
 * [Deployment](https://github.com/jcu-eresearch/EnMaSSe-Deployment) - Recommended way to install
 * [Ingester Platform](https://github.com/jcu-eresearch/TDH-dc24-ingester-platform) - Handles ingestion of data streaming and storage for the EnMaSSe project.
-* [Ingester API](https://github.com/jcu-eresearch/jcu.dc24.ingesterapi) - API for integrating the EnMaSSe provisioning interface with the ingester platform (this)
+* [Ingester API](https://github.com/jcu-eresearch/jcu.dc24.ingesterapi) - API for integrating the EnMaSSe provisioning interface with the ingester platform
 * [SimpleSOS](https://github.com/jcu-eresearch/python-simplesos) - Library used for the SOSScraperDataSource.
  
 
