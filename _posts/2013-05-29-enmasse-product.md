@@ -10,6 +10,7 @@ tags: [andsFinalProduct,  andsApps,  andsProduct, DIISRTE, EnMaSSe, Environmenta
 
 *Introducing*
 
+<img src="{{ site.JB.BASE_PATH }}/images/enmasse-logo.png" />
 
 EnMaSSe is JCU’s solution to ensuring research data collected from sensors, cameras, and audio records is persistently stored in a sensible format and high quality metadata is collected at the start of research projects.
 
