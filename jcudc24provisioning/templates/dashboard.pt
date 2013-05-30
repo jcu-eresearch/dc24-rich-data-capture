@@ -1,50 +1,75 @@
 <div metal:use-macro="view.global_template">
     <div metal:fill-slot="content" id="content">
         <div id="dashboard-intro">
-            There have been great strides in making it easier to share and re-use research data throughout Australia,
-            and EnMaSSe is a tool that takes it one step further. EnMaSSe is designed to increase the efficiency of
-            creating and sharing research data, which means quicker progress within Australia as a whole, higher
-            potential for new technologies and a better understanding of our environment.
-        </div>
-        <div id="dashboard_content" tal:condition="user is None or True"><!--To enable diferent dashboard for logged in users, delete the or True-->
-            <img align="left" alt="EnMaSSe Overview (1 project -> Many published metadata recrods + data points)."
-                 src="${request.static_url('jcudc24provisioning:static/images/enmasse-overview.png')}" />
-            <br />
-            The important outcomes of the EnMaSSE system are both:
-            <ul>
-                <li>High quality information about the data (metadata) describing why it is important and good quality.</li>
-                <li>Ingesting the actual data.</li>
-            </ul>
-            <p>
-                The figure illustrates how external sensors and manual observations are input into EnMaSSe along with
-                the high quality information about the ingested data which is then exported to external systems for
-                persistent storage and publication.
-            </p>
-            <p>
-                Research Data Australia (RDA) is a national service for publication and sharing of research data, this
-                is the destination for the high quality information about the collected data.
-            </p>
-            <p>
-                ReDBox-Mint is 3rd party metadata repository (ReDBox) and name authority (Mint) which stores people,
-                grants/activities and services. ReDBox handles curation (quality assurance and linking related
-                information) and exporting to RDA.
-            </p>
-            <p>
-                CoastalCOMS Digital Asset Manager CC-DAM is the persistent data storage system used, to put it simply
-                it is a database indexed file storage system which makes it highly scalable (for example our first
-                import contained over 8 million files!).
-            </p>
-            <p>
-                Sensor data presents the most obvious example of data that is challenging for researchers to share: many
-                datasets are collected at many locations sometimes with multiple sensor types often across multiple
-                projects. Yet almost all metadata for a single sensor for a single project will be the same, and often the
-                metadata between projects will be similar. EnMaSSe recognises this and is structured such that a single
-                unique piece of information should rarely need to be typed more than once (Figure 2).
-            </p>
-        </div>
-        <div style="clear: both;">
+            <h1>EnMaSSe is designed to increase the efficiency of creating and sharing research data.</h1>
 
+            <div class="sales-point">
+                <img src="${request.static_url('jcudc24provisioning:static/images/quick-efficient.png')}" align="left" />
+                <h3>Quick and Efficient.</h3>
+                <div>
+                    Stream sensor data directly to storage removing the need for regular collection.
+                </div>
+                <div>
+                    Create high quality, fine grained descriptions (metadata records) of all data collected for a project
+                    with the project based generation features (only enter information once!).
+                </div>
+            </div>
+
+            <div class="sales-point">
+                <img src="${request.static_url('jcudc24provisioning:static/images/quick-efficient.png')}" align="left" />
+                <h3>Flexible.</h3>
+                <div>Store your data is how you want using the simple data configurations generator.</div>
+                <div>Process your data as it is ingested using custom processor scripts.</div>
+                <div>Four different data sources to select from (eg. read from an external file system).</div>
+                <div>Chain your data ingestion to create advanced processing and refined results.</div>
+            </div>
+
+            <div class="sales-point">
+                <img src="${request.static_url('jcudc24provisioning:static/images/quick-efficient.png')}" align="left" />
+                <h3>Persistent.</h3>
+                <div>Centralised data storage with <b style="color: red">daily, weekly and monthly</b> backups and
+                    <b style="color:red;">three</b> redundant copies.</div>
+            </div>
+
+            <div class="sales-point">
+                <img src="${request.static_url('jcudc24provisioning:static/images/quick-efficient.png')}" align="left" />
+                <h3>Accessible.</h3>
+                <div>Data is searchable and downloadable 24/7 with a fine grained, user editable permissions system.</div>
+            </div>
+
+            <div class="sales-point">
+                <img src="${request.static_url('jcudc24provisioning:static/images/quick-efficient.png')}" align="left" />
+                <h3>Scalable.</h3>
+                <div>
+                    Research data gets BIG real quick.  The EnMaSSe persistent data storage is based on a hybrid
+                    file-database system which allows high volumes of data while maintaining filtering and seatch
+                    capabilities.
+                </div>
+            </div>
+
+            <div class="sales-point">
+                <img src="${request.static_url('jcudc24provisioning:static/images/quick-efficient.png')}" align="left" />
+                <h3>Quality Metadata (information about the data).</h3>
+                <div>If collected data has no associated information about what it is or how it was collected than usability is decreased.</div>
+                <div>On the other hand, if no-one knows about the research than it isn't reused either.</div>
+                <div>For these reasons EnMaSSe ensures a high standard of information is collected and publishes your data
+                nationally.</div>
+            </div>
         </div>
+        <div id="dashboard_sidebar">
+            <h3>Helpful Links</h3>
+            <ul>
+                <li><a href="">Read the documentation</a></li>
+                <li><a href="">Browse existing projects</a></li>
+                <li><a href="">Get started with a new project</a></li>
+                <li><a href="">Not sure if EnMaSSe is for you?</a></li>
+                <li><a href="">Look at the FAQ</a></li>
+                <li><a href="">ReDBox (publishes metadata records)</a></li>
+                <li><a href="">Research Data Australia</a></li>
+                <li><a href="">Data Portal</a></li>
+            </ul>
+        </div>
+
         <div tal:condition="user is not None and False"><!--To enable diferent dashboard for logged in users, delete the or True-->
             <ul id="dashboard-alerts">
                 <li class="dashboard-alert">Event logs (eg. dataset hasn't ingested data in 1 week)</li>
@@ -52,7 +77,7 @@
                 <li class="dashboard-alert">Activity (eg. last 5 projects I edited)</li>
             </ul>
         </div>
-        <div id="dashboard-footer">
+        <div id="dashboard-footer" >
             <ul>
                 <li class="desc">
                     <h2>What</h2>
@@ -84,6 +109,26 @@
                 </li>
             </ul>
         </div>
+        <script type="text/javascript">
+            function resize_dashboard_intro() {
+                var MIN_WIDTH = 600;
+
+                var content = $("#content");
+                var links = $("#dashboard_sidebar");
+                var intro = $("#dashboard-intro");
+
+                if (content.width() > (MIN_WIDTH + links.width())) {
+                    intro.width(content.width() - links.width() - 30);
+                } else {
+                    intro.width(content.width());
+                }
+            }
+
+            $(function() {
+                resize_dashboard_intro();
+            });
+            $(window).resize(resize_dashboard_intro);
+        </script>
 
     </div>
 </div>
