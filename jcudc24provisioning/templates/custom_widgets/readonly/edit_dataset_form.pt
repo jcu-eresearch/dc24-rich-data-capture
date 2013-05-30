@@ -61,8 +61,10 @@
                         <!--If the method doesn't have any datasource setup-->
                         <tal:block tal:condition="not hasattr(method, 'no_data_source') and method.data_source is None or str(method.data_source) == ''">
                             <div tal:define="dummy setattr(method, 'no_data_source', True)">
-                                <legend>Data Source Configuration</legend>
-                                <p class="error">There is no data source configured for this datasets' method, please go to the <i>Method</i> step and select a data source.</p>
+                                <fieldset>
+                                    <legend>Data Source Configuration</legend>
+                                    <p class="error">There is no data source configured for this datasets' method, please go to the <i>Method</i> step and select a data source.</p>
+                                </fieldset>
                             </div>
                         </tal:block>
 
@@ -78,6 +80,25 @@
                     </tal:block>
                 </tal:block>
             </tal:block>
+
+            <!--Display dataset calibrations-->
+            <li tal:condition="exists:field.schema.calibrations">
+                <fieldset>
+                    <legend>Dataset Calibrations (record of changes)</legend>
+                    <ul>
+                        <li tal:repeat="calibration field.schema.calibrations">
+                            <label>Changed field</label>
+                            ${calibration["field"]}
+
+                            <label>Current/Running value</label>
+                            ${calibration["ingester"]}
+
+                            <label>New/Saved Value</label>
+                            ${calibration["provisioning"]}
+                        </li>
+                    </ul>
+                </fieldset>
+            </li>
 
             <li class="buttons">
                 <tal:block repeat="button field.buttons">

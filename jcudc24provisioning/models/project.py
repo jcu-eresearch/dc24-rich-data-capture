@@ -1250,7 +1250,7 @@ class CustomProcessor(CAModel, Base):
         ca_title="Upload custom processing script", ca_group_end="custom_script",
         ca_description="Upload a custom Python script to "\
                        "process the data in some way.  The processing script API can be found "\
-                       "<a title=\"Python processing script API\"href=\"\">here</a>.")
+                       "<a title=\"Python processing script API\"href=\"https://tdh-rich-data-capture-documentation.readthedocs.org/en/latest/ingester-developer.html#ingester-post-processing-scripts\">here</a>.")
 
     custom_processor_desc = Column(String(256),ca_order=next(order_counter), ca_widget=deform.widget.TextAreaWidget(),
         ca_placeholder="eg. Extract the humidity and temperature values from the raw data file and add them to the humidity and temperature fields setup in the data configuration.",
@@ -2118,6 +2118,7 @@ class Notification(CAModel, Base):
     __tablename__ = 'notification'
     id = Column(Integer, primary_key=True, nullable=False, ca_widget=deform.widget.HiddenWidget())
 
+    date = Column(Date(), ca_order=next(order_counter), nullable=False)
     type = Column(String(128), ca_order=next(order_counter))        # Type as per NotificationConfig.xxx.key
     recipients = Column(String(512), ca_order=next(order_counter))  # Email/listeniong recipients (comma-seperated emails)
     subject = Column(String(256), ca_order=next(order_counter))     # Email subject
@@ -2125,7 +2126,8 @@ class Notification(CAModel, Base):
     change = Column(String(128), ca_order=next(order_counter))      # Relevant change (eg. for type=state_change it could be submitted)
     variables = Column(String(512), ca_order=next(order_counter))   # Comma-separated list of variables (eg. project_id, user_id/name, etc.)
 
-    def __init__(self, type, recipients, subject, message, change, variables):
+    def __init__(self, date, type, recipients, subject, message, change, variables):
+        self.date = date
         self.type = type
         self.recipients = recipients
         self.subject = subject
@@ -2153,6 +2155,7 @@ class NotificationConfig(CAModel, Base):
     log_warnings = Column(Boolean(), ca_order=next(order_counter))
     new_projects = Column(Boolean(), ca_order=next(order_counter), ca_widget=deform.widget.CheckboxWidget(), ca_defaults_only=True,)
     new_datasets = Column(Boolean(), ca_order=next(order_counter), ca_title="New datasets", ca_widget=deform.widget.CheckboxWidget(), ca_defaults_only=True)
+    errors = Column(Boolean(), ca_order=next(order_counter), ca_widget=deform.widget.CheckboxWidget())
 
 class ProjectNotificationConfig(CAModel, Base):
     """

@@ -18,10 +18,10 @@ import string
 import inspect
 from sqlalchemy import distinct
 import jcudc24ingesterapi
-from jcudc24ingesterapi.search import DataEntrySearchCriteria, DataEntryMetadataSearchCriteria
+from jcudc24ingesterapi.search import DataEntrySearchCriteria, DataEntryMetadataSearchCriteria, DatasetMetadataSearchCriteria
 from beaker.cache import cache_region
-from jcudc24ingesterapi.schemas.metadata_schemas import DataEntryMetadataSchema
-from jcudc24ingesterapi.models.metadata import MetadataEntry, DataEntryMetadataEntry
+from jcudc24ingesterapi.schemas.metadata_schemas import DataEntryMetadataSchema, DatasetMetadataSchema
+from jcudc24ingesterapi.models.metadata import MetadataEntry, DataEntryMetadataEntry, DatasetMetadataEntry
 from jcudc24ingesterapi.ingester_platform_api import Marshaller
 from jcudc24ingesterapi.models.data_entry import DataEntry, FileObject
 from jcudc24provisioning.models.file_upload import ProvisioningFileUploadWidget
@@ -58,7 +58,7 @@ from jcudc24provisioning.views.views import Layouts
 from pyramid.renderers import get_renderer
 from jcudc24provisioning.models.project import Metadata, UntouchedPages, IngesterLogs, Location, \
     ProjectTemplate,method_template, Project, project_validator, ProjectStates, Sharing, CreatePage, MetadataNote, \
-    Method, Party, Dataset, MethodSchema, create_project_validator, MethodTemplate, ManageData, ProjectNote, DataFiltering, DataFilteringWrapper, Keyword, TransitionNote, UserNotificationConfig, ProjectNotificationConfig, NotificationConfig, Notification, dataset_validator, metadata_validator
+    Method, Party, Dataset, MethodSchema, create_project_validator, MethodTemplate, ManageData, ProjectNote, DataFiltering, DataFilteringWrapper, Keyword, TransitionNote, UserNotificationConfig, ProjectNotificationConfig, NotificationConfig, Notification, dataset_validator, metadata_validator, DatasetDataSource
 from jcudc24provisioning.controllers.ca_schema_scripts import convert_schema, fix_schema_field_name
 from jcudc24provisioning.controllers.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.views.ajax_mint_lookup import MintLookup
@@ -673,13 +673,16 @@ class Workflows(Layouts):
 
         return self._model_appstruct
 
-    def _clone_model(self, source, parent=None, copies={}):
+    def _clone_model(self, source, parent=None, copies=None):
         """
         Clone a database model, this returns a duplicate model with the ID removed.
 
         :param: parent may be used to test if an ID links to a parent item.
         :param: copies is used to hold all duplicated models so models that are referenced twice only get duplicated once.
         """
+        if copies is None:
+            copies = {}
+
         if source is None:
             return None
 
@@ -690,8 +693,8 @@ class Workflows(Layouts):
             copies[source.__tablename__ + str(source.id)] = new_object
 
         for prop in object_mapper(source).iterate_properties:
-            if isinstance(source, (Dataset, Method)):
-                test = 1
+#            if isinstance(source, (Dataset, Method)):
+#                test = 1
 
             if (isinstance(prop, ColumnProperty) or isinstance(prop, RelationshipProperty) and prop.secondary is not None) \
                     and not prop.key == "id":
@@ -747,7 +750,7 @@ class Workflows(Layouts):
 
         # If this is a form (something that the user edits) - Check to see if other users are viewing/editing the page.
         if display_leave_confirmation:
-            users_viewing_page = self.session.query(PageLock.user_id).filter_by(route_name=self.request.matched_route.name).filter(PageLock.expire_date >= datetime.now()).all()
+            users_viewing_page = self.session.query(PageLock.user_id).filter_by(url=self.request.path).filter(PageLock.expire_date >= datetime.now(), PageLock.id != self.lock_id).all()
             for user_id in users_viewing_page:
                 display_name = self.session.query(User.display_name).filter_by(id=user_id[0]).first()
                 self.request.session.flash("%s is already viewing this page, take care not to overwrite each others updates." % display_name, "warning")
@@ -765,6 +768,7 @@ class Workflows(Layouts):
             "logged_in": authenticated_userid(self.request),
             "page_help_hidden": kwargs.pop("page_help_hidden", True),
             "display_leave_confirmation": display_leave_confirmation,
+            "lock_id": self.lock_id,
         }
 
         # Don't use a default directly in pop as it initialises the default even if not needed, this causes self.project
@@ -829,7 +833,7 @@ class Workflows(Layouts):
                             "<br />Regards,<br/>EnMaSSe System" % variables
 
             # Add a record of the notification to the database
-            notification = Notification(type, ','.join(email_to), email_subject, email_message,
+            notification = Notification(datetime.now(), type, ','.join(email_to), email_subject, email_message,
                     variables['transition'],
                     ','.join("%s=%s" % (key, value) for key, value in variables.items()))
             self.session.add(notification)
@@ -843,7 +847,7 @@ class Workflows(Layouts):
             email_message = email_message % variables
 
             # Add a record of the notification to the database
-            notification = Notification(type, ','.join(email_to), email_subject, email_message,
+            notification = Notification(datetime.now(), type, ','.join(email_to), email_subject, email_message,
                 variables['modified'],
                 ','.join("%s=%s" % (key, value) for key, value in variables.items()))
             self.session.add(notification)
@@ -857,7 +861,7 @@ class Workflows(Layouts):
                             "<br/>EnMaSSe System" % variables
 
             # Add a record of the notification to the database
-            notification = Notification(type, ','.join(email_to), email_subject, email_message,
+            notification = Notification(datetime.now(), type, ','.join(email_to), email_subject, email_message,
                 "[%s] %s" % (variables['dataset_id'], variables['title']),
                 ','.join("%s=%s" % (key, value) for key, value in variables.items()))
             self.session.add(notification)
@@ -877,7 +881,7 @@ class Workflows(Layouts):
             email_message = email_message % variables
 
             # Add a record of the notification to the database
-            notification = Notification(type, ','.join(email_to), email_subject, email_message,
+            notification = Notification(datetime.now(), type, ','.join(email_to), email_subject, email_message,
                 variables['project_id'],
                 ','.join("%s=%s" % (key, value) for key, value in variables.items()))
             self.session.add(notification)
@@ -893,9 +897,25 @@ class Workflows(Layouts):
             email_message = email_message % variables
 
             # Add a record of the notification to the database
-            notification = Notification(type, ','.join(email_to), email_subject, email_message,
+            notification = Notification(datetime.now(), type, ','.join(email_to), email_subject, email_message,
                 variables['project_id'],
                 ','.join(["%s=%s" % (key, value) for key, value in variables.items()]))
+            self.session.add(notification)
+        elif type == NotificationConfig.errors.key:
+            # New projects is a special case where the default configurations are used instead of per project configurations.
+            email_to = [user.email for user in self.session.query(User).join(UserNotificationConfig, NotificationConfig).filter(NotificationConfig.errors==True).all()]
+
+            email_subject="Error Occurred in EnMaSSe Project" % variables
+            email_message = "Hi EnMaSSe User,<br />"\
+                            "<p><a href='%(url)s'>project_%(project_id)s</a>: There was an error in updaates by %(name)s:</p>"\
+                            "<p>%(message)s</p>" \
+                            "<br />Regards,<br/>EnMaSSe System"
+            email_message = email_message % variables
+
+            # Add a record of the notification to the database
+            notification = Notification(datetime.now(), type, ','.join(email_to), email_subject, email_message,
+                variables['project_id'],
+                ','.join("%s=%s" % (key, value) for key, value in variables.items()))
             self.session.add(notification)
 
         if len(email_to) > 0:
@@ -1288,20 +1308,21 @@ class Workflows(Layouts):
                     adding_new = True
                     method = self.session.query(Method).filter_by(id=new_dataset_data['dataset:method_id']).first()
                     template_dataset = self.session.query(Dataset).join(MethodTemplate).filter(Dataset.id == MethodTemplate.dataset_id).\
-                    filter(MethodTemplate.id == method.method_template_id).first()
+                            filter(MethodTemplate.id == method.method_template_id).first()
                     if template_dataset is None:
                         continue
 
                     template_clone = self._clone_model(template_dataset)
 
                     # Pre-fill with first project point location
-                    project_locations = self.session.query(Location).join(Metadata).filter(Metadata.id==Location.metadata_id).filter_by(project_id=self.project_id).all()
-                    for location in project_locations:
-                        if location.is_point():
-                            location_clone = self._clone_model(location)
-                            location_clone.metadata_id = None
-                            template_clone.dataset_locations.append(location_clone)
-                            break
+                    if len(template_clone.dataset_locations) == 0:
+                        project_locations = self.session.query(Location).join(Metadata).filter(Metadata.id==Location.metadata_id).filter_by(project_id=self.project_id).all()
+                        for location in project_locations:
+                            if location.is_point():
+                                location_clone = self._clone_model(location)
+                                location_clone.metadata_id = None
+                                template_clone.dataset_locations.append(location_clone)
+                                break
 
                     # Copy all data from the template
                     new_dataset_dict = template_clone.dictify(schema[DATASETS_INDEX].children[0])
@@ -1591,6 +1612,10 @@ class Workflows(Layouts):
                 logger.exception("Project failed to add to ingesterplatform - Project ID: %s", self.project.id)
                 self.request.session.flash("Failed to configure data storage and ingestion.", 'error')
                 self.request.session.flash("Error: %s" % e, 'error')
+                self._send_email_notifications(NotificationConfig.errors.key, dataset.project,
+                    message="Error creating data ingesters for <a href='%s'>project %s</a>: %s" % (
+                        self.request.route_url("general", project_id=dataset.project_id),
+                        self.project_id ,e))
                 return self._create_response(page_help=page_help)
 
 #            try:
@@ -1600,6 +1625,10 @@ class Workflows(Layouts):
 #                logger.exception("Project failed to add to ReDBox: %s", self.project.id)
 #                self.request.session.flash("Sorry, the project failed to generate or add metadata records to ReDBox, please try agiain.", 'error')
 #                self.request.session.flash("Error: %s" % e, 'error')
+#                self._send_email_notifications(NotificationConfig.errors.key,
+#                    message="Error creating ReDBox records for project <a href='%s'>%s</a>: %s" % (
+#                        self.request.route_url("general", project_id=self.project_id),
+#                        self.project_id ,e))
 #                return self._create_response(page_help=page_help)
 
             # Change the state to active
@@ -1847,6 +1876,40 @@ class Workflows(Layouts):
             return HTTPFound(self.request.route_url(self.request.referer.split("/")[-1], project_id=duplicate.id))
         return HTTPFound(self.request.route_url("general", project_id=duplicate.id))
 
+    def _get_ingester_dataset_changes(self, dataset):
+        """
+        Finds differences between the current dataset configuration in the ingester platform compared to the settings
+        in the provisioning interface.
+
+        The only valid changes are enabled and data_source so everything else is ignored.
+
+        :param dataset: Provisioning interface dataset to find changes for.
+        :return: Array of dict's that describe the changes.
+        """
+        if dataset.dam_id is None:
+            return []
+
+        changes = []
+        ingester_dataset = self.ingester_api.getDataset(dataset.dam_id)
+        marshaller = Marshaller()
+
+        if ingester_dataset.enabled == dataset.disabled:
+            changes.append({"field": Dataset.disabled.key, "ingester": not ingester_dataset.enabled, "provisioning": dataset.disabled})
+
+        new_data_source = self.ingester_api._create_data_source(dataset)
+        provisioning_datasource_dict = marshaller.obj_to_dict(marshaller.obj_to_dict(new_data_source))
+        ingester_datasource_dict = marshaller.obj_to_dict(marshaller.obj_to_dict(ingester_dataset.data_source))
+        if type(new_data_source) != type(ingester_dataset.data_source):
+            changes.append({"field": "Datasource type changed", "ingester": ingester_datasource_dict,
+                    "provisioning": provisioning_datasource_dict})
+        else:
+            for field in ingester_datasource_dict:
+                if ingester_datasource_dict[field] != provisioning_datasource_dict[field]:
+                    changes.append({"field": field, "ingester": ingester_datasource_dict[field], "provisioning": provisioning_datasource_dict[field]})
+
+        return changes
+
+
     @view_config(route_name="dataset", permission=DefaultPermissions.VIEW_PROJECT)
     def dataset_view(self):
         """
@@ -1872,6 +1935,7 @@ class Workflows(Layouts):
         self._model_id = dataset_id
         self._model_type = Dataset
         dataset = self._get_model()
+
         is_approved = dataset is not None and dataset.dam_id is not None
 
         page_help=""
@@ -1885,6 +1949,18 @@ class Workflows(Layouts):
 
         schema.methods = self.project.methods
         schema.validator = dataset_validator
+
+        # Add calibration data for display.
+        if dataset is not None and dataset.dam_id is not None:
+            calibrations_data = []
+            calibrations = self.ingester_api.search(DatasetMetadataSearchCriteria(dataset.dam_id), 0, 1000)
+            if calibrations.count > 0:
+                for calibration in calibrations.results:
+                    calibrations_data.append({
+                        "date": calibration["date"],
+                        "changes": json.loads(calibration["changes"]),
+                        })
+            self.schema.calibrations = calibrations_data
 
         self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id, dataset_id=dataset_id),
             buttons=("Save",), use_ajax=False)
@@ -1919,12 +1995,10 @@ class Workflows(Layouts):
                 new_url = self.request.route_url(self.request.matched_route.name, project_id=self.project_id,
                         dataset_id=dataset_id)
                 return HTTPFound(new_url)
-            elif is_approved:
-                # TODO: Find changes and add DatasetMetadataEntry to record it.
+#            elif is_approved:
+#                self._send_email_notifications(NotificationConfig.ingester_changes.key, dataset_id=dataset_id)
 
-                self._send_email_notifications(NotificationConfig.ingester_changes.key, dataset_id=dataset_id)
-
-        # Otherwise, Send notification emails that the dataset has changed.
+        # Otherwise, update/insert the ingester and metadata record + send notification emails that the dataset has changed.
         if 'Approve' in self.request.POST:
             try:
                 # Check that the model validates (will throw an exception if it is invalid).
@@ -1937,34 +2011,67 @@ class Workflows(Layouts):
                 self.session.flush()
 
                 success = True
+                dataset_exported = False
+                record_exported = False
+
+                changes = self._get_ingester_dataset_changes(dataset)
 
                 # Setup data ingestion to the ingester platform.
                 if success:
                     try:
                         self.ingester_api.post(dataset)
                         self.ingester_api.close()
+                        dataset_exported = True
                         logger.info("Dataset has been added to ingesterplatform successfully: %s", dataset.id)
                     except Exception as e:
                         success = False
                         logger.exception("Dataset failed to add to ingesterplatform - Dataset ID: %s", dataset.id)
                         self.request.session.flash("Failed to configure data storage and ingestion.", 'error')
                         self.request.session.flash("Error: %s" % e, 'error')
+                        self._send_email_notifications(NotificationConfig.errors.key, dataset.project,
+                            message="Error %s dataset <a href='%s'>%s</a>: %s" % (
+                                dataset.dam_id is None and "inserting" or "updating",
+                                self.request.route_url("dataset", project_id=dataset.project_id, dataset_id=dataset.id),
+                                dataset.id ,e))
 
-                # Export dataset metadata record to ReDBox.
-                if success and dataset.publish_dataset:
+                # Export dataset metadata record to ReDBox only if this is a new dataset.
+                if success and dataset.publish_dataset and dataset.record_metadata.date_added_to_redbox is None:
                     try:
                         self.redbox.insert_dataset(dataset.id)
+                        record_exported = True
                     except Exception as e:
                         success = False
                         logger.exception("Dataset failed to add to ReDBox: %s", dataset.id)
                         self.request.session.flash("Dataset failed to generate or add metadata records to ReDBox.", 'error')
                         self.request.session.flash("Error: %s" % e, 'error')
+                        self._send_email_notifications(NotificationConfig.errors.key, dataset.project,
+                            message="Error creating ReDBox record for dataset <a href='%s'>%s</a>: %s" % (
+                                self.request.route_url("dataset", project_id=dataset.project_id, dataset_id=dataset.id),
+                                dataset.id ,e))
 
                 if success:
                     self.request.session.flash("Dataset successfully approved.", "success")
-                    self._send_email_notifications(NotificationConfig.new_datasets.key, dataset_id=dataset_id
-                        , dataset_url=self.request.route_url(self.request.matched_route.name, project_id=self.project_id,
-                            dataset_id=dataset_id), message="The dataset has been approved and is now active.")
+                    if dataset_exported and record_exported:
+                        self._send_email_notifications(NotificationConfig.new_datasets.key, dataset_id=dataset_id
+                            , dataset_url=self.request.route_url(self.request.matched_route.name, project_id=self.project_id,
+                                dataset_id=dataset_id), message="The dataset has been approved and is now active.")
+                    else:
+                        if len(changes) > 0:
+                            # TODO: This only supports 1 type of dataset calibration.
+                            calibration_schema = self.session.query(MethodSchema).filter_by(schema_type=DatasetMetadataSchema.__xmlrpc_class__).first()
+                            calibration = DatasetMetadataEntry(dataset.dam_id, metadata_schema_id=int(calibration_schema.dam_id))
+                            calibration["date"] = datetime.now()
+                            calibration["changes"] = json.dumps(changes)
+                            try:
+                                self.ingester_api.post(calibration)
+                            except Exception as e:
+                                message = "Failed to add dataset calibration after saving changes."
+                                logger.exception(message)
+                                self.request.session.flash(message, "error")
+                                self._send_email_notifications(NotificationConfig.errors.key, dataset.project,
+                                    message=message)
+                        self._send_email_notifications(NotificationConfig.ingester_changes.key, dataset_id=dataset_id,
+                                changes=changes)
 
 
             except ValidationFailure as e:
@@ -1982,6 +2089,13 @@ class Workflows(Layouts):
             except ValidationFailure as e:
                 self.request.session.flash("You cannot submit the dataset for approval while it has validation errors.", "error")
 
+        if dataset is not None and dataset.dam_id is not None:
+            changes = self._get_ingester_dataset_changes(dataset)
+            if len(changes) > 0:
+                self.request.session.flash("This dataset has un-exported changes, data is currently being ingested with "
+                       "<a href='%s'>these settings</a>" % self.request.route_url(
+                            "ingester_dataset", project_id=self.project_id, dataset_id=dataset.id), "warning")
+
         # Remove the appstruct created during submit/approval so the form renders correctly.
         if hasattr(self, '_model_appstruct'):
             delattr(self, '_model_appstruct')
@@ -1990,6 +2104,37 @@ class Workflows(Layouts):
         return self._create_response(page_help=page_help, readonly= readonly or not
             has_permission(DefaultPermissions.EDIT_INGESTERS, self.context, self.request).boolval)
 
+    @view_config(route_name="ingester_dataset", permission=DefaultPermissions.VIEW_PROJECT)
+    def ingester_dataset_view(self):
+        page_help=""
+
+        dataset_id = self.request.matchdict['dataset_id']
+        self.request.session.flash("This is the exported dataset settings, update and submit new settings <a href='%s'>here</a>." %
+            self.request.route_url("dataset", project_id=self.project_id, dataset_id=dataset_id), "warning")
+
+        schema = convert_schema(SQLAlchemyMapping(Dataset, unknown='raise'), page="datasets", restrict_admin=True).bind(request=self.request, datasets=self.project.datasets)
+
+        schema['dataset:publish_dataset'].widget.readonly = True
+        schema['dataset:publish_date'].widget = deform.widget.DateInputWidget(readonly=True)
+        schema['dataset:dataset_locations'].widget.readonly = True
+        schema['dataset:location_offset'].widget.readonly = True
+
+        schema.methods = self.project.methods
+
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id, dataset_id=dataset_id),
+            buttons=(), use_ajax=False)
+        self.form.widget.template="edit_dataset_form"
+        self.form.widget.readonly_template="readonly/edit_dataset_form"
+        self.form.widget.get_file_fields = self._get_file_fields
+
+        dataset = self.session.query(Dataset).filter_by(id=dataset_id).first()
+        ingester_dataset = self.ingester_api.getDataset(dataset.dam_id)
+
+        appstruct = {}
+
+        # TODO
+
+        return self._create_response(page_help=page_help, readonly=True)
 
     @view_config(renderer="../templates/form.pt", route_name="search", permission=NO_PERMISSION_REQUIRED)
     def search_view(self):

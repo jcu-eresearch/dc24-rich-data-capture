@@ -59,42 +59,49 @@
     </style>
 
     <script type="text/javascript">
+        window.display_leave_confirmation = false;
+        <tal:block tal:condition="exists:display_leave_confirmation"><tal:block tal:condition="display_leave_confirmation">
+                window.display_leave_confirmation = true;
+        </tal:block></tal:block>
+
         // Lock/Un-lcok pages on load/onbeforeunload
-        <tal:block tal:condition="request.user is not None"><tal:block tal:condition="exists:readonly"><tal:block tal:condition="not readonly">
-            $(function() {
-                $.ajax({
-                    url: "${request.route_url('lock_page', route=request.matched_route.name, user_id=request.user.id)}",
-                    dataType: "json",
-                    success: function( data ) {
-                        window.lock_id = data['id'];
-                    },
-                    error: function(jqXHR, textStatus, errorThrown) {
-                        console.log(errorThrown);
-                    }
-                });
-            });
-        </tal:block></tal:block></tal:block>
+//        <tal:block tal:condition="request.user is not None"><tal:block tal:condition="exists:readonly"><tal:block tal:condition="not readonly">
+//            $(function() {
+//                $.ajax({
+//                    url: "${request.route_url('lock_page', url=request.path, user_id=request.user.id)}",
+//                    dataType: "json",
+//                    success: function( data ) {
+//                        window.lock_id = data['id'];
+//                    },
+//                    error: function(jqXHR, textStatus, errorThrown) {
+//                        console.log(errorThrown);
+//                    }
+//                });
+//            });
+//        </tal:block></tal:block></tal:block>
+        window.lock_id = "${lock_id}";
+
 
         window.onbeforeunload = function (e) {
-            // Lock/Un-lcok pages on load/onbeforeunload
-            <tal:block tal:condition="request.user is not None"><tal:block tal:condition="exists:readonly"><tal:block tal:condition="not readonly">
-
-                $(function() {
-                    $.ajax({
-                        url: "${request.route_url('unlock_page', lock_id='')}" + window.lock_id,
-                        dataType: "json",
-                        async: false,
-                        success: function( data ) {
-                        },
-                        error: function(jqXHR, textStatus, errorThrown) {
-                            console.log("Error unlocking page: " + jqXHR);
-                        }
+            // Only unlock if going to a non-form page and when there is a lock_id set.
+            <tal:block tal:condition="exists: lock_id">
+                if (window.display_leave_confirmation) {
+                    $(function() {
+                        $.ajax({
+                            url: "${request.route_url('unlock_page', lock_id='')}" + window.lock_id,
+                            dataType: "json",
+                            async: false,
+                            success: function( data ) {
+                            },
+                            error: function(jqXHR, textStatus, errorThrown) {
+                                console.log("Error unlocking page: " + jqXHR);
+                            }
+                        });
                     });
-                });
-            </tal:block></tal:block></tal:block>
+                }
+            </tal:block>
 
             // Provide confirmation dialogs when leaving form pages.
-            window.display_leave_confirmation = true;
             <tal:block tal:condition="exists:display_leave_confirmation"><tal:block tal:condition="display_leave_confirmation">
                 if (window.display_leave_confirmation) {
                     var message = "Are you sure you want to leave this page, all unsaved data will be lost.",
@@ -109,21 +116,23 @@
         };
 
 
-        <tal:block tal:condition="exists:display_leave_confirmation"><tal:block tal:condition="display_leave_confirmation">
-            // Remove confirmation dialog if there is no form.
-            $(function () {
-                if ($("#deform").length <= 0 ||$("#deform").attr('readonly') == 'readonly') {
-                    window.display_leave_confirmation = false;
+        // Remove confirmation dialog if there is no form.
+        $(function () {
+            if ($("#deform").length <= 0 ||$("#deform").attr('readonly') == 'readonly') {
+                window.display_leave_confirmation = false;
+            }
+        });
+
+        // Remove confirmation dialogs if submitting the form.
+        $(function() {
+            $("#deform").submit(function(){
+                window.display_leave_confirmation = false;
+
+                if ($("#page_lock_id").length > 0) {
+                    $("#page_lock_id")[0].value = window.lock_id;
                 }
             });
-
-            // Remove confirmation dialogs if submitting the form.
-            $(function() {
-                $("#deform").submit(function(){
-                    window.display_leave_confirmation = false;
-                });
-            });
-        </tal:block></tal:block>
+        });
 
         // Fix the widths of components on resize
         $(window).resize(set_content_size);

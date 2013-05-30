@@ -1,6 +1,8 @@
 """
 Create database tables and initialise the database with default values on the first run.
 """
+from jcudc24ingesterapi.schemas.metadata_schemas import DataEntryMetadataSchema, DatasetMetadataSchema
+from jcudc24ingesterapi.schemas.data_entry_schemas import DataEntrySchema
 
 import os
 import os
@@ -145,7 +147,7 @@ def initialise_default_schemas(session):
     temp_schema = MethodSchema()
     temp_schema.name = "Temperature"
     temp_schema.template_schema = True
-    temp_schema.schema_type = "DataEntryMetadataSchema"
+    temp_schema.schema_type = DataEntrySchema.__xmlrpc_class__
 
     temp_field = MethodSchemaField()
     temp_field.type = "decimal"
@@ -158,7 +160,7 @@ def initialise_default_schemas(session):
     humidity_schema = MethodSchema()
     humidity_schema.name = "Humidity"
     humidity_schema.template_schema = True
-    humidity_schema.schema_type = "DataEntryMetadataSchema"
+    humidity_schema.schema_type = DataEntrySchema.__xmlrpc_class__
 
     humidity_field = MethodSchemaField()
     humidity_field.type = "decimal"
@@ -171,7 +173,7 @@ def initialise_default_schemas(session):
     moisture_schema = MethodSchema()
     moisture_schema.name = "Moisture"
     moisture_schema.template_schema = True
-    moisture_schema.schema_type = "DataEntryMetadataSchema"
+    moisture_schema.schema_type = DataEntrySchema.__xmlrpc_class__
 
     moisture_field = MethodSchemaField()
     moisture_field.type = "decimal"
@@ -184,7 +186,7 @@ def initialise_default_schemas(session):
     altitude_schema = MethodSchema()
     altitude_schema.name = "Altitude"
     altitude_schema.template_schema = True
-    altitude_schema.schema_type = "DataEntryMetadataSchema"
+    altitude_schema.schema_type = DataEntrySchema.__xmlrpc_class__
 
     altitude_field = MethodSchemaField()
     altitude_field.type = "decimal"
@@ -197,7 +199,7 @@ def initialise_default_schemas(session):
     distance_schema = MethodSchema()
     distance_schema.name = "Distance"
     distance_schema.template_schema = True
-    distance_schema.schema_type = "DataEntryMetadataSchema"
+    distance_schema.schema_type = DataEntrySchema.__xmlrpc_class__
 
     distance_field = MethodSchemaField()
     distance_field.type = "decimal"
@@ -211,7 +213,7 @@ def initialise_default_schemas(session):
     luminosity_schema = MethodSchema()
     luminosity_schema.name = "Luminosity"
     luminosity_schema.template_schema = True
-    luminosity_schema.schema_type = "DataEntryMetadataSchema"
+    luminosity_schema.schema_type = DataEntrySchema.__xmlrpc_class__
 
     luminosity_field = MethodSchemaField()
     luminosity_field.type = "decimal"
@@ -225,7 +227,7 @@ def initialise_default_schemas(session):
     weight_schema = MethodSchema()
     weight_schema.name = "Weight"
     weight_schema.template_schema = True
-    weight_schema.schema_type = "DataEntryMetadataSchema"
+    weight_schema.schema_type = DataEntrySchema.__xmlrpc_class__
 
     weight_field = MethodSchemaField()
     weight_field.type = "decimal"
@@ -239,7 +241,7 @@ def initialise_default_schemas(session):
     density_schema = MethodSchema()
     density_schema.name = "Density"
     density_schema.template_schema = True
-    density_schema.schema_type = "DataEntryMetadataSchema"
+    density_schema.schema_type = DataEntrySchema.__xmlrpc_class__
 
     density_field = MethodSchemaField()
     density_field.type = "decimal"
@@ -247,12 +249,43 @@ def initialise_default_schemas(session):
     density_field.name = "Density"
     density_schema.custom_fields.append(density_field)
     session.add(density_schema)
+    
+    #------------Data Quality Assurance Schema----------
+    data_quality = MethodSchema()
+    data_quality.name = "Data Quality"
+    data_quality.template_schema = False
+    data_quality.schema_type = DataEntryMetadataSchema.__xmlrpc_class__
 
-    #----------Date schema--------------
-    date_schema = MethodSchema()
-    date_schema.name = "Date"
-    date_schema.template_schema = True
-    date_schema.schema_type = "DataEntryMetadataSchema"
+    quality_field = MethodSchemaField()
+    quality_field.type = "decimal"
+    quality_field.name = "Value"
+    data_quality.custom_fields.append(quality_field)
+
+    description_field = MethodSchemaField()
+    description_field.type = "text_area"
+    description_field.name = "Description"
+    data_quality.custom_fields.append(description_field)
+    
+    session.add(data_quality)
+
+    #------------Dataset calibration/changes schema-------------------
+    dataset_calibration = MethodSchema()
+    dataset_calibration.name = "Dataset Calibration"
+    dataset_calibration.template_schema = False
+    dataset_calibration.schema_type = DatasetMetadataSchema.__xmlrpc_class__
+
+    date = MethodSchemaField()
+    date.type = "date"
+    date.name = "Date"
+    dataset_calibration.custom_fields.append(date)
+
+    # Textual representation of an array of changes.
+    changes = MethodSchemaField()
+    changes.type = "text_area"
+    changes.name = "Description"
+    dataset_calibration.custom_fields.append(changes)
+
+    session.add(dataset_calibration)
 
     session.flush()
 

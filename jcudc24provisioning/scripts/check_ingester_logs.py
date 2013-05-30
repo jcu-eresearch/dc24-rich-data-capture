@@ -114,7 +114,7 @@ def send_email_notifications(session, dataset, type, **kw):
                         "<br/>EnMaSSe System" % variables
 
         # Add a record of the notification to the database
-        notification = Notification(type, ','.join(email_to), email_subject, email_message,
+        notification = Notification(datetime.now(), type, ','.join(email_to), email_subject, email_message,
             ','.join(["%s - %s - %s - %s - %s - %s.\n" % (
             log['id'], log['dataset_id'], log['timestamp'], log['class'], log['level'],
             log['message'].strip()) for log in kw['errors']]
@@ -132,7 +132,7 @@ def send_email_notifications(session, dataset, type, **kw):
                         "<br/>EnMaSSe System" % variables
 
         # Add a record of the notification to the database
-        notification = Notification(type, ','.join(email_to), email_subject, email_message,
+        notification = Notification(datetime.now(), type, ','.join(email_to), email_subject, email_message,
             ','.join(["%s - %s - %s - %s - %s - %s.\n" % (
                 log['id'], log['dataset_id'], log['timestamp'], log['class'], log['level'],
                 log['message'].strip()) for log in kw['warnings']]

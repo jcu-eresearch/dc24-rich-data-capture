@@ -70,7 +70,7 @@
 
                  <div id="main">
                      <div id="workflow">
-                         <input id="workflow_target" form="deform" type="hidden" name="target" />
+                         <input id="page_lock_id" form="deform" type="hidden" name="lock_id" />
                          <div id="workflow_nav" tal:condition="not view.is_hidden_workflow">
                              <ul>
                                  <li tal:repeat="menu view.workflow_step">

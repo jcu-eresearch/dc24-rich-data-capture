@@ -8,17 +8,19 @@ import logging
 from mhlib import isnumeric
 from string import split
 import urllib2
+import datetime
 from jcudc24provisioning.controllers.authentication import DefaultPermissions, DefaultRoles
 from jcudc24provisioning.models.ca_model import CAModel
 from jcudc24provisioning.models.project import Metadata, Dataset
 from jcudc24provisioning.resources import enmasse_requirements
+from jcudc24provisioning.views.page_locking import PageLocking
 import pyramid
 from pyramid.httpexceptions import HTTPNotFound, HTTPFound, HTTPClientError, HTTPBadRequest, HTTPForbidden
 from pyramid.interfaces import IRoutesMapper, IViewClassifier, IView
 from pyramid.view import view_config, forbidden_view_config, view_defaults, render_view_to_response
 from pyramid.security import remember, forget, authenticated_userid, has_permission
 from deform.form import Form
-from jcudc24provisioning.models.website import Login, User, LocalLogin, user_roles_table, Role
+from jcudc24provisioning.models.website import Login, User, LocalLogin, user_roles_table, Role, PageLock
 from jcudc24provisioning.models import DBSession
 from pyramid.request import Request
 from pyramid_mailer import get_mailer
@@ -58,6 +60,19 @@ class Layouts(object):
         self.session = DBSession
         global pyramid_request
         pyramid_request = request
+
+        if "lock_ids" not in request.session:
+            request.session["lock_ids"] = []
+
+        # Implement page locking - this will only work during normal navigation
+        # TODO: This implementation leaves locks for non-form pages in the DB until they timeout.
+        self.lock_id = None
+        if request.user is not None and 'internal_redirect' not in request.POST:
+            locker = PageLocking(request)
+            if 'lock_id' in request.POST:
+                locker.unlock_page(request.POST['lock_id'])
+
+            self.lock_id = locker.lock_page(request.user.id, request.path)
 
     @reify
     def global_template(self):
@@ -157,7 +172,7 @@ class Layouts(object):
 
         # Request sorts the post items (which breaks deform) - fix it directly
         if len(self.request.POST) > 0:
-            sub_request.POST._items = self.request.POST._items
+            sub_request.POST._items = self.request.POST._items + [("internal_redirect", True),]
 
         return self.request.invoke_subrequest(sub_request)
 
@@ -195,6 +210,7 @@ class Layouts(object):
             "page_help": kwargs.pop("page_help", ""),
             "user": self.request.user,
             "page_help_hidden": kwargs.pop("page_help_hidden", True),
+            "lock_id": self.lock_id,
         }
 
         response_dict.update(kwargs)

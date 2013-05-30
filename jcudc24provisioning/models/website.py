@@ -236,12 +236,12 @@ class PageLock(CAModel, Base):
     __tablename__ = 'page_lock'
     id = Column(Integer, primary_key=True, ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
     user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
-    route_name = Column(String(80), ca_order=next(order_counter), nullable=False)
+    url = Column(String(80), ca_order=next(order_counter), nullable=False)
     expire_date = Column(Date(), ca_order=next(order_counter), nullable=False)
 
-    def __init__(self, user_id, route_name, expire_date):
+    def __init__(self, user_id, url, expire_date):
         self.user_id = user_id
-        self.route_name = route_name
+        self.url = url
         self.expire_date = expire_date
 
 

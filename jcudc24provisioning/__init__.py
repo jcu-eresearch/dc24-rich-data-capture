@@ -76,6 +76,7 @@ def main(global_config, **settings):
     config.add_route('logs', '/project/{project_id}/logs')
     config.add_route('dataset_calibration', '/project/{project_id}/dataset/{dataset_id}/calibration/*calibration_id')
     config.add_route('dataset', '/project/{project_id}/dataset/*dataset_id')          # Datasets or collections of data
+    config.add_route('ingester_dataset', '/project/{project_id}/dataset/{dataset_id}')    # View current settings for exported dataset.
     config.add_route('data_calibration', '/project/{project_id}/datasets/{dataset_id}/data/{id_list}/calibration/*calibration_id')
     config.add_route('data', '/project/{project_id}/datasets/{dataset_id}/data/*data_id')
     config.add_route('permissions', '/project/{project_id}/permissions')
@@ -110,7 +111,7 @@ def main(global_config, **settings):
     config.add_route('logout', '/logout')                                     # logout and redirect page
     config.add_route('admin', '/admin')                                     # administer user permissions + view admin required items
     config.add_route('help', '/help')                                     # administer user permissions + view admin required items
-    config.add_route('lock_page', '/lock_page/{route}/{user_id}')
+    config.add_route('lock_page', '/lock_page/{user_id}/*url')
     config.add_route('unlock_page', '/unlock_page/{lock_id}')
     config.add_route('record_data', '/{metadata_id}')
 

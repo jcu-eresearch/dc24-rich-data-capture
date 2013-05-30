@@ -399,7 +399,7 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
         self._set_dataset_locations(new_dataset, model, work, command)
 
         # Add the data source to this dataset.
-        new_dataset.data_source = self._create_data_source(new_dataset, model, method)
+        new_dataset.data_source = self._create_data_source(model, method)
 
         # Add the DataEntrySchema for this dataset
         try:
@@ -456,17 +456,19 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             dataset.location_offset = self.process_model(provisioning_dataset.location_offset, command, work)
 
 
-    def _create_data_source(self, dataset, provisioning_dataset, method):
+    def _create_data_source(self, provisioning_dataset, method=None):
         """
         Break the data source processing out of process_dataset to make the code more legible.  This method finds the
         type of data source and creates the ingesterapi datasource object.
 
-        :param dataset: Ingester api dataset model
         :param provisioning_dataset: Provisioning interface dataset model
         :param method: Provisioning interface model associated with this dataset.
         :return: Created ingesterapi datasource model.
         """
         try:
+            if method is None:
+                method = provisioning_dataset.method
+
             # Create the data source with type specific configurations.
             data_source = None
             provisioning_data_source = None

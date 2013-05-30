@@ -27,23 +27,27 @@ class PageLocking(object):
         self.request = request
         self.session = DBSession
 
+
     @view_config(route_name="lock_page")
-    def lock_page(self):
+    def lock_page(self, user_id=None, url=None):
         """
         Lock a page using the matchdict user_id and route_name
 
         :return: None
         """
 
-        assert 'user_id' in self.request.matchdict, "Error: Trying to lock a page without a valid user_id."
-        assert 'route' in self.request.matchdict, "Error: Trying to lock an unkown page."
-        user_id = self.request.matchdict['user_id']
-        route_name = self.request.matchdict['route']
+        if user_id is None:
+            assert 'user_id' in self.request.matchdict, "Error: Trying to lock a page without a valid user_id."
+            user_id = self.request.matchdict['user_id']
+
+        if url is None:
+            assert 'url' in self.request.matchdict, "Error: Trying to lock an unkown page."
+            url = '/' + '/'.join(self.request.matchdict['url'])
 
         current_date = datetime.now()
         expire_period = timedelta(hours=24)
         expire_time = current_date + expire_period
-        lock = PageLock(user_id, route_name, expire_time)
+        lock = PageLock(user_id, url, expire_time)
         self.session.add(lock)
 
         # Clean up expired locks.
@@ -51,19 +55,23 @@ class PageLocking(object):
 
         self.session.flush()
 
-        json_data = json.dumps({'id': lock.id})
-        return {'values': json_data}
+        if "user_id" in self.request.matchdict and "url" in self.request.matchdict:
+            json_data = json.dumps({'id': lock.id})
+            return {'values': json_data}
+
+        return lock.id
 
     @view_config(route_name="unlock_page")
-    def unlock_page(self):
+    def unlock_page(self, lock_id=None):
         """
         Un-lock a page using the matchdict user_id and route_name
 
         :return: None
         """
 
-        assert 'lock_id' in self.request.matchdict, "Error: Trying to unlock a page without a valid lock_id."
-        lock_id = self.request.matchdict['lock_id']
+        if lock_id is None:
+            assert 'lock_id' in self.request.matchdict, "Error: Trying to unlock a page without a valid lock_id."
+            lock_id = self.request.matchdict['lock_id']
 
         self.session.query(PageLock).filter_by(id=lock_id).delete()
         self.session.flush()
