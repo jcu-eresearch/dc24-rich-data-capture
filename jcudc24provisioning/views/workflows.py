@@ -2202,7 +2202,9 @@ class Workflows(Layouts):
         order_dir = search_data.get('order_direction', None)
         search_string = search_data.get('search_string', None)
         limit = int(search_data.get('limit', 20))
-        id_list = search_data.get('ids', None)
+        id_list = search_data.get('id_list', None)
+        if not isinstance(id_list, tuple) and not id_list is None:
+            id_list = tuple(id_list)
         page = int(search_data.get('page', 0))
         data_type = search_data.get("type", "project")
 
@@ -2277,14 +2279,13 @@ class Workflows(Layouts):
                             MetadataNote.note_desc.op('regexp')(regex_string % keyword)))))
 
         if id_list:
-            id_string = id_list.split(",")
-            id_list = []
-            for id in id_string:
+            num_id_list = []
+            for id in id_list:
                 if data_type in id:
                     num = id.strip()[len(data_type) + 1:]
 
                     if isnumeric(num):
-                        id_list.append(int(num))
+                        num_id_list.append(int(num))
                     else:
                         self.request.session.flash("Entered ID's must be in the form <type>_<number>, "
                                                    "eg. project_1.  The bad id is: %s" % id, "warning")
@@ -2292,8 +2293,8 @@ class Workflows(Layouts):
                     self.request.session.flash("Entered ID's must be in the form <type>_<number>, eg. project_1."
                                                "  Also check that the correct type is selected.  The bad id is: %s" % id, "warning")
 
-            if len(id_list) > 0:
-                query = query.filter(Project.id.in_(id_list))
+            if len(num_id_list) > 0:
+                query = query.filter(Project.id.in_(num_id_list))
 
         num_results = query.count()
         num_pages = num_results / limit
@@ -2315,7 +2316,9 @@ class Workflows(Layouts):
 
         results = []
         for result in query_results:
-            results.append(self._project_to_search_result(result))
+            result = self._project_to_search_result(result)
+            if result is not None:
+                results.append(result)
 
         return results
 
@@ -2361,18 +2364,43 @@ class Workflows(Layouts):
                     self.request.session.flash("Trying to use an invalid id for actions: %s" % id, "warning")
 
         if 'View Datasets' in search_data:
-            id_list = []
-            for id in selected_ids:
-                num = id[len("project_"):]
-                if isnumeric(num):
-                    project = self.session.query(Project).filter_by(id=num).first()
-                    if project is not None:
-                        id_list.extend([str(dataset.id) for dataset in project.datasets])
+#            id_list = []
+#            for id in selected_ids:
+#                num = id[len("project_"):]
+#                if isnumeric(num):
+#                    project = self.session.query(Project).filter_by(id=num).first()
+#                    if project is not None:
+#                        id_list.extend([str(dataset.id) for dataset in project.datasets])
 
-            return HTTPFound(self.request.route_url("search", search_info='/dataset/id_list=' + ",".join(id_list)))
+            return HTTPFound(self.request.route_url("search", search_info='/dataset/id_list=' + ",".join(selected_ids)))
 
     def _project_to_search_result(self, project):
         dataset_id_list = ["dataset_" + str(dataset.id) for dataset in project.datasets]
+
+        self.request.matchdict['project_id'] = project.id # Needed for theauthentication to find permissions correctly
+
+        can_edit = has_permission(DefaultPermissions.EDIT_PROJECT, self.context, self.request).boolval
+        can_view = has_permission(DefaultPermissions.VIEW_PROJECT, self.context, self.request).boolval or can_edit
+        can_edit_data = has_permission(DefaultPermissions.EDIT_DATA, self.context, self.request).boolval
+        can_view_data = self.session.query(Metadata.access_rights).filter_by(project_id=project.id).one()[0] == "Open Access" or\
+                        has_permission(DefaultPermissions.VIEW_DATA, self.context, self.request).boolval or can_edit_data
+        can_edit_dataset = has_permission(DefaultPermissions.EDIT_INGESTERS, self.context, self.request).boolval
+
+        if not (can_view or can_view_data or can_edit_dataset):
+            return None
+
+        urls = OrderedDict()
+        if can_edit:
+            urls["Edit Project"] = self.request.route_url("general", project_id=project.id)
+        elif can_view:
+            urls["View Project"] = self.request.route_url("general", project_id=project.id)
+
+        if can_edit_dataset:
+            urls["Add Dataset"] = self.request.route_url("dataset", project_id=project.id, dataset_id='')
+
+        if can_view_data:
+            urls["Datasets (click here for data)"] = self.request.route_url("search", search_info="/dataset/id_list=project_%s" % project.id)
+
         return {
             "id": project.id,
             "type": "project",
@@ -2380,13 +2408,7 @@ class Workflows(Layouts):
             "created": project.date_created,
             "modified": project.date_modified,
             "description": project.information is not None and project.information.project_title or "",
-            "urls": OrderedDict([
-                (has_permission(DefaultPermissions.EDIT_DATA, self.context, self.request).boolval and "Edit" or "View",
-                    self.request.route_url("general", project_id=project.id)),
-                ("Add Dataset", self.request.route_url("dataset", project_id=project.id, dataset_id='')),
-                ("Datasets", self.request.route_url("search", search_info="/dataset/id_list=project_%s" % project.id)),
-                ("Data", self.request.route_url("search", search_info="/data/id_list=project_%s" % project.id)),
-            ]),
+            "urls": urls,
         }
     def _get_dataset_results(self, search_data, pagination_data, selected_ids, actions):
         # Retreive all needed data and set defauts if needed.
@@ -2521,7 +2543,9 @@ class Workflows(Layouts):
 
         results = []
         for result in query_results:
-            results.append(self._dataset_to_search_result(result))
+            result = self._dataset_to_search_result(result)
+            if result is not None:
+                results.append(result)
 
         return results
 
@@ -2549,6 +2573,29 @@ class Workflows(Layouts):
                     self.request.session.flash("Trying to use an invalid id for actions: %s" % id, "warning")
 
     def _dataset_to_search_result(self, dataset):
+        self.request.matchdict['project_id'] = dataset.project_id # Needed for theauthentication to find permissions correctly
+
+        can_edit = has_permission(DefaultPermissions.EDIT_INGESTERS, self.context, self.request).boolval
+        can_edit_data = has_permission(DefaultPermissions.EDIT_DATA, self.context, self.request).boolval
+        can_view_data = self.session.query(Metadata.access_rights).filter_by(project_id=dataset.project_id).one()[0] == "Open Access" or\
+                        has_permission(DefaultPermissions.VIEW_DATA, self.context, self.request).boolval or can_edit_data
+
+        if not (can_view_data or can_edit):
+            return None
+
+        urls = OrderedDict()
+        if can_edit:
+            urls["Edit Dataset"] = self.request.route_url("dataset", project_id=dataset.project_id, dataset_id=dataset.id)
+        elif can_view_data:
+            urls["View Dataset"] = self.request.route_url("dataset", project_id=dataset.project_id, dataset_id=dataset.id)
+
+        urls["Project"] = self.request.route_url("search", search_info="/project/id_list=project_%s" % dataset.project_id)
+
+        if can_edit_data:
+            urls["Add Data"] = self.request.route_url("data", project_id=dataset.project_id, dataset_id=dataset.id, data_id=None)
+        if can_view_data:
+            urls["Access Data"] = self.request.route_url("search", search_info="/data/id_list=dataset_%s" % dataset.id)
+
         result = {
             "id": dataset.id,
             "type": "dataset",
@@ -2556,13 +2603,7 @@ class Workflows(Layouts):
             "created": dataset.date_created,
             "modified": dataset.date_modified,
             "description": dataset.record_metadata and dataset.record_metadata.project_title or dataset.method and dataset.method.method_name or '',
-            "urls": {
-                has_permission(DefaultPermissions.EDIT_INGESTERS, self.context, self.request).boolval and "Edit" or "View":
-                    self.request.route_url("dataset", project_id=dataset.project_id, dataset_id=dataset.id),
-                "Project": self.request.route_url("general", project_id=dataset.project_id),
-                "Add Data": self.request.route_url("data", project_id=dataset.project_id, dataset_id=dataset.id, data_id=None),
-                "Browse Data": self.request.route_url("search", search_info="/data/id_list=dataset_%s" % dataset.id),
-                },
+            "urls": urls
             }
         return result
 
@@ -2597,7 +2638,7 @@ class Workflows(Layouts):
         page = int(search_data.get('page', 0))
         data_type = search_data.get('type', "dataset")
 
-        actions.append("Add Data")
+#        actions.append("Add Data")
         actions.append("Add QA")
 
         self._process_data_actions(search_data, selected_ids)
@@ -2612,7 +2653,13 @@ class Workflows(Layouts):
 
                     if len(id_nums) == 2 and isnumeric(id_nums[0]) and isnumeric(id_nums[1]):
                         dataset_id, data_id = id_nums
-                        normalised_id_list.append((int(dataset_id), int(data_id)))
+
+                        # Check permissions
+                        self.request.matchdict["project_id"] = self.session.query(Dataset.project_id).filter_by(id=dataset_id).first()[0]
+                        if has_permission(DefaultPermissions.VIEW_DATA, self.context, self.request) or has_permission(DefaultPermissions.EDIT_DATA, self.context, self.request):
+                            normalised_id_list.append((int(dataset_id), int(data_id)))
+                        else:
+                            self.request.session.flash("You don't have permission to view data for dataset_%s" % dataset_id, "error")
                     else:
                         self.request.session.flash("Entered ID's must be in the form project_<num>, dataset_<num> or data_<num>_<num>."
                                                    "  The bad id is: %s" % id, "warning")
@@ -2620,14 +2667,25 @@ class Workflows(Layouts):
                     num = id.strip()[len("dataset") + 1:]
 
                     if isnumeric(num):
-                        dataset_list.append(num)
+                        # Check permissions
+                        self.request.matchdict["project_id"] = self.session.query(Dataset.project_id).filter_by(id=num).first()[0]
+                        if has_permission(DefaultPermissions.VIEW_DATA, self.context, self.request) or has_permission(DefaultPermissions.EDIT_DATA, self.context, self.request):
+                            dataset_list.append(num)
+                        else:
+                            self.request.session.flash("You don't have permission to view data for dataset_%s" % num, "error")
                 elif 'project' in id:
                     num = id.strip()[len("project") + 1:]
 
                     if isnumeric(num):
                         project = self.session.query(Project).filter_by(id=num).first()
+
                         if project:
-                            dataset_list.extend([dataset.id for dataset in project.datasets])
+                            # Check permissions
+                            self.request.matchdict["project_id"] = project.id
+                            if has_permission(DefaultPermissions.VIEW_DATA, self.context, self.request) or has_permission(DefaultPermissions.EDIT_DATA, self.context, self.request):
+                                dataset_list.extend([dataset.id for dataset in project.datasets])
+                            else:
+                                self.request.session.flash("You don't have permission to view data for project_%s" % num, "error")
                 else:
                     self.request.session.flash("Entered ID's must be in the form project_<num>, dataset_<num> or data_<num>_<num>."
                                                "  The bad id is: %s" % id, "warning")
@@ -2692,6 +2750,20 @@ class Workflows(Layouts):
         else:
             project_id, dataset_id = dataset_data
 
+        self.request.matchdict["project_id"] = project_id
+
+        can_view = has_permission(DefaultPermissions.VIEW_DATA, self.context, self.request).boolval
+        can_edit = has_permission(DefaultPermissions.EDIT_DATA, self.context, self.request).boolval
+
+        urls = OrderedDict()
+        if can_edit:
+            urls["Edit Data"] = self.request.route_url("data", project_id=project_id, dataset_id=dataset_id, data_id=data.id)
+        elif can_view:
+            urls["View Data"] = self.request.route_url("data", project_id=project_id, dataset_id=dataset_id, data_id=data.id)
+
+        urls["Project"] = self.request.route_url("search", search_info="/project/id_list=project_%s" % project_id)
+        urls["Dataset"] = self.request.route_url("search", search_info="/dataset/id_list=dataset_%s" % dataset_id)
+
         return {
             "id": "%s_%s" % (data.dataset, data.id),
             "type": "data",
@@ -2699,12 +2771,7 @@ class Workflows(Layouts):
             "created": data.timestamp,
             "modified": data.timestamp,
             "description": str(data),
-            "urls": {
-                has_permission(DefaultPermissions.EDIT_DATA, self.context, self.request).boolval and "Edit" or "View":
-                    self.request.route_url("data", project_id=project_id, dataset_id=dataset_id, data_id=data.id),
-                "Dataset": self.request.route_url("dataset", project_id=project_id, dataset_id=dataset_id),
-                "Project": self.request.route_url("general", project_id=project_id),
-                },
+            "urls": urls
             }
 
     @view_config(route_name="data_calibration", permission=DefaultPermissions.VIEW_DATA)

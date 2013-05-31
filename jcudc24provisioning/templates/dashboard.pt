@@ -69,7 +69,7 @@
 
         <div id="about-intro">
             <div class="sales-point">
-                <img src="${request.static_url('jcudc24provisioning:static/images/quick-efficient.png')}" align="left" />
+                <img src="" align="left" />
                 <h3>Quick and Efficient.</h3>
                 <div>
                     Stream sensor data directly to storage removing the need for regular collection.
@@ -81,7 +81,7 @@
             </div>
 
             <div class="sales-point">
-                <img src="${request.static_url('jcudc24provisioning:static/images/quick-efficient.png')}" align="left" />
+                <img src="" align="left" />
                 <h3>Flexible.</h3>
                 <div>Store your data is how you want using the simple data configurations generator.</div>
                 <div>Process your data as it is ingested using custom processor scripts.</div>
@@ -90,19 +90,19 @@
             </div>
 
             <div class="sales-point">
-                <img src="${request.static_url('jcudc24provisioning:static/images/quick-efficient.png')}" align="left" />
+                <img src="" align="left" />
                 <h3>Persistent.</h3>
                 <div>Centralised data storage that provides regular backups.</div>
             </div>
 
             <div class="sales-point">
-                <img src="${request.static_url('jcudc24provisioning:static/images/quick-efficient.png')}" align="left" />
+                <img src="" align="left" />
                 <h3>Accessible.</h3>
                 <div>Data is searchable and downloadable 24/7 with a fine grained, user editable permissions system.</div>
             </div>
 
             <div class="sales-point">
-                <img src="${request.static_url('jcudc24provisioning:static/images/quick-efficient.png')}" align="left" />
+                <img src="" align="left" />
                 <h3>Scalable.</h3>
                 <div>
                     Research data gets BIG real quick.  The EnMaSSe persistent data storage is based on a hybrid
@@ -112,7 +112,7 @@
             </div>
 
             <div class="sales-point">
-                <img src="${request.static_url('jcudc24provisioning:static/images/quick-efficient.png')}" align="left" />
+                <img src="" align="left" />
                 <h3>Quality Metadata (information about the data).</h3>
                 <div>If collected data has no associated information about what it is or how it was collected than usability is decreased.</div>
                 <div>On the other hand, if no-one knows about the research than it isn't reused either.</div>

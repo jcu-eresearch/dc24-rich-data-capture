@@ -246,7 +246,7 @@
                </div>
 
                <div id="search">
-                   <form action="/search">
+                   <form action="${request.route_url('search', search_info='')}">
                        <input id="search_input"  type="text" name="search" onblur="if (value=='') {this.value='Search site'; style.color='#999';}" value="Search site" onclick="if (value=='Search site') {value=''; style.color='#000';}" />
                        <button type="submit" class="buttonText submit">Search</button>
                    </form>
@@ -277,7 +277,7 @@
                 <div id="nav">
                     <ul>
                         <li>
-                            <a href="/" class="enmasse-logo"><img src="${request.static_url('jcudc24provisioning:static/images/enmasse-logo.png')}" /></a>
+                            <a href="${request.route_url('dashboard')}" class="enmasse-logo"><img src="${request.static_url('jcudc24provisioning:static/images/enmasse-logo.png')}" /></a>
                         </li>
                        <li tal:repeat="page view.menu">
                            <tal:block tal:condition="page.current">

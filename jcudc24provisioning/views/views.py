@@ -536,15 +536,20 @@ class Layouts(object):
     def user_view(self):
         page_help = ""
         schema = convert_schema(SQLAlchemyMapping(User, unknown='raise', ca_description=""), restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request).boolval).bind(request=self.request)
-        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name), buttons=('Next', 'Save', ), )
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name), buttons=('Save', ), )
+
+        password_changed = False
+        if self.request.POST and self.request.user._password != self.request.POST.get('user:password', self.request.user._password):
+           password_changed = True
 
         # If this page was only called for saving and a rendered response isn't needed, return now.
         if self._handle_form(model_id=self.request.user.id, model_type=User):
             return
 
         # Fix the password from plain text to hashed.
-        user = self.session.query(User).filter_by(id=self.request.user.id).first()
-        user.password = user._password
+        user = self.session.query(User).filter_by(id=self.request.user.id).first() # self.request.user is detached from db
+        if password_changed:
+            user.password = user._password
 
         self._readonly = not has_permission(DefaultPermissions.ADMINISTRATOR, self.context, self.request).boolval
         appstruct = user.dictify()

@@ -2,6 +2,7 @@
           tal:attributes="class 'deformMappingFieldset ' + str((field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and ('collapsible-'+str(field.schema.__dict__.get('collapse_group')) or nothing))">
 
     <ul style="display: inline-block" id="data_filtering-${field.oid}" class="data_filtering">
+        <li><h3>Search</h3></li>
         <li class="errorLi" tal:condition="field.errormsg">
             <h3 class="errorMsgLbl" i18n:translate="">There was a problem with this section</h3>
 
@@ -21,11 +22,16 @@
                 tal:repeat="f field.children"
                 tal:replace="structure rndr(tmpl,field=f,cstruct=cstruct.get(f.name,null))"/>
         <input type="hidden" name="__end__" value="${field.name}:mapping"/>
+
+        <li id="search_placeholder" style="position: relative;">
+
+        </li>
     </ul>
 
     <div id="browse_data_results">
         <div id="results_header">
             <div id="data_actions" tal:condition="exists:field.schema.selection_actions">
+                <span><b>With selection:</b></span>
                 <button tal:repeat="action field.schema.selection_actions" name="${action}">${action}</button>
             </div>
 
@@ -176,6 +182,12 @@
                     set_search_type(oid, type[0].value);
 
                     $(".buttons [name='Search']")[0].setAttribute("onclick", "$('#deform')[0].action='/search';")
+
+                    // Move the search button to the bottom of the form.
+                    var placeholder = $("#search_placeholder");
+                    var button = $("#deformSearch");
+                    placeholder.append(button);
+
                 });
 
         function set_search_type(oid, type) {
@@ -202,6 +214,7 @@
 //                filter_mapping.find(".id_list").parents("li").eq(0).hide();
             }
         }
+
     </script>
 </fieldset>
 
