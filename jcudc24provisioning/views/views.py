@@ -304,7 +304,7 @@ class Layouts(object):
                 if model is not None:
                     self.session.add(model)
                     changed = True
-                    model.date_created = datetime.now().date()
+                    model.date_created = datetime.datetime.now().date()
                     model.create_by = self.request.user.id
                 else:
                     return

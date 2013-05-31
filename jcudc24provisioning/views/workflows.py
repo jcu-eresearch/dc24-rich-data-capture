@@ -2204,8 +2204,8 @@ class Workflows(Layouts):
         search_string = search_data.get('search_string', None)
         limit = int(search_data.get('limit', 20))
         id_list = search_data.get('id_list', None)
-        if not isinstance(id_list, tuple) and not id_list is None:
-            id_list = tuple(id_list)
+        if not isinstance(id_list, (tuple, list)) and not id_list is None:
+            id_list = (id_list,)
         page = int(search_data.get('page', 0))
         data_type = search_data.get("type", "project")
 
