@@ -682,7 +682,7 @@ function conditional_display(oid) {
                 break;
 
             case "file":
-                example.className = values.className.replace( / hidden/g , '');
+                example.className += " hidden";
                 default_item.className += " hidden";
 //                        validator.className += " hidden";
                 units.className = values.className.replace( / hidden/g , '');

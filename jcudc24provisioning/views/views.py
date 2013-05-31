@@ -340,6 +340,7 @@ class Layouts(object):
 
         :return: If the current page was redirected to for the purpose of saving.
         """
+        self._form_changed = False
         if self.request.method == 'POST' and len(self.request.POST) > 0:
             if model_type is None:
                 model_type = self.model_type
@@ -374,8 +375,6 @@ class Layouts(object):
                                 self.project.datasets_ready = 0
                             else:
                                 self.project.datasets_ready += 1
-                    else:
-                        self._form_changed = False
 
                     # If this view has been called for saving only, return without rendering.
                     view_name = inspect.stack()[1][3][:-5]

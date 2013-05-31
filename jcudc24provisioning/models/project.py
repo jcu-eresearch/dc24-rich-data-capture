@@ -1005,7 +1005,9 @@ class MethodSchemaField(CAModel, Base):
     internal_name = Column(String(256), ca_widget=deform.widget.HiddenWidget(),)
     _name = Column(String(256), ca_title="Name", ca_placeholder="eg. Temperature", ca_force_required=True,
         ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_name"),)
-    description = Column(Text(), ca_title="Description", ca_placeholder="eg. Calibrated temperature reading", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_description"))
+    description = Column(Text(), ca_title="Description", ca_placeholder="eg. Calibrated temperature reading",
+        ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_description"),
+        ca_description="<i>This is used for display purposes and will show in the same location as this text.</i>")
 
     type = Column(String(100), ca_title="Field Type",
         ca_widget=deform.widget.SelectWidget(values=field_types, css_class="field_type"),
@@ -1014,11 +1016,19 @@ class MethodSchemaField(CAModel, Base):
 
     units = Column(String(256), ca_placeholder="eg. mm", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_units"),)#ca_force_required=True)
 
-    placeholder = Column(String(256), ca_title="Example", ca_placeholder="eg. 26.3", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_example"))
-    default = Column(String(256), ca_title="Default Value", ca_placeholder="", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_default"))
-    values = Column(Text(), ca_title="List of Values", ca_placeholder="Provide possible selections", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_values"))
+    placeholder = Column(String(256), ca_title="Example", ca_placeholder="eg. 26.3",
+        ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_example"),
+        ca_description="<i>This is used for display purposes and is the grey text when the field has no value set.</i>")
+    default = Column(String(256), ca_title="Default Value", ca_placeholder="",
+        ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_default"),
+        ca_help="<i>What should this field be set to if no value is entered?</i>")
+    values = Column(Text(), ca_title="List of Values", ca_placeholder="Provide possible selections",
+        ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_values"),
+        ca_description="<i>Enter as comma separated values (eg. item 1, item 2, item 3, ...)</i>")
     #    validators = Column(String(256), ca_title="Validator", ca_placeholder="eg. Numerical value with decimal places or what values are expected such as for a dropdown box", ca_widget=deform.widget.TextInputWidget(css_class="full_width custom_field_validators"))
-    notes = Column(String(256), ca_title="Admin Notes", ca_placeholder="eg. Please read this field from the uploaded files, it will follow a pattern like temp:xxx.xx", ca_widget=deform.widget.TextAreaWidget(css_class="full_width custom_field_notes"))
+    notes = Column(String(256), ca_title="Notes/questions for the administrators",
+        ca_placeholder="eg. Please read this field from the uploaded files, it will follow a pattern like temp:xxx.xx",
+        ca_widget=deform.widget.TextAreaWidget(css_class="full_width custom_field_notes"))
 
     @property
     def name(self):
@@ -1170,7 +1180,7 @@ class _sampling(Column):
     def __init__(self, **kw):
         super(_sampling, self).__init__(INTEGER(), ca_title="Periodic Sampling (How often should new files be looked for)",
             ca_widget=deform.widget.TextInputWidget(regex_mask="^(\\\\d*)$", strip=False),
-            ca_help="Provide the number of minutes between checks for new files."
+            ca_help="Provide the number of minutes between checks for new files.<br/>"
                     "<i>(Advanced) If you require something more advanced almost any custom needs can be implemented "
                     "with a custom processing script (below).</i>", **kw)
 
@@ -1192,7 +1202,8 @@ def _custom_processor(**kw) :
                 "<li>Pull data sources read a file from the folder address entered above</li>"
                 "<li>Data configuration provided in the methods step sets up what data is important/searchable and how it is stored.</li>"
                 "<li>Custom data processing configures how data is read from the file and added to this system as indexed data.</li>"
-                "</ul>",
+                "</ul>"
+                "<br />(Advanced) Custom processing scripts are written in Python following <a href='https://tdh-rich-data-capture-documentation.readthedocs.org/en/latest/ingester-developer.html#ingester-post-processing-scripts'>this API</a>.",
         ca_description="<i>If you haven't used this system before you will need help to create a processing script, "
                        "describe your requirements as best you can below and an administrator will contact you.</i>"
         , **kw)
@@ -1220,7 +1231,7 @@ class _data_file(Column):
     def __init__(self, **kw):
         super(_data_file, self).__init__(Integer, ca_title="File Field",
             ca_name="data_file",
-            ca_widget=deform.widget.SelectWidget(),
+            ca_widget=deform.widget.SelectWidget(template="file_select"),
             ca_help="Select the custom field (setup in data configuration on the methods page) that the file read from the above folder address will be saved to (this is the raw data).<br />",
             ca_description="<i>This will be empty if the methods, data configuration doesn't have a custom field of type file.</i>", **kw)
 

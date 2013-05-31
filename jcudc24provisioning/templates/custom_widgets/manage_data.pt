@@ -96,6 +96,8 @@
             </span>
         </div>
 
+        <p class="success_messages">This page doesn't provide bulk download of ingested data - these features are provided by the <a href='http://dam.hpc.jcu.edu.au:8085/'>data portal</a>.</p>
+
         <table id="results_data">
             <thead>
                 <th><input type="checkbox" onclick="$(parentNode.parentNode.parentNode.parentNode).find
@@ -148,6 +150,7 @@
             </span>
         </div>
     </div>
+
     <!-- /mapping -->
 
     <script type="text/javascript">

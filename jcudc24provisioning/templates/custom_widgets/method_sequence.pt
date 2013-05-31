@@ -25,7 +25,7 @@
         </ol>
 
         <h4>(Optional) Pre-Configured Template</h4>
-        <p>Templates allow for pre-configured data collection methods where as much information is pre-filled as possible.  Feel free to have a browse for something appropriate, if you use a template that is incorrect you can easily delete the method and re-create it.</p>
+        <p>Templates allow for pre-configured data collection methods where as much information is pre-filled as possible.  Click the Use a method template to see what is available (just un-select again if you don't want to use one), if you use a template that is incorrect you can easily delete the method and re-create it.</p>
         <p><i>Please let us know through the contact forms if your project or department doesn't have templates and you think they would be beneficial (eg. you keep having to fill the same thing out).</i></p>
 
         <input type="checkbox" id="use_template" onclick="$('#${field.oid}-template_selection').toggle()"/>

@@ -26,6 +26,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import sys
 from jcudc24provisioning.models import DBSession
+from jcudc24provisioning.models.project import Attachment, MethodAttachment
 import os
 from pyramid.paster import get_appsettings
 from sqlalchemy import engine_from_config
@@ -62,7 +63,7 @@ def cleanup_uploads(config_uri):
         sys.exit(1)
 
     for f_name in os.listdir(uploads_folder):
-        session.query()
-
-        os.remove(f_name)
+        if session.query(Attachment).filter_by(attachment=f_name).count() + \
+           session.query(MethodAttachment).filter_by(attachment=f_name).count() == 0:
+            os.remove(f_name)
 

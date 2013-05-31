@@ -55,7 +55,7 @@ class PageLocking(object):
 
         self.session.flush()
 
-        if "user_id" in self.request.matchdict and "url" in self.request.matchdict:
+        if self.request.matchdict is not None and "user_id" in self.request.matchdict and "url" in self.request.matchdict:
             json_data = json.dumps({'id': lock.id})
             return {'values': json_data}
 

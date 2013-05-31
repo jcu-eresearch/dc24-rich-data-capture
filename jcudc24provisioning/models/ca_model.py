@@ -55,7 +55,7 @@ class CAModel(object):
             self._schema = convert_schema(SQLAlchemyMapping(type(self)))
         return self._schema
 
-    def dictify(self, schema=None, force_not_empty_lists=False, dates_as_string=True):
+    def dictify(self, schema=None, force_not_empty_lists=False, dates_as_string=True, bool_false_as_none=True):
         """
         Convert this model into a Deform appstruct (dict)
 
@@ -66,7 +66,8 @@ class CAModel(object):
         """
         if schema is None:
             schema = self.schema
-        return self.convert_sqlalchemy_model_to_data(self, schema=schema, force_not_empty_lists=force_not_empty_lists, dates_as_string=dates_as_string)
+        return self.convert_sqlalchemy_model_to_data(self, schema=schema, force_not_empty_lists=force_not_empty_lists,
+            dates_as_string=dates_as_string, bool_false_as_none=bool_false_as_none)
 
     def update(self, appstruct):
         """
@@ -383,7 +384,8 @@ class CAModel(object):
 
         return model_object
     
-    def convert_sqlalchemy_model_to_data(self, model, schema=None, force_not_empty_lists=False, dates_as_string=True):
+    def convert_sqlalchemy_model_to_data(self, model, schema=None, force_not_empty_lists=False, dates_as_string=True,
+                                         bool_false_as_none=True):
         """
         Functionality behind CAModel dictify(), this is a recursive function that will call itself for each child.
 
@@ -416,11 +418,14 @@ class CAModel(object):
                 if isinstance(value, date) and dates_as_string:
                     value = str(value)
     
-                if isinstance(value, bool) and hasattr(node.widget, 'true_val'):
-                    if value:
+                if isinstance(value, bool):
+                    if hasattr(node.widget, 'true_val') and value:
                         value = node.widget.true_val
-                    elif hasattr(node.widget, 'false_val'):
-                        value = node.widget.false_val
+                    else:
+                        if bool_false_as_none:
+                            value = None
+                        elif hasattr(node.widget, 'false_val'):
+                            value = node.widget.false_val
     
                 if isinstance(value, list):
                     node_list = []

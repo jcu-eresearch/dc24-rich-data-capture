@@ -229,6 +229,7 @@ class Workflows(Layouts):
         """
         if '_redbox' not in locals():
             # Get Redbox conconfigurations
+            url = self.config.get("redbox.url")
             alert_url = self.config.get("redbox.url") + self.config.get("redbox.alert_url")
             host = self.config.get("redbox.ssh_host")
             port = self.config.get("redbox.ssh_port")
@@ -243,7 +244,7 @@ class Workflows(Layouts):
 
             data_portal = "https://research.jcu.edu.au/enmasse/"
 
-            self._redbox = ReDBoxWrapper(url=alert_url, search_url=search_url, data_portal=data_portal, identifier_pattern=identifier_pattern, ssh_host=host, ssh_port=port, tmp_dir=tmp_dir, harvest_dir=harvest_dir,
+            self._redbox = ReDBoxWrapper(url=url, alert_url=alert_url, search_url=search_url, data_portal=data_portal, identifier_pattern=identifier_pattern, ssh_host=host, ssh_port=port, tmp_dir=tmp_dir, harvest_dir=harvest_dir,
                 ssh_username=username, rsa_private_key=private_key, ssh_password=password)
 
         return self._redbox
@@ -289,7 +290,7 @@ class Workflows(Layouts):
             self._previous = None # Set as None if this is the first visible step or it isn't a workflow page.
 
             if self.page in WORKFLOW_STEPS and WORKFLOW_STEPS.index(self.page) > 0:
-                for i in reversed(range(len(WORKFLOW_STEPS))[:WORKFLOW_STEPS.index(self.page) - 1]):
+                for i in reversed(range(len(WORKFLOW_STEPS))[:WORKFLOW_STEPS.index(self.page)]):
                     if 'hidden' not in WORKFLOW_STEPS[i] or not WORKFLOW_STEPS[i]['hidden']:
                         self._previous = WORKFLOW_STEPS[i]
                         break
@@ -565,7 +566,7 @@ class Workflows(Layouts):
 
         if not self._is_page_touched():
             # Try to display the form without validating
-            appstruct = self._get_model_appstruct(dates_as_string=False)
+            appstruct = self._get_model_appstruct(dates_as_string=False, bool_false_as_none=True)
             display = self._render_unvalidated_mode(appstruct)
             if display is not None:
                 return display
@@ -588,16 +589,25 @@ class Workflows(Layouts):
                 self._model = self.session.query(self.model_type).filter_by(id=self.model_id).first()
         return self._model
 
-    def _get_model_appstruct(self, dates_as_string=None):
+    def _get_model_appstruct(self, dates_as_string=None, bool_false_as_none=None):
         """
         Helper method for getting the current pages model and converting it into a Deform compatible appstruct.
         """
+
+        # These are here as colander doen't integratre properly with deform widgets
+        # (eg. validation requires a pstruct (strings), rendering requires cstruct (dates))
         if dates_as_string is None:
             dates_as_string = self._is_page_touched()
 
+        # colander deserialisation is if appstruct return True else False -> so giving the default False value ('false')
+        # is read as true...
+        if bool_false_as_none is None:
+            bool_false_as_none = self._is_page_touched()
+
+
         if not hasattr(self, '_model_appstruct'):
             if self._get_model() is not None:
-                self._model_appstruct = self._get_model().dictify(self.form.schema, dates_as_string=dates_as_string)
+                self._model_appstruct = self._get_model().dictify(self.form.schema, dates_as_string=dates_as_string, bool_false_as_none=bool_false_as_none)
             else:
                 return {}
 
@@ -841,6 +851,7 @@ class Workflows(Layouts):
         if len(appstruct) > 0 and not hasattr(self, '_validation_error'):
             # In either of the below cases get the data as a dict and get the rendered form
             new_project = Project()
+            new_project.state = ProjectStates.OPEN
 
             new_project.created_by = self.request.user.id
             new_project.date_created = datetime.now()
@@ -1178,10 +1189,14 @@ class Workflows(Layouts):
                     method = self.session.query(Method).filter_by(id=new_dataset_data['dataset:method_id']).first()
                     template_dataset = self.session.query(Dataset).join(MethodTemplate).filter(Dataset.id == MethodTemplate.dataset_id).\
                             filter(MethodTemplate.id == method.method_template_id).first()
-                    if template_dataset is None:
-                        continue
 
-                    template_clone = self._clone_model(template_dataset)
+                    if template_dataset is not None:
+                        template_clone = self._clone_model(template_dataset)
+                    else:
+                        template_clone = Dataset(new_dataset_data)
+
+                    if len(template_clone.dataset_locations) == 1 and template_clone.dataset_locations[0].id is None:
+                        template_clone.dataset_locations = []
 
                     # Pre-fill with first project point location
                     if len(template_clone.dataset_locations) == 0:
@@ -1379,6 +1394,7 @@ class Workflows(Layouts):
                 val_form.validate_pstruct(appstruct)
                 self.error = []
                 self.project.validated = True
+                self.project.datasets_ready += 1
             except ValidationFailure, e:
                 errors = self.find_errors(e.error)
                 sorted_errors = []
@@ -1408,14 +1424,21 @@ class Workflows(Layouts):
 
 
         buttons=()
+        if (self.project.state == ProjectStates.DISABLED
+            and has_permission(DefaultPermissions.DELETE, self.context, self.request).boolval) or\
+           (self.project.state == ProjectStates.SUBMITTED and
+            has_permission(DefaultPermissions.APPROVE, self.context, self.request).boolval) or\
+           (self.project.state == ProjectStates.OPEN and
+            has_permission(DefaultPermissions.EDIT_PROJECT, self.context, self.request).boolval):
+            buttons += (DELETE_TEXT,)
+
         if (self.project.state == ProjectStates.OPEN or self.project.state is None) and len(self.error) <= 0:
             buttons += (SUBMIT_TEXT,)
         elif self.project.state == ProjectStates.SUBMITTED:
             buttons += (REOPEN_TEXT, APPROVE_TEXT)
         elif self.project.state == ProjectStates.ACTIVE:
             buttons += (DISABLE_TEXT,)
-        elif self.project.state == ProjectStates.DISABLED:
-            buttons += (DELETE_TEXT,)
+
         buttons += (Button("Save Notes"),)
         self.form.buttons = buttons
 
@@ -1448,22 +1471,25 @@ class Workflows(Layouts):
                 if dataset.dam_id is not None:
                     self.ingester_api.disableDataset(dataset.dam_id)
 
-        if DELETE_TEXT in self.request.POST and self.project.state == ProjectStates.DISABLED \
-                and has_permission(DefaultPermissions.DELETE, self.context, self.request).boolval:
-            schemas = []
+        if DELETE_TEXT in self.request.POST and ((self.project.state == ProjectStates.DISABLED
+                  and has_permission(DefaultPermissions.DELETE, self.context, self.request).boolval) or\
+                 (self.project.state == ProjectStates.SUBMITTED and
+                  has_permission(DefaultPermissions.APPROVE, self.context, self.request).boolval) or\
+                 (self.project.state == ProjectStates.OPEN and
+                  has_permission(DefaultPermissions.EDIT_PROJECT, self.context, self.request).boolval)):
+
+            # Delete the associated DAM datasets, schemas and locations.
             for dataset in self.project.datasets:
                 if dataset.dam_id is not None:
                     schema = dataset.method.data_type
-                    if schema not in schemas:
-                        schemas.append(schema)
-
                     self.ingester_api.delete(dataset.dataset_locations[0])
                     self.ingester_api.delete(dataset)
-
-                for schema in schemas:
                     self.ingester_api.delete(schema)
+                self.session.delete(dataset) # It shouldn't really require the 2 steps, but this makes sure there aren't problems with foreign keys.
 
+            self.session.flush()
             self.session.delete(self.project)
+            return HTTPFound(self.request.route_url("dashboard"))
 
         if APPROVE_TEXT in self.request.POST and self.project.state == ProjectStates.SUBMITTED\
                 and has_permission(DefaultPermissions.APPROVE, self.context, self.request).boolval and len(self.error) <= 0:
@@ -1487,18 +1513,18 @@ class Workflows(Layouts):
                         self.project_id ,e))
                 return self._create_response(page_help=page_help)
 
-#            try:
-#                self.redbox.insert_project(self.project_id)
-#
-#            except Exception as e:
-#                logger.exception("Project failed to add to ReDBox: %s", self.project.id)
-#                self.request.session.flash("Sorry, the project failed to generate or add metadata records to ReDBox, please try agiain.", 'error')
-#                self.request.session.flash("Error: %s" % e, 'error')
-#                self._send_email_notifications(NotificationConfig.errors.key,
-#                    message="Error creating ReDBox records for project <a href='%s'>%s</a>: %s" % (
-#                        self.request.route_url("general", project_id=self.project_id),
-#                        self.project_id ,e))
-#                return self._create_response(page_help=page_help)
+            try:
+                self.redbox.insert_project(self.project_id)
+
+            except Exception as e:
+                logger.exception("Project failed to add to ReDBox: %s", self.project.id)
+                self.request.session.flash("Sorry, the project failed to generate or add metadata records to ReDBox, please try agiain.", 'error')
+                self.request.session.flash("Error: %s" % e, 'error')
+                self._send_email_notifications(NotificationConfig.errors.key,
+                    message="Error creating ReDBox records for project <a href='%s'>%s</a>: %s" % (
+                        self.request.route_url("general", project_id=self.project_id),
+                        self.project_id ,e))
+                return self._create_response(page_help=page_help)
 
             # Change the state to active
             self.project.state = ProjectStates.ACTIVE
@@ -1506,6 +1532,14 @@ class Workflows(Layouts):
 
 
         buttons=()
+        if (self.project.state == ProjectStates.DISABLED
+            and has_permission(DefaultPermissions.DELETE, self.context, self.request).boolval) or\
+           (self.project.state == ProjectStates.SUBMITTED and
+            has_permission(DefaultPermissions.APPROVE, self.context, self.request).boolval) or\
+           (self.project.state == ProjectStates.OPEN and
+            has_permission(DefaultPermissions.EDIT_PROJECT, self.context, self.request).boolval):
+            buttons += (Button(DELETE_TEXT),)
+
         if (self.project.state == ProjectStates.OPEN or self.project.state is None) and len(self.error) <= 0 and\
                 has_permission(DefaultPermissions.SUBMIT, self.context, self.request).boolval:
             buttons += (Button(SUBMIT_TEXT),)
@@ -1517,9 +1551,6 @@ class Workflows(Layouts):
         elif self.project.state == ProjectStates.ACTIVE and\
                 has_permission(DefaultPermissions.DISABLE, self.context, self.request).boolval:
             buttons += (Button(DISABLE_TEXT),)
-        elif self.project.state == ProjectStates.DISABLED and\
-                has_permission(DefaultPermissions.DELETE, self.context, self.request).boolval:
-            buttons += (Button(DELETE_TEXT),)
         buttons += (Button("Save Notes"),)
         self.form.buttons = buttons
 
@@ -1575,12 +1606,15 @@ class Workflows(Layouts):
                 model = self.generate_dataset_record(dataset_id)
                 self.session.add(model)
                 self.session.flush() # Update the id field so it is stored in the form!
+                self.project.datasets_ready += 1
 
             self._model = model # Set the model to be rendered (this is needed to provide the default _render_form() with the created template data)
 
         if 'Cancel' not in self.request.POST:
             # Ignore the redirect result as this page is never called to save other form data (comes from a readonly page)
             self._handle_form()
+            if self._form_changed:
+                self.project.datasets_ready += 1
 
         if 'Cancel' in self.request.POST or 'Save_&_Close' in self.request.POST:
             target = 'submit'
@@ -1596,6 +1630,8 @@ class Workflows(Layouts):
         :return: A ColanderAlchemy Metadata model of the newly created dataset metadata.
         """
         metadata_id = self.session.query(Metadata.id).filter_by(dataset_id=dataset_id).first()
+        if metadata_id is not None:
+            metadata_id = metadata_id[0]
 
         metadata_template = self.session.query(Metadata).join(Project).filter(Metadata.project_id == Project.id).join(Dataset).filter(Project.id==Dataset.project_id).filter(Dataset.id==dataset_id).first()
 
@@ -1755,6 +1791,9 @@ class Workflows(Layouts):
         :param dataset: Provisioning interface dataset to find changes for.
         :return: Array of dict's that describe the changes.
         """
+
+        return [] # TODO: This is here for production while data calibration is still under development.
+
         if dataset.dam_id is None:
             return []
 
@@ -1819,10 +1858,16 @@ class Workflows(Layouts):
         schema.methods = self.project.methods
         schema.validator = dataset_validator
 
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id, dataset_id=dataset_id),
+            buttons=("Save",), use_ajax=False)
+        self.form.widget.template="edit_dataset_form"
+        self.form.widget.readonly_template="readonly/edit_dataset_form"
+        self.form.widget.get_file_fields = self._get_file_fields
+
         # Add calibration data for display.
         if dataset is not None and dataset.dam_id is not None:
             calibrations_data = []
-            calibrations = self.ingester_api.search(DatasetMetadataSearchCriteria(dataset.dam_id), 0, 1000)
+            calibrations = self.ingester_api.search(DatasetMetadataSearchCriteria(int(dataset.dam_id)), 0, 1000)
             if calibrations.count > 0:
                 for calibration in calibrations.results:
                     calibrations_data.append({
@@ -1831,11 +1876,6 @@ class Workflows(Layouts):
                         })
             self.schema.calibrations = calibrations_data
 
-        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name, project_id=self.project_id, dataset_id=dataset_id),
-            buttons=("Save",), use_ajax=False)
-        self.form.widget.template="edit_dataset_form"
-        self.form.widget.readonly_template="readonly/edit_dataset_form"
-        self.form.widget.get_file_fields = self._get_file_fields
 
         # If a new dataset was just added, set it's project before it gets added.
         appstruct = self._get_post_appstruct()

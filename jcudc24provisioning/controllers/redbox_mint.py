@@ -131,7 +131,7 @@ class ReDBoxWrapper(object):
     Provides methods to transparently export projects and datasets to ReDBox (basically direct mapping of metadata table).
     """
 
-    def __init__(self, data_portal, url, search_url, identifier_pattern, ssh_host, ssh_port, tmp_dir, harvest_dir, ssh_username, rsa_private_key=None, ssh_password=None):
+    def __init__(self, data_portal, url, alert_url, search_url, identifier_pattern, ssh_host, ssh_port, tmp_dir, harvest_dir, ssh_username, rsa_private_key=None, ssh_password=None):
         """
         Initialise the parameters for the connected ReDBox server and working data.
 
@@ -149,6 +149,7 @@ class ReDBoxWrapper(object):
         """
         self.data_portal = data_portal
         self.url = url
+        self.alert_url = alert_url
         self.ssh_host = ssh_host
         self.ssh_port = ssh_port
         self.harvest_dir = harvest_dir
@@ -440,7 +441,7 @@ class ReDBoxWrapper(object):
 
         :return: None
         """
-        return requests.post(self.url)
+        return requests.post(self.alert_url)
 
     def _add_relationships(self, project_record, dataset_records):
         """
