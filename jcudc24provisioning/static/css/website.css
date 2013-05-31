@@ -1,29 +1,89 @@
 #content {
 }
 
-#dashboard-intro h3 {
+a, a:active, a:visited {
+    text-decoration: none;
+    color: rgba(247, 147, 30, 1);
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+#dashboard_buttons {
+    display: inline-block;
+    margin-bottom: 40px;
+}
+
+#dashboard_buttons img {
+    width: 60px;
+    height: 60px;
+    margin-top: -10px;
+    padding-right: 30px;
+}
+
+.dashboard .dashboard_button {
+    display: block;;
+    padding: 20px;
+    margin: 30px 100px;
+    background-color: rgb(253, 185, 19);
+    border-radius: 2px;
+    cursor: pointer;
+    border: 1px solid #fff930;
+    box-shadow: 1px 1px 5px rgb(99, 99, 99);
+    color: #000000;
+}
+
+.dashboard .dashboard_button:hover {
+    text-decoration: none;
+    box-shadow: 1px 1px 5px rgb(99, 99, 99) inset;
+}
+
+.dashboard .minor_text {
+    font-family: cursive, serif;
+    font-size: 0.9em;
+}
+
+.dashboard .major_text {
+    font-family: "Courier New", serif;
+    font-weight: bold;
+    font-size: 2em;
+    text-shadow: -1px -1px 1px #fff, 1px 1px 1px #000;
+
+}
+
+.dashboard .dashboard_button:hover .major_text {
+    text-shadow: none;
+}
+
+.dashboard .slogan {
+    padding: 10px 0;
+    text-align: center;
+}
+
+#about-intro h3 {
     font-family: Verdana, serif;
     margin: 0;
     font-style: italic;
 }
 
-#dashboard-intro {
+#about-intro {
     display: inline-block;
 }
 
-#dashboard-intro div {
+#about-intro div {
     padding: 2px;
     margin-left: 5px;
 }
 
-#dashboard-intro img {
+#about-intro img {
     display: inline-block;
     box-shadow: 0 0 4px #bcbcbc;
     margin: 7px;
     padding: 2px;
 }
 
-#dashboard-intro .sales-point {
+#about-intro .sales-point {
     clear: both;
     min-height: 100px;
 }
@@ -35,11 +95,15 @@
 
 #dashboard_sidebar ul {
     list-style: none;
+    margin: 0;
+    padding: 0;
 }
 #dashboard_sidebar a, #dashboard_sidebar a:visited, #dashboard_sidebar a:active {
     text-decoration: none;
     color: rgba(247, 147, 30, 1);
     font-size: 1.2em;
+    margin: 0;
+    padding: 0;
 }
 
 #dashboard_sidebar a:hover {

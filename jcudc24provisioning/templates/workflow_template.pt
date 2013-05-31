@@ -1,6 +1,22 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:metal="http://xml.zope.org/namespaces/metal" xmlns:tal="http://xml.zope.org/namespaces/tal" metal:define-macro="layout" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://xml.zope.org/namespaces/metal ">
     <div metal:use-macro="view.global_template">
         <div metal:fill-slot="content">
+
+            <div id="page_title">
+                <h1>
+                    <tal:block tal:condition="exists: page_help">
+                        <span tal:condition="page_help" class="help_icon" onclick="toggleHelp(this)">?</span>
+                    </tal:block>
+                    <span tal:condition="exists: page_title" tal:replace="structure page_title" />
+                </h1>
+
+                <tal:block tal:condition="exists: page_help">
+                    <div tal:condition="page_help"
+                         tal:attributes="class 'help_text page_help_text' + (page_help_hidden and ' hidden' or '')"
+                         tal:content="structure page_help"></div>
+                </tal:block>
+            </div>
+
             <script type="text/javascript">
                 $(window).ready(function() {
                     var next = $("[name='Next']");
@@ -25,8 +41,6 @@
                     </tal:block>
                 });
             </script>
-
-
 
              <div id="sidebar">
                  <div id="sidebar_contextual_options">

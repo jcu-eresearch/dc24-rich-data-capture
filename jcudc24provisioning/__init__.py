@@ -106,6 +106,7 @@ def main(global_config, **settings):
     config.add_route('get_from_identifier', '/mint/{identifier:.*}', xhr=True)
 
     config.add_route('dashboard', '/')                                      # Home page/user dashboard
+    config.add_route('user', '/user')
     config.add_route('login', '/login')                                     # Login page
     config.add_route('login_shibboleth', '/login/shibboleth')                                     # Login page
     config.add_route('logout', '/logout')                                     # logout and redirect page

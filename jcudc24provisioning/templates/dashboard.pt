@@ -1,8 +1,73 @@
 <div metal:use-macro="view.global_template">
-    <div metal:fill-slot="content" id="content">
-        <div id="dashboard-intro">
-            <h1>EnMaSSe is designed to increase the efficiency of creating and sharing research data.</h1>
+    <div metal:fill-slot="content" id="content" class="dashboard">
+        <h1 class="slogan">EnMaSSe is designed to increase the efficiency of creating and sharing research data.</h1>
+        <div id="dashboard_buttons">
+            <a id="demo_button" class="dashboard_button" href="https://research.jcu.edu.au/enmasse-demo">
+                <img src="${request.static_url('jcudc24provisioning:static/images/arrow.jpg')}" align="left" />
+                <div id="demo_minor" class="minor_text">View a</div>
+                <div id="demo_major" class="major_text">Demo Project</div>
+            </a>
+            <a id="new_project_button" class="dashboard_button" href="${request.route_url('create')}">
+                <img src="${request.static_url('jcudc24provisioning:static/images/arrow.jpg')}" align="left" />
+                <div id="start_project_minor" class="minor_text">Start a</div>
+                <div id="start_project_major" class="major_text">New Project</div>
+            </a>
+            <a id="browse_button" class="dashboard_button" href="${request.route_url('search', search_info='')}">
+                <img src="${request.static_url('jcudc24provisioning:static/images/arrow.jpg')}" align="left" />
+                <div id="browse_minor" class="minor_text">Look through existing</div>
+                <div id="browse_major" class="major_text">Projects & Data</div>
+            </a>
+        </div>
 
+
+        <div id="dashboard_sidebar">
+            <h3>Helpful Links</h3>
+            <ul>
+                <li><a href="https://tdh-rich-data-capture-documentation.readthedocs.org/en/latest/">Read the documentation</a></li>
+                <li><a href="">Not sure if EnMaSSe is for you?</a></li>
+                <li><a href="${request.route_url('help')}">Look at the FAQ</a></li>
+                <li><a href="https://research.jcu.edu.au/researchdata/default/home">Research Data Catalogue</a></li>
+                <li><a href="http://researchdata.ands.org.au/">Research Data Australia</a></li>
+                <li><a href="http://dam.hpc.jcu.edu.au:8085/">Data Portal</a></li>
+            </ul>
+        </div>
+
+
+
+        <div id="dashboard-footer" >
+            <ul>
+                <li class="desc">
+                    <h2>What</h2>
+                    <p>The EnMaSSe application is designed to provide a user friendly interface for:</p>
+                    <ul>
+                        <li>Flexible and scalable research data ingestion (both streamed or manually input).</li>
+                        <li>High quality, fine grained, project based, metadata creation and export (eg. Enter 1 record, export many).</li>
+                        <li>Administerable and maintainable project lifecycle and workflows.</li>
+                    </ul>
+                </li>
+                <li class="desc">
+                    <h2>Why</h2>
+                    <p>The real power and reusability of the EnMaSSe is directly streaming sensor data into a scalable data storage system in a highly flexible way:</p>
+                    <ul>
+                        <li>Reusable and extendable for almost any type of streaming sensor.</li>
+                        <li>Highly customisable data configurations and custom processing scripts mean the data storage can index the ingested data any way the user requires while the bulk of data is stored as flat files (more scalable).</li>
+                        <li>Custom processing scripts can be chained together allowing the data to be split and processed in many ways.</li>
+                    </ul>
+                </li>
+                <li class="desc">
+                    <h2>How</h2>
+                    <p>The project creation workflow collects:</p>
+                    <ul>
+                        <li>Information required for quality metadata records</li>
+                        <li>Data ingestion configurations.</li>
+                        <li>Actual datasets or points of data.</li>
+                    </ul>
+                    <p>Once the configurations are entered and the project is submitted and approved, the project generates and exports a metadata record for each dataset as well as configuring and starting data ingestion.</p>
+                </li>
+            </ul>
+        </div>
+
+        <div id="about-intro">
             <div class="sales-point">
                 <img src="${request.static_url('jcudc24provisioning:static/images/quick-efficient.png')}" align="left" />
                 <h3>Quick and Efficient.</h3>
@@ -53,82 +118,30 @@
                 <div>If collected data has no associated information about what it is or how it was collected than usability is decreased.</div>
                 <div>On the other hand, if no-one knows about the research than it isn't reused either.</div>
                 <div>For these reasons EnMaSSe ensures a high standard of information is collected and publishes your data
-                nationally.</div>
+                    nationally.</div>
             </div>
         </div>
-        <div id="dashboard_sidebar">
-            <h3>Helpful Links</h3>
-            <ul>
-                <li><a href="">Read the documentation</a></li>
-                <li><a href="">Browse existing projects</a></li>
-                <li><a href="">Get started with a new project</a></li>
-                <li><a href="">Not sure if EnMaSSe is for you?</a></li>
-                <li><a href="">Look at the FAQ</a></li>
-                <li><a href="">ReDBox (publishes metadata records)</a></li>
-                <li><a href="">Research Data Australia</a></li>
-                <li><a href="">Data Portal</a></li>
-            </ul>
-        </div>
-
-        <div tal:condition="user is not None and False"><!--To enable diferent dashboard for logged in users, delete the or True-->
-            <ul id="dashboard-alerts">
-                <li class="dashboard-alert">Event logs (eg. dataset hasn't ingested data in 1 week)</li>
-                <li class="dashboard-alert">Notifications (eg. user requests to admins)</li>
-                <li class="dashboard-alert">Activity (eg. last 5 projects I edited)</li>
-            </ul>
-        </div>
-        <div id="dashboard-footer" >
-            <ul>
-                <li class="desc">
-                    <h2>What</h2>
-                    <p>The EnMaSSe application is designed to provide a user friendly interface for:</p>
-                    <ul>
-                        <li>Flexible and scalable research data ingestion (both streamed or manually input).</li>
-                        <li>High quality, fine grained, project based, metadata creation and export (eg. Enter 1 record, export many).</li>
-                        <li>Administerable and maintainable project lifecycle and workflows.</li>
-                    </ul>
-                </li>
-                <li class="desc">
-                    <h2>Why</h2>
-                    <p>The real power and reusability of the EnMaSSe is directly streaming sensor data into a scalable data storage system in a highly flexible way:</p>
-                    <ul>
-                        <li>Reusable and extendable for almost any type of streaming sensor.</li>
-                        <li>Highly customisable data configurations and custom processing scripts mean the data storage can index the ingested data any way the user requires while the bulk of data is stored as flat files (more scalable).</li>
-                        <li>Custom processing scripts can be chained together allowing the data to be split and processed in many ways.</li>
-                    </ul>
-                </li>
-                <li class="desc">
-                    <h2>How</h2>
-                    <p>The project creation workflow collects:</p>
-                    <ul>
-                        <li>Information required for quality metadata records</li>
-                        <li>Data ingestion configurations.</li>
-                        <li>Actual datasets or points of data.</li>
-                    </ul>
-                    <p>Once the configurations are entered and the project is submitted and approved, the project generates and exports a metadata record for each dataset as well as configuring and starting data ingestion.</p>
-                </li>
-            </ul>
-        </div>
         <script type="text/javascript">
-            function resize_dashboard_intro() {
+            function resize_dashboard() {
                 var MIN_WIDTH = 600;
 
                 var content = $("#content");
                 var links = $("#dashboard_sidebar");
-                var intro = $("#dashboard-intro");
+                var buttons = $("#dashboard_buttons");
 
                 if (content.width() > (MIN_WIDTH + links.width())) {
-                    intro.width(content.width() - links.width() - 30);
+                    buttons.width(content.width() - links.width() - 30);
                 } else {
-                    intro.width(content.width());
+                    buttons.width(content.width());
                 }
             }
 
             $(function() {
-                resize_dashboard_intro();
+                resize_dashboard();
             });
-            $(window).resize(resize_dashboard_intro);
+            $(window).resize(resize_dashboard);
         </script>
 
     </div>
 </div>
+

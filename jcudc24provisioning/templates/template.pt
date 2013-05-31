@@ -102,7 +102,7 @@
             </tal:block>
 
             // Provide confirmation dialogs when leaving form pages.
-            <tal:block tal:condition="exists:display_leave_confirmation"><tal:block tal:condition="display_leave_confirmation">
+            <tal:block tal:condition="exists: display_leave_confirmation"><tal:block tal:condition="display_leave_confirmation">
                 if (window.display_leave_confirmation) {
                     var message = "Are you sure you want to leave this page, all unsaved data will be lost.",
                             e = e || window.event;
@@ -234,10 +234,15 @@
                </div>
 
                <div id="top_menu" tal:define="user view.get_user">
-                   <div tal:condition="user" id="user_name">Welcome <b>${user.display_name}!</b></div>
+                   <div tal:condition="user" id="user_name">
+                       Welcome <b>${user.display_name}!</b>
+                       <div id="change_password" tal:condition="request.user.auth_type=='passwd'">
+                           <a href="${request.route_url('user')}">Change Password</a>
+                       </div>
+                   </div>
                    <!--<div id="help_menu">Help &#x25BC;</div>-->
-                   <div tal:condition="not user" id="login"><a href="${request.route_url('login')}">Log in</a></div>
-                   <div tal:condition="user" id="login"><a href="${request.route_url('logout')}">Log out</a></div>
+                   <div tal:condition="not user" id="login" class="buttonText"><a href="${request.route_url('login')}">Log in</a></div>
+                   <div tal:condition="user" id="login" class="buttonText"><a href="${request.route_url('logout')}">Log out</a></div>
                </div>
 
                <div id="search">
@@ -247,30 +252,33 @@
                    </form>
                </div>
 
-               <div id="enmasse-logo">
-                   <img src="${request.static_url('jcudc24provisioning:static/images/enmasse-logo.png')}" alt="EnMaSSe Logo" />
-               </div>
+               <!--<div id="enmasse-logo">-->
+                   <!--<img src="${request.static_url('jcudc24provisioning:static/images/enmasse-logo.png')}" alt="EnMaSSe Logo" />-->
+               <!--</div>-->
                <div id="tdh-logo">
                    <img src="${request.static_url('jcudc24provisioning:static/images/black_full_logo.png')}" alt="TDH Tropical Data Hub" />
                </div>
-               <div id="page_title">
-                   <h1><tal:block tal:condition="exists: page_help">
-                     <span tal:condition="page_help" class="help_icon"
-                           onclick="toggleHelp(this)">?</span></tal:block>
-                       <span tal:condition="exists: page_title" tal:replace="structure page_title" />
-                   </h1>
+               <!--<div id="page_title">-->
+                   <!--<h1><tal:block tal:condition="exists: page_help">-->
+                     <!--<span tal:condition="page_help" class="help_icon"-->
+                           <!--onclick="toggleHelp(this)">?</span></tal:block>-->
+                       <!--<span tal:condition="exists: page_title" tal:replace="structure page_title" />-->
+                   <!--</h1>-->
 
 
-                   <tal:block tal:condition="exists: page_help">
-                       <div tal:condition="page_help"
-                            tal:attributes="class 'help_text page_help_text' + (page_help_hidden and ' hidden' or '')"
-                            tal:content="structure page_help"></div>
-                   </tal:block>
-               </div>
+                   <!--<tal:block tal:condition="exists: page_help">-->
+                       <!--<div tal:condition="page_help"-->
+                            <!--tal:attributes="class 'help_text page_help_text' + (page_help_hidden and ' hidden' or '')"-->
+                            <!--tal:content="structure page_help"></div>-->
+                   <!--</tal:block>-->
+               <!--</div>-->
 
 
                 <div id="nav">
                     <ul>
+                        <li>
+                            <a href="/" class="enmasse-logo"><img src="${request.static_url('jcudc24provisioning:static/images/enmasse-logo.png')}" /></a>
+                        </li>
                        <li tal:repeat="page view.menu">
                            <tal:block tal:condition="page.current">
                                <a class="current" href="${page.href}" tal:content="structure page.title"></a>

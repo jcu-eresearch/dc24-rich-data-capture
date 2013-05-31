@@ -141,13 +141,13 @@ class User(CAModel, Base):
 
     __tablename__ = 'user'
     id = Column(Integer, primary_key=True, ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.HiddenWidget())
-    display_name = Column(String(128), ca_order=next(order_counter), nullable=False)
-    phone = Column(String(20), ca_order=next(order_counter), nullable=True)
     username = Column(String(80), ca_order=next(order_counter), nullable=False)
-    _password = Column(String(80), ca_name="password", ca_order=next(order_counter), nullable=False)
+    display_name = Column(String(128), ca_order=next(order_counter), nullable=False)
+    _password = Column(String(80), ca_name="password", ca_order=next(order_counter), nullable=False, ca_widget=deform.widget.PasswordWidget())
     email = Column(String(80), ca_name="email", ca_order=next(order_counter), nullable=False)
+    phone = Column(String(20), ca_order=next(order_counter), nullable=True)
     auth_type = Column(String(80), ca_name="auth_type", ca_order=next(order_counter), nullable=False)
-    project_permissions = relationship("ProjectPermissions", lazy="joined", backref="users", cascade="all")
+    project_permissions = relationship("ProjectPermissions", lazy="joined", backref="users", cascade="all", ca_exclude=True)
     roles = relationship("Role", lazy="joined", secondary=user_roles_table, backref="users", cascade="all")
 
     def __init__(self, display_name, username, password, email, auth_type="passwd", permissions=None, roles=None):

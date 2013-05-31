@@ -431,123 +431,76 @@ class Workflows(Layouts):
         renderer = get_renderer("../templates/workflow_template.pt")
         return renderer.implementation().macros['layout']
 # --------------------WORKFLOW STEP METHODS-------------------------------------------
-    def _handle_form(self, dont_touch=False):
-        """
-        Abstract saving and internal redirects to save the referring page correctly.
-
-        :return: If the current page was redirected to for the purpose of saving.
-        """
-        if self.request.method == 'POST' and len(self.request.POST) > 0:
-            # If this is a sub-request called just to save.
-            matched_route = self.request.matched_route
-            if self.request.referrer == self.request.path_url:
-                if (
-                        (matched_route == "manage_dataset" and
-                            has_permission(DefaultPermissions.EDIT_INGESTERS, self.context, self.request)) or
-                        (matched_route == "manage_data" and
-                            has_permission(DefaultPermissions.EDIT_DATA, self.context, self.request)) or
-                        (matched_route == "permissions" and
-                            has_permission(DefaultPermissions.EDIT_SHARE_PERMISSIONS, self.context, self.request)) or
-                        (matched_route == "data" and
-                         has_permission(DefaultPermissions.EDIT_DATA, self.context, self.request)) or
-                        has_permission(DefaultPermissions.EDIT_PROJECT, self.context, self.request)
-                    ):
-                    if self._save_form():
-                        self._form_changed = True
-
-                        if self.model_type == Project:
-                            if not dont_touch:
-                                self._touch_page()
-                            self.project.validated = False
-
-                        if matched_route.name == "datasets" or matched_route.name == "methods":
-                            # Indicate that the datasets changed.
-                            if self.project.datasets_ready is None:
-                                self.project.datasets_ready = 0
-                            else:
-                                self.project.datasets_ready += 1
-                    else:
-                        self._form_changed = False
-
-                    # If this view has been called for saving only, return without rendering.
-                    view_name = inspect.stack()[1][3][:-5]
-                    if self.request.matched_route.name != view_name:
-                        return True
-                else:
-                    raise HTTPForbidden("You do not have permission to save this data.  Page being saved is %s" % self.title)
-            else:
-                self._redirect_to_target(self.request.referrer)
-
-            return False
-
-    def _save_form(self, appstruct=None, model_id=None, model_type=None):
-        """
-        Abstracts functionality of saving form pages that is reusable for all project pages.
-        - If the model doesn't have an ID it inserts a new row in the database.
-        - If the model does have an ID it updates the current database row.
-        - If the data returned results in no change (or is empty), nothing is saved.
-        """
-
-        if appstruct is None:
-            appstruct = self._get_post_appstruct()
-        if model_type is None:
-            model_type = self.model_type
-
-            if model_type is None:
-                return False
-
-        if model_id is None:
-            model_id = self.model_id
-            model_id_field_name = "%s:id" % model_type.__tablename__
-            if model_id is None and model_id_field_name in appstruct:
-                model_id = appstruct[model_id_field_name]
-
-         # In either of the below cases get the data as a dict and get the rendered form
-#        if 'POST' != self.request.method or len(self.request.POST) == 0 or self.readonly or \
-#                'model_id' not in self.request.POST or 'model_type' not in self.request.POST:
-#            return
-
-#        model_id = self.request.POST['model_id']
-#        model_type = globals()[self.request.POST['model_type']]
-        changed = False
-
-        model = self.session.query(model_type).filter_by(id=model_id).first()
-
-        if model is None or not isinstance(model, model_type):
-            if model_id is None or model_id == colander.null:
-                model = model_type(appstruct=appstruct)
-                if model is not None:
-                    self.session.add(model)
-                    changed = True
-                    model.date_created = datetime.now().date()
-                    model.create_by = self.request.user.id
-                else:
-                    return
-            else:
-                raise ValueError("No project found for the given project id(" + str(model_id) + "), please do not directly edit the address bar.")
-
-        else:
-            # Update the model with all fields in the data
-            if model.update(appstruct):
-                self.session.merge(model)
-                changed = True
-
-        self._model = model
-
-        if changed:
-            model.date_modified = datetime.now().date()
-            model.last_modified_by = self.request.user.id
-
-        try:
-            self.session.flush()
-            return changed
-#            self.request.session.flash("Project saved successfully.", "success")
-        except Exception as e:
-            logger.exception("SQLAlchemy exception while flushing after save: %s" % e)
-            self.request.session.flash("There was an error while saving the project, please try again.", "error")
-            self.request.session.flash("Error: %s" % e, "error")
-            self.session.rollback()
-#       self.session.remove()
+#
+#
+#    def _save_form(self, appstruct=None, model_id=None, model_type=None):
+#        """
+#        Abstracts functionality of saving form pages that is reusable for all project pages.
+#        - If the model doesn't have an ID it inserts a new row in the database.
+#        - If the model does have an ID it updates the current database row.
+#        - If the data returned results in no change (or is empty), nothing is saved.
+#        """
+#
+#        if appstruct is None:
+#            appstruct = self._get_post_appstruct()
+#        if model_type is None:
+#            model_type = self.model_type
+#
+#            if model_type is None:
+#                return False
+#
+#        if model_id is None:
+#            model_id = self.model_id
+#            model_id_field_name = "%s:id" % model_type.__tablename__
+#            if model_id is None and model_id_field_name in appstruct:
+#                model_id = appstruct[model_id_field_name]
+#
+#         # In either of the below cases get the data as a dict and get the rendered form
+##        if 'POST' != self.request.method or len(self.request.POST) == 0 or self.readonly or \
+##                'model_id' not in self.request.POST or 'model_type' not in self.request.POST:
+##            return
+#
+##        model_id = self.request.POST['model_id']
+##        model_type = globals()[self.request.POST['model_type']]
+#        changed = False
+#
+#        model = self.session.query(model_type).filter_by(id=model_id).first()
+#
+#        if model is None or not isinstance(model, model_type):
+#            if model_id is None or model_id == colander.null:
+#                model = model_type(appstruct=appstruct)
+#                if model is not None:
+#                    self.session.add(model)
+#                    changed = True
+#                    model.date_created = datetime.now().date()
+#                    model.create_by = self.request.user.id
+#                else:
+#                    return
+#            else:
+#                raise ValueError("No project found for the given project id(" + str(model_id) + "), please do not directly edit the address bar.")
+#
+#        else:
+#            # Update the model with all fields in the data
+#            if model.update(appstruct):
+#                self.session.merge(model)
+#                changed = True
+#
+#        self._model = model
+#
+#        if changed:
+#            model.date_modified = datetime.now().date()
+#            model.last_modified_by = self.request.user.id
+#
+#        try:
+#            self.session.flush()
+#            return changed
+##            self.request.session.flash("Project saved successfully.", "success")
+#        except Exception as e:
+#            logger.exception("SQLAlchemy exception while flushing after save: %s" % e)
+#            self.request.session.flash("There was an error while saving the project, please try again.", "error")
+#            self.request.session.flash("Error: %s" % e, "error")
+#            self.session.rollback()
+##       self.session.remove()
 
     def _touch_page(self):
         """
@@ -586,17 +539,17 @@ class Workflows(Layouts):
 ##        else:
 #        return HTTPFound(self.request.route_url(target, project_id=self.project_id))
 
-    def _reset_form(self, node=None):
-        if node == None:
-            node = self.form
-
-        if hasattr(node, 'cstruct') and node.cstruct is not None:
-            del node.cstruct
-        if hasattr(node, 'error') and node.error is not None:
-            del node.error
-
-        for child in node.children:
-            self._reset_form(child)
+#    def _reset_form(self, node=None):
+#        if node == None:
+#            node = self.form
+#
+#        if hasattr(node, 'cstruct') and node.cstruct is not None:
+#            del node.cstruct
+#        if hasattr(node, 'error') and node.error is not None:
+#            del node.error
+#
+#        for child in node.children:
+#            self._reset_form(child)
 
     def _render_model(self):
         """
@@ -607,43 +560,20 @@ class Workflows(Layouts):
         # Remove errors that occurred during normal processing (this is usually stuff like invalid ID's for newly added
         # models.)
         if hasattr(self.form, "error") and self.form.error is not None:
+            self.form = self.form.clone()
             self._reset_form()
 
-        self.form = self.form.clone()
-
         if not self._is_page_touched():
-            try:
-                # Try to display the form without validating
-                appstruct = self._get_model_appstruct(dates_as_string=False)
-                if appstruct is None:
-                    return
-                return self.form.render(appstruct, readonly=self._readonly)
-            except Exception, e:
-                logger.exception("Couldn't display untouched form without validating.")
+            # Try to display the form without validating
+            appstruct = self._get_model_appstruct(dates_as_string=False)
+            display = self._render_unvalidated_mode(appstruct)
+            if display is not None:
+                return display
 
-        try:
-            appstruct = self._get_model_appstruct(dates_as_string=True)
-            if appstruct is None:
-                return
-            appstruct = self.form.validate_pstruct(appstruct)
-            display = self.form.render(appstruct, readonly=self._readonly)
-        except ValidationFailure, e:
-            appstruct = e.cstruct
-            display = e.render()
+        appstruct = self._get_model_appstruct(dates_as_string=True)
+        display = self._render_validated_model(appstruct)
 
         return display
-
-    def _render_post(self, **kw):
-        """
-        Render the form using the data/appstruct from the request.POST variables.
-        """
-        if self._get_post_appstruct() is not None:
-            if hasattr(self, '_validation_error'):
-                return self._validation_error.render()
-            else:
-                return self.form.render(self._get_post_appstruct(), **kw)
-
-        return None
 
 
     def _get_model(self):
@@ -672,67 +602,6 @@ class Workflows(Layouts):
                 return {}
 
         return self._model_appstruct
-
-    def _clone_model(self, source, parent=None, copies=None):
-        """
-        Clone a database model, this returns a duplicate model with the ID removed.
-
-        :param: parent may be used to test if an ID links to a parent item.
-        :param: copies is used to hold all duplicated models so models that are referenced twice only get duplicated once.
-        """
-        if copies is None:
-            copies = {}
-
-        if source is None:
-            return None
-
-        if source.__tablename__ + str(source.id) in copies:
-            return copies[source.__tablename__ + str(source.id)]
-        else:
-            new_object = type(source)()
-            copies[source.__tablename__ + str(source.id)] = new_object
-
-        for prop in object_mapper(source).iterate_properties:
-#            if isinstance(source, (Dataset, Method)):
-#                test = 1
-
-            if (isinstance(prop, ColumnProperty) or isinstance(prop, RelationshipProperty) and prop.secondary is not None) \
-                    and not prop.key == "id":
-                setattr(new_object, prop.key, getattr(source, prop.key))
-            elif isinstance(prop, RelationshipProperty):
-                if isinstance(getattr(source, prop.key), list):
-                    items = []
-                    for item in getattr(source, prop.key):
-                        items.append(self._clone_model(item, parent=source, copies=copies))
-                    setattr(new_object, prop.key, items)
-                else:
-                    setattr(new_object, prop.key, self._clone_model(getattr(source, prop.key), parent=source, copies=copies))
-
-        if hasattr(new_object, "id"):
-            new_object.id = None
-
-        return new_object
-
-    def _get_post_appstruct(self):
-        """
-        Convert the request.POST variables into a Deform appstruct, storing any validation errors.
-
-        :return: Deform appstruct as found from the request.POST variables.
-        """
-        if not hasattr(self, '_appstruct'):
-            controls = self.request.POST.items()
-
-            if 'POST' != self.request.method or len(self.request.POST) == 0:
-                self._appstruct = {}
-            else:
-                try:
-                    self._appstruct = self.form.validate(controls)
-                except ValidationFailure, e:
-                    self._validation_error = e
-                    self._appstruct = e.cstruct
-
-        return self._appstruct
-
 
     def _create_response(self, **kwargs):
         """
@@ -3199,7 +3068,8 @@ class Workflows(Layouts):
         # Directly set the model appstruct by-passing the usual workflow appstruct generation (because this view isn't directly mapped to an ColanderAlchemy model)
         self._model_appstruct = appstruct
         self.form.cstruct = {'shared_with': colander.null}
-        delattr(self.form.children[0], 'sequence_fields')
+        if hasattr(self.form.children[0], 'sequence_fields'):
+            delattr(self.form.children[0], 'sequence_fields')
 
         # Create the response and display the form
         return self._create_response(

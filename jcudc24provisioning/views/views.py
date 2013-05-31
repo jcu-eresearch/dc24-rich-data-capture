@@ -4,14 +4,17 @@ well as exception views.
 """
 
 import ConfigParser
+import inspect
 import logging
 from mhlib import isnumeric
 from string import split
 import urllib2
 import datetime
+import colander
 from jcudc24provisioning.controllers.authentication import DefaultPermissions, DefaultRoles
+from jcudc24provisioning.controllers.ca_schema_scripts import convert_schema
 from jcudc24provisioning.models.ca_model import CAModel
-from jcudc24provisioning.models.project import Metadata, Dataset
+from jcudc24provisioning.models.project import Metadata, Dataset, Project
 from jcudc24provisioning.resources import enmasse_requirements
 from jcudc24provisioning.views.page_locking import PageLocking
 import pyramid
@@ -25,8 +28,12 @@ from jcudc24provisioning.models import DBSession
 from pyramid.request import Request
 from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
+from sqlalchemy.orm import object_mapper, RelationshipProperty, ColumnProperty
 from zope.interface import providedBy
 import deform
+from colanderalchemy.types import SQLAlchemyMapping
+import deform
+from deform.exception import ValidationFailure
 
 
 __author__ = 'Casey Bajema'
@@ -36,7 +43,7 @@ from pyramid.decorator import reify
 logger = logging.getLogger(__name__)
 
 PAGES = [
-    {'route_name': 'dashboard', 'title': 'Home', 'page_title': 'EnMaSSE Dashboard', 'hidden': False},
+    {'route_name': 'dashboard', 'title': "Home", 'page_title': 'EnMaSSE Dashboard', 'hidden': False},
     {'route_name': 'create', 'title': 'New Project', 'page_title': 'Setup a New Project', 'hidden': False, },
     {'route_name': 'search', 'title': 'Browse Projects', 'page_title': 'Browse Projects & Data'},
     {'route_name': 'help', 'title': 'Help & Support', 'page_title': 'Help & Support', 'hidden': False},
@@ -109,6 +116,7 @@ class Layouts(object):
 
             try:
                 menu['href'] = self.request.route_url(menu['route_name'], search_info="")
+
             except Exception as e:
                 logger.error("Menu item has an invalid route_name: %s" % menu['route_name'])
                 raise ValueError("Menu item has an invalid route_name: %s" % menu['route_name'])
@@ -182,6 +190,46 @@ class Layouts(object):
     #        target_callable = introspector.get('views', target)
     #        route_intr = introspector.get('routes', target)
 
+    def _clone_model(self, source, parent=None, copies=None):
+        """
+        Clone a database model, this returns a duplicate model with the ID removed.
+
+        :param: parent may be used to test if an ID links to a parent item.
+        :param: copies is used to hold all duplicated models so models that are referenced twice only get duplicated once.
+        """
+        if copies is None:
+            copies = {}
+
+        if source is None:
+            return None
+
+        if source.__tablename__ + str(source.id) in copies:
+            return copies[source.__tablename__ + str(source.id)]
+        else:
+            new_object = type(source)()
+            copies[source.__tablename__ + str(source.id)] = new_object
+
+        for prop in object_mapper(source).iterate_properties:
+        #            if isinstance(source, (Dataset, Method)):
+        #                test = 1
+
+            if (isinstance(prop, ColumnProperty) or isinstance(prop, RelationshipProperty) and prop.secondary is not None)\
+            and not prop.key == "id":
+                setattr(new_object, prop.key, getattr(source, prop.key))
+            elif isinstance(prop, RelationshipProperty):
+                if isinstance(getattr(source, prop.key), list):
+                    items = []
+                    for item in getattr(source, prop.key):
+                        items.append(self._clone_model(item, parent=source, copies=copies))
+                    setattr(new_object, prop.key, items)
+                else:
+                    setattr(new_object, prop.key, self._clone_model(getattr(source, prop.key), parent=source, copies=copies))
+
+        if hasattr(new_object, "id"):
+            new_object.id = None
+
+        return new_object
+
     def _get_messages(self):
         """
         Find and return all messages added using self.request.session.flash('<message>', '<message type>')
@@ -211,10 +259,188 @@ class Layouts(object):
             "user": self.request.user,
             "page_help_hidden": kwargs.pop("page_help_hidden", True),
             "lock_id": self.lock_id,
+            "display_leave_confirmation": kwargs.pop("display_leave_confirmation", False),
         }
 
         response_dict.update(kwargs)
         return response_dict
+
+    def _save_form(self, appstruct=None, model_id=None, model_type=None):
+        """
+        Abstracts functionality of saving form pages that is reusable for all project pages.
+        - If the model doesn't have an ID it inserts a new row in the database.
+        - If the model does have an ID it updates the current database row.
+        - If the data returned results in no change (or is empty), nothing is saved.
+        """
+
+        if appstruct is None:
+            appstruct = self._get_post_appstruct()
+        if model_type is None:
+            model_type = self.model_type
+
+            if model_type is None:
+                return False
+
+        if model_id is None:
+            model_id = self.model_id
+            model_id_field_name = "%s:id" % model_type.__tablename__
+            if model_id is None and model_id_field_name in appstruct:
+                model_id = appstruct[model_id_field_name]
+
+                # In either of the below cases get the data as a dict and get the rendered form
+            #        if 'POST' != self.request.method or len(self.request.POST) == 0 or self.readonly or \
+            #                'model_id' not in self.request.POST or 'model_type' not in self.request.POST:
+            #            return
+
+            #        model_id = self.request.POST['model_id']
+            #        model_type = globals()[self.request.POST['model_type']]
+        changed = False
+
+        model = self.session.query(model_type).filter_by(id=model_id).first()
+
+        if model is None or not isinstance(model, model_type):
+            if model_id is None or model_id == colander.null:
+                model = model_type(appstruct=appstruct)
+                if model is not None:
+                    self.session.add(model)
+                    changed = True
+                    model.date_created = datetime.now().date()
+                    model.create_by = self.request.user.id
+                else:
+                    return
+            else:
+                raise ValueError("No project found for the given project id(" + str(model_id) + "), please do not directly edit the address bar.")
+
+        else:
+            # Update the model with all fields in the data
+            if model.update(appstruct):
+                self.session.merge(model)
+                changed = True
+
+        self._model = model
+
+        if changed:
+            model.date_modified = datetime.datetime.now().date()
+            model.last_modified_by = self.request.user.id
+
+        try:
+            self.session.flush()
+            return changed
+        #            self.request.session.flash("Project saved successfully.", "success")
+        except Exception as e:
+            logger.exception("SQLAlchemy exception while flushing after save: %s" % e)
+            self.request.session.flash("There was an error while saving the project, please try again.", "error")
+            self.request.session.flash("Error: %s" % e, "error")
+            self.session.rollback()
+        #       self.session.remove()
+
+    def _handle_form(self, dont_touch=False, model_id=None, model_type=None):
+        """
+        Abstract saving and internal redirects to save the referring page correctly.
+
+        :return: If the current page was redirected to for the purpose of saving.
+        """
+        if self.request.method == 'POST' and len(self.request.POST) > 0:
+            if model_type is None:
+                model_type = self.model_type
+
+            # If this is a sub-request called just to save.
+            matched_route = self.request.matched_route
+            if self.request.referrer == self.request.path_url:
+                if (
+                    (matched_route == "user" and
+                     has_permission(DefaultPermissions.ADMINISTRATOR, self.context, self.request)) or
+                    (matched_route == "manage_dataset" and
+                     has_permission(DefaultPermissions.EDIT_INGESTERS, self.context, self.request)) or
+                    (matched_route == "manage_data" and
+                     has_permission(DefaultPermissions.EDIT_DATA, self.context, self.request)) or
+                    (matched_route == "permissions" and
+                     has_permission(DefaultPermissions.EDIT_SHARE_PERMISSIONS, self.context, self.request)) or
+                    (matched_route == "data" and
+                     has_permission(DefaultPermissions.EDIT_DATA, self.context, self.request)) or
+                    has_permission(DefaultPermissions.EDIT_PROJECT, self.context, self.request)
+                    ):
+                    if self._save_form(model_id=model_id, model_type=model_type):
+                        self._form_changed = True
+
+                        if model_type == Project:
+                            if not dont_touch:
+                                self._touch_page()
+                            self.project.validated = False
+
+                        if matched_route.name == "datasets" or matched_route.name == "methods":
+                            # Indicate that the datasets changed.
+                            if self.project.datasets_ready is None:
+                                self.project.datasets_ready = 0
+                            else:
+                                self.project.datasets_ready += 1
+                    else:
+                        self._form_changed = False
+
+                    # If this view has been called for saving only, return without rendering.
+                    view_name = inspect.stack()[1][3][:-5]
+                    if self.request.matched_route.name != view_name:
+                        return True
+                else:
+                    raise HTTPForbidden("You do not have permission to save this data.  Page being saved is %s" % self.title)
+            else:
+                self._redirect_to_target(self.request.referrer)
+
+            return False
+
+    def _get_post_appstruct(self):
+        """
+        Convert the request.POST variables into a Deform appstruct, storing any validation errors.
+
+        :return: Deform appstruct as found from the request.POST variables.
+        """
+        if not hasattr(self, '_appstruct'):
+            controls = self.request.POST.items()
+
+            if 'POST' != self.request.method or len(self.request.POST) == 0:
+                self._appstruct = {}
+            else:
+                try:
+                    self._appstruct = self.form.validate(controls)
+                except ValidationFailure, e:
+                    self._validation_error = e
+                    self._appstruct = e.cstruct
+
+        return self._appstruct
+
+    def _render_validated_model(self, appstruct=None):
+        try:
+            if appstruct is None:
+                return
+            self.render_appstruct = self.form.validate_pstruct(appstruct)
+            display = self.form.render(self.render_appstruct, readonly=self._readonly)
+        except ValidationFailure, e:
+            self.render_appstruct = e.cstruct
+            display = e.render()
+
+        return display
+
+    def _render_unvalidated_mode(self, appstruct=None):
+        try:
+            if appstruct is None:
+                return None
+            return self.form.render(appstruct, readonly=self._readonly)
+        except Exception, e:
+            logger.exception("Couldn't display untouched form without validating.")
+
+        return None
+
+    def _render_post(self, **kw):
+        """
+        Render the form using the data/appstruct from the request.POST variables.
+        """
+        if self._get_post_appstruct() is not None:
+            if hasattr(self, '_validation_error'):
+                return self._validation_error.render()
+            else:
+                return self.form.render(self._get_post_appstruct(), **kw)
+
+        return None
 
 
     @view_config(renderer="../templates/dashboard.pt", route_name="dashboard")
@@ -225,7 +451,7 @@ class Layouts(object):
 
         :return: Rendered HTML form ready for display.
         """
-        page_help = "TODO: Video or picture slider."
+        page_help = "" # TODO: Video or picture slider.
 #        self.request.session.flash("This page is still under development.", "warning")
 
         return self._create_response(page_help=page_help)
@@ -305,6 +531,26 @@ class Layouts(object):
             return HTTPFound(self.request.route_url("general", project_id=metadata.project_id))
 #            return self._redirect_to_target(self.request.route_url("general", project_id=metadata.project_id))
 
+
+    @view_config(route_name='user', renderer='../templates/form.pt', permission=DefaultPermissions.ADMINISTRATOR)
+    def user_view(self):
+        page_help = ""
+        schema = convert_schema(SQLAlchemyMapping(User, unknown='raise', ca_description=""), restrict_admin=not has_permission(DefaultPermissions.ADVANCED_FIELDS, self.context, self.request).boolval).bind(request=self.request)
+        self.form = Form(schema, action=self.request.route_url(self.request.matched_route.name), buttons=('Next', 'Save', ), )
+
+        # If this page was only called for saving and a rendered response isn't needed, return now.
+        if self._handle_form(model_id=self.request.user.id, model_type=User):
+            return
+
+        # Fix the password from plain text to hashed.
+        user = self.session.query(User).filter_by(id=self.request.user.id).first()
+        user.password = user._password
+
+        self._readonly = not has_permission(DefaultPermissions.ADMINISTRATOR, self.context, self.request).boolval
+        appstruct = user.dictify()
+        display = self._render_validated_model(appstruct)
+
+        return self._create_response(page_help=page_help, form=display)
 
 
     @forbidden_view_config(renderer='../templates/form.pt')

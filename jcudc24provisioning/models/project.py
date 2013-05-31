@@ -2078,13 +2078,13 @@ class SharedUser(colander.MappingSchema):
     The name is set with a prepend of _permission to prevent the submit element from breaking the form submit.
     """
     user_id = colander.SchemaNode(colander.Integer(),widget=deform.widget.HiddenWidget())
-    view_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.VIEW_PROJECT[0] + "_permission", default = False, title="View")
-    edit_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_PROJECT[0] + "_permission",default = False, title="Edit")
+    view_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.VIEW_PROJECT[0] + "_permission", default = False, title="View Project")
+    edit_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_PROJECT[0] + "_permission",default = False, title="Edit Project")
     submit_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.SUBMIT[0] + "_permission",default = False, title="Submit")
     disable_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.DISABLE[0] + "_permission",default = False, title="Disable")
     enable_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.ENABLE[0] + "_permission",default = False, title="Re-Enable")
-    view_data_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_DATA[0] + "_permission",default = False, title="View Data")
-    edit_data_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_DATA[0] + "_permission",default = False, title="Manage Data")
+    view_data_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.VIEW_DATA[0] + "_permission",default = False, title="Access Data")
+    edit_data_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_DATA[0] + "_permission",default = False, title="Edit Data")
     edit_ingester_permission = colander.SchemaNode(colander.Boolean(), name=DefaultPermissions.EDIT_INGESTERS[0] + "_permission",default = False, title="Manage Ingesters")
 
 class SharedUsers(colander.SequenceSchema):
