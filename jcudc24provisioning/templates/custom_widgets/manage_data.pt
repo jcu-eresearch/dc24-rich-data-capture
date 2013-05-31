@@ -120,7 +120,9 @@
                 <td tal:repeat="item result['urls'].items()"><a href="${item[1]}">${item[0]}</a></td>
             </tr>
         </table>
-
+        <div tal:condition="len(field.schema.results) == 0">
+            <b>There were no results for your search.</b>
+        </div>
 
         <div class="pagination" tal:condition="'page' in field.schema.filter_data and 'num_pages' in
                 field.schema.filter_data and field.schema.filter_data['num_pages'] > 1"

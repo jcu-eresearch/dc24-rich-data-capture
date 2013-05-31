@@ -2155,6 +2155,7 @@ class Workflows(Layouts):
         id_lists = {"dataset": [], "project": [], "data": []}
         for id in id_list:
             if id[:len("dataset_")] == "dataset_" and isnumeric(id[len("dataset_"):]):
+
                 id_lists['dataset'].append(id[len("dataset_"):])
             elif id[:len("project_")] == "project_" and isnumeric(id[len("project_"):]):
                 id_lists['project'].append(id[len("project_"):])
