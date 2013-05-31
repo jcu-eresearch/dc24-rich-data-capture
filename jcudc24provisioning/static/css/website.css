@@ -78,6 +78,7 @@ a:hover {
 
 #about-intro img {
     display: inline-block;
+    display: none !important;              /*Comment this line to show icons next to each point.*/
     box-shadow: 0 0 4px #bcbcbc;
     margin: 7px;
     padding: 2px;

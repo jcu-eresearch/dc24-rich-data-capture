@@ -92,8 +92,7 @@
             <div class="sales-point">
                 <img src="${request.static_url('jcudc24provisioning:static/images/quick-efficient.png')}" align="left" />
                 <h3>Persistent.</h3>
-                <div>Centralised data storage with <b style="color: red">daily, weekly and monthly</b> backups and
-                    <b style="color:red;">three</b> redundant copies.</div>
+                <div>Centralised data storage that provides regular backups.</div>
             </div>
 
             <div class="sales-point">
