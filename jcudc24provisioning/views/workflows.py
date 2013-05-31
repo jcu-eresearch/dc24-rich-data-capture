@@ -539,17 +539,17 @@ class Workflows(Layouts):
 ##        else:
 #        return HTTPFound(self.request.route_url(target, project_id=self.project_id))
 
-#    def _reset_form(self, node=None):
-#        if node == None:
-#            node = self.form
-#
-#        if hasattr(node, 'cstruct') and node.cstruct is not None:
-#            del node.cstruct
-#        if hasattr(node, 'error') and node.error is not None:
-#            del node.error
-#
-#        for child in node.children:
-#            self._reset_form(child)
+    def _reset_form(self, node=None):
+        if node == None:
+            node = self.form
+
+        if hasattr(node, 'cstruct') and node.cstruct is not None:
+            del node.cstruct
+        if hasattr(node, 'error') and node.error is not None:
+            del node.error
+
+        for child in node.children:
+            self._reset_form(child)
 
     def _render_model(self):
         """
