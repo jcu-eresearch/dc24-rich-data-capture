@@ -8,3 +8,5 @@ lib
 /data
 tmp
 /tmp
+/jcudc24provisioning/project_uploads
+/provisioning.log
