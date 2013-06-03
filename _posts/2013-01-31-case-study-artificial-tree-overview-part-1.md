@@ -108,9 +108,9 @@ What is the artificial sensor tree?
 
 <span id="sidebar"></span>
 
-The artificial sensor tree is a new environmental research tool being developed at [James Cook University (JCU)](http://www.jcu.edu.au) for measuring variations over rainforest canopy height.
+The artificial sensor tree is a new environmental research tool being developed at [James Cook University (JCU)](http://www.jcu.edu.au) for measuring variations in microclimate from the forest floor to the top of the rainforest canopy.
 
-Once development and testing is finished, **X** artificial sensor tree's will be deployed throughout the Daintree rainforest in cooperation with the [Daintree Rainforest Observatory (DRO)](http://eresearch.jcu.edu.au/projects/daintree-rainforest-observatory) project. 
+Once development and testing is finished, a number of artificial sensor trees will be deployed throughout the Daintree rainforest in cooperation with the [Daintree Rainforest Observatory (DRO)](http://eresearch.jcu.edu.au/projects/daintree-rainforest-observatory) project. 
 
 The first prototype (illustrated left) is a 20m high carbon fibre tube with sensor stations (illustrated below) 1m apart including a calibrated temperature sensor and humidity sensor.  Each sensor is connected to the tree's controller (Arduino) over network cable (1-wire) which collects and sends the data to an internet file server. 
 
