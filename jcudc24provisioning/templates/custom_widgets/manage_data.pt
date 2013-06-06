@@ -1,6 +1,8 @@
 <fieldset id="mapping-${field.oid}" i18n:domain="deform"
           tal:attributes="class 'deformMappingFieldset ' + str((field.schema.__dict__.get('collapsed') or field.schema.__dict__.get('collapsed') == False) and ('collapsible-'+str(field.schema.__dict__.get('collapse_group')) or nothing))">
 
+    <input type="hidden" value="${field.schema.request.route_url('search', search_info='')}" id="default_search_url">
+
     <ul style="display: inline-block" id="data_filtering-${field.oid}" class="data_filtering">
         <li><h3>Search</h3></li>
         <li class="errorLi" tal:condition="field.errormsg">
@@ -167,26 +169,29 @@
                     var type = $("#mapping-" + oid).find(".data_filter[name='type']");
                     type[0].setAttribute('onchange', 'set_search_type("' + oid + '", this.value)');
 
-                    // Set the type combo based on the URL type matchdict value.
-                    var url_parts = decodeURIComponent(document.URL).replace("https://", "").replace("http://", "").split("/");
-                    if (url_parts.length > 2 && !url_parts[2].match(/id_list=.*/g)) {
-//                        alert(url_parts[2]);
-                        type[0].value = url_parts[2];
 
-                        if (url_parts[2] == 'data') {
+                    var default_url = $("#default_search_url")[0].value;
+
+                    // Set the type combo based on the URL type matchdict value.
+                    var url_parts = decodeURIComponent(document.URL).replace(default_url, "").split("/");
+                    if (url_parts.length > 0 && !url_parts[0].match(/id_list=.*/g)) {
+//                        alert(url_parts[2]);
+                        type[0].value = url_parts[0];
+
+                        if (url_parts[0] == 'data') {
                             $("#sort_type").attr("disabled", "disabled");
                             $("#sort_order").attr("disabled", "disabled");
                         }
                     }
-                    if (url_parts.length > 3 && url_parts[3].match(/id_list=.*/g)) {
+                    if (url_parts.length > 2 && url_parts[1].match(/id_list=.*/g)) {
                         var id_list = $("#mapping-" + oid).find(".id_list[name='id_list']");
                         id_list.removeClass("placeholder_text");
-                        id_list[0].value = url_parts[3].substr("id_list=".length);
+                        id_list[0].value = url_parts[1].substr("id_list=".length);
                     }
 
                     set_search_type(oid, type[0].value);
 
-                    $(".buttons [name='Search']")[0].setAttribute("onclick", "$('#deform')[0].action='/search';")
+                    $(".buttons [name='Search']")[0].setAttribute("onclick", "$('#deform')[0].action='" + default_url + "';")
 
                     // Move the search button to the bottom of the form.
                     var placeholder = $("#search_placeholder");

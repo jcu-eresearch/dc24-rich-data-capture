@@ -2061,6 +2061,7 @@ class Workflows(Layouts):
         schema['data_filtering'].results = []
         schema['data_filtering'].filter_data = {}
         schema['data_filtering'].selection_actions = []
+        schema['data_filtering'].request = self.request
 
         appstruct = {}
         # Add the non-deform data directly to the schema (keep filtering data)
