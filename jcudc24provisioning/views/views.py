@@ -622,13 +622,12 @@ class Layouts(object):
         login_url = self.request.route_url('login_shibboleth')
         referrer = self.request.url
         if referrer == login_url:
-            referrer = '/' # never use the login form itself as came_from
+            referrer = self.request.route_url('dashboard') # never use the login form itself as came_from
         came_from = self.request.params.get('came_from', referrer)
 
         try:
             common_name = self.request.headers['commonName']
-            first_name = self.request.headers['givenName']
-            surname = self.request.headers['surname']
+            display_name = self.request.headers['displayName']
             email = self.request.headers['email']
             identifier = self.request.headers['auEduPersonSharedToken']
         except KeyError as e:
@@ -637,7 +636,7 @@ class Layouts(object):
         user = User.get_user(username=identifier, auth_type="shibboleth")
         if not user:
             # Create the user
-            logger.info("Adding: %s %s %s" % (first_name, surname, email))
+            logger.info("Adding: %s %s" % (display_name, email))
             user = User(common_name, identifier, "", email, auth_type="shibboleth")
             self.session.add(user)
             self.session.flush()
