@@ -45,7 +45,13 @@ def model_id_listener(self, attr, var):
             session = DBSession
             metadata = session.query(Metadata).filter_by(dataset_id=self.provisioning_model.id)
             config = jcudc24provisioning.global_settings
-            metadata.ccdam_identifier = config.get("ingesterapi.portal_url") + str(var)
+            
+            if "dataportal.dataset_url" not in config:
+                logger.error("dataportal.dataset_url setting is not set, defaulting")
+                portal_url = ""
+            else:
+                portal_url = config.get("dataportal.dataset_url")
+            metadata.ccdam_identifier = portal_url + str(var)
 
 #        print "Model id set: " + str(var) + " : " + str(self.provisioning_model)
 
