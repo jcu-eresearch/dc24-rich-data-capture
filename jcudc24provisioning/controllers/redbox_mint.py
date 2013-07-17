@@ -27,7 +27,9 @@ from jcudc24provisioning.views.ajax_mint_lookup import MintLookup
 from lxml import etree
 import os
 from jcudc24provisioning.models import DBSession
-from pyramid_debugtoolbar.utils import logger
+import logging
+
+logger = logging.getLogger(__name__)
 
 __author__ = 'casey'
 

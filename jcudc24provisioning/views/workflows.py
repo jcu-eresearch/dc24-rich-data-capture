@@ -1513,6 +1513,7 @@ class Workflows(Layouts):
                 logger.exception("Project failed to add to ingesterplatform - Project ID: %s", self.project.id)
                 self.request.session.flash("Failed to configure data storage and ingestion.", 'error')
                 self.request.session.flash("Error: %s" % e, 'error')
+                # FIXME The following line in invalid - dataset has no attribute project
                 self._send_email_notifications(NotificationConfig.errors.key, dataset.project,
                     message="Error creating data ingesters for <a href='%s'>project %s</a>: %s" % (
                         self.request.route_url("general", project_id=dataset.project_id),

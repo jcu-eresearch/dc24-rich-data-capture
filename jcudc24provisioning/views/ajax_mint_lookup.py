@@ -10,7 +10,9 @@ import colander
 import os
 import jcudc24provisioning
 from pyramid.view import view_config, view_defaults
-from pyramid_debugtoolbar.utils import logger
+import logging
+
+logger = logging.getLogger(__name__)
 
 __author__ = 'Casey Bajema'
 
