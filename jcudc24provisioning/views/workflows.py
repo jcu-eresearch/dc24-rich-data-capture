@@ -43,7 +43,8 @@ import sqlalchemy
 from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.orm.util import object_mapper
 import colander
-from jcudc24provisioning.controllers.redbox_mint import ReDBoxWrapper
+from jcudc24provisioning.controllers.redbox_mint import ReDBoxWrapper,\
+    ReDBoxMock
 import deform
 from deform.exception import ValidationFailure
 from deform.form import Form, Button
@@ -228,24 +229,27 @@ class Workflows(Layouts):
         All configurations are read from the development.ini/production.ini configuration file.
         """
         if '_redbox' not in locals():
-            # Get Redbox conconfigurations
-            url = self.config.get("redbox.url")
-            alert_url = self.config.get("redbox.url") + self.config.get("redbox.alert_url")
-            host = self.config.get("redbox.ssh_host")
-            port = self.config.get("redbox.ssh_port")
-            private_key = self.config.get("redbox.rsa_private_key")
-            username = self.config.get("redbox.ssh_username")
-            password = self.config.get("redbox.ssh_password")
-            harvest_dir = self.config.get("redbox.ssh_harvest_dir")
-            tmp_dir = self.config.get("redbox.tmpdir")
-            identifier_pattern = self.config.get("redbox.identifier_pattern")
-            data_portal = self.request.route_url("record_data", metadata_id="")
-            search_url = self.config['redbox.search_url']
-
-            data_portal = "https://research.jcu.edu.au/enmasse/"
-
-            self._redbox = ReDBoxWrapper(url=url, alert_url=alert_url, search_url=search_url, data_portal=data_portal, identifier_pattern=identifier_pattern, ssh_host=host, ssh_port=port, tmp_dir=tmp_dir, harvest_dir=harvest_dir,
-                ssh_username=username, rsa_private_key=private_key, ssh_password=password)
+            if "redbox.url" not in self.config:
+                self._redbox = ReDBoxMock()
+            else:
+                # Get Redbox conconfigurations
+                url = self.config.get("redbox.url")
+                alert_url = self.config.get("redbox.url") + self.config.get("redbox.alert_url")
+                host = self.config.get("redbox.ssh_host")
+                port = self.config.get("redbox.ssh_port")
+                private_key = self.config.get("redbox.rsa_private_key")
+                username = self.config.get("redbox.ssh_username")
+                password = self.config.get("redbox.ssh_password")
+                harvest_dir = self.config.get("redbox.ssh_harvest_dir")
+                tmp_dir = self.config.get("redbox.tmpdir")
+                identifier_pattern = self.config.get("redbox.identifier_pattern")
+                data_portal = self.request.route_url("record_data", metadata_id="")
+                search_url = self.config['redbox.search_url']
+    
+                data_portal = "https://research.jcu.edu.au/enmasse/"
+    
+                self._redbox = ReDBoxWrapper(url=url, alert_url=alert_url, search_url=search_url, data_portal=data_portal, identifier_pattern=identifier_pattern, ssh_host=host, ssh_port=port, tmp_dir=tmp_dir, harvest_dir=harvest_dir,
+                    ssh_username=username, rsa_private_key=private_key, ssh_password=password)
 
         return self._redbox
 

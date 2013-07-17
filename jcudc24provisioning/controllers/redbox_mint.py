@@ -27,6 +27,7 @@ from jcudc24provisioning.views.ajax_mint_lookup import MintLookup
 from lxml import etree
 import os
 from jcudc24provisioning.models import DBSession
+from pyramid_debugtoolbar.utils import logger
 
 __author__ = 'casey'
 
@@ -125,6 +126,22 @@ __author__ = 'casey'
 #
 #        return service
 
+class ReDBoxMock(object):
+    """
+    This is a mock implementation of the ReDBox service which will be used when
+    no ReDBox url is provided
+    """
+    def insert_project(self, project_id):
+        logger.info("MOCK REDBOX: Insert project %s"%project_id)
+        return
+    
+    def insert_dataset(self, dataset_id):
+        logger.info("MOCK REDBOX: Insert dataset %s"%dataset_id)
+        return
+    
+    def pre_fill_citation(self, metadata):
+        logger.info("MOCK REDBOX: Prefill citation")
+        return
 
 class ReDBoxWrapper(object):
     """
