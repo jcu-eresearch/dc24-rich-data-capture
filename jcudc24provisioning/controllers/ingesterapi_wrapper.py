@@ -303,12 +303,17 @@ class IngesterAPIWrapper(IngesterPlatformAPI):
             # Schema's cannot be changed
             return model.dam_id
 
+        if model.schema_type == None:
+            raise ValueError("Model has no schema type")
+
         if model.schema_type == jcudc24ingesterapi.schemas.data_entry_schemas.DataEntrySchema.__xmlrpc_class__:
             new_schema = jcudc24ingesterapi.schemas.data_entry_schemas.DataEntrySchema(model.name)
         elif model.schema_type == jcudc24ingesterapi.schemas.metadata_schemas.DataEntryMetadataSchema.__xmlrpc_class__:
             new_schema = jcudc24ingesterapi.schemas.metadata_schemas.DataEntryMetadataSchema(model.name)
-        if model.schema_type == jcudc24ingesterapi.schemas.metadata_schemas.DatasetMetadataSchema.__xmlrpc_class__:
+        elif model.schema_type == jcudc24ingesterapi.schemas.metadata_schemas.DatasetMetadataSchema.__xmlrpc_class__:
             new_schema = jcudc24ingesterapi.schemas.metadata_schemas.DatasetMetadataSchema(model.name)
+        else:
+            raise ValueError("Not a valid schema type: " + model.schema_type)
 
         # Set the schema parents/extends
         new_schema.extends = []
