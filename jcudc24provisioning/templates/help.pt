@@ -68,7 +68,7 @@
                 <div class="question"><b>Question:</b> How do I download the data from a project?</div>
                 <div class="answer">
                     <b>Answer:</b> EnMaSSe doesn't currently support bulk data downloads, you should use the
-                    <a href="http://dam.hpc.jcu.edu.au:8085/login">CoastalCOMS data portal</a>.
+                    <a href="http://dam.hpc.jcu.edu.au:8085/login" tal:attributes="href dataportal_home">CoastalCOMS data portal</a>.
                 </div>
                 <div class="question"><b>Question:</b> I'm starting a new research project, should I use EnMaSSe?</div>
                 <div class="answer">

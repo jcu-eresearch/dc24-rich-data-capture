@@ -28,7 +28,7 @@
                 <li><a href="${request.route_url('help')}">Look at the FAQ</a></li>
                 <li><a href="https://research.jcu.edu.au/researchdata/default/home">Research Data Catalogue</a></li>
                 <li><a href="http://researchdata.ands.org.au/">Research Data Australia</a></li>
-                <li><a href="http://dam.hpc.jcu.edu.au:8085/">Data Portal</a></li>
+                <li><a href="http://dam.hpc.jcu.edu.au:8085/" tal:attributes="href dataportal_home">Data Portal</a></li>
             </ul>
         </div>
 

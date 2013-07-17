@@ -98,7 +98,7 @@
             </span>
         </div>
 
-        <p class="success_messages">This page doesn't provide bulk download of ingested data - these features are provided by the <a href='http://dam.hpc.jcu.edu.au:8085/'>data portal</a>.</p>
+        <p class="success_messages">This page doesn't provide bulk download of ingested data - these features are provided by the <a href="http://localhost/" tal:attributes="href field.schema.dataportal_home">data portal</a>.</p>
 
         <table id="results_data">
             <thead>

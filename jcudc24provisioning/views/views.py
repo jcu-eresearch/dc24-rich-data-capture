@@ -260,6 +260,8 @@ class Layouts(object):
             "page_help_hidden": kwargs.pop("page_help_hidden", True),
             "lock_id": self.lock_id,
             "display_leave_confirmation": kwargs.pop("display_leave_confirmation", False),
+            "dataportal_home": self.config['dataportal.home_url'],
+            "dataportal_dataset": self.config['dataportal.dataset_url'],
         }
 
         response_dict.update(kwargs)

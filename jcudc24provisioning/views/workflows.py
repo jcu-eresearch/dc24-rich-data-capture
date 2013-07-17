@@ -648,6 +648,8 @@ class Workflows(Layouts):
             "page_help_hidden": kwargs.pop("page_help_hidden", True),
             "display_leave_confirmation": display_leave_confirmation,
             "lock_id": self.lock_id,
+            "dataportal_home": self.config['dataportal.home_url'],
+            "dataportal_dataset": self.config['dataportal.dataset_url'],
         }
 
         # Don't use a default directly in pop as it initialises the default even if not needed, this causes self.project
@@ -2133,6 +2135,8 @@ class Workflows(Layouts):
                   pagination_data.get("end_num", 0) or pagination_data.get('num_results', 0)
         schema['data_filtering'].filter_data['end_num'] = end_num
 
+        schema['data_filtering'].dataportal_home = self.config['dataportal.home_url']
+        
         if 'val_error' in locals():
             display = val_error.render()
         else:
