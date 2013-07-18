@@ -8,7 +8,6 @@ from pyramid.security import NO_PERMISSION_REQUIRED
 from controllers.sftp_filesend import SFTPFileSend
 from jcudc24provisioning.controllers.authentication import RootFactory, DefaultPermissions
 from jcudc24provisioning.controllers.authentication import ShibbolethAuthenticationPolicy, get_user
-from jcudc24provisioning.controllers.authentication import ShibbolethAuthenticationPolicy, get_user
 from jcudc24provisioning.scripts.create_redbox_config import create_json_config
 from pyramid_mailer.mailer import Mailer
 
@@ -40,11 +39,39 @@ declare_namespace('jcudc24provisioning')
 
 __author__ = 'Casey Bajema'
 
+def set_global_settings(settings):
+    """
+    Responsible for validating settings, and if there are no error, 
+    setting the global settings variable
+    """
+    errors = []
+    warns = []
+    
+    # Data portal
+    if "dataportal.home_url" not in settings:
+        warns.append("dataportal.home_url not set - linkages to the data portal home page will be disabled")
+    if "dataportal.dataset_url" not in settings:
+        warns.append("dataportal.dataset_url not set - linkages to the data portal datasets will be disabled")
+    elif "{0}" not in settings["dataportal.dataset_url"]:
+        warns.append("dataportal.dataset_url doesn't take a dataset id parameter - linkages to the data portal datasets will be disabled")
+        del settings["dataportal.dataset_url"]
+        
+    #
+        
+    for warn in warns:
+        logger.warn(warn)
+    
+    if len(errors) > 0:
+        for error in errors:
+            logger.error(error)
+            raise Exception("There were configuration errors, see logging")
+    
+    jcudc24provisioning.global_settings = settings
 
 def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
-    jcudc24provisioning.global_settings = settings
+    set_global_settings(settings)
 
     logging.basicConfig()
     logging.getLogger('sqlalchemy.engine').setLevel(logging.WARN)
