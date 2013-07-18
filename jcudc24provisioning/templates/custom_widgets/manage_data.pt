@@ -98,7 +98,9 @@
             </span>
         </div>
 
-        <p class="success_messages">This page doesn't provide bulk download of ingested data - these features are provided by the <a href="http://localhost/" tal:attributes="href field.schema.dataportal_home">data portal</a>.</p>
+        <p class="success_messages">This page doesn't provide bulk download of ingested data - these features are provided by the <a href="http://localhost/" tal:attributes="href field.schema.dataportal_home">data portal</a>.
+        <ul><li tal:repeat="dataportal_url field.schema.dataportal_urls"><a href="http://localhost/" tal:attributes="href dataportal_url">Dataset view in data portal</a></li></ul>
+        </p>
 
         <table id="results_data">
             <thead>

@@ -2123,7 +2123,11 @@ class Workflows(Layouts):
 
         # Find results when searching data.
         elif search_data['type'] == "data":
-            results = self._get_data_results(search_data, pagination_data, selected_ids, actions)
+            repository_ids = []
+            results = self._get_data_results(search_data, pagination_data, selected_ids, actions, repository_ids)
+            schema['data_filtering'].respoitory_ids = repository_ids
+            if "dataportal.dataset_url" in self.config:
+                schema["data_filtering"].dataportal_urls = [self.config["dataportal.dataset_url"].format(ds_id) for ds_id in repository_ids]
 
         if isinstance(results, HTTPFound):
             return results
@@ -2646,6 +2650,8 @@ class Workflows(Layouts):
             urls["Add Data"] = self.request.route_url("data", project_id=dataset.project_id, dataset_id=dataset.id, data_id=None)
         if can_view_data:
             urls["Access Data"] = self.request.route_url("search", search_info="/data/id_list=dataset_%s" % dataset.id)
+            if "dataportal.dataset_url" in self.config:
+                urls["Bulk Download"] = self.config["dataportal.dataset_url"].format(dataset.id)
 
         result = {
             "id": dataset.id,
@@ -2669,13 +2675,13 @@ class Workflows(Layouts):
         :return: Bulk results for the data found with the given filtering.
         """
         dataset_dam_id, start_date, end_date, page, limit = search_info
-
+        logger.info("Searching dataset="+`dataset_dam_id`)
         results = self.ingester_api.search(DataEntrySearchCriteria(int(dataset_dam_id), start_time=start_date, end_time=end_date),
             page * limit, limit)
 
         return results
 
-    def _get_data_results(self, search_data, pagination_data, selected_ids, actions):
+    def _get_data_results(self, search_data, pagination_data, selected_ids, actions, repository_ids):
         # Retreive all needed data and set defauts if needed.
         start_date = search_data.get('start_date', None)
         end_date = search_data.get('end_date', None)
@@ -2719,9 +2725,13 @@ class Workflows(Layouts):
 
                     if isnumeric(num):
                         # Check permissions
-                        self.request.matchdict["project_id"] = self.session.query(Dataset.project_id).filter_by(id=num).first()[0]
+                        self.request.matchdict["project_id"], ingester_id = self.session.query(Dataset.project_id, Dataset.dam_id).filter_by(id=num).first()
+                        
                         if has_permission(DefaultPermissions.VIEW_DATA, self.context, self.request) or has_permission(DefaultPermissions.EDIT_DATA, self.context, self.request):
                             dataset_list.append(num)
+                            # Lookup the dataset and get its repository ID
+                            ingester_ds = self.ingester_api.getDataset(ingester_id)
+                            repository_ids.append(ingester_ds.repository_id if ingester_ds.repository_id != None else ingester_ds.id)
                         else:
                             self.request.session.flash("You don't have permission to view data for dataset_%s" % num, "error")
                 elif 'project' in id:
