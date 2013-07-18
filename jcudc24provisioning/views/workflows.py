@@ -1122,6 +1122,7 @@ class Workflows(Layouts):
                 if method.data_type is None:
                     method.data_type = MethodSchema()
                 method.data_type.name = method.method_name
+                method.data_type.schema_type = jcudc24ingesterapi.schemas.data_entry_schemas.DataEntrySchema.__xmlrpc_class__
 
         return self._create_response(page_help=page_help)
 
