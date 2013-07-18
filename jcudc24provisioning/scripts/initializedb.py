@@ -113,6 +113,7 @@ def initialise_default_schemas(session):
 
     #-----------------Location Offset Schema----------------------
     location_offsets_schema = MethodSchema()
+    location_offsets_schema.schema_type = DataEntrySchema.__xmlrpc_class__
     location_offsets_schema.name = "XYZ Location Offsets"
     location_offsets_schema.template_schema = True
 
