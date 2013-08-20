@@ -142,6 +142,7 @@ def main(global_config, **settings):
     config.add_route('lock_page', '/lock_page/{user_id}/*url')
     config.add_route('unlock_page', '/unlock_page/{lock_id}')
     config.add_route('record_data', '/{metadata_id}')
+    config.add_route('record_data_portal', '/{metadata_id}/data')           # Redirect to the data portal
 
     #    --------------Static resources--------------------------------
     config.add_static_view('deform_static', 'deform:static', cache_max_age=0)

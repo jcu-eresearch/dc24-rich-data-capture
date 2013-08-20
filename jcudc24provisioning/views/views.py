@@ -34,6 +34,7 @@ import deform
 from colanderalchemy.types import SQLAlchemyMapping
 import deform
 from deform.exception import ValidationFailure
+from jcudc24provisioning import services
 
 
 __author__ = 'Casey Bajema'
@@ -513,7 +514,7 @@ class Layouts(object):
         Persistent view to provide metadata records and external systems with a consistent URL and implementing a simple
         redirect to the actual data view page.
 
-        :return: Page redirect respons or the results of the internally redirected page.
+        :return: Page redirect response or the results of the internally redirected page.
         """
         metadata_id = self.request.matchdict['metadata_id']
         if metadata_id is None or not isnumeric(metadata_id):
@@ -527,6 +528,43 @@ class Layouts(object):
             dataset = self.session.query(Dataset).filter_by(id=metadata.dataset_id).first()
             self.request.session.flash("Click on the Browse Data contextual option to access data.", "success")
             return HTTPFound(self.request.route_url("dataset", project_id=dataset.project_id, dataset_id=dataset.id))
+        else:
+            self.request.session.flash("Project records don't have data directly associated with them, please use the browse datasets contextual option to access data from related datasets.", "success")
+            return HTTPFound(self.request.route_url("general", project_id=metadata.project_id))
+#            return self._redirect_to_target(self.request.route_url("general", project_id=metadata.project_id))
+
+    @view_config(route_name="record_data_portal")
+    def record_data_portal_view(self):
+        """
+        Persistent view to provide metadata records and external systems with a consistent URL and implementing a simple
+        redirect to the actual data portal
+
+        :return: Page redirect response or the results of the internally redirected page.
+        """
+        metadata_id = self.request.matchdict['metadata_id']
+        if metadata_id is None or not isnumeric(metadata_id):
+            raise ValueError("You are trying to view data associated with a metadata record with an invalid identifier - you have probably manually entered an invalid website address.")
+
+        metadata = self.session.query(Metadata).filter_by(id=metadata_id).first()
+        if metadata is None:
+            raise ValueError("Record does not exist!")
+
+        if metadata.dataset_id is not None:
+            dataset = self.session.query(Dataset).filter_by(id=metadata.dataset_id).first()
+            # Check if there is a repository id
+            if dataset.dam_id is None:
+                self.request.session.flash("Project records don't have repository data directly associated with them, please use the browse datasets contextual option to access data from related datasets.", "success")
+                return HTTPFound(self.request.route_url("general", project_id=metadata.project_id))
+            
+            # Look up repository ID
+            api = services.get_ingester_platform_api()
+            ingester_dataset = api.getDataset(dataset.dam_id)
+
+            if ingester_dataset.repository_id is None:
+                self.request.session.flash("Project records don't have repository data directly associated with them, please use the browse datasets contextual option to access data from related datasets.", "success")
+                return HTTPFound(self.request.route_url("general", project_id=metadata.project_id))
+
+            return HTTPFound(self.config['dataportal.dataset_url'].format(ingester_dataset.repository_id))
         else:
             self.request.session.flash("Project records don't have data directly associated with them, please use the browse datasets contextual option to access data from related datasets.", "success")
             return HTTPFound(self.request.route_url("general", project_id=metadata.project_id))
