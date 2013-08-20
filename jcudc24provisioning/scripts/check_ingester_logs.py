@@ -2,11 +2,8 @@
 Read through the most recent logs of all active ingesters and send email notifications if any errors or warnings
 are found.
 """
-from jcudc24ingesterapi.authentication import CredentialsAuthentication
 import datetime
-from jcudc24provisioning.controllers.ingesterapi_wrapper import IngesterAPIWrapper
 
-import os
 import os
 import sys
 from pyramid.request import Request
@@ -14,7 +11,6 @@ from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
 import transaction
 
-import random
 from jcudc24provisioning.controllers.authentication import DefaultPermissions, DefaultRoles
 from jcudc24provisioning.models import DBSession, Base
 from jcudc24provisioning.models.project import Location, ProjectTemplate, Project, Dataset, MethodSchema, MethodSchemaField, Project, MethodTemplate, Method, PullDataSource, DatasetDataSource, NotificationConfig, UserNotificationConfig, ProjectNotificationConfig, Notification
@@ -28,6 +24,7 @@ from pyramid.paster import (
     setup_logging,
     )
 from jcudc24provisioning.models.website import User, Role, Permission
+from jcudc24provisioning import services
 
 def usage(argv):
     cmd = os.path.basename(argv[0])
@@ -50,8 +47,7 @@ def check_logs(config_uri):
 
     session = DBSession()
 
-    auth = CredentialsAuthentication(settings["ingesterapi.username"], settings["ingesterapi.password"])
-    ingester_api = IngesterAPIWrapper(settings["ingesterapi.url"], auth)
+    ingester_api = services.get_ingester_platform_api(settings)
 
     start_time = datetime.datetime.now()
 

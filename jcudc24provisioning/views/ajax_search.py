@@ -5,14 +5,11 @@ Provides seaching of the provisioning interface database output as JSON for loca
 import ConfigParser
 import json
 from colanderalchemy.types import SQLAlchemyMapping
-from jcudc24ingesterapi.authentication import CredentialsAuthentication
-import datetime
 import jcudc24provisioning
-from jcudc24provisioning.controllers.ingesterapi_wrapper import IngesterAPIWrapper
-from jcudc24provisioning.models import DBSession
 from pyramid.view import view_config, view_defaults
 from jcudc24provisioning.controllers.ca_schema_scripts import convert_schema
 from jcudc24provisioning.models.project import *
+from jcudc24provisioning import services
 
 __author__ = 'Casey Bajema'
 
@@ -65,8 +62,7 @@ class Search(object):
         assert 'dam_id' in self.request.matchdict, "Error: Trying to lookup ingester logs without an id."
         dam_id = self.request.matchdict['dam_id']
 
-        auth = CredentialsAuthentication(self.config["ingesterapi.username"], self.config["ingesterapi.password"])
-        ingester_api = IngesterAPIWrapper(self.config["ingesterapi.url"], auth)
+        ingester_api = services.get_ingester_platform_api(self.config)
 
         errors = []
         logs = []

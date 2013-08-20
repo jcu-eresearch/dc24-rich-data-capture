@@ -2,17 +2,11 @@
 Provides AJAX based lock/unlock of all pages.
 """
 
-import ConfigParser
 from datetime import timedelta
 import json
-from colanderalchemy.types import SQLAlchemyMapping
-from jcudc24ingesterapi.authentication import CredentialsAuthentication
-import jcudc24provisioning
-from jcudc24provisioning.controllers.ingesterapi_wrapper import IngesterAPIWrapper
 from jcudc24provisioning.models import DBSession
 from jcudc24provisioning.models.website import PageLock
 from pyramid.view import view_config, view_defaults
-from jcudc24provisioning.controllers.ca_schema_scripts import convert_schema
 from jcudc24provisioning.models.project import *
 
 __author__ = 'Casey Bajema'
