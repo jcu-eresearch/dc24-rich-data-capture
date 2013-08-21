@@ -2110,6 +2110,9 @@ class Workflows(Layouts):
         pagination_data = {}
         actions = []
 
+        # Default to no data portal links
+        schema["data_filtering"].dataportal_urls = []
+
         # If this is a list of unique identifiers, display the results (of possibly different types)
         if len(search_data) == 1 and "id_list" in search_data:
             results = self._get_id_list_results(search_data, pagination_data)
@@ -2731,7 +2734,7 @@ class Workflows(Layouts):
                         if has_permission(DefaultPermissions.VIEW_DATA, self.context, self.request) or has_permission(DefaultPermissions.EDIT_DATA, self.context, self.request):
                             dataset_list.append(num)
                             # Lookup the dataset and get its repository ID
-                            ingester_ds = self.ingester_api.getDataset(ingester_id)
+                            ingester_ds = self.ingester_api.getDataset(num)
                             repository_ids.append(ingester_ds.repository_id if ingester_ds.repository_id != None else ingester_ds.id)
                         else:
                             self.request.session.flash("You don't have permission to view data for dataset_%s" % num, "error")

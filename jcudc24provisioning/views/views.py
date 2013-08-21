@@ -567,7 +567,7 @@ class Layouts(object):
             return HTTPFound(self.config['dataportal.dataset_url'].format(ingester_dataset.repository_id))
         else:
             self.request.session.flash("Project records don't have data directly associated with them, please use the browse datasets contextual option to access data from related datasets.", "success")
-            return HTTPFound(self.request.route_url("general", project_id=metadata.project_id))
+            return HTTPFound(self.request.route_url("search", search_info="/dataset/id_list=project_%s"%metadata.project_id))
 #            return self._redirect_to_target(self.request.route_url("general", project_id=metadata.project_id))
 
 
