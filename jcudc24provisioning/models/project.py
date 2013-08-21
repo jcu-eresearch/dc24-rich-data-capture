@@ -36,8 +36,36 @@ from jcudc24provisioning.controllers.authentication import DefaultPermissions
 #DBSession = scoped_session(sessionmaker(bind=db_engine))
 import re
 
-
 logger = logging.getLogger(__name__)
+
+
+# Valid licenses
+licenses = (
+    ("http://creativecommons.org/licenses/by-nc-nd/3.0/au", "CC BY-NC-ND: Attribution-Noncommercial-No Derivatives 3.0 AU"),
+    ("http://creativecommons.org/licenses/by-nc-sa/3.0/au", "CC BY-NC-SA: Attribution-Noncommercial-Share Alike 3.0 AU"),
+    ("http://creativecommons.org/licenses/by-nc/3.0/au", "CC BY-NC: Attribution-Noncommercial 3.0 AU"),
+    ("http://creativecommons.org/licenses/by-nd/3.0/au", "CC BY-ND: Attribution-No Derivative Works 3.0 AU"),
+    ("http://creativecommons.org/licenses/by-sa/3.0/au", "CC BY-SA: Attribution-Share Alike 3.0 AU"),
+    ("http://creativecommons.org/licenses/by/3.0/au", "CC BY: Attribution 3.0 AU"),
+    ("http://opendatacommons.org/licenses/by/1.0/", "ODC-By - Attribution License 1.0"),
+    ("http://opendatacommons.org/licenses/odbl/1.0/", "ODC-ODbL - Attribution Share-Alike for data/databases 1.0"),
+    ("http://opendatacommons.org/licenses/pddl/1.0/", "PDDL - Public Domain Dedication and License 1.0"),
+    #        ('none', 'No License'),
+    #        ('creative_commons_by', 'Creative Commons - Attribution alone (by)'),
+    #        ('creative_commons_bync', 'Creative Commons - Attribution + Noncommercial (by-nc)'),
+    #        ('creative_commons_bynd', 'Creative Commons - Attribution + NoDerivatives (by-nd)'),
+    #        ('creative_commons_bysa', 'Creative Commons - Attribution + ShareAlike (by-sa)'),
+    #        ('creative_commons_byncnd', 'Creative Commons - Attribution + Noncommercial + NoDerivatives (by-nc-nd)'),
+    #        ('creative_commons_byncsa', 'Creative Commons - Attribution + Noncommercial + ShareAlike (by-nc-sa)'),
+    #        ('restricted_license', 'Restricted License'),
+    #        ('other', 'Other'),
+    )
+
+# Valid access types
+access_rights_types = (("Open Access", "Open Access", "Open access. If the data is not freely accessible via the link provided, please contact the nominated data manager or researchdata@jcu.edu.au for assistance."), 
+                       ("Contact Manager","Contact project manager", "Restricted access. Login authentication is required to access the data - please contact the data manager or nominated primary contact to negotiate access. If you have difficulty, please contact researchdata@jcu.edu.au for assistance."),  
+                       ("Contact Owner", "Contact project owner", "Dataset contains confidential or sensitive information. No access to data is permitted. Contact data manager for more information."))
+
 
 class OneOfDict(object):
     """
@@ -722,7 +750,7 @@ class Metadata(CAModel, Base):
     #-------------legal--------------------
     #    access_rights_label = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
     access_rights = Column(String(256), ca_name="dc:accessRights.skos:prefLabel", ca_order=next(order_counter), ca_title="Access Rights", ca_page="information",
-        ca_widget=deform.widget.SelectWidget(values=(("Open Access", "Open Access"),("Contact Manager","Contact project manager"), ("Contact Owner", "Contact project owner"))),
+        ca_widget=deform.widget.SelectWidget(values=access_rights_types),
         ca_group_start="legality", ca_group_collapsed=False, ca_group_title="Licenses & Access Rights",
         ca_help="Information how to access the records data, including access restrictions or embargoes based on privacy, security or other policies. A URI is optional.<br/>TODO: Update the list of access rights.")
     access_rights_url = Column(String(256), ca_validator=colander.url, ca_order=next(order_counter), ca_name="dc:accessRights.dc:identifier", ca_title="Access Rights URL (Advanced)", ca_missing="", ca_page="information",
@@ -736,26 +764,6 @@ class Metadata(CAModel, Base):
         ca_name="dc:accessRights.dc:RightsStatement.dc:identifier", ca_order=next(order_counter), ca_title="Usage Rights URL (Advanced)", ca_missing="", ca_page="information",)
     #    TODO: Link to external sources (there is a redbox url for this)
 
-    licenses = (
-        ("http://creativecommons.org/licenses/by-nc-nd/3.0/au", "CC BY-NC-ND: Attribution-Noncommercial-No Derivatives 3.0 AU"),
-        ("http://creativecommons.org/licenses/by-nc-sa/3.0/au", "CC BY-NC-SA: Attribution-Noncommercial-Share Alike 3.0 AU"),
-        ("http://creativecommons.org/licenses/by-nc/3.0/au", "CC BY-NC: Attribution-Noncommercial 3.0 AU"),
-        ("http://creativecommons.org/licenses/by-nd/3.0/au", "CC BY-ND: Attribution-No Derivative Works 3.0 AU"),
-        ("http://creativecommons.org/licenses/by-sa/3.0/au", "CC BY-SA: Attribution-Share Alike 3.0 AU"),
-        ("http://creativecommons.org/licenses/by/3.0/au", "CC BY: Attribution 3.0 AU"),
-        ("http://opendatacommons.org/licenses/by/1.0/", "ODC-By - Attribution License 1.0"),
-        ("http://opendatacommons.org/licenses/odbl/1.0/", "ODC-ODbL - Attribution Share-Alike for data/databases 1.0"),
-        ("http://opendatacommons.org/licenses/pddl/1.0/", "PDDL - Public Domain Dedication and License 1.0"),
-        #        ('none', 'No License'),
-        #        ('creative_commons_by', 'Creative Commons - Attribution alone (by)'),
-        #        ('creative_commons_bync', 'Creative Commons - Attribution + Noncommercial (by-nc)'),
-        #        ('creative_commons_bynd', 'Creative Commons - Attribution + NoDerivatives (by-nd)'),
-        #        ('creative_commons_bysa', 'Creative Commons - Attribution + ShareAlike (by-sa)'),
-        #        ('creative_commons_byncnd', 'Creative Commons - Attribution + Noncommercial + NoDerivatives (by-nc-nd)'),
-        #        ('creative_commons_byncsa', 'Creative Commons - Attribution + Noncommercial + ShareAlike (by-nc-sa)'),
-        #        ('restricted_license', 'Restricted License'),
-        #        ('other', 'Other'),
-        )
     license_label = other_license_name = Column(String(256), ca_order=next(order_counter), ca_page="information", ca_widget=deform.widget.HiddenWidget(),)
     license = Column(String(256), ca_name="dc:license.dc:identifier", ca_order=next(order_counter), ca_title="License", ca_page="information",
         ca_default="creative_commons_by", ca_force_required=True,

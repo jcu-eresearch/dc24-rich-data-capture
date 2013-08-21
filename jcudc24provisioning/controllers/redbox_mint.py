@@ -26,7 +26,7 @@ from jcudc24provisioning.views.ajax_mint_lookup import MintLookup
 
 from lxml import etree
 import os
-from jcudc24provisioning.models import DBSession
+from jcudc24provisioning.models import DBSession, project
 import logging
 
 logger = logging.getLogger(__name__)
@@ -306,6 +306,12 @@ class ReDBoxWrapper(object):
 
         # Set the record export date.
         record.record_export_date = datetime.now().date()
+        
+        # Try to update the access type to use the full description
+        for rights in project.access_rights_types:
+            if record.access_rights == rights[0]:
+                record.access_rights = rights[2]
+                break
 
         mint_lookup = MintLookup(None)
 
