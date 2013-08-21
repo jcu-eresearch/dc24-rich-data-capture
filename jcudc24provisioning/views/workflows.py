@@ -3397,6 +3397,9 @@ class Workflows(Layouts):
     def _get_data_portal_url(self, ingester_id):
         """Return the data portal URL for the given ingester platform dataset id"""
         ingester_ds = self.ingester_api.getDataset(ingester_id)
+        if ingester_ds == None:
+            logger.error("Found no dataset in the ingester platform with ID=%s"%str(ingester_id))
+            return None
         ingester_id = ingester_ds.repository_id if ingester_ds.repository_id != None else ingester_id
         return self.config["dataportal.dataset_url"].format(ingester_id)
 
