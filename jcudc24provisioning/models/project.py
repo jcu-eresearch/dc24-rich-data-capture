@@ -66,7 +66,6 @@ access_rights_types = (("Open Access", "Open Access", "Open access. If the data 
                        ("Contact Manager","Contact project manager", "Restricted access. Login authentication is required to access the data - please contact the data manager or nominated primary contact to negotiate access. If you have difficulty, please contact researchdata@jcu.edu.au for assistance."),  
                        ("Contact Owner", "Contact project owner", "Dataset contains confidential or sensitive information. No access to data is permitted. Contact data manager for more information."))
 
-
 class OneOfDict(object):
     """
     Validator which succeeds if the value passed to it is one of
@@ -750,7 +749,7 @@ class Metadata(CAModel, Base):
     #-------------legal--------------------
     #    access_rights_label = Column(String(100), ca_order=next(order_counter), ca_widget=deform.widget.HiddenWidget())
     access_rights = Column(String(256), ca_name="dc:accessRights.skos:prefLabel", ca_order=next(order_counter), ca_title="Access Rights", ca_page="information",
-        ca_widget=deform.widget.SelectWidget(values=access_rights_types),
+        ca_widget=deform.widget.SelectWidget(values=[(ar[0], ar[1]) for ar in access_rights_types]),
         ca_group_start="legality", ca_group_collapsed=False, ca_group_title="Licenses & Access Rights",
         ca_help="Information how to access the records data, including access restrictions or embargoes based on privacy, security or other policies. A URI is optional.<br/>TODO: Update the list of access rights.")
     access_rights_url = Column(String(256), ca_validator=colander.url, ca_order=next(order_counter), ca_name="dc:accessRights.dc:identifier", ca_title="Access Rights URL (Advanced)", ca_missing="", ca_page="information",
