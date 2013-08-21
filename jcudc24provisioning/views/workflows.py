@@ -2131,7 +2131,7 @@ class Workflows(Layouts):
             results = self._get_data_results(search_data, pagination_data, selected_ids, actions, repository_ids)
             schema['data_filtering'].respoitory_ids = repository_ids
             if "dataportal.dataset_url" in self.config:
-                schema["data_filtering"].dataportal_urls = [self.config["dataportal.dataset_url"].format(ds_id) for ds_id in repository_ids]
+                schema["data_filtering"].dataportal_urls = [self._get_data_portal_url(ds_id) for ds_id in repository_ids]
 
         if isinstance(results, HTTPFound):
             return results
@@ -2655,7 +2655,7 @@ class Workflows(Layouts):
         if can_view_data:
             urls["Access Data"] = self.request.route_url("search", search_info="/data/id_list=dataset_%s" % dataset.id)
             if "dataportal.dataset_url" in self.config:
-                urls["Bulk Download"] = self.config["dataportal.dataset_url"].format(dataset.id)
+                urls["Bulk Download"] = self._get_data_portal_url(dataset.dam_id)
 
         result = {
             "id": dataset.id,
@@ -2733,9 +2733,7 @@ class Workflows(Layouts):
                         
                         if has_permission(DefaultPermissions.VIEW_DATA, self.context, self.request) or has_permission(DefaultPermissions.EDIT_DATA, self.context, self.request):
                             dataset_list.append(num)
-                            # Lookup the dataset and get its repository ID
-                            ingester_ds = self.ingester_api.getDataset(num)
-                            repository_ids.append(ingester_ds.repository_id if ingester_ds.repository_id != None else ingester_ds.id)
+                            repository_ids.append(ingester_id)
                         else:
                             self.request.session.flash("You don't have permission to view data for dataset_%s" % num, "error")
                 elif 'project' in id:
@@ -3396,5 +3394,9 @@ class Workflows(Layouts):
 
         return {"exception": "%s" % self.context, "messages": messages}
 
-
+    def _get_data_portal_url(self, ingester_id):
+        """Return the data portal URL for the given ingester platform dataset id"""
+        ingester_ds = self.ingester_api.getDataset(ingester_id)
+        ingester_id = ingester_ds.repository_id if ingester_ds.repository_id != None else ingester_id
+        return self.config["dataportal.dataset_url"].format(ingester_id)
 
